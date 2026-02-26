@@ -7,6 +7,9 @@ import {
 } from "@/lib/demo/service";
 import { DemosAdminClient } from "@/app/admin/_clients/demos/DemosAdminClient";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface AdminDemosPageProps {
   params: Promise<{ adminCode: string }>;
 }
