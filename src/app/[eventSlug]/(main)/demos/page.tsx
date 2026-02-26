@@ -1,8 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { EventHeader } from "@/components/layout/EventHeader";
-import { EventNavWrapper } from "@/components/layout/EventNavWrapper";
 import { DemoSignupPanel } from "@/components/demos/DemoSignupPanel";
-import { getEventBySlug, getAnnouncements } from "@/lib/supabase/queries";
+import { getEventBySlug } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { getIntakeStatus } from "@/lib/actions/intake";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -55,9 +53,8 @@ export default async function DemosPage({ params }: DemoPageProps) {
     redirect(`/${eventSlug}`);
   }
 
-  const [slots, announcements, mySignup] = await Promise.all([
+  const [slots, mySignup] = await Promise.all([
     getDemoSlotsWithCounts(event.id),
-    getAnnouncements(event.id),
     supabase
       .from("demo_slot_signups")
       .select("slot_id")
@@ -67,35 +64,25 @@ export default async function DemosPage({ params }: DemoPageProps) {
   ]);
 
   const availability = getDemoAvailability(settings, event.timezone || "America/Edmonton");
-  const latestAnnouncement = announcements[0] || null;
 
   return (
-    <div className="min-h-screen bg-black-gradient flex flex-col pb-56 relative overflow-hidden">
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-white/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-white/[0.01] rounded-full blur-[150px] pointer-events-none" />
+    <main className="max-w-2xl mx-auto w-full px-6 py-12 space-y-8">
+      <div className="space-y-2">
+        <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Live Demos</p>
+        <h1 className="text-4xl font-light text-white tracking-tight">Book a Demo Spot</h1>
+        <p className="text-sm text-gray-500">
+          Choose one 5-minute slot. Each slot supports up to two attendees.
+        </p>
+      </div>
 
-      <EventHeader event={event} announcement={latestAnnouncement} userId={session.userId} />
-
-      <main className="max-w-2xl mx-auto w-full px-6 py-12 space-y-8">
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Live Demos</p>
-          <h1 className="text-4xl font-light text-white tracking-tight">Book a Demo Spot</h1>
-          <p className="text-sm text-gray-500">
-            Choose one 5-minute slot. Each slot supports up to two attendees.
-          </p>
-        </div>
-
-        <DemoSignupPanel
-          eventSlug={eventSlug}
-          timezone={event.timezone || "America/Edmonton"}
-          availability={availability}
-          speakerName={settings.speaker_name}
-          slots={slots}
-          mySlotId={mySignup.data?.slot_id || null}
-        />
-      </main>
-
-      <EventNavWrapper eventSlug={eventSlug} event={event} userId={session.userId} />
-    </div>
+      <DemoSignupPanel
+        eventSlug={eventSlug}
+        timezone={event.timezone || "America/Edmonton"}
+        availability={availability}
+        speakerName={settings.speaker_name}
+        slots={slots}
+        mySlotId={mySignup.data?.slot_id || null}
+      />
+    </main>
   );
 }

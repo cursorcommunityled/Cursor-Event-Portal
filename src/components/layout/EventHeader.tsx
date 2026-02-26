@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import type { Event, Announcement } from "@/types";
@@ -25,7 +24,6 @@ interface TableAssignment {
 }
 
 export function EventHeader({ event, announcement: initialAnnouncement, showTimer = true, userId }: EventHeaderProps) {
-  const router = useRouter();
   const [announcement, setAnnouncement] = useState<Announcement | null>(initialAnnouncement || null);
   const [tableAssignment, setTableAssignment] = useState<TableAssignment | null>(null);
   const [isFirstView, setIsFirstView] = useState(false);
@@ -40,15 +38,6 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
   const handleVenueLeave = () => {
     venueTimeoutRef.current = setTimeout(() => setVenueHovered(false), 200);
   };
-
-  // Auto-refresh every 60 seconds to catch any updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      router.refresh();
-    }, 60000); // 60 seconds
-
-    return () => clearInterval(interval);
-  }, [router]);
 
   // Subscribe to real-time announcement updates
   useEffect(() => {

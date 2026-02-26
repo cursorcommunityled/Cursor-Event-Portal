@@ -448,22 +448,19 @@ export function CompetitionsAdminClient({
                 {/* ── TOP 3 MODE ── */}
                 {isTop3 && (
                   <div className="space-y-4">
-                    {/* Step 1: Pick finalists (active phase, before top3 is locked) */}
-                    {comp.status === "active" && (
+                    {/* Step 1: Pick finalists — available during active AND voting (in case voting opened before finalists were confirmed) */}
+                    {(comp.status === "active" || (comp.status === "voting" && top3Ids.length < 3)) && (
                       <div className="bg-purple-500/10 rounded-2xl p-4 space-y-3 border border-purple-500/20">
                         <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 font-medium">
-                          Step 1 — Select 3 Finalists
+                          {comp.status === "voting" ? "⚠ Select 3 Finalists (voting is open)" : "Step 1 — Select 3 Finalists"}
                         </p>
                         <p className="text-xs text-gray-400">
-                          Check exactly 3 entries below, then click Confirm Finalists. After that, open voting.
+                          {comp.status === "voting"
+                            ? "Voting is open but no finalists have been confirmed yet. Select exactly 3 entries and click Confirm Finalists — attendees won't be able to vote until this is done."
+                            : "Check exactly 3 entries below, then click Confirm Finalists. After that, open voting."}
                         </p>
                         <p className="text-xs text-purple-300">
                           {pendingTop3.size}/3 selected
-                          {top3Ids.length === 3 && (
-                            <span className="ml-2 text-green-400">
-                              (Finalists already saved — you can update them)
-                            </span>
-                          )}
                         </p>
                         {pendingTop3.size === 3 && (
                           <button
@@ -691,8 +688,8 @@ export function CompetitionsAdminClient({
                               </a>
                             )}
 
-                            {/* top3: checkbox for finalist selection (active phase) */}
-                            {isTop3 && comp.status === "active" && (
+                            {/* top3: checkbox for finalist selection (active phase, or voting if finalists not yet confirmed) */}
+                            {isTop3 && (comp.status === "active" || (comp.status === "voting" && top3Ids.length < 3)) && (
                               <button
                                 onClick={() => toggleTop3Selection(comp.id, entry.id)}
                                 disabled={!isPendingSelected && pendingTop3.size >= 3}

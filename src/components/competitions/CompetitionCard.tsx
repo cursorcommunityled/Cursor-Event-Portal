@@ -208,12 +208,22 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
             </div>
           )}
 
-          {/* top3 info banner during voting */}
+          {/* top3 info banner during voting — finalists confirmed */}
           {isTop3 && competition.status === "voting" && top3Ids.length === 3 && (
             <div className="rounded-2xl bg-purple-500/10 border border-purple-500/20 px-5 py-4">
               <p className="text-xs text-purple-300 font-medium mb-1">3 Finalists Selected</p>
               <p className="text-xs text-gray-400">
                 Vote for your favorite finalist below. Two prizes will be awarded: a People&apos;s Choice (group votes) and an Admin Pick.
+              </p>
+            </div>
+          )}
+
+          {/* top3 info banner during voting — finalists not yet confirmed */}
+          {isTop3 && competition.status === "voting" && top3Ids.length < 3 && (
+            <div className="rounded-2xl bg-white/5 border border-white/10 px-5 py-4">
+              <p className="text-xs text-white font-medium mb-1">Finalists Being Selected</p>
+              <p className="text-xs text-gray-400">
+                The organiser is reviewing all submissions and will announce 3 finalists shortly. Voting opens once they&apos;re confirmed.
               </p>
             </div>
           )}
@@ -254,10 +264,10 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
               </p>
               {competition.entries.map((entry) => {
                 const isFinalist = top3Ids.includes(entry.id);
-                // In top3 mode during voting, only show the 3 finalists (admins can see all)
-                // When top3 finalists haven't been confirmed yet, treat all entries as voteable
+                // In top3 mode during voting: only show the 3 confirmed finalists (admins see all)
+                // When finalists not yet confirmed: show all entries (no vote buttons) so people can browse
                 const top3Locked = isTop3 && top3Ids.length === 3;
-                const showEntry = !isTop3 || !canVote || !top3Locked || isFinalist || competition.status !== "voting" || isAdmin;
+                const showEntry = !isTop3 || !top3Locked || isFinalist || competition.status !== "voting" || isAdmin;
                 if (!showEntry) return null;
 
                 return (
@@ -267,7 +277,7 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
                     competitionId={competition.id}
                     eventSlug={eventSlug}
                     userId={userId}
-                    canVote={canVote && (!isTop3 || !top3Locked || isFinalist)}
+                    canVote={canVote && (!isTop3 || (top3Locked && isFinalist))}
                     votingMode={competition.voting_mode}
                     isWinner={entry.id === competition.winner_entry_id}
                     isGroupWinner={entry.id === competition.group_winner_entry_id}
