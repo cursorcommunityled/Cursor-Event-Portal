@@ -10,13 +10,18 @@ import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
 function utcToLocalDateTime(utcValue: string, timezone: string): string {
   const date = new Date(utcValue);
-  const local = new Date(date.toLocaleString("en-US", { timeZone: timezone }));
-  const year = local.getFullYear();
-  const month = String(local.getMonth() + 1).padStart(2, "0");
-  const day = String(local.getDate()).padStart(2, "0");
-  const hours = String(local.getHours()).padStart(2, "0");
-  const minutes = String(local.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
 }
 
 interface DemosAdminClientProps {

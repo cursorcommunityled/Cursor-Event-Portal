@@ -14,19 +14,32 @@ export interface DemoAvailability {
   message: string;
 }
 
-function getTimezoneOffset(timezone: string, date: Date): number {
-  const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-  const tzDate = new Date(date.toLocaleString("en-US", { timeZone: timezone }));
-  return utcDate.getTime() - tzDate.getTime();
+function getUtcOffsetMs(timezone: string, date: Date): number {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) =>
+    parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
+  const wallMs = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return date.getTime() - wallMs;
 }
 
 function toUtcIso(localDateTime: string, timezone: string): string {
   const [datePart, timePart] = localDateTime.split("T");
   const [year, month, day] = datePart.split("-").map(Number);
   const [hours, minutes] = timePart.split(":").map(Number);
-  const localDate = new Date(year, month - 1, day, hours, minutes);
-  const offset = getTimezoneOffset(timezone, localDate);
-  return new Date(localDate.getTime() + offset).toISOString();
+  // Treat the wall clock as UTC to get a reference point, then apply the real offset.
+  const approxMs = Date.UTC(year, month - 1, day, hours, minutes);
+  const offset = getUtcOffsetMs(timezone, new Date(approxMs));
+  return new Date(approxMs + offset).toISOString();
 }
 
 function getEventLocalDate(event: Event): { year: string; month: string; day: string } {
