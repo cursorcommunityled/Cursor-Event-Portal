@@ -556,11 +556,13 @@ export function CompetitionsAdminClient({
                       const isGroupWinner = entry.id === comp.group_winner_entry_id;
                       const isWinner = entry.id === comp.winner_entry_id;
 
+                      const hasMedia = !!(entry.preview_image_url || entry.video_url);
+
                       return (
                         <div
                           key={entry.id}
                           className={cn(
-                            "rounded-xl border p-4 flex items-center justify-between",
+                            "rounded-xl border overflow-hidden",
                             isAdminWinner
                               ? "border-yellow-500/40 bg-yellow-500/10"
                               : isGroupWinner
@@ -574,7 +576,50 @@ export function CompetitionsAdminClient({
                               : "border-white/10 bg-white/5"
                           )}
                         >
-                          <div className="space-y-1 flex-1">
+                          {/* Media preview */}
+                          {hasMedia && (
+                            <div className="w-full aspect-video bg-black/40 relative overflow-hidden">
+                              {entry.preview_image_url ? (
+                                <img
+                                  src={entry.preview_image_url}
+                                  alt={entry.title}
+                                  className="w-full h-full object-contain object-center"
+                                />
+                              ) : entry.video_url && (
+                                entry.video_url.includes("youtube.com") || entry.video_url.includes("youtu.be") ? (
+                                  <iframe
+                                    src={`https://www.youtube.com/embed/${
+                                      entry.video_url.includes("youtu.be")
+                                        ? entry.video_url.split("youtu.be/")[1]?.split("?")[0]
+                                        : new URL(entry.video_url).searchParams.get("v") || ""
+                                    }`}
+                                    title={entry.title}
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                ) : entry.video_url.includes("vimeo.com") ? (
+                                  <iframe
+                                    src={`https://player.vimeo.com/video/${entry.video_url.split("vimeo.com/")[1]?.split("?")[0]}`}
+                                    title={entry.title}
+                                    className="absolute inset-0 w-full h-full"
+                                    allowFullScreen
+                                  />
+                                ) : (
+                                  <video
+                                    src={entry.video_url}
+                                    controls
+                                    muted
+                                    playsInline
+                                    className="absolute inset-0 w-full h-full object-contain"
+                                  />
+                                )
+                              )}
+                            </div>
+                          )}
+
+                          <div className="p-4 flex items-center justify-between gap-3">
+                          <div className="space-y-1 flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               {isAdminWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
                               {isGroupWinner && <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
@@ -706,6 +751,7 @@ export function CompetitionsAdminClient({
                                 Pick Winner
                               </button>
                             )}
+                          </div>
                           </div>
                         </div>
                       );
