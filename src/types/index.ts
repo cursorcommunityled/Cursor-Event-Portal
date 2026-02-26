@@ -78,6 +78,35 @@ export interface TableRegistration {
   registered_at: string;
 }
 
+export interface DemoSignupSettings {
+  id: string;
+  event_id: string;
+  is_enabled: boolean;
+  speaker_name: string | null;
+  opens_at: string;
+  closes_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DemoSlot {
+  id: string;
+  event_id: string;
+  starts_at: string;
+  ends_at: string;
+  capacity: number;
+  created_at: string;
+}
+
+export interface DemoSlotSignup {
+  id: string;
+  event_id: string;
+  slot_id: string;
+  user_id: string;
+  created_at: string;
+  user?: Pick<User, "id" | "name" | "email">;
+}
+
 export interface User {
   id: string;
   email: string | null;
