@@ -114,17 +114,23 @@ export function DemoSignupPanel({
                   {slot.is_full ? " (full)" : ` (${slot.spots_left} left)`}
                 </p>
               </div>
-              <button
-                onClick={() => handleBook(slot.id)}
-                disabled={isDisabled || isMine}
-                className={`h-10 px-5 rounded-2xl text-[10px] uppercase tracking-[0.2em] font-bold transition-all ${
-                  isMine
-                    ? "bg-green-500/20 text-green-300 border border-green-500/30"
-                    : "bg-white text-black hover:bg-gray-200 disabled:opacity-35 disabled:cursor-not-allowed"
-                }`}
-              >
-                {isMine ? "Booked" : "Book"}
-              </button>
+              {isMine ? (
+                <button
+                  onClick={handleCancel}
+                  disabled={isPending}
+                  className="h-10 px-5 rounded-2xl text-[10px] uppercase tracking-[0.2em] font-bold transition-all bg-white/10 text-gray-300 border border-white/20 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30 disabled:opacity-40"
+                >
+                  Unbook
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleBook(slot.id)}
+                  disabled={isDisabled}
+                  className="h-10 px-5 rounded-2xl text-[10px] uppercase tracking-[0.2em] font-bold transition-all bg-white text-black hover:bg-gray-200 disabled:opacity-35 disabled:cursor-not-allowed"
+                >
+                  Book
+                </button>
+              )}
             </div>
           );
         })}
