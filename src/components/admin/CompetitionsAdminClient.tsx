@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Star,
   Users,
+  Code,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +34,18 @@ interface CompetitionsAdminClientProps {
   eventSlug: string;
   adminCode: string;
   initialCompetitions: CompetitionWithEntries[];
+}
+
+function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "github.com") return null;
+    const parts = u.pathname.split("/").filter(Boolean);
+    if (parts.length >= 2) return { owner: parts[0], repo: parts[1] };
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 const statusActions: Record<string, { label: string; next: CompetitionStatus; icon: typeof Play }> = {
@@ -566,6 +579,22 @@ export function CompetitionsAdminClient({
                           </div>
 
                           <div className="flex items-center gap-2 ml-3 shrink-0">
+                            {/* StackBlitz preview */}
+                            {(() => {
+                              const ghRepo = parseGitHubRepo(entry.repo_url);
+                              return ghRepo ? (
+                                <a
+                                  href={`https://stackblitz.com/github/${ghRepo.owner}/${ghRepo.repo}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all text-[10px] font-medium"
+                                  title="Open in StackBlitz"
+                                >
+                                  <Code className="w-3 h-3" />
+                                  StackBlitz
+                                </a>
+                              ) : null;
+                            })()}
                             <a
                               href={entry.repo_url}
                               target="_blank"
@@ -584,6 +613,19 @@ export function CompetitionsAdminClient({
                                 title="Live demo"
                               >
                                 <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
+                            {entry.video_url && (
+                              <a
+                                href={entry.video_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-purple-300 transition-all"
+                                title="Watch video"
+                              >
+                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                  <polygon points="5 3 19 12 5 21 5 3" />
+                                </svg>
                               </a>
                             )}
 

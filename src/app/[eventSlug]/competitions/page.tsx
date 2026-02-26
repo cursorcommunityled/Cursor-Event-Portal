@@ -6,6 +6,7 @@ import { EventHeader } from "@/components/layout/EventHeader";
 import { EventNavWrapper } from "@/components/layout/EventNavWrapper";
 import { CompetitionsList } from "@/components/competitions/CompetitionsList";
 import { getAnnouncements } from "@/lib/supabase/queries";
+import { createServiceClient } from "@/lib/supabase/server";
 
 interface CompetitionsPageProps {
   params: Promise<{ eventSlug: string }>;
@@ -26,6 +27,14 @@ export default async function CompetitionsPage({ params }: CompetitionsPageProps
   if (!intakeStatus.completed && !intakeStatus.skipped) {
     redirect(`/${eventSlug}/intake`);
   }
+
+  const supabase = await createServiceClient();
+  const { data: userRecord } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", session.userId)
+    .single();
+  const isAdmin = !!userRecord && ["staff", "admin"].includes(userRecord.role);
 
   console.log("[CompetitionsPage] Fetching for event:", event.id, event.slug);
   const [competitions, announcements] = await Promise.all([
@@ -59,6 +68,7 @@ export default async function CompetitionsPage({ params }: CompetitionsPageProps
             eventId={event.id}
             eventSlug={eventSlug}
             userId={session.userId}
+            isAdmin={isAdmin}
           />
         </div>
       </main>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Trophy, ThumbsUp, ExternalLink, Code, Users, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { castVote } from "@/lib/actions/competitions";
+import { WinnerCelebration } from "@/components/competitions/Confetti";
 import type { CompetitionEntry, VotingMode } from "@/types";
 
 interface EntryCardProps {
@@ -18,6 +19,8 @@ interface EntryCardProps {
   isGroupWinner?: boolean;
   isAdminWinner?: boolean;
   isFinalist?: boolean;
+  isAdmin?: boolean;
+  competitionStatus?: string;
 }
 
 function parseGitHubRepo(url: string): { owner: string; repo: string } | null {
@@ -55,6 +58,21 @@ function getVideoEmbedUrl(url: string): string | null {
   }
 }
 
+function isDirectVideoUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (
+      u.hostname.includes("youtube.com") ||
+      u.hostname.includes("youtu.be") ||
+      u.hostname.includes("vimeo.com")
+    ) return false;
+    const path = u.pathname.toLowerCase();
+    return path.endsWith(".mp4") || path.endsWith(".webm") || path.endsWith(".mov");
+  } catch {
+    return false;
+  }
+}
+
 export function EntryCard({
   entry,
   competitionId,
@@ -66,6 +84,8 @@ export function EntryCard({
   isGroupWinner = false,
   isAdminWinner = false,
   isFinalist = false,
+  isAdmin = false,
+  competitionStatus,
 }: EntryCardProps) {
   const router = useRouter();
   const [voting, setVoting] = useState(false);
@@ -75,6 +95,9 @@ export function EntryCard({
   const ghRepo = parseGitHubRepo(entry.repo_url);
   const stackBlitzUrl = ghRepo ? `https://stackblitz.com/github/${ghRepo.owner}/${ghRepo.repo}` : null;
   const videoEmbedUrl = entry.video_url ? getVideoEmbedUrl(entry.video_url) : null;
+  const directVideoUrl = entry.video_url && !videoEmbedUrl && isDirectVideoUrl(entry.video_url) ? entry.video_url : null;
+  const isAnyWinner = isAdminWinner || isGroupWinner || isWinner;
+  const showCelebration = isAnyWinner && competitionStatus === "ended";
 
   const handleVote = async (score: number = 1, isJudge: boolean = false) => {
     setVoteError(null);
@@ -91,20 +114,21 @@ export function EntryCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border overflow-hidden transition-all",
+        "rounded-2xl border overflow-hidden transition-all relative",
         isAdminWinner
-          ? "border-yellow-500/40 bg-yellow-500/10"
+          ? "border-yellow-500/50 bg-yellow-500/10 shadow-[0_0_24px_rgba(234,179,8,0.25)]"
           : isGroupWinner
-          ? "border-blue-500/40 bg-blue-500/10"
+          ? "border-blue-500/50 bg-blue-500/10 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
           : isWinner
-          ? "border-yellow-500/30 bg-yellow-500/5"
+          ? "border-yellow-500/40 bg-yellow-500/5 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
           : isFinalist
           ? "border-purple-500/30 bg-purple-500/5"
           : "border-white/10 bg-white/5"
       )}
     >
+      {showCelebration && <WinnerCelebration duration={8000} />}
       {/* Preview media: image and/or video — for voting and big-screen showcase */}
-      {(entry.preview_image_url || videoEmbedUrl) && (
+      {(entry.preview_image_url || videoEmbedUrl || directVideoUrl) && (
         <div className="aspect-video w-full bg-white/5 relative overflow-hidden">
           {entry.preview_image_url && (
             <img
@@ -122,6 +146,15 @@ export function EntryCard({
               allowFullScreen
             />
           )}
+          {directVideoUrl && !entry.preview_image_url && (
+            <video
+              src={directVideoUrl}
+              controls
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-contain"
+            />
+          )}
         </div>
       )}
       {entry.video_url && entry.preview_image_url && (
@@ -136,7 +169,7 @@ export function EntryCard({
           </a>
         </div>
       )}
-      {entry.video_url && !videoEmbedUrl && !entry.preview_image_url && (
+      {entry.video_url && !videoEmbedUrl && !directVideoUrl && !entry.preview_image_url && (
         <div className="p-4">
           <a
             href={entry.video_url}
@@ -232,7 +265,7 @@ export function EntryCard({
           )}
 
           {/* Vote button */}
-          {canVote && !isOwn && (
+          {canVote && (!isOwn || isAdmin) && (
             <>
               {(votingMode === "judges" || votingMode === "both") ? (
                 <div className="flex items-center gap-2 ml-auto">

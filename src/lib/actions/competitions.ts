@@ -475,7 +475,7 @@ export async function castVote(
     }
   }
 
-  // Don't let users vote on their own entry
+  // Don't let users vote on their own entry (admins/staff are exempt)
   const { data: entry } = await supabase
     .from("competition_entries")
     .select("user_id")
@@ -483,7 +483,15 @@ export async function castVote(
     .single();
 
   if (entry?.user_id === session.userId) {
-    return { error: "Cannot vote on your own entry" };
+    const { data: userRecord } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", session.userId)
+      .single();
+
+    if (!userRecord || !["staff", "admin"].includes(userRecord.role)) {
+      return { error: "Cannot vote on your own entry" };
+    }
   }
 
   // For group/top3 voting, score is always 1; for judges/both use 1-5

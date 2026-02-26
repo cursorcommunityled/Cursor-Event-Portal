@@ -37,6 +37,7 @@ interface CompetitionCardProps {
   competition: CompetitionWithEntries;
   eventSlug: string;
   userId: string;
+  isAdmin?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -51,7 +52,7 @@ const statusColors: Record<string, string> = {
   ended: "text-gray-500",
 };
 
-export function CompetitionCard({ competition, eventSlug, userId }: CompetitionCardProps) {
+export function CompetitionCard({ competition, eventSlug, userId, isAdmin = false }: CompetitionCardProps) {
   const [expanded, setExpanded] = useState(true);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -253,8 +254,8 @@ export function CompetitionCard({ competition, eventSlug, userId }: CompetitionC
               </p>
               {competition.entries.map((entry) => {
                 const isFinalist = top3Ids.includes(entry.id);
-                // In top3 mode during voting, only show/voteable the 3 finalists
-                const showEntry = !isTop3 || !canVote || isFinalist || competition.status !== "voting";
+                // In top3 mode during voting, only show the 3 finalists (admins can see all)
+                const showEntry = !isTop3 || !canVote || isFinalist || competition.status !== "voting" || isAdmin;
                 if (!showEntry) return null;
 
                 return (
@@ -264,12 +265,14 @@ export function CompetitionCard({ competition, eventSlug, userId }: CompetitionC
                     competitionId={competition.id}
                     eventSlug={eventSlug}
                     userId={userId}
-                    canVote={canVote && (!isTop3 || isFinalist)}
+                    canVote={canVote && (!isTop3 || isFinalist || isAdmin)}
                     votingMode={competition.voting_mode}
                     isWinner={entry.id === competition.winner_entry_id}
                     isGroupWinner={entry.id === competition.group_winner_entry_id}
                     isAdminWinner={entry.id === competition.admin_winner_entry_id}
                     isFinalist={isTop3 && isFinalist}
+                    isAdmin={isAdmin}
+                    competitionStatus={competition.status}
                   />
                 );
               })}

@@ -10,6 +10,7 @@ interface CompetitionsListProps {
   eventId: string;
   eventSlug: string;
   userId: string;
+  isAdmin?: boolean;
 }
 
 export function CompetitionsList({
@@ -17,6 +18,7 @@ export function CompetitionsList({
   eventId,
   eventSlug,
   userId,
+  isAdmin = false,
 }: CompetitionsListProps) {
   const [competitions, setCompetitions] = useState(initialCompetitions);
 
@@ -108,6 +110,7 @@ export function CompetitionsList({
           competition={competition}
           eventSlug={eventSlug}
           userId={userId}
+          isAdmin={isAdmin}
         />
       ))}
     </div>

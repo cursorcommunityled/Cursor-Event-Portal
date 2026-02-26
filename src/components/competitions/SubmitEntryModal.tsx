@@ -26,8 +26,10 @@ export function SubmitEntryModal({
   const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,6 +64,35 @@ export function SubmitEntryModal({
       setLoading(false);
     } else {
       onClose();
+    }
+  };
+
+  const handleVideoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setUploadingVideo(true);
+    try {
+      const form = new FormData();
+      form.set("file", file);
+      form.set("eventId", eventId);
+      form.set("competitionId", competitionId);
+      const res = await fetch("/api/competition-upload-video", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Video upload failed");
+        return;
+      }
+      setVideoUrl(data.url);
+    } catch {
+      setError("Video upload failed");
+    } finally {
+      setUploadingVideo(false);
+      e.target.value = "";
+      if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
 
@@ -232,16 +263,55 @@ export function SubmitEntryModal({
 
           <div>
             <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium mb-2">
-              Video URL (optional)
+              Demo Video (optional)
             </label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://youtube.com/watch?v=... or Vimeo link"
-              disabled={loading}
-              className="w-full min-w-0 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-all box-border"
-            />
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                  onChange={handleVideoFile}
+                  disabled={loading || uploadingVideo}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => videoInputRef.current?.click()}
+                  disabled={loading || uploadingVideo}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/10 border border-white/10 text-white text-sm font-medium hover:bg-white/15 transition-all disabled:opacity-50"
+                >
+                  {uploadingVideo ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  {uploadingVideo ? "Uploading…" : "Upload Video"}
+                </button>
+                <span className="text-[10px] text-gray-500">or paste YouTube / Vimeo URL below</span>
+              </div>
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://youtube.com/watch?v=... or Vimeo link"
+                disabled={loading || uploadingVideo}
+                className="w-full min-w-0 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-all box-border"
+              />
+              {videoUrl && !videoUrl.includes("youtube") && !videoUrl.includes("youtu.be") && !videoUrl.includes("vimeo") && (
+                <div className="rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                  <video
+                    src={videoUrl}
+                    controls
+                    muted
+                    className="w-full max-h-40 object-contain"
+                  />
+                </div>
+              )}
+            </div>
+            <p className="mt-1 text-[10px] text-gray-500">
+              Max 50MB · MP4, WebM, or MOV · Max ~30 seconds recommended · No audio required
+            </p>
           </div>
 
           {error && (
