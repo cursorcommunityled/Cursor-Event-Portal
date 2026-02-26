@@ -10,6 +10,7 @@ import { EventTimer } from "@/components/timer/EventTimer";
 import { createClient } from "@/lib/supabase/client";
 import { hasUserSeenItem, markItemAsSeen } from "@/lib/supabase/seenItems";
 import { MapPin } from "lucide-react";
+import { DemoStatusBadge } from "@/components/demos/DemoStatusBadge";
 
 interface EventHeaderProps {
   event: Event;
@@ -299,36 +300,43 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
             </div>
           </Link>
 
-          {/* Table Assignment */}
-          {tableAssignment && (
-            <div className={cn(
-              "flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-xl backdrop-blur-xl group hover:bg-white/[0.05] transition-all duration-500",
-              isFirstView
-                ? "bg-white/[0.15] border-white/60 shadow-[0_0_30px_rgba(255,255,255,0.4)] scale-105"
-                : "bg-white/[0.03] border-white/10"
-            )}>
-              <MapPin className={cn(
-                "w-4 h-4 transition-colors duration-500",
+          {/* Right-side badges */}
+          <div className="flex items-center gap-2">
+            <DemoStatusBadge
+              eventId={event.id}
+              eventSlug={event.slug}
+              timezone={event.timezone || "America/Edmonton"}
+            />
+            {tableAssignment && (
+              <div className={cn(
+                "flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-xl backdrop-blur-xl group hover:bg-white/[0.05] transition-all duration-500",
                 isFirstView
-                  ? "text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]"
-                  : "text-gray-400 group-hover:text-white"
-              )} />
-              <div className="flex flex-col items-center text-center">
-                <span className={cn(
-                  "text-[10px] uppercase tracking-[0.2em] font-bold transition-colors duration-500",
-                  isFirstView ? "text-white/90" : "text-gray-500"
-                )}>Table</span>
-                <span className={cn(
-                  "text-sm font-semibold transition-all duration-500",
+                  ? "bg-white/[0.15] border-white/60 shadow-[0_0_30px_rgba(255,255,255,0.4)] scale-105"
+                  : "bg-white/[0.03] border-white/10"
+              )}>
+                <MapPin className={cn(
+                  "w-4 h-4 transition-colors duration-500",
                   isFirstView
-                    ? "text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] scale-110"
-                    : "text-white"
-                )}>
-                  {tableAssignment.tableNumber}
-                </span>
+                    ? "text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.6)]"
+                    : "text-gray-400 group-hover:text-white"
+                )} />
+                <div className="flex flex-col items-center text-center">
+                  <span className={cn(
+                    "text-[10px] uppercase tracking-[0.2em] font-bold transition-colors duration-500",
+                    isFirstView ? "text-white/90" : "text-gray-500"
+                  )}>Table</span>
+                  <span className={cn(
+                    "text-sm font-semibold transition-all duration-500",
+                    isFirstView
+                      ? "text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] scale-110"
+                      : "text-white"
+                  )}>
+                    {tableAssignment.tableNumber}
+                  </span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </header>
