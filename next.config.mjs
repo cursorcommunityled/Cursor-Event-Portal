@@ -40,7 +40,12 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
-      allowedOrigins: ["localhost:3000", "cursor-popup-portal.onrender.com"],
+      allowedOrigins: [
+          "localhost:3000",
+          "http://localhost:3000",
+          "cursor-popup-portal.onrender.com",
+          "https://cursor-popup-portal.onrender.com",
+        ],
     },
   },
   images: {

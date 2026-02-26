@@ -162,7 +162,7 @@ export async function bookDemoSlot(eventSlug: string, slotId: string) {
   const settings = await getOrCreateDemoSettings(event);
   await syncDemoSlotsForWindow(event.id, settings.opens_at, settings.closes_at);
 
-  const availability = getDemoAvailability(settings);
+  const availability = getDemoAvailability(settings, event.timezone || "America/Edmonton");
   if (!availability.is_open) {
     return { error: availability.message };
   }

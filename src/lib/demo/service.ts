@@ -138,7 +138,18 @@ export async function syncDemoSlotsForWindow(
   await supabase.from("demo_slots").delete().eq("event_id", eventId).gte("starts_at", closesAt);
 }
 
-export function getDemoAvailability(settings: DemoSignupSettings): DemoAvailability {
+/** Parse ISO timestamp as UTC. DB may return with or without 'Z'; ensure we never interpret as local. */
+function parseUtc(iso: string): Date {
+  const s = typeof iso === "string" ? iso.trim() : "";
+  if (!s) return new Date(NaN);
+  if (s.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(s)) return new Date(s);
+  return new Date(`${s.replace(/\.\d{3}$/, "")}Z`);
+}
+
+export function getDemoAvailability(
+  settings: DemoSignupSettings,
+  eventTimezone: string = "America/Edmonton"
+): DemoAvailability {
   if (!settings.is_enabled) {
     return {
       state: "disabled",
@@ -148,14 +159,23 @@ export function getDemoAvailability(settings: DemoSignupSettings): DemoAvailabil
   }
 
   const now = new Date();
-  const opensAt = new Date(settings.opens_at);
-  const closesAt = new Date(settings.closes_at);
+  const opensAt = parseUtc(settings.opens_at);
+  const closesAt = parseUtc(settings.closes_at);
+
+  if (Number.isNaN(opensAt.getTime()) || Number.isNaN(closesAt.getTime())) {
+    return {
+      state: "disabled",
+      is_open: false,
+      message: "Demo signup window is misconfigured.",
+    };
+  }
 
   if (now < opensAt) {
+    const opensLocal = opensAt.toLocaleString("en-CA", { timeZone: eventTimezone, dateStyle: "short", timeStyle: "short" });
     return {
       state: "upcoming",
       is_open: false,
-      message: "Demo signup has not opened yet.",
+      message: `Demo signup has not opened yet. It opens at ${opensLocal}.`,
     };
   }
 

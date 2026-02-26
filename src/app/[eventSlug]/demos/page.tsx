@@ -66,7 +66,7 @@ export default async function DemosPage({ params }: DemoPageProps) {
       .maybeSingle(),
   ]);
 
-  const availability = getDemoAvailability(settings);
+  const availability = getDemoAvailability(settings, event.timezone || "America/Edmonton");
   const latestAnnouncement = announcements[0] || null;
 
   return (
