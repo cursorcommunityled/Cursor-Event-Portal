@@ -174,7 +174,7 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
   }
 
   return data.map((slot) => {
-    const attendees = ((slot.signups || []) as Array<{ user: { id: string; name: string; email: string | null } | null }>)
+    const attendees = ((slot.signups || []) as unknown as Array<{ user: { id: string; name: string; email: string | null } | null }>)
       .map((signup) => signup.user)
       .filter((user): user is { id: string; name: string; email: string | null } => !!user);
 
