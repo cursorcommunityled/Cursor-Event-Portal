@@ -13,6 +13,9 @@ import {
   syncDemoSlotsForWindow,
 } from "@/lib/demo/service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 interface DemoPageProps {
   params: Promise<{ eventSlug: string }>;
 }
