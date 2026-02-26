@@ -72,6 +72,8 @@ export function SubmitEntryModal({
     if (!file) return;
     setError(null);
     setUploadingVideo(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const form = new FormData();
       form.set("file", file);
@@ -80,15 +82,22 @@ export function SubmitEntryModal({
       const res = await fetch("/api/competition-upload-video", {
         method: "POST",
         body: form,
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Video upload failed");
         return;
       }
       setVideoUrl(data.url);
-    } catch {
-      setError("Video upload failed");
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Upload timed out. Try a shorter video or paste a YouTube/Vimeo URL instead.");
+      } else {
+        setError("Video upload failed. Try pasting a YouTube or Vimeo URL instead.");
+      }
     } finally {
       setUploadingVideo(false);
       e.target.value = "";
@@ -101,6 +110,8 @@ export function SubmitEntryModal({
     if (!file) return;
     setError(null);
     setUploading(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const form = new FormData();
       form.set("file", file);
@@ -109,15 +120,22 @@ export function SubmitEntryModal({
       const res = await fetch("/api/competition-upload-preview", {
         method: "POST",
         body: form,
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Upload failed");
         return;
       }
       setPreviewImageUrl(data.url);
-    } catch {
-      setError("Upload failed");
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err instanceof Error && err.name === "AbortError") {
+        setError("Upload timed out. Try a smaller image or paste a URL instead.");
+      } else {
+        setError("Upload failed. Try pasting an image URL instead.");
+      }
     } finally {
       setUploading(false);
       e.target.value = "";

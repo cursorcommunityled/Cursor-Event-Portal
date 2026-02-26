@@ -15,6 +15,7 @@ import {
   Star,
   Users,
   Code,
+  ThumbsUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +27,7 @@ import {
   selectTop3Entries,
   selectAdminWinner,
   finalizeGroupWinner,
+  castVote,
 } from "@/lib/actions/competitions";
 import type { CompetitionWithEntries, CompetitionStatus } from "@/types";
 
@@ -92,6 +94,9 @@ export function CompetitionsAdminClient({
 
   // top3: track which entries the admin has checked as finalists
   const [top3Selections, setTop3Selections] = useState<Record<string, Set<string>>>({});
+  // admin voting state
+  const [votingEntryId, setVotingEntryId] = useState<string | null>(null);
+  const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
 
   const toggleTop3Selection = (compId: string, entryId: string) => {
     setTop3Selections((prev) => {
@@ -229,6 +234,18 @@ export function CompetitionsAdminClient({
       router.refresh();
     }
     setLoading(null);
+  };
+
+  const handleCastVote = async (compId: string, entryId: string) => {
+    setVotingEntryId(entryId);
+    setVoteErrors((prev) => ({ ...prev, [entryId]: "" }));
+    const result = await castVote(compId, entryId, eventSlug);
+    setVotingEntryId(null);
+    if (result?.error) {
+      setVoteErrors((prev) => ({ ...prev, [entryId]: result.error! }));
+    } else {
+      router.refresh();
+    }
   };
 
   return (
@@ -643,6 +660,24 @@ export function CompetitionsAdminClient({
                               >
                                 {isPendingSelected ? "Selected" : "Select"}
                               </button>
+                            )}
+
+                            {/* top3: vote button for admin (voting phase only) */}
+                            {isTop3 && comp.status === "voting" && isFinalist && (
+                              <div className="flex flex-col items-end gap-1">
+                                <button
+                                  onClick={() => handleCastVote(comp.id, entry.id)}
+                                  disabled={votingEntryId === entry.id}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-400 text-xs font-medium hover:bg-green-500/20 transition-all disabled:opacity-50"
+                                  title="Cast your vote for this entry (People's Choice)"
+                                >
+                                  <ThumbsUp className="w-3 h-3" />
+                                  {votingEntryId === entry.id ? "Voting…" : "Vote"}
+                                </button>
+                                {voteErrors[entry.id] && (
+                                  <span className="text-[10px] text-red-400">{voteErrors[entry.id]}</span>
+                                )}
+                              </div>
                             )}
 
                             {/* top3: admin winner button (voting/ended) */}

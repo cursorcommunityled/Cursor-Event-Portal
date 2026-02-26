@@ -15,6 +15,10 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+// Ensure no route is cached: all attendees and admins see fresh data everywhere
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function RootLayout({
   children,
 }: {

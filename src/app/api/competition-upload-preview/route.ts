@@ -73,29 +73,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure bucket exists and is public
-    const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-    if (bucketError) {
-      return NextResponse.json(
-        { error: `Storage error: ${bucketError.message}` },
-        { status: 500 }
-      );
-    }
-    const bucket = buckets?.find((b) => b.name === "competition-previews");
-    if (!bucket) {
-      const { error: createError } = await supabase.storage.createBucket("competition-previews", {
-        public: true,
-      });
-      if (createError) {
-        return NextResponse.json(
-          { error: `Could not create bucket: ${createError.message}` },
-          { status: 500 }
-        );
-      }
-    } else if (!bucket.public) {
-      await supabase.storage.updateBucket("competition-previews", { public: true });
-    }
-
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${eventId}/${competitionId}/${session.userId}/${Date.now()}-${safeName}`;
 
