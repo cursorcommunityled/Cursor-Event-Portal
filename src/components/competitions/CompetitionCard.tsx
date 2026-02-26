@@ -265,7 +265,7 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
                     competitionId={competition.id}
                     eventSlug={eventSlug}
                     userId={userId}
-                    canVote={canVote && (!isTop3 || isFinalist || isAdmin)}
+                    canVote={canVote && (!isTop3 || isFinalist)}
                     votingMode={competition.voting_mode}
                     isWinner={entry.id === competition.winner_entry_id}
                     isGroupWinner={entry.id === competition.group_winner_entry_id}
