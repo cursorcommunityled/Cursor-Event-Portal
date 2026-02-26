@@ -467,10 +467,10 @@ export async function castVote(
     return { error: "Voting is not open" };
   }
 
-  // In top3 mode, only allow voting on the 3 selected finalists
+  // In top3 mode, only restrict to finalists once they've been confirmed (3 selected)
   if (competition.voting_mode === "top3") {
     const top3 = competition.top3_entry_ids as string[] | null;
-    if (!top3 || !top3.includes(entryId)) {
+    if (top3 && top3.length === 3 && !top3.includes(entryId)) {
       return { error: "You can only vote on the three finalists" };
     }
   }

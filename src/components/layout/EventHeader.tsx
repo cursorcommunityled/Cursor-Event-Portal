@@ -215,6 +215,12 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
   const redThreshold = 180; // 3 hours from start
 
   return (
+    <>
+    <DemoStatusBadge
+      eventId={event.id}
+      eventSlug={event.slug}
+      timezone={event.timezone || "America/Edmonton"}
+    />
     <header className="sticky top-0 z-40">
       {showTimer && <EventTimer startTime={eventStartTime} redThreshold={redThreshold} />}
       {/* Announcement Banner */}
@@ -302,11 +308,6 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
 
           {/* Right-side badges */}
           <div className="flex items-center gap-2">
-            <DemoStatusBadge
-              eventId={event.id}
-              eventSlug={event.slug}
-              timezone={event.timezone || "America/Edmonton"}
-            />
             {tableAssignment && (
               <div className={cn(
                 "flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-xl backdrop-blur-xl group hover:bg-white/[0.05] transition-all duration-500",
@@ -340,5 +341,6 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
         </div>
       </div>
     </header>
+    </>
   );
 }

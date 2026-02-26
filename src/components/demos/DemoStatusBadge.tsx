@@ -73,14 +73,14 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
   const isAvailable = availability.is_open && hasOpenSlots;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="fixed top-4 right-4 z-50">
       {/* Pill badge */}
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
           "flex items-center gap-2 px-3.5 py-2 rounded-2xl border backdrop-blur-xl transition-all duration-300",
           isAvailable
-            ? "bg-green-500/10 border-green-500/30 hover:bg-green-500/20 shadow-[0_0_18px_rgba(34,197,94,0.15)]"
+            ? "bg-blue-500/15 border-blue-500/40 hover:bg-blue-500/25 shadow-[0_0_20px_rgba(59,130,246,0.35)]"
             : "bg-white/[0.03] border-white/10 hover:bg-white/[0.06]"
         )}
       >
@@ -88,17 +88,17 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
           className={cn(
             "w-1.5 h-1.5 rounded-full flex-shrink-0",
             isAvailable
-              ? "bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.9)]"
+              ? "bg-blue-400 animate-pulse shadow-[0_0_8px_rgba(96,165,250,0.9)]"
               : "bg-gray-600"
           )}
         />
         <span
           className={cn(
             "text-[10px] uppercase tracking-[0.2em] font-bold whitespace-nowrap",
-            isAvailable ? "text-green-400" : "text-gray-500"
+            isAvailable ? "text-blue-300" : "text-gray-500"
           )}
         >
-          {isAvailable ? "Available!" : "Demos"}
+          {isAvailable ? "Demo Slots Available Now!" : "Demos"}
         </span>
       </button>
 

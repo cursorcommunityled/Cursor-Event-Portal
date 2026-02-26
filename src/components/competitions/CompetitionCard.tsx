@@ -255,7 +255,9 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
               {competition.entries.map((entry) => {
                 const isFinalist = top3Ids.includes(entry.id);
                 // In top3 mode during voting, only show the 3 finalists (admins can see all)
-                const showEntry = !isTop3 || !canVote || isFinalist || competition.status !== "voting" || isAdmin;
+                // When top3 finalists haven't been confirmed yet, treat all entries as voteable
+                const top3Locked = isTop3 && top3Ids.length === 3;
+                const showEntry = !isTop3 || !canVote || !top3Locked || isFinalist || competition.status !== "voting" || isAdmin;
                 if (!showEntry) return null;
 
                 return (
@@ -265,7 +267,7 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
                     competitionId={competition.id}
                     eventSlug={eventSlug}
                     userId={userId}
-                    canVote={canVote && (!isTop3 || isFinalist)}
+                    canVote={canVote && (!isTop3 || !top3Locked || isFinalist)}
                     votingMode={competition.voting_mode}
                     isWinner={entry.id === competition.winner_entry_id}
                     isGroupWinner={entry.id === competition.group_winner_entry_id}
@@ -277,8 +279,8 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
                 );
               })}
 
-              {/* Show non-finalist entries collapsed during voting in top3 mode */}
-              {isTop3 && canVote && competition.entries.some((e) => !top3Ids.includes(e.id)) && (
+              {/* Show non-finalist entries collapsed during voting in top3 mode (only when finalists are locked) */}
+              {isTop3 && canVote && top3Ids.length === 3 && competition.entries.some((e) => !top3Ids.includes(e.id)) && (
                 <p className="text-xs text-gray-600 text-center pt-2">
                   Other submissions are hidden during voting — only the 3 finalists are eligible.
                 </p>
