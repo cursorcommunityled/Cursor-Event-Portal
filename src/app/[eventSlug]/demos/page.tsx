@@ -44,8 +44,13 @@ export default async function DemosPage({ params }: DemoPageProps) {
     redirect(`/${eventSlug}`);
   }
 
-  const settings = await getOrCreateDemoSettings(event);
-  await syncDemoSlotsForWindow(event.id, settings.opens_at, settings.closes_at);
+  let settings;
+  try {
+    settings = await getOrCreateDemoSettings(event);
+    await syncDemoSlotsForWindow(event.id, settings.opens_at, settings.closes_at);
+  } catch {
+    redirect(`/${eventSlug}`);
+  }
 
   const [slots, announcements, mySignup] = await Promise.all([
     getDemoSlotsWithCounts(event.id),

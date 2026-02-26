@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getEventForAdmin } from "@/lib/utils/admin";
 import {
   getOrCreateDemoSettings,
@@ -13,9 +14,15 @@ interface AdminDemosPageProps {
 export default async function AdminDemosPage({ params }: AdminDemosPageProps) {
   const { adminCode } = await params;
   const event = await getEventForAdmin(adminCode);
-  const settings = await getOrCreateDemoSettings(event);
-  await syncDemoSlotsForWindow(event.id, settings.opens_at, settings.closes_at);
-  const slots = await getDemoSlotsWithCounts(event.id);
+  let settings;
+  let slots;
+  try {
+    settings = await getOrCreateDemoSettings(event);
+    await syncDemoSlotsForWindow(event.id, settings.opens_at, settings.closes_at);
+    slots = await getDemoSlotsWithCounts(event.id);
+  } catch {
+    notFound();
+  }
 
   return (
     <DemosAdminClient
