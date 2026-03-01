@@ -1414,7 +1414,7 @@ export async function getConversationThemes(): Promise<ConversationTheme[]> {
     .select("*")
     .eq("is_archived", false)
     .order("sort_order", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) return [];
   return (data ?? []) as ConversationTheme[];
 }
 
@@ -1426,7 +1426,7 @@ export async function getEventThemeSelection(eventId: string): Promise<EventThem
     .select("*, theme:conversation_themes(*)")
     .eq("event_id", eventId)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) return null;
   return data as EventThemeSelection | null;
 }
 
@@ -1439,7 +1439,7 @@ export async function getPlannedEvents(): Promise<PlannedEvent[]> {
     .from("planned_events")
     .select("*")
     .order("event_date", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) return [];
   return (data ?? []) as PlannedEvent[];
 }
 
@@ -1452,6 +1452,6 @@ export async function getEventCalendarCities(): Promise<EventCalendarCity[]> {
     .from("event_calendar_cities")
     .select("*")
     .order("sort_order", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) return [];
   return (data ?? []) as EventCalendarCity[];
 }
