@@ -51,8 +51,17 @@ export function ActiveVenueSelector({ events, activeSlug }: ActiveVenueSelectorP
                   : "bg-white/5 text-white/80 border-white/20 hover:bg-white/10 hover:border-white/30"
               }`}
             >
-              <span className="block font-semibold">{ev.venue || ev.name}</span>
-              <span className="block opacity-70 mt-0.5">{ev.slug}</span>
+              <span className="block font-semibold">
+                {ev.start_time
+                  ? new Date(ev.start_time).toLocaleDateString("en-CA", {
+                      timeZone: "America/Edmonton",
+                      month: "long",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : ev.name}
+              </span>
+              <span className="block opacity-70 mt-0.5">{ev.venue || "Venue TBD"}</span>
             </button>
           );
         })}
