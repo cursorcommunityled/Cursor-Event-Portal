@@ -10,8 +10,8 @@ import { DemosAdminClient } from "../../demos/DemosAdminClient";
 import { SlideDeckAdminClient } from "../../slides/SlideDeckAdminClient";
 import { CompetitionsAdminClient } from "@/components/admin/CompetitionsAdminClient";
 import { cn } from "@/lib/utils";
-import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries } from "@/types";
-import type { DemoSignupSettings, DemoSlotWithCounts } from "@/lib/demo/service";
+import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings } from "@/types";
+import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
 type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar";
 
