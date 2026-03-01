@@ -92,6 +92,39 @@ export async function deletePlannedEvent(id: string) {
   return { success: true };
 }
 
+// ─── Conversation Themes ──────────────────────────────────────────────────────
+
+export async function createConversationTheme(data: {
+  name: string;
+  description?: string | null;
+  emoji?: string | null;
+  category?: string | null;
+}) {
+  const name = data.name.trim();
+  if (!name) return { error: "Theme name is required" };
+
+  const supabase = await createServiceClient();
+
+  const { data: existing } = await supabase
+    .from("conversation_themes")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextOrder = (existing?.sort_order ?? 0) + 1;
+
+  const { data: row, error } = await supabase
+    .from("conversation_themes")
+    .insert({ ...data, name, sort_order: nextOrder })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin");
+  return { success: true, data: row };
+}
+
 // ─── Calendar Cities ──────────────────────────────────────────────────────────
 
 export async function createEventCalendarCity(name: string) {

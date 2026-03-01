@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { selectEventTheme, clearEventTheme } from "@/lib/actions/event-dashboard";
+import { selectEventTheme, clearEventTheme, createConversationTheme } from "@/lib/actions/event-dashboard";
 import { cn } from "@/lib/utils";
-import { Sparkles, Check, X } from "lucide-react";
+import { Sparkles, Check, X, Plus } from "lucide-react";
 import type { ConversationTheme, EventThemeSelection } from "@/types";
 
 interface ThemesAdminTabProps {
@@ -23,6 +23,11 @@ export function ThemesAdminTab({
     initialSelection?.theme_id ?? null
   );
   const [loading, setLoading] = useState<string | null>(null);
+  const [localThemes, setLocalThemes] = useState<ConversationTheme[]>(themes);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", description: "", emoji: "", category: "" });
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formSaving, setFormSaving] = useState(false);
 
   const handleSelect = async (themeId: string) => {
     if (loading) return;
@@ -40,10 +45,27 @@ export function ThemesAdminTab({
     setLoading(null);
   };
 
-  // Group by category
-  const categories = Array.from(new Set(themes.map((t) => t.category ?? "General")));
+  const handleAddTheme = async () => {
+    if (!form.name.trim()) { setFormError("Name is required"); return; }
+    setFormSaving(true);
+    setFormError(null);
+    const result = await createConversationTheme({
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      emoji: form.emoji.trim() || null,
+      category: form.category.trim() || null,
+    });
+    setFormSaving(false);
+    if (result.error) { setFormError(result.error); return; }
+    if (result.data) setLocalThemes((prev) => [...prev, result.data as ConversationTheme]);
+    setForm({ name: "", description: "", emoji: "", category: "" });
+    setShowForm(false);
+  };
 
-  const activeTheme = themes.find((t) => t.id === activeThemeId);
+  // Group by category
+  const categories = Array.from(new Set(localThemes.map((t) => t.category ?? "General")));
+
+  const activeTheme = localThemes.find((t) => t.id === activeThemeId);
 
   return (
     <div className="space-y-8">
@@ -82,7 +104,7 @@ export function ThemesAdminTab({
 
       {/* Theme grid, grouped by category */}
       {categories.map((cat) => {
-        const catThemes = themes.filter((t) => (t.category ?? "General") === cat);
+        const catThemes = localThemes.filter((t) => (t.category ?? "General") === cat);
         return (
           <div key={cat}>
             <p className="text-[10px] uppercase tracking-[0.3em] text-gray-600 font-medium mb-4">
@@ -154,9 +176,65 @@ export function ThemesAdminTab({
         );
       })}
 
-      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-700 text-center font-medium pt-2">
-        Themes are loaded from the spreadsheet · add via SQL import
-      </p>
+      {/* Add Theme */}
+      {showForm ? (
+        <div className="glass rounded-2xl p-5 border border-white/10 space-y-3">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">New Theme</p>
+          <div className="grid grid-cols-[1fr_60px] gap-2">
+            <input
+              autoFocus
+              placeholder="Theme name *"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              onKeyDown={(e) => e.key === "Escape" && setShowForm(false)}
+              className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30"
+            />
+            <input
+              placeholder="emoji"
+              value={form.emoji}
+              onChange={(e) => setForm((f) => ({ ...f, emoji: e.target.value }))}
+              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 text-center"
+            />
+          </div>
+          <input
+            placeholder="Category (e.g. Developer Tools)"
+            value={form.category}
+            onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30"
+          />
+          <textarea
+            placeholder="One-liner description (optional)"
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            rows={2}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 resize-none"
+          />
+          {formError && <p className="text-xs text-red-400">{formError}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddTheme}
+              disabled={formSaving}
+              className="flex-1 py-2.5 rounded-xl bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-50"
+            >
+              {formSaving ? "Saving…" : "Add Theme"}
+            </button>
+            <button
+              onClick={() => { setShowForm(false); setFormError(null); }}
+              className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-white text-sm transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-dashed border-white/10 text-gray-600 hover:text-white hover:border-white/20 transition-all text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Add Theme
+        </button>
+      )}
     </div>
   );
 }
