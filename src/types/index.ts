@@ -536,7 +536,15 @@ export interface PlannedEvent {
   address: string | null;
   notes: string | null;
   confirmed: boolean;
+  city: string;
   linked_event_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface EventCalendarCity {
+  id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
 }

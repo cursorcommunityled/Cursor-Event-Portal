@@ -1,41 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   createPlannedEvent,
   updatePlannedEvent,
   deletePlannedEvent,
+  createEventCalendarCity,
 } from "@/lib/actions/event-dashboard";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck } from "lucide-react";
-import type { PlannedEvent } from "@/types";
+import type { PlannedEvent, EventCalendarCity } from "@/types";
 
 interface CalendarAdminTabProps {
   initialEvents: PlannedEvent[];
+  initialCities: EventCalendarCity[];
 }
 
 type EditState = Partial<Omit<PlannedEvent, "id" | "created_at" | "updated_at" | "linked_event_id">>;
 
-const BLANK: EditState = {
-  title: "",
-  event_date: "",
-  start_time: null,
-  end_time: null,
-  venue: null,
-  address: null,
-  notes: null,
-  confirmed: false,
-};
-
-function formatDate(iso: string) {
-  // iso is YYYY-MM-DD
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("en-CA", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+function blankFor(city: string): EditState {
+  return {
+    title: "",
+    event_date: "",
+    city,
+    start_time: null,
+    end_time: null,
+    venue: null,
+    address: null,
+    notes: null,
+    confirmed: false,
+  };
 }
 
 function formatTime(t: string | null) {
@@ -45,11 +39,10 @@ function formatTime(t: string | null) {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
-// Group events by month (YYYY-MM)
 function groupByMonth(events: PlannedEvent[]) {
   const map = new Map<string, PlannedEvent[]>();
   for (const e of events) {
-    const key = e.event_date.slice(0, 7); // YYYY-MM
+    const key = e.event_date.slice(0, 7);
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(e);
   }
@@ -61,15 +54,51 @@ function monthLabel(key: string) {
   return new Date(y, m - 1).toLocaleDateString("en-CA", { month: "long", year: "numeric" });
 }
 
-export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
+export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdminTabProps) {
+  const [cities, setCities] = useState<EventCalendarCity[]>(initialCities);
+  const [activeCity, setActiveCity] = useState<string>(initialCities[0]?.name ?? "Calgary");
   const [events, setEvents] = useState<PlannedEvent[]>(initialEvents);
+
+  // ── Add city inline ───────────────────────────────────────────────────────
+  const [addingCity, setAddingCity] = useState(false);
+  const [newCityName, setNewCityName] = useState("");
+  const [cityLoading, setCityLoading] = useState(false);
+  const [cityError, setCityError] = useState<string | null>(null);
+  const cityInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (addingCity) cityInputRef.current?.focus();
+  }, [addingCity]);
+
+  const handleAddCity = async () => {
+    if (!newCityName.trim()) return;
+    setCityLoading(true);
+    setCityError(null);
+    const result = await createEventCalendarCity(newCityName.trim());
+    if (result.error) {
+      setCityError(result.error);
+      setCityLoading(false);
+      return;
+    }
+    setCities((prev) => [...prev, result.data as EventCalendarCity]);
+    setActiveCity((result.data as EventCalendarCity).name);
+    setNewCityName("");
+    setAddingCity(false);
+    setCityLoading(false);
+  };
+
+  // ── Create event ──────────────────────────────────────────────────────────
   const [creating, setCreating] = useState(false);
-  const [newEvent, setNewEvent] = useState<EditState>({ ...BLANK });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editState, setEditState] = useState<EditState>({});
+  const [newEvent, setNewEvent] = useState<EditState>(blankFor(activeCity));
   const [loading, setLoading] = useState<string | null>(null);
 
-  // ── Create ────────────────────────────────────────────────────────────────
+  // Reset city in form when switching tabs
+  const switchCity = (city: string) => {
+    setActiveCity(city);
+    setCreating(false);
+    setNewEvent(blankFor(city));
+    setEditingId(null);
+  };
 
   const handleCreate = async () => {
     if (!newEvent.title?.trim() || !newEvent.event_date) return;
@@ -77,6 +106,7 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
     const result = await createPlannedEvent({
       title: newEvent.title.trim(),
       event_date: newEvent.event_date,
+      city: activeCity,
       start_time: newEvent.start_time || null,
       end_time: newEvent.end_time || null,
       venue: newEvent.venue || null,
@@ -91,18 +121,21 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
         )
       );
       setCreating(false);
-      setNewEvent({ ...BLANK });
+      setNewEvent(blankFor(activeCity));
     }
     setLoading(null);
   };
 
-  // ── Update ────────────────────────────────────────────────────────────────
+  // ── Update event ──────────────────────────────────────────────────────────
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editState, setEditState] = useState<EditState>({});
 
   const startEdit = (ev: PlannedEvent) => {
     setEditingId(ev.id);
     setEditState({
       title: ev.title,
       event_date: ev.event_date,
+      city: ev.city,
       start_time: ev.start_time,
       end_time: ev.end_time,
       venue: ev.venue,
@@ -117,6 +150,7 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
     const result = await updatePlannedEvent(id, {
       title: editState.title?.trim() || undefined,
       event_date: editState.event_date || undefined,
+      city: editState.city || undefined,
       start_time: editState.start_time ?? null,
       end_time: editState.end_time ?? null,
       venue: editState.venue ?? null,
@@ -127,11 +161,7 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
     if (!result.error) {
       setEvents((prev) =>
         prev
-          .map((e) =>
-            e.id === id
-              ? { ...e, ...editState, updated_at: new Date().toISOString() }
-              : e
-          )
+          .map((e) => e.id === id ? { ...e, ...editState, updated_at: new Date().toISOString() } : e)
           .sort((a, b) => a.event_date.localeCompare(b.event_date))
       );
       setEditingId(null);
@@ -139,26 +169,97 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
     setLoading(null);
   };
 
-  // ── Delete ────────────────────────────────────────────────────────────────
-
+  // ── Delete event ──────────────────────────────────────────────────────────
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this planned event?")) return;
     setLoading(id + "-del");
     const result = await deletePlannedEvent(id);
-    if (!result.error) {
-      setEvents((prev) => prev.filter((e) => e.id !== id));
-    }
+    if (!result.error) setEvents((prev) => prev.filter((e) => e.id !== id));
     setLoading(null);
   };
 
-  const grouped = groupByMonth(events);
+  const cityEvents = events.filter((e) => e.city === activeCity);
+  const grouped = groupByMonth(cityEvents);
 
   return (
-    <div className="space-y-8">
-      {/* Add button */}
-      <div className="flex justify-end">
+    <div className="space-y-6">
+
+      {/* ── City tabs ───────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {cities.map((city) => {
+          const count = events.filter((e) => e.city === city.name).length;
+          const isActive = activeCity === city.name;
+          return (
+            <button
+              key={city.id}
+              onClick={() => switchCity(city.name)}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                isActive
+                  ? "bg-white text-black shadow-glow"
+                  : "bg-white/5 text-gray-500 hover:text-white hover:bg-white/10"
+              )}
+            >
+              {city.name}
+              {count > 0 && (
+                <span className={cn(
+                  "text-[10px] font-bold tabular-nums rounded-full px-1.5 py-0.5 leading-none",
+                  isActive ? "bg-black/20 text-black" : "bg-white/10 text-gray-500"
+                )}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {/* Add city */}
+        {addingCity ? (
+          <div className="flex items-center gap-1.5">
+            <input
+              ref={cityInputRef}
+              type="text"
+              value={newCityName}
+              onChange={(e) => { setNewCityName(e.target.value); setCityError(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleAddCity(); if (e.key === "Escape") { setAddingCity(false); setNewCityName(""); setCityError(null); } }}
+              placeholder="City name"
+              className="bg-white/5 border border-white/20 rounded-full px-4 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/40 w-36 transition-colors"
+            />
+            <button
+              onClick={handleAddCity}
+              disabled={cityLoading || !newCityName.trim()}
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center disabled:opacity-40 hover:bg-white/90 transition-all"
+            >
+              <Check className="w-3.5 h-3.5 text-black" />
+            </button>
+            <button
+              onClick={() => { setAddingCity(false); setNewCityName(""); setCityError(null); }}
+              className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-white transition-all"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+            {cityError && (
+              <span className="text-xs text-red-400">{cityError}</span>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setAddingCity(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-gray-600 hover:text-white border border-dashed border-white/10 hover:border-white/20 transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add City
+          </button>
+        )}
+      </div>
+
+      {/* ── Add event button ─────────────────────────────────────────────────── */}
+      <div className="flex justify-between items-center">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-600 font-medium">
+          {activeCity} · {cityEvents.length} event{cityEvents.length !== 1 ? "s" : ""}
+        </p>
         <button
-          onClick={() => setCreating(true)}
+          onClick={() => { setCreating(true); setNewEvent(blankFor(activeCity)); }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white hover:bg-white/15 transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -166,14 +267,15 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
         </button>
       </div>
 
-      {/* Create form */}
+      {/* ── Create form ──────────────────────────────────────────────────────── */}
       {creating && (
         <div className="glass rounded-3xl p-6 border-white/20 space-y-4">
           <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-medium">
-            New Planned Event
+            New Event · {activeCity}
           </p>
           <EventForm
             state={newEvent}
+            cities={cities.map((c) => c.name)}
             onChange={(k, v) => setNewEvent((s) => ({ ...s, [k]: v }))}
           />
           <div className="flex gap-3 pt-2">
@@ -186,7 +288,7 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
               {loading === "create" ? "Saving…" : "Save"}
             </button>
             <button
-              onClick={() => { setCreating(false); setNewEvent({ ...BLANK }); }}
+              onClick={() => { setCreating(false); setNewEvent(blankFor(activeCity)); }}
               className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-400 hover:text-white transition-all"
             >
               <X className="w-4 h-4" /> Cancel
@@ -195,13 +297,13 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
         </div>
       )}
 
-      {/* Events grouped by month */}
+      {/* ── Events grouped by month ──────────────────────────────────────────── */}
       {grouped.size === 0 && !creating && (
         <div className="glass rounded-3xl p-10 border-white/10 text-center">
           <CalendarCheck className="w-8 h-8 text-gray-700 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">No events planned yet — add one above</p>
+          <p className="text-sm text-gray-500">No events planned for {activeCity} yet</p>
           <p className="text-xs text-gray-700 mt-1">
-            You can also bulk-import from your spreadsheet via SQL
+            Add one above or bulk-import via SQL
           </p>
         </div>
       )}
@@ -236,6 +338,7 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
                     <div className="space-y-4">
                       <EventForm
                         state={editState}
+                        cities={cities.map((c) => c.name)}
                         onChange={(k, v) => setEditState((s) => ({ ...s, [k]: v }))}
                       />
                       <div className="flex gap-3 pt-1">
@@ -258,7 +361,7 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
                   ) : (
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 min-w-0">
-                        {/* Date pill */}
+                        {/* Date block */}
                         <div className="shrink-0 text-center min-w-[44px]">
                           <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium leading-none">
                             {new Date(ev.event_date + "T12:00:00").toLocaleDateString("en-CA", { month: "short" })}
@@ -270,19 +373,14 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
 
                         {/* Info */}
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-medium text-white/90 text-sm">{ev.title}</h4>
                             {ev.confirmed ? (
-                              <span className="text-[9px] uppercase tracking-widest text-green-400/70 font-medium">
-                                Confirmed
-                              </span>
+                              <span className="text-[9px] uppercase tracking-widest text-green-400/70 font-medium">Confirmed</span>
                             ) : (
-                              <span className="text-[9px] uppercase tracking-widest text-gray-600 font-medium">
-                                Tentative
-                              </span>
+                              <span className="text-[9px] uppercase tracking-widest text-gray-600 font-medium">Tentative</span>
                             )}
                           </div>
-
                           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
                             {ev.venue && (
                               <span className="flex items-center gap-1 text-xs text-gray-500">
@@ -331,19 +429,21 @@ export function CalendarAdminTab({ initialEvents }: CalendarAdminTabProps) {
       ))}
 
       <p className="text-[10px] uppercase tracking-[0.2em] text-gray-700 text-center font-medium pt-2">
-        Bulk import from spreadsheet · use SQL INSERT into planned_events
+        Bulk import from spreadsheet · SQL INSERT into planned_events with city column
       </p>
     </div>
   );
 }
 
-// ─── Shared form fields ───────────────────────────────────────────────────────
+// ─── Shared form ──────────────────────────────────────────────────────────────
 
 function EventForm({
   state,
+  cities,
   onChange,
 }: {
   state: EditState;
+  cities: string[];
   onChange: (key: keyof EditState, value: string | boolean | null) => void;
 }) {
   return (
@@ -355,10 +455,9 @@ function EventForm({
         onChange={(e) => onChange("title", e.target.value)}
         className="col-span-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
       />
+
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">
-          Date *
-        </label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Date *</label>
         <input
           type="date"
           value={state.event_date ?? ""}
@@ -366,10 +465,22 @@ function EventForm({
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
         />
       </div>
+
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">
-          Venue
-        </label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">City</label>
+        <select
+          value={state.city ?? ""}
+          onChange={(e) => onChange("city", e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors appearance-none"
+        >
+          {cities.map((c) => (
+            <option key={c} value={c} className="bg-black">{c}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Venue</label>
         <input
           type="text"
           placeholder="e.g. Platform Calgary"
@@ -378,10 +489,9 @@ function EventForm({
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
         />
       </div>
+
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">
-          Start Time
-        </label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Start Time</label>
         <input
           type="time"
           value={state.start_time ?? ""}
@@ -389,10 +499,9 @@ function EventForm({
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
         />
       </div>
+
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">
-          End Time
-        </label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">End Time</label>
         <input
           type="time"
           value={state.end_time ?? ""}
@@ -400,6 +509,7 @@ function EventForm({
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
         />
       </div>
+
       <input
         type="text"
         placeholder="Address (optional)"
@@ -407,6 +517,7 @@ function EventForm({
         onChange={(e) => onChange("address", e.target.value || null)}
         className="col-span-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
       />
+
       <input
         type="text"
         placeholder="Notes (optional)"
@@ -414,22 +525,19 @@ function EventForm({
         onChange={(e) => onChange("notes", e.target.value || null)}
         className="col-span-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
       />
+
       <label className="flex items-center gap-3 cursor-pointer col-span-full">
         <div
           onClick={() => onChange("confirmed", !state.confirmed)}
           className={cn(
             "w-9 h-5 rounded-full border transition-all relative",
-            state.confirmed
-              ? "bg-white border-white"
-              : "bg-white/5 border-white/20"
+            state.confirmed ? "bg-white border-white" : "bg-white/5 border-white/20"
           )}
         >
-          <span
-            className={cn(
-              "absolute top-0.5 w-4 h-4 rounded-full transition-all",
-              state.confirmed ? "left-4 bg-black" : "left-0.5 bg-gray-600"
-            )}
-          />
+          <span className={cn(
+            "absolute top-0.5 w-4 h-4 rounded-full transition-all",
+            state.confirmed ? "left-4 bg-black" : "left-0.5 bg-gray-600"
+          )} />
         </div>
         <span className="text-sm text-gray-400">Confirmed</span>
       </label>
