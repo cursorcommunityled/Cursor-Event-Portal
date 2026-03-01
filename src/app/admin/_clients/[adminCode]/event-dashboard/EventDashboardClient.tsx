@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { Calendar, Sparkles, Clock } from "lucide-react";
 import { AgendaAdminClient } from "../../agenda/AgendaAdminClient";
 import { ThemesAdminTab } from "../../event-dashboard/ThemesAdminTab";
 import { CalendarAdminTab } from "../../event-dashboard/CalendarAdminTab";
@@ -11,10 +10,10 @@ import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, Planned
 
 type TabType = "agenda" | "themes" | "calendar";
 
-const TABS: Array<{ id: TabType; label: string; icon: typeof Calendar; description: string }> = [
-  { id: "agenda",   label: "Agenda",   icon: Clock,     description: "Event schedule" },
-  { id: "themes",   label: "Themes",   icon: Sparkles,  description: "Conversation themes" },
-  { id: "calendar", label: "Calendar", icon: Calendar,  description: "Event planning" },
+const TABS: Array<{ id: TabType; label: string; description: string }> = [
+  { id: "agenda",   label: "Agenda",   description: "Event schedule" },
+  { id: "themes",   label: "Themes",   description: "Conversation themes" },
+  { id: "calendar", label: "Calendar", description: "Event planning" },
 ];
 
 interface EventDashboardClientProps {
@@ -58,7 +57,6 @@ export function EventDashboardClient({
   };
 
   const activeTabData = TABS.find((t) => t.id === activeTab)!;
-  const Icon = activeTabData.icon;
 
   return (
     <div className="min-h-screen bg-black-gradient text-white flex flex-col relative overflow-hidden">
@@ -74,43 +72,37 @@ export function EventDashboardClient({
 
       <main className="max-w-4xl mx-auto px-6 py-8 w-full z-10 flex-1">
         {/* Tab switcher */}
-        <div className="flex items-center justify-center gap-2 mb-12">
-          {TABS.map((tab) => {
-            const TabIcon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => updateTab(tab.id)}
-                className={cn(
-                  "flex items-center gap-2 px-6 py-3 rounded-full transition-all duration-300",
-                  isActive
-                    ? "bg-white text-black shadow-glow scale-105"
-                    : "bg-white/5 text-gray-500 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <TabIcon className={cn("w-4 h-4", isActive ? "text-black" : "text-gray-600")} />
-                <span className="text-sm font-medium">{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="flex items-center justify-center mb-12">
+          <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08]">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => updateTab(tab.id)}
+                  className={cn(
+                    "px-7 py-2.5 rounded-full text-sm font-medium tracking-wide transition-all duration-200",
+                    isActive
+                      ? "bg-white text-black shadow-[0_2px_12px_rgba(255,255,255,0.12)]"
+                      : "text-gray-500 hover:text-white/70"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Tab header */}
+        {/* Tab content */}
         <div className="animate-fade-in pb-20">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-              <Icon className="w-5 h-5 text-white/60" />
-            </div>
-            <div>
-              <h2 className="text-xl font-light text-white">{activeTabData.label}</h2>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-bold">
-                {activeTabData.description}
-              </p>
-            </div>
+          <div className="mb-8">
+            <h2 className="text-xl font-light text-white">{activeTabData.label}</h2>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-bold mt-1">
+              {activeTabData.description}
+            </p>
           </div>
 
-          {/* Tab content */}
           {activeTab === "agenda" && (
             <AgendaAdminClient
               event={event}
