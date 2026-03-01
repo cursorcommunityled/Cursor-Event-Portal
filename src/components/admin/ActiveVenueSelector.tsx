@@ -11,6 +11,7 @@ type EventOption = {
   venue: string | null;
   start_time: string | null;
   status: string;
+  themeTitle?: string | null;
 };
 
 interface ActiveVenueSelectorProps {
@@ -62,6 +63,11 @@ export function ActiveVenueSelector({ events, activeSlug }: ActiveVenueSelectorP
                   : ev.name}
               </span>
               <span className="block opacity-70 mt-0.5">{ev.venue || "Venue TBD"}</span>
+              {ev.themeTitle && (
+                <span className="block opacity-50 mt-0.5 normal-case tracking-normal text-[9px]">
+                  {ev.themeTitle}
+                </span>
+              )}
             </button>
           );
         })}

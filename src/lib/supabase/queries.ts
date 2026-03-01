@@ -161,15 +161,27 @@ export async function getActiveEventAdminCode(): Promise<string | null> {
   return event?.admin_code ?? null;
 }
 
-/** All events (for admin venue selector). */
-export async function getAllEvents(): Promise<Pick<Event, "id" | "slug" | "name" | "venue" | "start_time" | "status">[]> {
+/** All events (for admin venue selector), including active theme title. */
+export type EventSummary = Pick<Event, "id" | "slug" | "name" | "venue" | "start_time" | "status"> & {
+  themeTitle?: string | null;
+};
+
+export async function getAllEvents(): Promise<EventSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, slug, name, venue, start_time, status")
+    .select("id, slug, name, venue, start_time, status, theme_selection:event_theme_selections(theme:conversation_themes(title))")
     .order("start_time", { ascending: false });
   if (error) return [];
-  return data ?? [];
+  return (data ?? []).map((ev: any) => ({
+    id: ev.id,
+    slug: ev.slug,
+    name: ev.name,
+    venue: ev.venue,
+    start_time: ev.start_time,
+    status: ev.status,
+    themeTitle: ev.theme_selection?.[0]?.theme?.title ?? null,
+  }));
 }
 
 export async function getEventStats(eventId: string) {
