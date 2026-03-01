@@ -503,3 +503,40 @@ export interface CompetitionWithEntries extends Competition {
   group_winner_entry?: CompetitionEntry | null;
   admin_winner_entry?: CompetitionEntry | null;
 }
+
+// ─── Conversation Themes ─────────────────────────────────────────────────────
+
+export interface ConversationTheme {
+  id: string;
+  name: string;
+  description: string | null;
+  emoji: string | null;
+  category: string | null;
+  sort_order: number;
+  is_archived: boolean;
+  created_at: string;
+}
+
+export interface EventThemeSelection {
+  event_id: string;
+  theme_id: string | null;
+  selected_at: string;
+  theme?: ConversationTheme | null;
+}
+
+// ─── Planned Events (Planning Calendar) ──────────────────────────────────────
+
+export interface PlannedEvent {
+  id: string;
+  title: string;
+  event_date: string;      // DATE as ISO string (YYYY-MM-DD)
+  start_time: string | null;
+  end_time: string | null;
+  venue: string | null;
+  address: string | null;
+  notes: string | null;
+  confirmed: boolean;
+  linked_event_id: string | null;
+  created_at: string;
+  updated_at: string;
+}

@@ -25,6 +25,9 @@ import type {
   Competition,
   CompetitionEntry,
   CompetitionWithEntries,
+  ConversationTheme,
+  EventThemeSelection,
+  PlannedEvent,
 } from "@/types";
 
 // Event queries
@@ -1398,4 +1401,43 @@ export async function getCompetitionWithEntries(
   }
 
   return data;
+}
+
+// ─── Conversation Themes ──────────────────────────────────────────────────────
+
+export async function getConversationThemes(): Promise<ConversationTheme[]> {
+  noStore();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("conversation_themes")
+    .select("*")
+    .eq("is_archived", false)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ConversationTheme[];
+}
+
+export async function getEventThemeSelection(eventId: string): Promise<EventThemeSelection | null> {
+  noStore();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("event_theme_selections")
+    .select("*, theme:conversation_themes(*)")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as EventThemeSelection | null;
+}
+
+// ─── Planned Events (Planning Calendar) ──────────────────────────────────────
+
+export async function getPlannedEvents(): Promise<PlannedEvent[]> {
+  noStore();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("planned_events")
+    .select("*")
+    .order("event_date", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PlannedEvent[];
 }
