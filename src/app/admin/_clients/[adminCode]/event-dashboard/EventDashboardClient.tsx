@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { ActiveVenueSelector } from "@/components/admin/ActiveVenueSelector";
 import { AgendaAdminClient } from "../../agenda/AgendaAdminClient";
 import { ThemesAdminTab } from "../../event-dashboard/ThemesAdminTab";
 import { CalendarAdminTab } from "../../event-dashboard/CalendarAdminTab";
@@ -28,6 +29,9 @@ interface EventDashboardClientProps {
   // Calendar
   plannedEvents: PlannedEvent[];
   calendarCities: EventCalendarCity[];
+  // Venue selector
+  allEvents: Event[];
+  activeSlug: string;
   // Active tab from URL
   activeTab: TabType;
 }
@@ -41,6 +45,8 @@ export function EventDashboardClient({
   themeSelection,
   plannedEvents,
   calendarCities,
+  allEvents,
+  activeSlug,
   activeTab: initialTab,
 }: EventDashboardClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
@@ -71,6 +77,11 @@ export function EventDashboardClient({
       />
 
       <main className="max-w-4xl mx-auto px-6 py-8 w-full z-10 flex-1">
+        {/* Venue selector */}
+        <div className="mb-10">
+          <ActiveVenueSelector events={allEvents} activeSlug={activeSlug} />
+        </div>
+
         {/* Tab switcher */}
         <div className="flex items-center justify-center mb-12">
           <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08]">

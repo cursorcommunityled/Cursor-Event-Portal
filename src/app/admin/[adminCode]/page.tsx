@@ -14,7 +14,6 @@ import {
   Database,
   Trophy,
   MonitorPlay,
-  CalendarDays,
 } from "lucide-react";
 import { SimulateStartButton } from "@/components/admin/SimulateStartButton";
 import { EventSocialCard } from "@/components/admin/EventSocialCard";
@@ -152,23 +151,6 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                   <div className="space-y-1">
                     <h3 className="text-xl font-light tracking-tight text-white/90">Event Dashboard</h3>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Themes · Calendar</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </Link>
-
-          <Link href={`/admin/${adminCode}/events`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "225ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <CalendarDays className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Events</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Active Venue</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
