@@ -29,6 +29,7 @@ import type {
   EventThemeSelection,
   PlannedEvent,
   EventCalendarCity,
+  Venue,
 } from "@/types";
 
 // Event queries
@@ -1441,6 +1442,19 @@ export async function getPlannedEvents(): Promise<PlannedEvent[]> {
     .order("event_date", { ascending: true });
   if (error) return [];
   return (data ?? []) as PlannedEvent[];
+}
+
+// ─── Venues ───────────────────────────────────────────────────────────────────
+
+export async function getVenues(): Promise<Venue[]> {
+  noStore();
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("venues")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) return [];
+  return (data ?? []) as Venue[];
 }
 
 // ─── Calendar Cities ──────────────────────────────────────────────────────────

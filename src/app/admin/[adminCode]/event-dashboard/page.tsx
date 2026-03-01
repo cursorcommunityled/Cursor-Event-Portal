@@ -6,6 +6,7 @@ import {
   getEventCalendarCities,
   getAllEvents,
   getActiveEventSlug,
+  getVenues,
 } from "@/lib/supabase/queries";
 import { EventDashboardClient } from "../../_clients/[adminCode]/event-dashboard/EventDashboardClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
@@ -29,7 +30,7 @@ export default async function EventDashboardPage({
 
   const event = await getEventForAdmin(adminCode);
 
-  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug] = await Promise.all([
+  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues] = await Promise.all([
     getAgendaItems(event.id),
     getConversationThemes(),
     getEventThemeSelection(event.id),
@@ -37,6 +38,7 @@ export default async function EventDashboardPage({
     getEventCalendarCities(),
     getAllEvents(),
     getActiveEventSlug(),
+    getVenues(),
   ]);
 
   return (
@@ -51,6 +53,7 @@ export default async function EventDashboardPage({
       calendarCities={calendarCities}
       allEvents={allEvents}
       activeSlug={activeSlug}
+      venues={venues}
       activeTab={activeTab as "agenda" | "themes" | "calendar"}
     />
   );

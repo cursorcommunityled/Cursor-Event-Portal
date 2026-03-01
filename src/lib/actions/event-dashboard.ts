@@ -125,6 +125,37 @@ export async function createConversationTheme(data: {
   return { success: true, data: row };
 }
 
+// ─── Venues ───────────────────────────────────────────────────────────────────
+
+export async function createVenue(data: { name: string; address?: string | null; city?: string }) {
+  const name = data.name.trim();
+  if (!name) return { error: "Venue name is required" };
+
+  const supabase = await createServiceClient();
+
+  const { data: existing } = await supabase
+    .from("venues")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextOrder = (existing?.sort_order ?? 0) + 1;
+
+  const { data: row, error } = await supabase
+    .from("venues")
+    .insert({ name, address: data.address?.trim() || null, city: data.city || "Calgary", sort_order: nextOrder })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "23505") return { error: "Venue already exists" };
+    return { error: error.message };
+  }
+  revalidatePath("/admin");
+  return { success: true, data: row };
+}
+
 // ─── Calendar Cities ──────────────────────────────────────────────────────────
 
 export async function createEventCalendarCity(name: string) {

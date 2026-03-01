@@ -1,19 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   createPlannedEvent,
   updatePlannedEvent,
   deletePlannedEvent,
   createEventCalendarCity,
+  createVenue,
 } from "@/lib/actions/event-dashboard";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck } from "lucide-react";
-import type { PlannedEvent, EventCalendarCity } from "@/types";
+import type { PlannedEvent, EventCalendarCity, Venue } from "@/types";
 
 interface CalendarAdminTabProps {
   initialEvents: PlannedEvent[];
   initialCities: EventCalendarCity[];
+  initialVenues: Venue[];
 }
 
 type EditState = Partial<Omit<PlannedEvent, "id" | "created_at" | "updated_at" | "linked_event_id">>;
@@ -54,10 +56,11 @@ function monthLabel(key: string) {
   return new Date(y, m - 1).toLocaleDateString("en-CA", { month: "long", year: "numeric" });
 }
 
-export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdminTabProps) {
+export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }: CalendarAdminTabProps) {
   const [cities, setCities] = useState<EventCalendarCity[]>(initialCities);
   const [activeCity, setActiveCity] = useState<string>(initialCities[0]?.name ?? "Calgary");
   const [events, setEvents] = useState<PlannedEvent[]>(initialEvents);
+  const [venues, setVenues] = useState<Venue[]>(initialVenues);
 
   // ── Add city inline ───────────────────────────────────────────────────────
   const [addingCity, setAddingCity] = useState(false);
@@ -187,10 +190,6 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
   const cityEvents = showPast ? pastEvents : upcomingEvents;
   const grouped = groupByMonth(cityEvents);
 
-  const knownVenues = useMemo(() =>
-    Array.from(new Set(events.map((e) => e.venue).filter(Boolean) as string[])).sort(),
-    [events]
-  );
 
   return (
     <div className="space-y-6">
@@ -316,8 +315,9 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
           <EventForm
             state={newEvent}
             cities={cities.map((c) => c.name)}
-            knownVenues={knownVenues}
+            venues={venues}
             onChange={(k, v) => setNewEvent((s) => ({ ...s, [k]: v }))}
+            onVenueCreated={(v) => setVenues((prev) => [...prev, v])}
           />
           <div className="flex gap-3 pt-2">
             <button
@@ -382,8 +382,9 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
                       <EventForm
                         state={editState}
                         cities={cities.map((c) => c.name)}
-                        knownVenues={knownVenues}
+                        venues={venues}
                         onChange={(k, v) => setEditState((s) => ({ ...s, [k]: v }))}
+                        onVenueCreated={(v) => setVenues((prev) => [...prev, v])}
                       />
                       <div className="flex gap-3 pt-1">
                         <button
@@ -484,26 +485,49 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
 function EventForm({
   state,
   cities,
-  knownVenues,
+  venues,
   onChange,
+  onVenueCreated,
 }: {
   state: EditState;
   cities: string[];
-  knownVenues: string[];
+  venues: Venue[];
   onChange: (key: keyof EditState, value: string | boolean | null) => void;
+  onVenueCreated: (v: Venue) => void;
 }) {
-  const currentVenue = state.venue ?? "";
-  const isCustom = currentVenue !== "" && !knownVenues.includes(currentVenue);
-  const [venueMode, setVenueMode] = useState<"select" | "custom">(isCustom ? "custom" : "select");
+  const [addingVenue, setAddingVenue] = useState(false);
+  const [newVenueName, setNewVenueName] = useState("");
+  const [newVenueAddress, setNewVenueAddress] = useState("");
+  const [venueError, setVenueError] = useState<string | null>(null);
+  const [venueSaving, setVenueSaving] = useState(false);
 
   const handleVenueSelect = (val: string) => {
     if (val === "__new__") {
-      setVenueMode("custom");
-      onChange("venue", null);
-    } else {
-      onChange("venue", val || null);
+      setAddingVenue(true);
+      return;
     }
+    const picked = venues.find((v) => v.id === val);
+    onChange("venue", picked?.name ?? null);
+    onChange("address", picked?.address ?? null);
   };
+
+  const handleAddVenue = async () => {
+    if (!newVenueName.trim()) return;
+    setVenueSaving(true);
+    setVenueError(null);
+    const result = await createVenue({ name: newVenueName.trim(), address: newVenueAddress.trim() || null });
+    setVenueSaving(false);
+    if (result.error) { setVenueError(result.error); return; }
+    const created = result.data as Venue;
+    onVenueCreated(created);
+    onChange("venue", created.name);
+    onChange("address", created.address);
+    setAddingVenue(false);
+    setNewVenueName("");
+    setNewVenueAddress("");
+  };
+
+  const selectedVenue = venues.find((v) => v.name === state.venue);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -538,40 +562,56 @@ function EventForm({
         </select>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Venue</label>
-          {venueMode === "custom" && knownVenues.length > 0 && (
+      <div className="col-span-full">
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Venue</label>
+        {addingVenue ? (
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_auto] gap-2">
+              <input
+                autoFocus
+                placeholder="Venue name *"
+                value={newVenueName}
+                onChange={(e) => { setNewVenueName(e.target.value); setVenueError(null); }}
+                onKeyDown={(e) => e.key === "Escape" && setAddingVenue(false)}
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30"
+              />
+              <button
+                type="button"
+                onClick={() => setAddingVenue(false)}
+                className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-500 hover:text-white text-xs transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+            <input
+              placeholder="Address (optional)"
+              value={newVenueAddress}
+              onChange={(e) => setNewVenueAddress(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAddVenue()}
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30"
+            />
+            {venueError && <p className="text-xs text-red-400">{venueError}</p>}
             <button
               type="button"
-              onClick={() => { setVenueMode("select"); onChange("venue", null); }}
-              className="text-[10px] text-gray-600 hover:text-white transition-colors"
+              onClick={handleAddVenue}
+              disabled={venueSaving || !newVenueName.trim()}
+              className="w-full py-2 rounded-xl bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-40"
             >
-              ← pick from list
+              {venueSaving ? "Saving…" : "Add Venue"}
             </button>
-          )}
-        </div>
-        {venueMode === "select" ? (
+          </div>
+        ) : (
           <select
-            value={currentVenue}
+            value={selectedVenue?.id ?? ""}
             onChange={(e) => handleVenueSelect(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors appearance-none"
           >
             <option value="" className="bg-black text-gray-500">— select venue —</option>
-            {knownVenues.map((v) => (
-              <option key={v} value={v} className="bg-black">{v}</option>
+            {venues.map((v) => (
+              <option key={v.id} value={v.id} className="bg-black">{v.name}{v.city !== "Calgary" ? ` · ${v.city}` : ""}</option>
             ))}
-            <option value="__new__" className="bg-black text-gray-400">+ Enter new venue…</option>
+            <option value="__new__" className="bg-black text-gray-400">+ Add new venue…</option>
           </select>
-        ) : (
-          <input
-            autoFocus
-            type="text"
-            placeholder="e.g. Platform Calgary"
-            value={currentVenue}
-            onChange={(e) => onChange("venue", e.target.value || null)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
-          />
         )}
       </div>
 

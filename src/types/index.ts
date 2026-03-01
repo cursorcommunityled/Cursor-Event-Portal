@@ -525,6 +525,17 @@ export interface EventThemeSelection {
   theme?: ConversationTheme | null;
 }
 
+// ─── Venues ───────────────────────────────────────────────────────────────────
+
+export interface Venue {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string;
+  sort_order: number;
+  created_at: string;
+}
+
 // ─── Planned Events (Planning Calendar) ──────────────────────────────────────
 
 export interface PlannedEvent {

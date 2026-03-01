@@ -7,7 +7,7 @@ import { AgendaAdminClient } from "../../agenda/AgendaAdminClient";
 import { ThemesAdminTab } from "../../event-dashboard/ThemesAdminTab";
 import { CalendarAdminTab } from "../../event-dashboard/CalendarAdminTab";
 import { cn } from "@/lib/utils";
-import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity } from "@/types";
+import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue } from "@/types";
 
 type TabType = "agenda" | "themes" | "calendar";
 
@@ -29,6 +29,7 @@ interface EventDashboardClientProps {
   // Calendar
   plannedEvents: PlannedEvent[];
   calendarCities: EventCalendarCity[];
+  venues: Venue[];
   // Venue selector
   allEvents: Pick<Event, "id" | "name" | "slug" | "status" | "start_time" | "venue">[];
   activeSlug: string;
@@ -45,6 +46,7 @@ export function EventDashboardClient({
   themeSelection,
   plannedEvents,
   calendarCities,
+  venues,
   allEvents,
   activeSlug,
   activeTab: initialTab,
@@ -131,7 +133,7 @@ export function EventDashboardClient({
             />
           )}
           {activeTab === "calendar" && (
-            <CalendarAdminTab initialEvents={plannedEvents} initialCities={calendarCities} />
+            <CalendarAdminTab initialEvents={plannedEvents} initialCities={calendarCities} initialVenues={venues} />
           )}
         </div>
       </main>
