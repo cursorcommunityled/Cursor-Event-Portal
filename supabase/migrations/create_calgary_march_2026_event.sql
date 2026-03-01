@@ -4,7 +4,7 @@
 
 INSERT INTO public.events (
   slug, code, name, venue, address, venue_image_url,
-  start_time, end_time, status, capacity, timezone
+  start_time, end_time, status, capacity
 )
 SELECT
   'calgary-march-2026',
@@ -16,8 +16,7 @@ SELECT
   '2026-03-26T00:00:00Z',   -- 6:00 PM MDT March 25
   '2026-03-26T03:00:00Z',   -- 9:00 PM MDT March 25
   'published',
-  65,
-  'America/Edmonton'
+  65
 WHERE NOT EXISTS (SELECT 1 FROM public.events WHERE slug = 'calgary-march-2026');
 
 -- Set as the active event (homepage + admin login will point here)
