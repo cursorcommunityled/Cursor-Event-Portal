@@ -62,9 +62,6 @@ export function ThemesAdminTab({
     setShowForm(false);
   };
 
-  // Group by category
-  const categories = Array.from(new Set(localThemes.map((t) => t.category ?? "General")));
-
   const activeTheme = localThemes.find((t) => t.id === activeThemeId);
 
   return (
@@ -102,79 +99,72 @@ export function ThemesAdminTab({
         </div>
       )}
 
-      {/* Theme grid, grouped by category */}
-      {categories.map((cat) => {
-        const catThemes = localThemes.filter((t) => (t.category ?? "General") === cat);
-        return (
-          <div key={cat}>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-600 font-medium mb-4">
-              {cat}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {catThemes.map((theme) => {
-                const isActive = activeThemeId === theme.id;
-                const isLoading = loading === theme.id;
-                const isUsed = (theme.times_used ?? 0) > 0 && !isActive;
-                return (
-                  <button
-                    key={theme.id}
-                    onClick={() => handleSelect(theme.id)}
-                    disabled={!!loading}
-                    className={cn(
-                      "group glass rounded-2xl p-5 text-left transition-all duration-300 border relative",
-                      isActive
-                        ? "border-white/40 bg-white/10 shadow-glow scale-[1.01]"
-                        : isUsed
-                        ? "border-white/5 opacity-40 cursor-pointer hover:opacity-60"
-                        : "border-white/10 hover:border-white/20 hover:bg-white/5"
-                    )}
-                  >
-                    {isUsed && (
-                      <span className="absolute top-3 right-3 text-[9px] uppercase tracking-widest text-gray-600 font-medium">
-                        Used
-                      </span>
-                    )}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <span className={cn("text-2xl shrink-0 mt-0.5", isUsed && "grayscale")}>
-                          {theme.emoji ?? "💡"}
-                        </span>
-                        <div className="min-w-0">
-                          <h4 className={cn(
-                            "font-medium text-base leading-snug",
-                            isActive ? "text-white" : isUsed ? "text-gray-600" : "text-white/80 group-hover:text-white"
-                          )}>
-                            {theme.name}
-                          </h4>
-                          {theme.description && (
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                              {theme.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {!isUsed && (
-                        <div className={cn(
-                          "w-6 h-6 rounded-full border shrink-0 flex items-center justify-center transition-all mt-0.5",
-                          isActive
-                            ? "border-white bg-white"
-                            : "border-white/20 group-hover:border-white/40"
-                        )}>
-                          {isLoading ? (
-                            <span className="w-2.5 h-2.5 rounded-full border border-gray-400 border-t-transparent animate-spin" />
-                          ) : isActive ? (
-                            <Check className="w-3 h-3 text-black" />
-                          ) : null}
-                        </div>
-                      )}
+      {/* Theme grid — flat 2-col, category shown on card */}
+      <div className="grid grid-cols-2 gap-3">
+        {localThemes.map((theme) => {
+          const isActive = activeThemeId === theme.id;
+          const isLoading = loading === theme.id;
+          const isUsed = (theme.times_used ?? 0) > 0 && !isActive;
+          return (
+            <button
+              key={theme.id}
+              onClick={() => handleSelect(theme.id)}
+              disabled={!!loading}
+              className={cn(
+                "group glass rounded-2xl p-5 text-left transition-all duration-300 border relative",
+                isActive
+                  ? "border-white/40 bg-white/10 shadow-glow scale-[1.01]"
+                  : isUsed
+                  ? "border-white/5 opacity-40 cursor-pointer hover:opacity-60"
+                  : "border-white/10 hover:border-white/20 hover:bg-white/5"
+              )}
+            >
+              {isUsed && (
+                <span className="absolute top-3 right-3 text-[9px] uppercase tracking-widest text-gray-600 font-medium">
+                  Used
+                </span>
+              )}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <span className={cn("text-2xl shrink-0", isUsed && "grayscale")}>
+                    {theme.emoji ?? "💡"}
+                  </span>
+                  {!isUsed && (
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border shrink-0 flex items-center justify-center transition-all",
+                      isActive ? "border-white bg-white" : "border-white/20 group-hover:border-white/40"
+                    )}>
+                      {isLoading ? (
+                        <span className="w-2 h-2 rounded-full border border-gray-400 border-t-transparent animate-spin" />
+                      ) : isActive ? (
+                        <Check className="w-2.5 h-2.5 text-black" />
+                      ) : null}
                     </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+                  )}
+                </div>
+                <div>
+                  {theme.category && (
+                    <p className="text-[9px] uppercase tracking-widest text-gray-600 font-medium mb-0.5">
+                      {theme.category}
+                    </p>
+                  )}
+                  <h4 className={cn(
+                    "font-medium text-sm leading-snug",
+                    isActive ? "text-white" : isUsed ? "text-gray-600" : "text-white/80 group-hover:text-white"
+                  )}>
+                    {theme.name}
+                  </h4>
+                  {theme.description && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      {theme.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
 
       {/* Add Theme */}
       {showForm ? (
