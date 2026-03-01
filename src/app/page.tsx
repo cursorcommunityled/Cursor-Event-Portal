@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getActiveEventSlug } from "@/lib/supabase/queries";
 
+export const revalidate = 0;
+
 export default async function HomePage() {
   const activeSlug = await getActiveEventSlug();
   return (
