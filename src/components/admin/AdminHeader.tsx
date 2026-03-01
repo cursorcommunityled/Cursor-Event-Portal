@@ -45,6 +45,7 @@ export function AdminHeader({
             {showBackArrow && (
               <Link
                 href={adminPath}
+                prefetch={false}
                 className="text-white/40 hover:text-white transition-colors group"
               >
                 <ArrowLeft strokeWidth={1.5} className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
@@ -52,6 +53,7 @@ export function AdminHeader({
             )}
             <Link
               href={adminPath}
+              prefetch={false}
               className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.05)] hover:bg-white/10 transition-all cursor-pointer group"
             >
               <Image

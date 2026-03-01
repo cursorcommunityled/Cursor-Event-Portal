@@ -117,7 +117,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Link href={`/admin/${adminCode}/checkin`} className="animate-slide-up" style={{ animationDelay: "150ms" }}>
+          <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "150ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -142,7 +142,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             initialQuestions={questions}
           />
 
-          <Link href={`/admin/${adminCode}/event-dashboard`} className="animate-slide-up" style={{ animationDelay: "210ms" }}>
+          <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "210ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -159,7 +159,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/events`} className="animate-slide-up" style={{ animationDelay: "225ms" }}>
+          <Link href={`/admin/${adminCode}/events`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "225ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -176,7 +176,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/demos`} className="animate-slide-up" style={{ animationDelay: "240ms" }}>
+          <Link href={`/admin/${adminCode}/demos`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "240ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -193,7 +193,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/groups`} className="animate-slide-up" style={{ animationDelay: "255ms" }}>
+          <Link href={`/admin/${adminCode}/groups`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "255ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -210,7 +210,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/slides`} className="animate-slide-up" style={{ animationDelay: "270ms" }}>
+          <Link href={`/admin/${adminCode}/slides`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "270ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -227,7 +227,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/analytics`} className="animate-slide-up" style={{ animationDelay: "300ms" }}>
+          <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "300ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -244,7 +244,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/data`} className="animate-slide-up" style={{ animationDelay: "330ms" }}>
+          <Link href={`/admin/${adminCode}/data`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "330ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -261,7 +261,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/competitions`} className="animate-slide-up" style={{ animationDelay: "360ms" }}>
+          <Link href={`/admin/${adminCode}/competitions`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "360ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -278,7 +278,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/${eventSlug}/agenda`} className="animate-slide-up" style={{ animationDelay: "390ms" }}>
+          <Link href={`/${eventSlug}/agenda`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "390ms" }}>
             <div className="glass rounded-[40px] p-8 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-400/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
