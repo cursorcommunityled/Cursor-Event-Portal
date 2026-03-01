@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   createPlannedEvent,
   updatePlannedEvent,
@@ -181,6 +181,11 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
   const cityEvents = events.filter((e) => e.city === activeCity);
   const grouped = groupByMonth(cityEvents);
 
+  const knownVenues = useMemo(() =>
+    Array.from(new Set(events.map((e) => e.venue).filter(Boolean) as string[])).sort(),
+    [events]
+  );
+
   return (
     <div className="space-y-6">
 
@@ -276,6 +281,7 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
           <EventForm
             state={newEvent}
             cities={cities.map((c) => c.name)}
+            knownVenues={knownVenues}
             onChange={(k, v) => setNewEvent((s) => ({ ...s, [k]: v }))}
           />
           <div className="flex gap-3 pt-2">
@@ -339,6 +345,7 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
                       <EventForm
                         state={editState}
                         cities={cities.map((c) => c.name)}
+                        knownVenues={knownVenues}
                         onChange={(k, v) => setEditState((s) => ({ ...s, [k]: v }))}
                       />
                       <div className="flex gap-3 pt-1">
@@ -440,12 +447,27 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
 function EventForm({
   state,
   cities,
+  knownVenues,
   onChange,
 }: {
   state: EditState;
   cities: string[];
+  knownVenues: string[];
   onChange: (key: keyof EditState, value: string | boolean | null) => void;
 }) {
+  const currentVenue = state.venue ?? "";
+  const isCustom = currentVenue !== "" && !knownVenues.includes(currentVenue);
+  const [venueMode, setVenueMode] = useState<"select" | "custom">(isCustom ? "custom" : "select");
+
+  const handleVenueSelect = (val: string) => {
+    if (val === "__new__") {
+      setVenueMode("custom");
+      onChange("venue", null);
+    } else {
+      onChange("venue", val || null);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       <input
@@ -480,14 +502,40 @@ function EventForm({
       </div>
 
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Venue</label>
-        <input
-          type="text"
-          placeholder="e.g. Platform Calgary"
-          value={state.venue ?? ""}
-          onChange={(e) => onChange("venue", e.target.value || null)}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
-        />
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium">Venue</label>
+          {venueMode === "custom" && knownVenues.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setVenueMode("select"); onChange("venue", null); }}
+              className="text-[10px] text-gray-600 hover:text-white transition-colors"
+            >
+              ← pick from list
+            </button>
+          )}
+        </div>
+        {venueMode === "select" ? (
+          <select
+            value={currentVenue}
+            onChange={(e) => handleVenueSelect(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors appearance-none"
+          >
+            <option value="" className="bg-black text-gray-500">— select venue —</option>
+            {knownVenues.map((v) => (
+              <option key={v} value={v} className="bg-black">{v}</option>
+            ))}
+            <option value="__new__" className="bg-black text-gray-400">+ Enter new venue…</option>
+          </select>
+        ) : (
+          <input
+            autoFocus
+            type="text"
+            placeholder="e.g. Platform Calgary"
+            value={currentVenue}
+            onChange={(e) => onChange("venue", e.target.value || null)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
+          />
+        )}
       </div>
 
       <div>
