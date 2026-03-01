@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CheckInClient } from "@/app/staff/[eventSlug]/checkin/CheckInClient";
 import { SeatingManagementClient } from "@/components/admin/SeatingManagementClient";
+import { ImportRegistrationsClient } from "@/components/admin/ImportRegistrationsClient";
 import { cn } from "@/lib/utils";
 import type { Event, Registration, AgendaItem, AttendeeIntake, SuggestedGroup, TableQRCode } from "@/types";
 
@@ -99,15 +100,31 @@ export function AttendanceHubClient({
           </div>
 
           {activeTab === "checkin" && (
-            <CheckInClient
-              event={event}
-              eventSlug={eventSlug}
-              adminCode={adminCode}
-              initialRegistrations={initialRegistrations}
-              stats={stats}
-              initialAgendaItems={initialAgendaItems}
-              embedded
-            />
+            <>
+              <CheckInClient
+                event={event}
+                eventSlug={eventSlug}
+                adminCode={adminCode}
+                initialRegistrations={initialRegistrations}
+                stats={stats}
+                initialAgendaItems={initialAgendaItems}
+                embedded
+              />
+              <div className="mt-12 pt-12 border-t border-white/[0.06]">
+                <div className="mb-6">
+                  <h3 className="text-sm font-light text-white">Import Registrations</h3>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-bold mt-1">CSV Upload</p>
+                </div>
+                <ImportRegistrationsClient
+                  eventId={event.id}
+                  eventSlug={eventSlug}
+                  adminCode={adminCode}
+                  existingEmails={initialRegistrations
+                    .map((r) => r.user?.email)
+                    .filter((e): e is string => !!e)}
+                />
+              </div>
+            </>
           )}
           {activeTab === "seating" && (
             <SeatingManagementClient
