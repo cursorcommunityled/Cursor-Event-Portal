@@ -514,6 +514,7 @@ export interface ConversationTheme {
   category: string | null;
   sort_order: number;
   is_archived: boolean;
+  times_used: number;
   created_at: string;
 }
 

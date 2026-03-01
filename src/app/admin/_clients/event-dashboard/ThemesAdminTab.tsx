@@ -92,6 +92,7 @@ export function ThemesAdminTab({
               {catThemes.map((theme) => {
                 const isActive = activeThemeId === theme.id;
                 const isLoading = loading === theme.id;
+                const isUsed = (theme.times_used ?? 0) > 0 && !isActive;
                 return (
                   <button
                     key={theme.id}
@@ -101,18 +102,25 @@ export function ThemesAdminTab({
                       "group glass rounded-2xl p-5 text-left transition-all duration-300 border relative",
                       isActive
                         ? "border-white/40 bg-white/10 shadow-glow scale-[1.01]"
+                        : isUsed
+                        ? "border-white/5 opacity-40 cursor-pointer hover:opacity-60"
                         : "border-white/10 hover:border-white/20 hover:bg-white/5"
                     )}
                   >
+                    {isUsed && (
+                      <span className="absolute top-3 right-3 text-[9px] uppercase tracking-widest text-gray-600 font-medium">
+                        Used
+                      </span>
+                    )}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 min-w-0">
-                        <span className="text-2xl shrink-0 mt-0.5">
+                        <span className={cn("text-2xl shrink-0 mt-0.5", isUsed && "grayscale")}>
                           {theme.emoji ?? "💡"}
                         </span>
                         <div className="min-w-0">
                           <h4 className={cn(
                             "font-medium text-base leading-snug",
-                            isActive ? "text-white" : "text-white/80 group-hover:text-white"
+                            isActive ? "text-white" : isUsed ? "text-gray-600" : "text-white/80 group-hover:text-white"
                           )}>
                             {theme.name}
                           </h4>
@@ -123,18 +131,20 @@ export function ThemesAdminTab({
                           )}
                         </div>
                       </div>
-                      <div className={cn(
-                        "w-6 h-6 rounded-full border shrink-0 flex items-center justify-center transition-all mt-0.5",
-                        isActive
-                          ? "border-white bg-white"
-                          : "border-white/20 group-hover:border-white/40"
-                      )}>
-                        {isLoading ? (
-                          <span className="w-2.5 h-2.5 rounded-full border border-gray-400 border-t-transparent animate-spin" />
-                        ) : isActive ? (
-                          <Check className="w-3 h-3 text-black" />
-                        ) : null}
-                      </div>
+                      {!isUsed && (
+                        <div className={cn(
+                          "w-6 h-6 rounded-full border shrink-0 flex items-center justify-center transition-all mt-0.5",
+                          isActive
+                            ? "border-white bg-white"
+                            : "border-white/20 group-hover:border-white/40"
+                        )}>
+                          {isLoading ? (
+                            <span className="w-2.5 h-2.5 rounded-full border border-gray-400 border-t-transparent animate-spin" />
+                          ) : isActive ? (
+                            <Check className="w-3 h-3 text-black" />
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
