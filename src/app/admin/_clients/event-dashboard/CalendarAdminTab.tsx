@@ -178,7 +178,13 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
     setLoading(null);
   };
 
-  const cityEvents = events.filter((e) => e.city === activeCity);
+  const [showPast, setShowPast] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+
+  const allCityEvents = events.filter((e) => e.city === activeCity);
+  const upcomingEvents = allCityEvents.filter((e) => e.event_date >= today);
+  const pastEvents = allCityEvents.filter((e) => e.event_date < today).reverse(); // newest past first
+  const cityEvents = showPast ? pastEvents : upcomingEvents;
   const grouped = groupByMonth(cityEvents);
 
   const knownVenues = useMemo(() =>
@@ -192,7 +198,7 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
       {/* ── City tabs ───────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 flex-wrap">
         {cities.map((city) => {
-          const count = events.filter((e) => e.city === city.name).length;
+          const count = events.filter((e) => e.city === city.name && e.event_date >= today).length;
           const isActive = activeCity === city.name;
           return (
             <button
@@ -258,18 +264,47 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
         )}
       </div>
 
-      {/* ── Add event button ─────────────────────────────────────────────────── */}
+      {/* ── Filter + Add event ───────────────────────────────────────────────── */}
       <div className="flex justify-between items-center">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-600 font-medium">
-          {activeCity} · {cityEvents.length} event{cityEvents.length !== 1 ? "s" : ""}
-        </p>
-        <button
-          onClick={() => { setCreating(true); setNewEvent(blankFor(activeCity)); }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white hover:bg-white/15 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Add Event
-        </button>
+        <div className="flex items-center gap-1 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
+          <button
+            onClick={() => { setShowPast(false); setCreating(false); }}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200",
+              !showPast ? "bg-white text-black" : "text-gray-500 hover:text-white/70"
+            )}
+          >
+            Upcoming
+            {upcomingEvents.length > 0 && (
+              <span className={cn("ml-1.5 tabular-nums", !showPast ? "text-black/50" : "text-gray-600")}>
+                {upcomingEvents.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => { setShowPast(true); setCreating(false); }}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200",
+              showPast ? "bg-white text-black" : "text-gray-500 hover:text-white/70"
+            )}
+          >
+            Past
+            {pastEvents.length > 0 && (
+              <span className={cn("ml-1.5 tabular-nums", showPast ? "text-black/50" : "text-gray-600")}>
+                {pastEvents.length}
+              </span>
+            )}
+          </button>
+        </div>
+        {!showPast && (
+          <button
+            onClick={() => { setCreating(true); setNewEvent(blankFor(activeCity)); }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white hover:bg-white/15 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            Add Event
+          </button>
+        )}
       </div>
 
       {/* ── Create form ──────────────────────────────────────────────────────── */}
@@ -307,10 +342,12 @@ export function CalendarAdminTab({ initialEvents, initialCities }: CalendarAdmin
       {grouped.size === 0 && !creating && (
         <div className="glass rounded-3xl p-10 border-white/10 text-center">
           <CalendarCheck className="w-8 h-8 text-gray-700 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">No events planned for {activeCity} yet</p>
-          <p className="text-xs text-gray-700 mt-1">
-            Add one above or bulk-import via SQL
+          <p className="text-sm text-gray-500">
+            {showPast ? `No past events for ${activeCity}` : `No upcoming events for ${activeCity}`}
           </p>
+          {!showPast && (
+            <p className="text-xs text-gray-700 mt-1">Add one above or bulk-import via SQL</p>
+          )}
         </div>
       )}
 
