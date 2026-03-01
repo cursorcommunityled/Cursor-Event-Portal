@@ -30,7 +30,7 @@ interface EventDashboardClientProps {
   plannedEvents: PlannedEvent[];
   calendarCities: EventCalendarCity[];
   // Venue selector
-  allEvents: Event[];
+  allEvents: Pick<Event, "id" | "name" | "slug" | "status" | "start_time" | "venue">[];
   activeSlug: string;
   // Active tab from URL
   activeTab: TabType;
