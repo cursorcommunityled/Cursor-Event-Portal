@@ -1,4 +1,4 @@
-import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey } from "@/lib/supabase/queries";
+import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey, getAllEvents } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -8,15 +8,16 @@ import {
   MessageCircle,
   ClipboardCheck,
   ArrowRight,
-  Calendar,
   BarChart3,
   Layers,
   Zap,
 } from "lucide-react";
 import { SimulateStartButton } from "@/components/admin/SimulateStartButton";
 import { EventSocialCard } from "@/components/admin/EventSocialCard";
+import { AdminEventControls } from "@/components/admin/AdminEventControls";
 import { checkAndUnlockAtStartTime } from "@/lib/actions/seating";
 import { getEventForAdmin } from "@/lib/utils/admin";
+import { getActiveEventSlug } from "@/lib/supabase/queries";
 
 interface AdminDashboardProps {
   params: Promise<{ adminCode: string }>;
@@ -31,9 +32,11 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
   const supabase = await createClient();
 
-  const [stats, questions] = await Promise.all([
+  const [stats, questions, allEvents, activeSlug] = await Promise.all([
     getEventStats(event.id),
     getQuestions(event.id),
+    getAllEvents(),
+    getActiveEventSlug(),
   ]);
 
   const openQuestions = questions.filter((q) => q.status === "open").length;
@@ -112,6 +115,8 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
         {event.seat_lockout_active && (
           <SimulateStartButton event={event} eventSlug={eventSlug} adminCode={adminCode} />
         )}
+
+        <AdminEventControls events={allEvents} currentAdminCode={adminCode} activeSlug={activeSlug} />
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Attendance */}
