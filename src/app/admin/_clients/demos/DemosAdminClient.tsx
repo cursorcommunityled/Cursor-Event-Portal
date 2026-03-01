@@ -29,9 +29,10 @@ interface DemosAdminClientProps {
   adminCode: string;
   settings: DemoSignupSettings;
   slots: DemoSlotWithCounts[];
+  embedded?: boolean;
 }
 
-export function DemosAdminClient({ event, adminCode, settings, slots }: DemosAdminClientProps) {
+export function DemosAdminClient({ event, adminCode, settings, slots, embedded }: DemosAdminClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -64,11 +65,9 @@ export function DemosAdminClient({ event, adminCode, settings, slots }: DemosAdm
     });
   };
 
-  return (
-    <div className="min-h-screen bg-black-gradient text-white flex flex-col">
-      <AdminHeader adminCode={adminCode} subtitle="Demo Signup" />
-      <main className="max-w-4xl mx-auto px-6 py-8 pb-16 w-full space-y-8 flex-1">
-        <div className="glass rounded-[32px] p-8 border-white/10 space-y-5">
+  const content = (
+    <div className="space-y-8">
+      <div className="glass rounded-[32px] p-8 border-white/10 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-light tracking-tight">Demo Settings</h2>
             <label className="flex items-center gap-2 text-sm text-gray-300">
@@ -161,6 +160,16 @@ export function DemosAdminClient({ event, adminCode, settings, slots }: DemosAdm
             ))}
           </div>
         </div>
+    </div>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="min-h-screen bg-black-gradient text-white flex flex-col">
+      <AdminHeader adminCode={adminCode} subtitle="Demo Signup" />
+      <main className="max-w-4xl mx-auto px-6 py-8 pb-16 w-full flex-1">
+        {content}
       </main>
     </div>
   );

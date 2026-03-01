@@ -6,15 +6,22 @@ import { ActiveVenueSelector } from "@/components/admin/ActiveVenueSelector";
 import { AgendaAdminClient } from "../../agenda/AgendaAdminClient";
 import { ThemesAdminTab } from "../../event-dashboard/ThemesAdminTab";
 import { CalendarAdminTab } from "../../event-dashboard/CalendarAdminTab";
+import { DemosAdminClient } from "../../demos/DemosAdminClient";
+import { SlideDeckAdminClient } from "../../slides/SlideDeckAdminClient";
+import { CompetitionsAdminClient } from "@/components/admin/CompetitionsAdminClient";
 import { cn } from "@/lib/utils";
-import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue } from "@/types";
+import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries } from "@/types";
+import type { DemoSignupSettings, DemoSlotWithCounts } from "@/lib/demo/service";
 
-type TabType = "agenda" | "themes" | "calendar";
+type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
-  { id: "agenda",   label: "Agenda",   description: "Event schedule" },
-  { id: "themes",   label: "Themes",   description: "Conversation themes" },
-  { id: "calendar", label: "Calendar", description: "Event planning" },
+  { id: "agenda",       label: "Agenda",       description: "Event schedule" },
+  { id: "demos",        label: "Demos",        description: "Signup management" },
+  { id: "slides",       label: "Slides",       description: "Presentation deck" },
+  { id: "competitions", label: "Competitions", description: "Project showcase" },
+  { id: "themes",       label: "Themes",       description: "Conversation themes" },
+  { id: "calendar",     label: "Calendar",     description: "Event planning" },
 ];
 
 interface EventDashboardClientProps {
@@ -33,6 +40,13 @@ interface EventDashboardClientProps {
   // Venue selector
   allEvents: Pick<Event, "id" | "name" | "slug" | "status" | "start_time" | "venue">[];
   activeSlug: string;
+  // Demos
+  demoSettings: DemoSignupSettings | null;
+  demoSlots: DemoSlotWithCounts[];
+  // Slides
+  initialDeck: SlideDeck | null;
+  // Competitions
+  initialCompetitions: CompetitionWithEntries[];
   // Active tab from URL
   activeTab: TabType;
 }
@@ -49,6 +63,10 @@ export function EventDashboardClient({
   venues,
   allEvents,
   activeSlug,
+  demoSettings,
+  demoSlots,
+  initialDeck,
+  initialCompetitions,
   activeTab: initialTab,
 }: EventDashboardClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
@@ -74,7 +92,7 @@ export function EventDashboardClient({
       <AdminHeader
         eventSlug={eventSlug}
         adminCode={adminCode}
-        subtitle="Event Dashboard"
+        subtitle="Program"
         showBackArrow={true}
       />
 
@@ -122,6 +140,35 @@ export function EventDashboardClient({
               eventSlug={eventSlug}
               adminCode={adminCode}
               initialItems={initialAgendaItems}
+            />
+          )}
+          {activeTab === "demos" && demoSettings && (
+            <DemosAdminClient
+              event={event}
+              adminCode={adminCode}
+              settings={demoSettings}
+              slots={demoSlots}
+              embedded
+            />
+          )}
+          {activeTab === "demos" && !demoSettings && (
+            <p className="text-gray-500 text-sm">Demo settings not configured.</p>
+          )}
+          {activeTab === "slides" && (
+            <SlideDeckAdminClient
+              event={event}
+              eventSlug={eventSlug}
+              adminCode={adminCode}
+              initialDeck={initialDeck}
+              embedded
+            />
+          )}
+          {activeTab === "competitions" && (
+            <CompetitionsAdminClient
+              eventId={event.id}
+              eventSlug={eventSlug}
+              adminCode={adminCode}
+              initialCompetitions={initialCompetitions}
             />
           )}
           {activeTab === "themes" && (

@@ -17,6 +17,7 @@ interface CheckInClientProps {
   initialRegistrations: Registration[];
   stats: { registered: number; checkedIn: number };
   initialAgendaItems: AgendaItem[];
+  embedded?: boolean;
 }
 
 // Helper to get human-readable labels for signals
@@ -44,6 +45,7 @@ export function CheckInClient({
   initialRegistrations,
   stats,
   initialAgendaItems,
+  embedded,
 }: CheckInClientProps) {
   // Determine back link based on whether we have adminCode
   const backLink = adminCode
@@ -216,26 +218,8 @@ export function CheckInClient({
     });
   };
 
-  return (
-    <div className="min-h-screen bg-black-gradient text-white pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-40 glass border-b border-white/5 backdrop-blur-3xl">
-        <div className="max-w-2xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link
-            href={backLink}
-            className="flex items-center gap-2 text-gray-600 hover:text-white transition-all group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Exit</span>
-          </Link>
-          <h1 className="text-sm font-bold uppercase tracking-[0.4em]">
-            Check-In
-          </h1>
-          <div className="w-12" />
-        </div>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-6 py-12 space-y-12 animate-fade-in">
+  const mainContent = (
+    <div className="space-y-12 animate-fade-in">
         {/* Stats - Floating Grid */}
         <div className="grid grid-cols-2 gap-6">
           <div className="glass rounded-[32px] p-8 space-y-4 relative overflow-hidden group">
@@ -562,26 +546,49 @@ export function CheckInClient({
             })
           )}
         </div>
+    </div>
+  );
+
+  const modal = selectedAttendee ? (
+    <AttendeeDetailModal
+      userId={selectedAttendee.userId}
+      eventId={event.id}
+      eventSlug={eventSlug}
+      userName={selectedAttendee.userName}
+      userEmail={selectedAttendee.userEmail}
+      isOpen={!!selectedAttendee}
+      onClose={() => setSelectedAttendee(null)}
+    />
+  ) : null;
+
+  if (embedded) {
+    return (
+      <>
+        {mainContent}
+        {modal}
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black-gradient text-white pb-20">
+      <header className="sticky top-0 z-40 glass border-b border-white/5 backdrop-blur-3xl">
+        <div className="max-w-2xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link href={backLink} className="flex items-center gap-2 text-gray-600 hover:text-white transition-all group">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Exit</span>
+          </Link>
+          <h1 className="text-sm font-bold uppercase tracking-[0.4em]">Check-In</h1>
+          <div className="w-12" />
+        </div>
+      </header>
+      <main className="max-w-2xl mx-auto px-6 py-12">
+        {mainContent}
       </main>
-
-      {/* Attendee Detail Modal */}
-      {selectedAttendee && (
-        <AttendeeDetailModal
-          userId={selectedAttendee.userId}
-          eventId={event.id}
-          eventSlug={eventSlug}
-          userName={selectedAttendee.userName}
-          userEmail={selectedAttendee.userEmail}
-          isOpen={!!selectedAttendee}
-          onClose={() => setSelectedAttendee(null)}
-        />
-      )}
-
+      {modal}
       <footer className="py-12 px-6 border-t border-white/[0.03] flex justify-between items-center z-10">
         <p className="text-[10px] uppercase tracking-[0.6em] text-gray-500 font-medium">Pop-Up System / MMXXVI</p>
-        <div className="flex items-center gap-6">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Check-In</p>
-        </div>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Check-In</p>
       </footer>
     </div>
   );

@@ -16,6 +16,7 @@ interface SlideDeckAdminClientProps {
   eventSlug: string;
   adminCode?: string;
   initialDeck: SlideDeck | null;
+  embedded?: boolean;
 }
 
 export function SlideDeckAdminClient({
@@ -23,6 +24,7 @@ export function SlideDeckAdminClient({
   eventSlug,
   adminCode,
   initialDeck,
+  embedded,
 }: SlideDeckAdminClientProps) {
   const router = useRouter();
   const [deck, setDeck] = useState<SlideDeck | null>(initialDeck);
@@ -240,24 +242,8 @@ export function SlideDeckAdminClient({
     });
   };
 
-  return (
-    <div className="min-h-screen bg-black-gradient text-white pb-20">
-      <AdminHeader 
-        eventSlug={eventSlug}
-        adminCode={adminCode}
-        subtitle="Slide Deck Management"
-        rightElement={
-          <button
-            onClick={() => setShowUploadModal(true)}
-            disabled={isPending}
-            className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Upload className="w-5 h-5" />
-          </button>
-        }
-      />
-
-      <main className="max-w-4xl mx-auto px-6 py-12 space-y-12 animate-fade-in">
+  const mainContent = (
+    <div className="space-y-12 animate-fade-in">
         {/* Error Message */}
         {error && (
           <div className="glass rounded-[32px] p-6 bg-red-500/10 border border-red-500/20">
@@ -393,100 +379,125 @@ export function SlideDeckAdminClient({
             </div>
           </div>
         )}
-      </main>
+    </div>
+  );
 
-      <footer className="py-12 px-6 border-t border-white/[0.03] flex justify-between items-center z-10">
-        <p className="text-[10px] uppercase tracking-[0.6em] text-gray-500 font-medium">Pop-Up System / MMXXVI</p>
-        <div className="flex items-center gap-6">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Slide Deck</p>
-        </div>
-      </footer>
-
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          onClick={() => !uploading && setShowUploadModal(false)}
-        >
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-          <div
-            className="relative w-full max-w-md glass rounded-[40px] p-10 space-y-8"
-            onClick={(e) => e.stopPropagation()}
+  const uploadModal = showUploadModal ? (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={() => !uploading && setShowUploadModal(false)}
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-md glass rounded-[40px] p-10 space-y-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-light text-white">Upload Slide Deck</h2>
+          <button
+            onClick={() => setShowUploadModal(false)}
+            disabled={uploading}
+            className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center disabled:opacity-50"
           >
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-light text-white">Upload Slide Deck</h2>
-              <button
-                onClick={() => setShowUploadModal(false)}
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mb-3">
+              Select PDF Slide Deck
+            </label>
+            <div className="relative">
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={handleFileSelect}
                 disabled={uploading}
-                className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center disabled:opacity-50"
+                className="hidden"
+                id="deck-upload"
+              />
+              <label
+                htmlFor="deck-upload"
+                className={cn(
+                  "flex flex-col items-center justify-center w-full h-56 rounded-2xl border-2 border-dashed cursor-pointer transition-all",
+                  uploading
+                    ? "border-white/10 bg-white/5 cursor-not-allowed"
+                    : "border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30"
+                )}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mb-3">
-                  Select PDF Slide Deck
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="application/pdf,.pdf"
-                    onChange={handleFileSelect}
-                    disabled={uploading}
-                    className="hidden"
-                    id="deck-upload"
-                  />
-                  <label
-                    htmlFor="deck-upload"
-                    className={cn(
-                      "flex flex-col items-center justify-center w-full h-56 rounded-2xl border-2 border-dashed cursor-pointer transition-all",
-                      uploading
-                        ? "border-white/10 bg-white/5 cursor-not-allowed"
-                        : "border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30"
-                    )}
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="w-8 h-8 mb-3 text-blue-400 animate-spin" />
-                        <p className="text-sm text-blue-400 font-medium">
-                          {uploadProgress || "Uploading..."}
-                        </p>
-                        <p className="text-[9px] text-gray-600 mt-2">
-                          Please wait while your slide deck is being uploaded
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-3 mb-3">
-                          <FileText className="w-7 h-7 text-red-400" />
-                          <Upload className="w-7 h-7 text-gray-500" />
-                        </div>
-                        <p className="text-sm text-gray-400">
-                          Click to select PDF file
-                        </p>
-                        <p className="text-[9px] text-gray-600 mt-1">
-                          <span className="text-red-400 font-medium">PDF</span> slide deck only
-                        </p>
-                        <p className="text-[8px] text-gray-700 mt-3 text-center max-w-xs">
-                          For PowerPoint: File → Save As → PDF
-                        </p>
-                      </>
-                    )}
-                  </label>
-                </div>
-              </div>
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-8 h-8 mb-3 text-blue-400 animate-spin" />
+                    <p className="text-sm text-blue-400 font-medium">
+                      {uploadProgress || "Uploading..."}
+                    </p>
+                    <p className="text-[9px] text-gray-600 mt-2">
+                      Please wait while your slide deck is being uploaded
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-3 mb-3">
+                      <FileText className="w-7 h-7 text-red-400" />
+                      <Upload className="w-7 h-7 text-gray-500" />
+                    </div>
+                    <p className="text-sm text-gray-400">Click to select PDF file</p>
+                    <p className="text-[9px] text-gray-600 mt-1">
+                      <span className="text-red-400 font-medium">PDF</span> slide deck only
+                    </p>
+                    <p className="text-[8px] text-gray-700 mt-3 text-center max-w-xs">
+                      For PowerPoint: File → Save As → PDF
+                    </p>
+                  </>
+                )}
+              </label>
             </div>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  ) : null;
+
+  if (embedded) {
+    return (
+      <>
+        {mainContent}
+        {uploadModal}
+      </>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black-gradient text-white pb-20">
+      <AdminHeader
+        eventSlug={eventSlug}
+        adminCode={adminCode}
+        subtitle="Slide Deck Management"
+        rightElement={
+          <button
+            onClick={() => setShowUploadModal(true)}
+            disabled={isPending}
+            className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Upload className="w-5 h-5" />
+          </button>
+        }
+      />
+      <main className="max-w-4xl mx-auto px-6 py-12">
+        {mainContent}
+      </main>
+      <footer className="py-12 px-6 border-t border-white/[0.03] flex justify-between items-center z-10">
+        <p className="text-[10px] uppercase tracking-[0.6em] text-gray-500 font-medium">Pop-Up System / MMXXVI</p>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Slide Deck</p>
+      </footer>
+      {uploadModal}
     </div>
   );
 }

@@ -7,7 +7,10 @@ import {
   getAllEvents,
   getActiveEventSlug,
   getVenues,
+  getSlideDeck,
+  getAllCompetitions,
 } from "@/lib/supabase/queries";
+import { getOrCreateDemoSettings, getDemoSlotsWithCounts, syncDemoSlotsForWindow } from "@/lib/demo/service";
 import { EventDashboardClient } from "../../_clients/[adminCode]/event-dashboard/EventDashboardClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
 
@@ -16,7 +19,11 @@ interface EventDashboardPageProps {
   searchParams: Promise<{ tab?: string }>;
 }
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+const VALID_TABS = ["agenda", "demos", "slides", "competitions", "themes", "calendar"] as const;
+type TabType = typeof VALID_TABS[number];
 
 export default async function EventDashboardPage({
   params,
@@ -25,12 +32,11 @@ export default async function EventDashboardPage({
   const { adminCode } = await params;
   const { tab } = await searchParams;
 
-  const activeTab =
-    tab === "themes" || tab === "calendar" ? tab : "agenda";
+  const activeTab: TabType = VALID_TABS.includes(tab as TabType) ? (tab as TabType) : "agenda";
 
   const event = await getEventForAdmin(adminCode);
 
-  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues] = await Promise.all([
+  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues, slideDeck, competitions] = await Promise.all([
     getAgendaItems(event.id),
     getConversationThemes(),
     getEventThemeSelection(event.id),
@@ -39,7 +45,19 @@ export default async function EventDashboardPage({
     getAllEvents(),
     getActiveEventSlug(),
     getVenues(),
+    getSlideDeck(event.id),
+    getAllCompetitions(event.id),
   ]);
+
+  let demoSettings = null;
+  let demoSlots: Awaited<ReturnType<typeof getDemoSlotsWithCounts>> = [];
+  try {
+    demoSettings = await getOrCreateDemoSettings(event);
+    await syncDemoSlotsForWindow(event.id, demoSettings.opens_at, demoSettings.closes_at);
+    demoSlots = await getDemoSlotsWithCounts(event.id);
+  } catch {
+    // demos not configured for this event
+  }
 
   return (
     <EventDashboardClient
@@ -54,7 +72,11 @@ export default async function EventDashboardPage({
       allEvents={allEvents}
       activeSlug={activeSlug}
       venues={venues}
-      activeTab={activeTab as "agenda" | "themes" | "calendar"}
+      demoSettings={demoSettings}
+      demoSlots={demoSlots}
+      initialDeck={slideDeck}
+      initialCompetitions={competitions}
+      activeTab={activeTab}
     />
   );
 }

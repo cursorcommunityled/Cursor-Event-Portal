@@ -8,12 +8,10 @@ import {
   MessageCircle,
   ClipboardCheck,
   ArrowRight,
-  Upload,
   Calendar,
   BarChart3,
-  Database,
-  Trophy,
-  MonitorPlay,
+  Layers,
+  Zap,
 } from "lucide-react";
 import { SimulateStartButton } from "@/components/admin/SimulateStartButton";
 import { EventSocialCard } from "@/components/admin/EventSocialCard";
@@ -116,6 +114,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
+          {/* Attendance */}
           <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "150ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
@@ -124,8 +123,8 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     <UserCheck className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Check-In</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Manage Attendance</p>
+                    <h3 className="text-xl font-light tracking-tight text-white/90">Attendance</h3>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Check-In · Seating</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -133,6 +132,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
+          {/* Engagement */}
           <EventSocialCard
             event={event}
             eventSlug={eventSlug}
@@ -141,16 +141,17 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             initialQuestions={questions}
           />
 
+          {/* Program */}
           <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "210ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <Calendar className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
+                    <Layers className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Event Dashboard</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Themes · Calendar</p>
+                    <h3 className="text-xl font-light tracking-tight text-white/90">Program</h3>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Demos · Slides · Competitions</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -158,58 +159,8 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/demos`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "240ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <MonitorPlay className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Demos</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Signup Management</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </Link>
-
-          <Link href={`/admin/${adminCode}/groups`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "255ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <Users className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Seating</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Table Management</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </Link>
-
-          <Link href={`/admin/${adminCode}/slides`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "270ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <Upload className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Slide Deck</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">PDF Upload</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </Link>
-
-          <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "300ms" }}>
+          {/* Intelligence */}
+          <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "240ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -217,8 +168,8 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     <BarChart3 className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Analytics</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Insights & Reports</p>
+                    <h3 className="text-xl font-light tracking-tight text-white/90">Intelligence</h3>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Analytics · Data</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -226,46 +177,13 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </Link>
 
-          <Link href={`/admin/${adminCode}/data`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "330ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <Database className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Data Management</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Import & Export</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </Link>
-
-          <Link href={`/admin/${adminCode}/competitions`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "360ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <Trophy className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Competitions</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Project Showcase</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </Link>
-
-          <Link href={`/${eventSlug}/agenda`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "390ms" }}>
+          {/* Enter Portal — full width */}
+          <Link href={`/${eventSlug}/agenda`} prefetch={false} className="md:col-span-2 animate-slide-up" style={{ animationDelay: "270ms" }}>
             <div className="glass rounded-[40px] p-8 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-400/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-all">
-                    <ArrowRight className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
+                    <Zap className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-xl font-light tracking-tight text-white/90">Enter Portal</h3>

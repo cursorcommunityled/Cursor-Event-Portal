@@ -1,33 +1,54 @@
-import { AdminHeader } from "@/components/admin/AdminHeader";
-import { AnalyticsClient } from "../../_clients/[adminCode]/analytics/AnalyticsClient";
+import { IntelligenceHubClient } from "../../_clients/[adminCode]/analytics/IntelligenceHubClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
-import { getCheckInCurve, getQAAnalytics, getPollParticipation, getIntakeAnalytics, getSeriesAttendanceData } from "@/lib/supabase/queries";
+import {
+  getCheckInCurve, getQAAnalytics, getPollParticipation, getIntakeAnalytics, getSeriesAttendanceData,
+  getEventRegistrations, getQuestions, getPublishedSurvey, getSurveyResponses,
+} from "@/lib/supabase/queries";
 
-export default async function AnalyticsPage({ params }: { params: Promise<{ adminCode: string }> }) {
+export const revalidate = 0;
+
+interface AnalyticsPageProps {
+  params: Promise<{ adminCode: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function AnalyticsPage({ params, searchParams }: AnalyticsPageProps) {
   const { adminCode } = await params;
+  const { tab } = await searchParams;
+  const activeTab = tab === "data" ? "data" : "analytics";
+
   const event = await getEventForAdmin(adminCode);
 
-  const [checkInCurve, qaAnalytics, pollParticipation, intakeAnalytics] = await Promise.all([
+  const [checkInCurve, qaAnalytics, pollParticipation, intakeAnalytics, registrations, questions, survey] = await Promise.all([
     getCheckInCurve(event.id),
     getQAAnalytics(event.id),
     getPollParticipation(event.id),
     getIntakeAnalytics(event.id),
+    getEventRegistrations(event.id),
+    getQuestions(event.id),
+    getPublishedSurvey(event.id),
   ]);
 
-  const seriesAttendanceData = event.series_id ? await getSeriesAttendanceData(event.series_id) : null;
+  const [seriesAttendanceData, surveyResponses] = await Promise.all([
+    event.series_id ? getSeriesAttendanceData(event.series_id) : Promise.resolve(null),
+    survey ? getSurveyResponses(survey.id) : Promise.resolve([]),
+  ]);
 
   return (
-    <div className="min-h-screen bg-black-gradient text-white flex flex-col relative overflow-hidden">
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-white/[0.02] rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-white/[0.01] rounded-full blur-[150px] pointer-events-none" />
-      <AdminHeader adminCode={adminCode} subtitle="Analytics & Insights" />
-      <main className="max-w-6xl mx-auto px-6 py-8 w-full z-10 flex-1 space-y-12">
-        <AnalyticsClient event={event} checkInCurve={checkInCurve} qaAnalytics={qaAnalytics} pollParticipation={pollParticipation} intakeAnalytics={intakeAnalytics} seriesAttendanceData={seriesAttendanceData || undefined} />
-      </main>
-      <footer className="py-12 px-6 border-t border-white/[0.03] flex justify-between items-center z-10">
-        <p className="text-[10px] uppercase tracking-[0.6em] text-gray-500 font-medium">Pop-Up System / MMXXVI</p>
-        <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Analytics Dashboard</p>
-      </footer>
-    </div>
+    <IntelligenceHubClient
+      event={event}
+      eventSlug={event.slug}
+      adminCode={adminCode}
+      checkInCurve={checkInCurve}
+      qaAnalytics={qaAnalytics}
+      pollParticipation={pollParticipation}
+      intakeAnalytics={intakeAnalytics}
+      seriesAttendanceData={seriesAttendanceData || undefined}
+      registrations={registrations}
+      questions={questions}
+      survey={survey}
+      surveyResponses={surveyResponses}
+      activeTab={activeTab}
+    />
   );
 }
