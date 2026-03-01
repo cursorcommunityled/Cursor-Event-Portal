@@ -171,10 +171,11 @@ export async function getAllEvents(): Promise<EventSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, slug, name, venue, start_time, status, admin_code, theme_selection:event_theme_selections(theme:conversation_themes(title))")
+    .select("id, slug, name, venue, start_time, status, admin_code")
     .order("start_time", { ascending: false });
   if (error) return [];
-  return (data ?? []).map((ev: any) => ({
+
+  const events = (data ?? []).map((ev: any) => ({
     id: ev.id,
     slug: ev.slug,
     name: ev.name,
@@ -182,8 +183,21 @@ export async function getAllEvents(): Promise<EventSummary[]> {
     start_time: ev.start_time,
     status: ev.status,
     admin_code: ev.admin_code,
-    themeTitle: ev.theme_selection?.[0]?.theme?.title ?? null,
+    themeTitle: null as string | null,
   }));
+
+  // Best-effort: attach active theme titles (requires themes migration to be run)
+  const { data: selections } = await supabase
+    .from("event_theme_selections")
+    .select("event_id, theme:conversation_themes(title)");
+  if (selections) {
+    const themeMap = new Map(
+      selections.map((s: any) => [s.event_id, s.theme?.title ?? null])
+    );
+    events.forEach((ev) => { ev.themeTitle = themeMap.get(ev.id) ?? null; });
+  }
+
+  return events;
 }
 
 export async function getEventStats(eventId: string) {
