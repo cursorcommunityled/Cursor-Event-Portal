@@ -119,17 +119,17 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
         <AdminEventControls events={allEvents} currentAdminCode={adminCode} activeSlug={activeSlug} />
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Attendance */}
-          <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "150ms" }}>
+          {/* Program */}
+          <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "150ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <UserCheck className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
+                    <Layers className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Attendance</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Check-In · Seating</p>
+                    <h3 className="text-xl font-light tracking-tight text-white/90">Program</h3>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Demos · Slides · Competitions</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
@@ -146,17 +146,17 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             initialQuestions={questions}
           />
 
-          {/* Program */}
-          <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "210ms" }}>
+          {/* Attendance */}
+          <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "210ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
-                    <Layers className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
+                    <UserCheck className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-light tracking-tight text-white/90">Program</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Demos · Slides · Competitions</p>
+                    <h3 className="text-xl font-light tracking-tight text-white/90">Attendance</h3>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Check-In · Seating</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
