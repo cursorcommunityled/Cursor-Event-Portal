@@ -108,7 +108,6 @@ export function AttendanceHubClient({
                 initialRegistrations={initialRegistrations}
                 stats={stats}
                 initialAgendaItems={initialAgendaItems}
-                embedded
               />
               <div className="mt-12 pt-12 border-t border-white/[0.06]">
                 <div className="mb-6">
