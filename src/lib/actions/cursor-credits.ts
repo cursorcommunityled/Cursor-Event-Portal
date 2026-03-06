@@ -2,6 +2,31 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { CursorCredit } from "@/types";
+
+export async function fetchCursorCredits(eventId: string): Promise<CursorCredit[]> {
+  const supabase = await createServiceClient();
+  const { data } = await supabase
+    .from("cursor_credits")
+    .select("*, user:users(name, email)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+  return (data ?? []) as CursorCredit[];
+}
+
+export async function fetchMyCredit(
+  eventId: string,
+  userId: string
+): Promise<CursorCredit | null> {
+  const supabase = await createServiceClient();
+  const { data } = await supabase
+    .from("cursor_credits")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("assigned_to", userId)
+    .maybeSingle();
+  return (data ?? null) as CursorCredit | null;
+}
 
 // ─── Import Codes ─────────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import {
   autoAssignCredits,
   unassignCredit,
   deleteCreditCode,
+  fetchCursorCredits,
 } from "@/lib/actions/cursor-credits";
 import { cn } from "@/lib/utils";
 import { Gift, ChevronDown, ChevronUp, Trash2, UserX } from "lucide-react";
@@ -58,7 +59,8 @@ export function CreditsAdminTab({
       } else {
         setImportMsg(`Inserted ${result.inserted} code${result.inserted !== 1 ? "s" : ""}${result.duplicates ? `, ${result.duplicates} duplicate${result.duplicates !== 1 ? "s" : ""} skipped` : ""}.`);
         setRawInput("");
-        // Optimistic: reload page data by triggering revalidation — just show msg, user can refresh
+        const fresh = await fetchCursorCredits(eventId);
+        setCredits(fresh);
       }
     });
   };
@@ -78,6 +80,8 @@ export function CreditsAdminTab({
           `Assigned ${result.assigned} credit${result.assigned !== 1 ? "s" : ""}${result.noCodesLeft ? " — pool exhausted, some attendees not covered" : "."}`
         );
       }
+      const fresh = await fetchCursorCredits(eventId);
+      setCredits(fresh);
     });
   };
 

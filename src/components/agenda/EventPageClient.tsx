@@ -6,6 +6,7 @@ import { EventSeriesSection } from "@/components/agenda/EventSeriesSection";
 import { EventSubNav } from "@/components/agenda/EventSubNav";
 import { AttendeeThemesView } from "@/components/agenda/AttendeeThemesView";
 import { AttendeeCreditsView } from "@/components/agenda/AttendeeCreditsView";
+import { fetchMyCredit } from "@/lib/actions/cursor-credits";
 import type { AgendaItem, Event, ConversationTheme, CursorCredit } from "@/types";
 
 interface SeriesEvent {
@@ -32,10 +33,19 @@ export function EventPageClient({
   agendaItems,
   seriesEvents,
   activeTheme,
-  credit,
+  credit: initialCredit,
   userId,
 }: EventPageClientProps) {
   const [activeTab, setActiveTab] = useState<"schedule" | "themes" | "credits">("schedule");
+  const [credit, setCredit] = useState<CursorCredit | null>(initialCredit);
+
+  const handleTabChange = async (tab: "schedule" | "themes" | "credits") => {
+    setActiveTab(tab);
+    if (tab === "credits") {
+      const fresh = await fetchMyCredit(event.id, userId);
+      setCredit(fresh);
+    }
+  };
 
   return (
     <main className="max-w-[704px] mx-auto w-full px-6 py-12 space-y-8">
@@ -57,7 +67,7 @@ export function EventPageClient({
 
       {/* Sub-nav */}
       <div className="animate-slide-up" style={{ animationDelay: "250ms" }}>
-        <EventSubNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <EventSubNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
 
       {/* Tab content */}
