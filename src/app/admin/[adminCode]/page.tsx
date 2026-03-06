@@ -1,5 +1,5 @@
 import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey, getAllEvents } from "@/lib/supabase/queries";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import {
@@ -38,6 +38,16 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
     getAllEvents(),
     getActiveEventSlug(),
   ]);
+
+  // Auto-default live event to most recent if not already set
+  const mostRecentEvent = allEvents[0];
+  if (mostRecentEvent && mostRecentEvent.slug !== activeSlug) {
+    const serviceClient = await createServiceClient();
+    await serviceClient.from("app_settings").upsert(
+      { key: "active_event_slug", value: mostRecentEvent.slug },
+      { onConflict: "key" }
+    );
+  }
 
   const openQuestions = questions.filter((q) => q.status === "open").length;
   const survey = await getPublishedSurvey(event.id);

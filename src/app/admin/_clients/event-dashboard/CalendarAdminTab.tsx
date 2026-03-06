@@ -7,9 +7,10 @@ import {
   deletePlannedEvent,
   createEventCalendarCity,
   createVenue,
+  scrapeLumaEvent,
 } from "@/lib/actions/event-dashboard";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck } from "lucide-react";
+import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck, Link2 } from "lucide-react";
 import type { PlannedEvent, EventCalendarCity, Venue } from "@/types";
 
 interface CalendarAdminTabProps {
@@ -88,6 +89,27 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
     setNewCityName("");
     setAddingCity(false);
     setCityLoading(false);
+  };
+
+  // ── Luma import ───────────────────────────────────────────────────────────
+  const [lumaUrl, setLumaUrl] = useState("");
+  const [lumaLoading, setLumaLoading] = useState(false);
+  const [lumaError, setLumaError] = useState<string | null>(null);
+
+  const handleLumaImport = async () => {
+    const trimmed = lumaUrl.trim();
+    if (!trimmed) return;
+    setLumaLoading(true);
+    setLumaError(null);
+    const result = await scrapeLumaEvent(trimmed);
+    setLumaLoading(false);
+    if ("error" in result) {
+      setLumaError(result.error);
+      return;
+    }
+    setNewEvent({ ...result.data, city: activeCity });
+    setCreating(true);
+    setLumaUrl("");
   };
 
   // ── Create event ──────────────────────────────────────────────────────────
@@ -264,7 +286,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
       </div>
 
       {/* ── Filter + Add event ───────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div className="flex items-center gap-1 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.08]">
           <button
             onClick={() => { setShowPast(false); setCreating(false); }}
@@ -296,13 +318,39 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
           </button>
         </div>
         {!showPast && (
-          <button
-            onClick={() => { setCreating(true); setNewEvent(blankFor(activeCity)); }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white hover:bg-white/15 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Add Event
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Luma import */}
+            <div className="flex items-center gap-1.5">
+              <div className="relative flex items-center">
+                <Link2 className="absolute left-3 w-3.5 h-3.5 text-gray-600 pointer-events-none" />
+                <input
+                  type="text"
+                  value={lumaUrl}
+                  onChange={(e) => { setLumaUrl(e.target.value); setLumaError(null); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleLumaImport()}
+                  placeholder="lu.ma/event-link"
+                  className="bg-white/5 border border-white/10 rounded-full pl-8 pr-4 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors w-44"
+                />
+              </div>
+              <button
+                onClick={handleLumaImport}
+                disabled={lumaLoading || !lumaUrl.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white hover:bg-white/15 transition-all disabled:opacity-40"
+              >
+                {lumaLoading ? "Fetching…" : "Import"}
+              </button>
+            </div>
+            {lumaError && (
+              <span className="text-xs text-red-400 max-w-[220px] leading-tight">{lumaError}</span>
+            )}
+            <button
+              onClick={() => { setCreating(true); setNewEvent(blankFor(activeCity)); }}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium text-white hover:bg-white/15 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Add Event
+            </button>
+          </div>
         )}
       </div>
 

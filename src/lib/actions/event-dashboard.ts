@@ -156,6 +156,145 @@ export async function createVenue(data: { name: string; address?: string | null;
   return { success: true, data: row };
 }
 
+// ─── Luma Scraper ─────────────────────────────────────────────────────────────
+
+interface ScrapedLumaEvent {
+  title: string;
+  event_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  venue: string | null;
+  address: string | null;
+  notes: string | null;
+}
+
+function localDateTime(utcIso: string, timezone: string) {
+  const d = new Date(utcIso);
+  const date = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d); // "YYYY-MM-DD"
+  const time = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(d)
+    .replace(",", ""); // "HH:MM"
+  return { date, time };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseNextDataEvent(ev: any): ScrapedLumaEvent {
+  const tz: string = ev.timezone ?? "UTC";
+
+  const start = ev.start_at ? localDateTime(ev.start_at, tz) : null;
+  const end = ev.end_at ? localDateTime(ev.end_at, tz) : null;
+
+  const geo = ev.geo_address_info ?? {};
+  const venueName: string | null =
+    ev.location?.name ?? geo.venue ?? geo.place_name ?? null;
+  const fullAddress: string | null =
+    geo.full_address ?? geo.address ?? null;
+
+  return {
+    title: ev.name ?? "",
+    event_date: start?.date ?? "",
+    start_time: start?.time ?? null,
+    end_time: end?.time ?? null,
+    venue: venueName,
+    address: fullAddress,
+    notes: null,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseJsonLdEvent(ld: any): ScrapedLumaEvent {
+  const startRaw: string = ld.startDate ?? "";
+  const endRaw: string = ld.endDate ?? "";
+
+  // JSON-LD dates may already include timezone offset; parse as-is
+  const parseDate = (iso: string) => iso.slice(0, 10);
+  const parseTime = (iso: string) => {
+    const t = iso.slice(11, 16);
+    return t.length === 5 ? t : null;
+  };
+
+  const loc = ld.location ?? {};
+  const venueName: string | null = loc.name ?? null;
+  const fullAddress: string | null =
+    typeof loc.address === "string"
+      ? loc.address
+      : loc.address?.streetAddress ?? null;
+
+  return {
+    title: ld.name ?? "",
+    event_date: startRaw ? parseDate(startRaw) : "",
+    start_time: startRaw ? parseTime(startRaw) : null,
+    end_time: endRaw ? parseTime(endRaw) : null,
+    venue: venueName,
+    address: fullAddress,
+    notes: null,
+  };
+}
+
+export async function scrapeLumaEvent(
+  url: string
+): Promise<{ error: string } | { data: ScrapedLumaEvent }> {
+  let normalized = url.trim();
+  if (!normalized.startsWith("http")) normalized = "https://" + normalized;
+
+  try {
+    const res = await fetch(normalized, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        Accept: "text/html",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) return { error: `Could not fetch page (HTTP ${res.status})` };
+
+    const html = await res.text();
+
+    // ── Try __NEXT_DATA__ first ──────────────────────────────────────────────
+    const nextMatch = html.match(
+      /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/
+    );
+    if (nextMatch) {
+      try {
+        const nextData = JSON.parse(nextMatch[1]);
+        const ev =
+          nextData?.props?.pageProps?.initialData?.event ??
+          nextData?.props?.pageProps?.event;
+        if (ev?.name) return { data: parseNextDataEvent(ev) };
+      } catch {
+        // fall through
+      }
+    }
+
+    // ── Try JSON-LD ─────────────────────────────────────────────────────────
+    const ldMatches = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    for (const m of ldMatches) {
+      try {
+        const ld = JSON.parse(m[1]);
+        const target = ld["@type"] === "Event" ? ld : (Array.isArray(ld) ? ld.find((x: { "@type": string }) => x["@type"] === "Event") : null);
+        if (target?.name) return { data: parseJsonLdEvent(target) };
+      } catch {
+        // fall through
+      }
+    }
+
+    return { error: "Could not find event data on this page. Make sure it's a public Luma event URL." };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to scrape URL" };
+  }
+}
+
 // ─── Calendar Cities ──────────────────────────────────────────────────────────
 
 export async function createEventCalendarCity(name: string) {
