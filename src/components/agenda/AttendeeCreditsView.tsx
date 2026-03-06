@@ -71,7 +71,7 @@ export function AttendeeCreditsView({ credit, userId }: AttendeeCreditsViewProps
         </span>
       </div>
 
-      {/* QR code */}
+      {/* QR code + redeem options */}
       <div className="glass rounded-[32px] p-8 border border-white/10 flex flex-col items-center gap-6">
         <div className="rounded-2xl overflow-hidden bg-white p-3">
           <QRCodeSVG
@@ -85,6 +85,23 @@ export function AttendeeCreditsView({ credit, userId }: AttendeeCreditsViewProps
         <p className="text-xs text-gray-500 text-center">
           Scan with your phone&apos;s camera to open the redemption page
         </p>
+
+        {/* OR divider */}
+        <div className="flex items-center gap-4 w-full">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-[10px] uppercase tracking-[0.3em] text-gray-600 font-medium">or</span>
+          <div className="flex-1 h-px bg-white/10" />
+        </div>
+
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-white text-black font-medium text-sm hover:bg-white/90 transition-all shadow-[0_2px_20px_rgba(255,255,255,0.15)]"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Click Here to Redeem
+        </a>
       </div>
 
       {/* Code + copy */}
@@ -109,17 +126,6 @@ export function AttendeeCreditsView({ credit, userId }: AttendeeCreditsViewProps
           )}
         </button>
       </div>
-
-      {/* Redeem Now button */}
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl bg-white text-black font-medium text-sm hover:bg-white/90 transition-all shadow-[0_2px_20px_rgba(255,255,255,0.15)]"
-      >
-        <ExternalLink className="w-4 h-4" />
-        Redeem Now
-      </a>
 
       {/* Instructions accordion */}
       <div className="glass rounded-2xl border border-white/10 overflow-hidden">
