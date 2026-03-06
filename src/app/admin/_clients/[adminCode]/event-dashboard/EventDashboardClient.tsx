@@ -9,11 +9,12 @@ import { CalendarAdminTab } from "../../event-dashboard/CalendarAdminTab";
 import { DemosAdminClient } from "../../demos/DemosAdminClient";
 import { SlideDeckAdminClient } from "../../slides/SlideDeckAdminClient";
 import { CompetitionsAdminClient } from "@/components/admin/CompetitionsAdminClient";
+import { CreditsAdminTab } from "../../event-dashboard/CreditsAdminTab";
 import { cn } from "@/lib/utils";
-import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings } from "@/types";
+import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit } from "@/types";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
-type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar";
+type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar" | "credits";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "agenda",       label: "Agenda",       description: "Event schedule" },
@@ -22,6 +23,7 @@ const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "competitions", label: "Competitions", description: "Project showcase" },
   { id: "themes",       label: "Themes",       description: "Conversation themes" },
   { id: "calendar",     label: "Calendar",     description: "Event planning" },
+  { id: "credits",      label: "Credits",      description: "Sponsor codes" },
 ];
 
 interface EventDashboardClientProps {
@@ -47,6 +49,8 @@ interface EventDashboardClientProps {
   initialDeck: SlideDeck | null;
   // Competitions
   initialCompetitions: CompetitionWithEntries[];
+  // Credits
+  cursorCredits: CursorCredit[];
   // Active tab from URL
   activeTab: TabType;
 }
@@ -67,6 +71,7 @@ export function EventDashboardClient({
   demoSlots,
   initialDeck,
   initialCompetitions,
+  cursorCredits,
   activeTab: initialTab,
 }: EventDashboardClientProps) {
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
@@ -181,6 +186,13 @@ export function EventDashboardClient({
           )}
           {activeTab === "calendar" && (
             <CalendarAdminTab initialEvents={plannedEvents} initialCities={calendarCities} initialVenues={venues} />
+          )}
+          {activeTab === "credits" && (
+            <CreditsAdminTab
+              eventId={event.id}
+              adminCode={adminCode}
+              initialCredits={cursorCredits}
+            />
           )}
         </div>
       </main>

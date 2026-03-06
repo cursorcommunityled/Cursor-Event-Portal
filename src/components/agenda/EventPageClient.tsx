@@ -5,7 +5,8 @@ import { AgendaList } from "@/components/agenda/AgendaList";
 import { EventSeriesSection } from "@/components/agenda/EventSeriesSection";
 import { EventSubNav } from "@/components/agenda/EventSubNav";
 import { AttendeeThemesView } from "@/components/agenda/AttendeeThemesView";
-import type { AgendaItem, Event, ConversationTheme } from "@/types";
+import { AttendeeCreditsView } from "@/components/agenda/AttendeeCreditsView";
+import type { AgendaItem, Event, ConversationTheme, CursorCredit } from "@/types";
 
 interface SeriesEvent {
   id: string;
@@ -22,6 +23,8 @@ interface EventPageClientProps {
   agendaItems: AgendaItem[];
   seriesEvents: SeriesEvent[];
   activeTheme: ConversationTheme | null;
+  credit: CursorCredit | null;
+  userId: string;
 }
 
 export function EventPageClient({
@@ -29,8 +32,10 @@ export function EventPageClient({
   agendaItems,
   seriesEvents,
   activeTheme,
+  credit,
+  userId,
 }: EventPageClientProps) {
-  const [activeTab, setActiveTab] = useState<"schedule" | "themes">("schedule");
+  const [activeTab, setActiveTab] = useState<"schedule" | "themes" | "credits">("schedule");
 
   return (
     <main className="max-w-[704px] mx-auto w-full px-6 py-12 space-y-8">
@@ -76,6 +81,10 @@ export function EventPageClient({
 
         {activeTab === "themes" && (
           <AttendeeThemesView activeTheme={activeTheme} />
+        )}
+
+        {activeTab === "credits" && (
+          <AttendeeCreditsView credit={credit} userId={userId} />
         )}
       </div>
     </main>

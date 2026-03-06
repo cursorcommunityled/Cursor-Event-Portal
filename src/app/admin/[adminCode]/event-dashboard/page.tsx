@@ -9,6 +9,7 @@ import {
   getVenues,
   getSlideDeck,
   getAllCompetitions,
+  getCursorCredits,
 } from "@/lib/supabase/queries";
 import { getOrCreateDemoSettings, getDemoSlotsWithCounts, syncDemoSlotsForWindow } from "@/lib/demo/service";
 import { EventDashboardClient } from "../../_clients/[adminCode]/event-dashboard/EventDashboardClient";
@@ -22,7 +23,7 @@ interface EventDashboardPageProps {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const VALID_TABS = ["agenda", "demos", "slides", "competitions", "themes", "calendar"] as const;
+const VALID_TABS = ["agenda", "demos", "slides", "competitions", "themes", "calendar", "credits"] as const;
 type TabType = typeof VALID_TABS[number];
 
 export default async function EventDashboardPage({
@@ -36,7 +37,7 @@ export default async function EventDashboardPage({
 
   const event = await getEventForAdmin(adminCode);
 
-  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues, slideDeck, competitions] = await Promise.all([
+  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues, slideDeck, competitions, cursorCredits] = await Promise.all([
     getAgendaItems(event.id),
     getConversationThemes(),
     getEventThemeSelection(event.id),
@@ -47,6 +48,7 @@ export default async function EventDashboardPage({
     getVenues(),
     getSlideDeck(event.id),
     getAllCompetitions(event.id),
+    getCursorCredits(event.id),
   ]);
 
   let demoSettings = null;
@@ -76,6 +78,7 @@ export default async function EventDashboardPage({
       demoSlots={demoSlots}
       initialDeck={slideDeck}
       initialCompetitions={competitions}
+      cursorCredits={cursorCredits}
       activeTab={activeTab}
     />
   );

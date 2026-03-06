@@ -1497,3 +1497,35 @@ export async function getEventCalendarCities(): Promise<EventCalendarCity[]> {
   if (error) return [];
   return (data ?? []) as EventCalendarCity[];
 }
+
+// ─── Cursor Credits ───────────────────────────────────────────────────────────
+
+import type { CursorCredit } from "@/types";
+
+export async function getCursorCredits(eventId: string): Promise<CursorCredit[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("cursor_credits")
+    .select("*, user:users(name, email)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return (data ?? []) as CursorCredit[];
+}
+
+export async function getCursorCredit(
+  eventId: string,
+  userId: string
+): Promise<CursorCredit | null> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("cursor_credits")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("assigned_to", userId)
+    .maybeSingle();
+  if (error) return null;
+  return data as CursorCredit | null;
+}

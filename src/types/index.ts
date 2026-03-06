@@ -560,3 +560,18 @@ export interface EventCalendarCity {
   sort_order: number;
   created_at: string;
 }
+
+// ─── Cursor Credits ───────────────────────────────────────────────────────────
+
+export interface CursorCredit {
+  id: string;
+  event_id: string;
+  credit_code: string;
+  assigned_to: string | null;
+  registration_id: string | null;
+  amount_usd: number;
+  assigned_at: string | null;
+  redeemed_at: string | null;
+  created_at: string;
+  user?: { name: string; email: string | null };
+}

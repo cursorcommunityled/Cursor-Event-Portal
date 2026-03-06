@@ -1,16 +1,17 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CalendarDays, Sparkles } from "lucide-react";
+import { CalendarDays, Sparkles, QrCode } from "lucide-react";
 
 interface EventSubNavProps {
-  activeTab: "schedule" | "themes";
-  onTabChange: (tab: "schedule" | "themes") => void;
+  activeTab: "schedule" | "themes" | "credits";
+  onTabChange: (tab: "schedule" | "themes" | "credits") => void;
 }
 
 const TABS = [
   { id: "schedule" as const, label: "Schedule", icon: CalendarDays },
   { id: "themes"   as const, label: "Themes",   icon: Sparkles },
+  { id: "credits"  as const, label: "Credits",  icon: QrCode },
 ];
 
 export function EventSubNav({ activeTab, onTabChange }: EventSubNavProps) {
