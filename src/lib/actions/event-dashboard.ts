@@ -278,7 +278,7 @@ export async function scrapeLumaEvent(
     }
 
     // ── Try JSON-LD ─────────────────────────────────────────────────────────
-    const ldMatches = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    const ldMatches = Array.from(html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g));
     for (const m of ldMatches) {
       try {
         const ld = JSON.parse(m[1]);
