@@ -32,8 +32,8 @@ function venueMatchScore(a: string, b: string): number {
   if (na.includes(nb) || nb.includes(na)) return 0.9;
   const wa = new Set(na.split(" "));
   const wb = new Set(nb.split(" "));
-  const intersection = [...wa].filter((w) => wb.has(w)).length;
-  const union = new Set([...wa, ...wb]).size;
+  const intersection = Array.from(wa).filter((w) => wb.has(w)).length;
+  const union = new Set([...Array.from(wa), ...Array.from(wb)]).size;
   return intersection / union; // Jaccard similarity
 }
 
