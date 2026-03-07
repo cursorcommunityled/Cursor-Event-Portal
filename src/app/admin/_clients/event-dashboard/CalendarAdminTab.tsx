@@ -191,8 +191,10 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
   // ── Update event ──────────────────────────────────────────────────────────
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editState, setEditState] = useState<EditState>({});
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const startEdit = (ev: PlannedEvent) => {
+    setUpdateError(null);
     setEditingId(ev.id);
     setEditState({
       title: ev.title,
@@ -210,10 +212,12 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
 
   const handleUpdate = async (id: string) => {
     setLoading(id);
+    setUpdateError(null);
     const result = await updatePlannedEvent(id, {
       title: editState.title?.trim() || undefined,
       event_date: editState.event_date || undefined,
-      end_date: editState.end_date ?? null,
+      // Only include end_date if it was explicitly set (avoids errors if column missing)
+      ...(editState.end_date !== undefined && { end_date: editState.end_date }),
       city: editState.city || undefined,
       start_time: editState.start_time ?? null,
       end_time: editState.end_time ?? null,
@@ -229,6 +233,8 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
           .sort((a, b) => a.event_date.localeCompare(b.event_date))
       );
       setEditingId(null);
+    } else {
+      setUpdateError(result.error);
     }
     setLoading(null);
   };
@@ -473,7 +479,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
                         onChange={(k, v) => setEditState((s) => ({ ...s, [k]: v }))}
                         onVenueCreated={(v) => setVenues((prev) => [...prev, v])}
                       />
-                      <div className="flex gap-3 pt-1">
+                      <div className="flex gap-3 pt-1 flex-wrap">
                         <button
                           onClick={() => handleUpdate(ev.id)}
                           disabled={isSaving}
@@ -483,11 +489,14 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
                           {isSaving ? "Saving…" : "Save"}
                         </button>
                         <button
-                          onClick={() => setEditingId(null)}
+                          onClick={() => { setEditingId(null); setUpdateError(null); }}
                           className="flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-400 hover:text-white transition-all"
                         >
                           <X className="w-4 h-4" /> Cancel
                         </button>
+                        {updateError && (
+                          <p className="text-xs text-red-400 self-center">{updateError}</p>
+                        )}
                       </div>
                     </div>
                   ) : (
