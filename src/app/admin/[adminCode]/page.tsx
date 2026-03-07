@@ -39,9 +39,9 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
     getActiveEventSlug(),
   ]);
 
-  // Auto-default live event to most recent if not already set
+  // Auto-default live event to most recent only if no active slug is set yet
   const mostRecentEvent = allEvents[0];
-  if (mostRecentEvent && mostRecentEvent.slug !== activeSlug) {
+  if (mostRecentEvent && !activeSlug) {
     const serviceClient = await createServiceClient();
     await serviceClient.from("app_settings").upsert(
       { key: "active_event_slug", value: mostRecentEvent.slug },
