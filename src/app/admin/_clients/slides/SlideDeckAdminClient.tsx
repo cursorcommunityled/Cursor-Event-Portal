@@ -3,9 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { removeSlideDeck, toggleSlideDeckLive, toggleSlideDeckPopup, updateSlideCurrentPage } from "@/lib/actions/slideDecks";
-import { PdfDeckViewer } from "@/components/slides/PdfDeckViewer";
+const PdfDeckViewer = dynamic(
+  () => import("@/components/slides/PdfDeckViewer").then((m) => m.PdfDeckViewer),
+  { ssr: false }
+);
 import { getSlideDeck } from "@/lib/supabase/queries";
 import type { Event, SlideDeck } from "@/types";
 import { ArrowLeft, Upload, X, Trash2, FileText, Loader2, Eye, EyeOff, PanelRight } from "lucide-react";
