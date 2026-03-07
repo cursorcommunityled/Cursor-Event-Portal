@@ -36,16 +36,16 @@ export function ExportClient({
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [pendingExport, setPendingExport] = useState<(() => void) | null>(null);
+  const [pendingExport, setPendingExport] = useState<(() => Promise<void>) | null>(null);
 
-  const verifyPassword = () => {
+  const verifyPassword = async () => {
     if (passwordInput === DOWNLOAD_PASSWORD) {
       setIsAuthenticated(true);
       setShowPasswordModal(false);
       setPasswordError("");
       setPasswordInput("");
       if (pendingExport) {
-        pendingExport();
+        await pendingExport();
         setPendingExport(null);
       }
     } else {
@@ -53,7 +53,7 @@ export function ExportClient({
     }
   };
 
-  const requirePassword = (exportFn: () => void) => {
+  const requirePassword = (exportFn: () => Promise<void>) => {
     if (isAuthenticated) {
       exportFn();
     } else {
