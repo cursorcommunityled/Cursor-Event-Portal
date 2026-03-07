@@ -145,6 +145,7 @@ export function EventDashboardClient({
               eventSlug={eventSlug}
               adminCode={adminCode}
               initialItems={initialAgendaItems}
+              venues={venues}
             />
           )}
           {activeTab === "demos" && demoSettings && (

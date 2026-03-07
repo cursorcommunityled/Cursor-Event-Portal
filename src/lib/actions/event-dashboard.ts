@@ -158,6 +158,17 @@ export async function createVenue(data: { name: string; address?: string | null;
   return { success: true, data: row };
 }
 
+export async function updateVenue(id: string, data: Partial<{ name: string; address: string | null; city: string; image_url: string | null }>) {
+  const supabase = await createServiceClient();
+  const { error } = await supabase
+    .from("venues")
+    .update(data)
+    .eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin");
+  return { success: true };
+}
+
 // ─── Luma Scraper ─────────────────────────────────────────────────────────────
 
 interface ScrapedLumaEvent {
