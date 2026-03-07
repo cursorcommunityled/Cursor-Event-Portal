@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MessageCircle, HandHelping } from "lucide-react";
+import { MessageCircle, HandHelping, Zap } from "lucide-react";
 
 interface SocialsSubNavProps {
   eventSlug: string;
@@ -12,6 +12,7 @@ interface SocialsSubNavProps {
 const SUB_TABS = [
   { href: "qa", label: "Q&A", icon: MessageCircle },
   { href: "help", label: "Help", icon: HandHelping },
+  { href: "exchange", label: "Exchange", icon: Zap },
 ] as const;
 
 export function SocialsSubNav({ eventSlug }: SocialsSubNavProps) {

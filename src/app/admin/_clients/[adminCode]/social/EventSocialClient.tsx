@@ -4,14 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { MessageCircle, ClipboardCheck, Vote, Megaphone, HandHelping } from "lucide-react";
+import { MessageCircle, ClipboardCheck, Vote, Megaphone, HandHelping, Bot, Zap } from "lucide-react";
 import { AdminQAClient } from "../../qa/AdminQAClient";
 import { PollsAdminClient } from "../../polls/PollsAdminClient";
 import { AnnouncementsClient } from "../../announcements/AnnouncementsClient";
 import { SurveysAdminClient } from "../../surveys/SurveysAdminClient";
 import { HelpQueueAdmin } from "@/components/help/HelpQueueAdmin";
+import { ExchangeAdminBoard } from "@/components/exchange/ExchangeAdminBoard";
+import { CopilotTab } from "./CopilotTab";
 import { cn } from "@/lib/utils";
-import type { Event, Question, Poll, Announcement, Survey, HelpRequest } from "@/types";
+import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost } from "@/types";
 
 interface EventSocialClientProps {
   event: Event;
@@ -23,14 +25,21 @@ interface EventSocialClientProps {
   initialAnnouncements: Announcement[];
   initialSurveys: Survey[];
   initialHelpRequests: HelpRequest[];
+  initialExchangePosts: ExchangePost[];
   sortBy: "new" | "trending";
   statusFilter: "all" | "open" | "answered" | "pinned" | "hidden";
   activeTab: TabType;
 }
 
-type TabType = "qa" | "help" | "surveys" | "polls" | "announcements";
+type TabType = "qa" | "help" | "surveys" | "polls" | "announcements" | "copilot" | "exchange";
 
 const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; description: string }> = [
+  {
+    id: "copilot",
+    label: "Copilot",
+    icon: Bot,
+    description: "AI ops recommendations",
+  },
   {
     id: "qa",
     label: "Q&A",
@@ -42,6 +51,12 @@ const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; desc
     label: "Help",
     icon: HandHelping,
     description: "Help queue & support",
+  },
+  {
+    id: "exchange",
+    label: "Exchange",
+    icon: Zap,
+    description: "Need/Offer board",
   },
   {
     id: "polls",
@@ -73,6 +88,7 @@ export function EventSocialClient({
   initialAnnouncements,
   initialSurveys,
   initialHelpRequests,
+  initialExchangePosts,
   sortBy,
   statusFilter,
   activeTab: initialActiveTab
@@ -99,6 +115,8 @@ export function EventSocialClient({
 
   const renderActiveTab = () => {
     switch (activeTab) {
+      case "copilot":
+        return <CopilotTab event={event} adminCode={adminCode} />;
       case "qa":
         return (
           <AdminQAClient
@@ -119,6 +137,14 @@ export function EventSocialClient({
             eventId={event.id}
             eventSlug={eventSlug}
             adminCode={adminCode}
+          />
+        );
+      case "exchange":
+        return (
+          <ExchangeAdminBoard
+            eventId={event.id}
+            adminCode={adminCode}
+            initialPosts={initialExchangePosts}
           />
         );
       case "polls":

@@ -127,6 +127,7 @@ export interface User {
   intent?: string | null;
   followup_consent?: boolean | null;
   cursor_experience?: CursorExperience | null;
+  phone?: string | null;
   created_at: string;
 }
 
@@ -561,6 +562,147 @@ export interface EventCalendarCity {
   name: string;
   sort_order: number;
   created_at: string;
+}
+
+// ─── Speed Networking ─────────────────────────────────────────────────────────
+
+export type NetworkingSessionStatus = 'idle' | 'active' | 'between_rounds' | 'ended';
+
+export interface SpeedNetworkingSession {
+  id: string;
+  event_id: string;
+  round_duration_seconds: number;
+  status: NetworkingSessionStatus;
+  current_round: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SpeedNetworkingRound {
+  id: string;
+  session_id: string;
+  round_number: number;
+  started_at: string | null;
+  ends_at: string | null;
+  created_at: string;
+}
+
+export interface SpeedNetworkingPair {
+  id: string;
+  round_id: string;
+  session_id: string;
+  user1_id: string;
+  user2_id: string | null;
+  color_code: string;
+  match_reason: string | null;
+  created_at: string;
+  user1?: Pick<User, 'id' | 'name'>;
+  user2?: Pick<User, 'id' | 'name'> | null;
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export type NotificationType =
+  | 'poll_opened'
+  | 'table_assigned'
+  | 'demo_slot_available'
+  | 'survey_live'
+  | 'announcement';
+
+export interface NotificationPreferences {
+  user_id: string;
+  event_id: string;
+  poll_opened_inapp: boolean;
+  poll_opened_email: boolean;
+  table_assigned_inapp: boolean;
+  table_assigned_email: boolean;
+  demo_slot_inapp: boolean;
+  demo_slot_email: boolean;
+  survey_live_inapp: boolean;
+  survey_live_email: boolean;
+  announcements_inapp: boolean;
+  announcements_email: boolean;
+  updated_at: string;
+}
+
+export interface InAppNotification {
+  id: string;
+  user_id: string;
+  event_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  action_url: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export type ScheduledItemType = 'announcement' | 'poll';
+export type ScheduledItemStatus = 'pending' | 'sent' | 'cancelled';
+
+export interface ScheduledItem {
+  id: string;
+  event_id: string;
+  type: ScheduledItemType;
+  content: string | null;
+  poll_question: string | null;
+  poll_options: string[] | null;
+  poll_duration_minutes: number | null;
+  scheduled_at: string;
+  status: ScheduledItemStatus;
+  sent_at: string | null;
+  created_at: string;
+}
+
+// ─── Exchange Board ───────────────────────────────────────────────────────────
+
+export type ExchangePostType = 'need' | 'offer';
+export type ExchangePostStatus = 'open' | 'matched' | 'closed';
+
+export type ExchangeCategory =
+  | 'react-frontend'
+  | 'backend-api'
+  | 'ai-integration'
+  | 'cursor-help'
+  | 'code-review'
+  | 'design-ux'
+  | 'pitch-feedback'
+  | 'business-strategy'
+  | 'funding'
+  | 'mentorship'
+  | 'co-founder'
+  | 'other';
+
+export const EXCHANGE_CATEGORIES: Array<{ id: ExchangeCategory; label: string; emoji: string }> = [
+  { id: 'react-frontend',    label: 'React / Frontend',    emoji: '⚛️' },
+  { id: 'backend-api',       label: 'Backend / API',        emoji: '🔧' },
+  { id: 'ai-integration',    label: 'AI Integration',       emoji: '🤖' },
+  { id: 'cursor-help',       label: 'Cursor Help',          emoji: '⚡' },
+  { id: 'code-review',       label: 'Code Review',          emoji: '👀' },
+  { id: 'design-ux',         label: 'Design / UX',          emoji: '🎨' },
+  { id: 'pitch-feedback',    label: 'Pitch Feedback',       emoji: '🎯' },
+  { id: 'business-strategy', label: 'Business Strategy',    emoji: '📈' },
+  { id: 'funding',           label: 'Funding / Investment', emoji: '💰' },
+  { id: 'mentorship',        label: 'Mentorship',           emoji: '🌱' },
+  { id: 'co-founder',        label: 'Co-founder',           emoji: '🤝' },
+  { id: 'other',             label: 'Other',                emoji: '✨' },
+];
+
+export interface ExchangePost {
+  id: string;
+  event_id: string;
+  user_id: string;
+  type: ExchangePostType;
+  category: ExchangeCategory;
+  title: string;
+  status: ExchangePostStatus;
+  matched_with: string | null;
+  table_number: number | null;
+  created_at: string;
+  expires_at: string;
+  // Joined
+  user?: Pick<User, 'id' | 'name'>;
+  matched_user?: Pick<User, 'id' | 'name'> | null;
 }
 
 // ─── Cursor Credits ───────────────────────────────────────────────────────────

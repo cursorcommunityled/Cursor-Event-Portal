@@ -1,4 +1,4 @@
-import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin } from "@/lib/supabase/queries";
+import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts } from "@/lib/supabase/queries";
 import { EventSocialClient } from "../../_clients/[adminCode]/social/EventSocialClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
 
@@ -14,14 +14,15 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
 
   const sortBy = sort === "new" ? "new" : "trending";
   const statusFilter = (status === "answered" || status === "hidden" || status === "pinned" || status === "open") ? status : "all";
-  const activeTab = (tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements") ? tab : "qa";
+  const activeTab = (tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements" || tab === "copilot" || tab === "exchange") ? tab : "copilot";
 
-  const [questions, polls, announcements, surveys, helpRequests] = await Promise.all([
+  const [questions, polls, announcements, surveys, helpRequests, exchangePosts] = await Promise.all([
     getQuestionsForAdmin(event.id, sortBy, true),
     getAllPolls(event.id),
     getAnnouncements(event.id),
     getAllSurveys(event.id),
     getHelpRequestsForAdmin(event.id),
+    getExchangePosts(event.id),
   ]);
 
   return (
@@ -35,6 +36,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
       initialAnnouncements={announcements}
       initialSurveys={surveys}
       initialHelpRequests={helpRequests}
+      initialExchangePosts={exchangePosts}
       sortBy={sortBy}
       statusFilter={statusFilter as any}
       activeTab={activeTab as any}

@@ -1529,3 +1529,112 @@ export async function getCursorCredit(
   if (error) return null;
   return data as CursorCredit | null;
 }
+
+// ── Speed Networking queries ──────────────────────────────────────────────────
+
+import type {
+  SpeedNetworkingSession,
+  SpeedNetworkingRound,
+  SpeedNetworkingPair,
+} from "@/types";
+
+export async function getNetworkingSession(
+  eventId: string
+): Promise<SpeedNetworkingSession | null> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("speed_networking_sessions")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return data as SpeedNetworkingSession | null;
+}
+
+export async function getNetworkingCurrentRound(
+  sessionId: string
+): Promise<SpeedNetworkingRound | null> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("speed_networking_rounds")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("round_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return data as SpeedNetworkingRound | null;
+}
+
+export async function getNetworkingPairsForRound(
+  roundId: string
+): Promise<SpeedNetworkingPair[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("speed_networking_pairs")
+    .select("*, user1:users!speed_networking_pairs_user1_id_fkey(id, name), user2:users!speed_networking_pairs_user2_id_fkey(id, name)")
+    .eq("round_id", roundId)
+    .order("color_code");
+  if (error) return [];
+  return (data ?? []) as SpeedNetworkingPair[];
+}
+
+export async function getUserNetworkingPair(
+  roundId: string,
+  userId: string
+): Promise<SpeedNetworkingPair | null> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("speed_networking_pairs")
+    .select("*, user1:users!speed_networking_pairs_user1_id_fkey(id, name), user2:users!speed_networking_pairs_user2_id_fkey(id, name)")
+    .eq("round_id", roundId)
+    .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+    .maybeSingle();
+  if (error) return null;
+  return data as SpeedNetworkingPair | null;
+}
+
+// ─── Exchange Board ───────────────────────────────────────────────────────────
+
+import type { ExchangePost } from "@/types";
+
+export async function getExchangePosts(eventId: string): Promise<ExchangePost[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("exchange_posts")
+    .select("*, user:users!exchange_posts_user_id_fkey(id, name), matched_user:users!exchange_posts_matched_with_fkey(id, name)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getExchangePosts] Error:", error);
+    return [];
+  }
+  return (data ?? []) as ExchangePost[];
+}
+
+export async function getOpenExchangePosts(eventId: string): Promise<ExchangePost[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("exchange_posts")
+    .select("*, user:users!exchange_posts_user_id_fkey(id, name), matched_user:users!exchange_posts_matched_with_fkey(id, name)")
+    .eq("event_id", eventId)
+    .eq("status", "open")
+    .gt("expires_at", now)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getOpenExchangePosts] Error:", error);
+    return [];
+  }
+  return (data ?? []) as ExchangePost[];
+}
