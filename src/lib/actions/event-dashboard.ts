@@ -247,7 +247,22 @@ export async function scrapeLumaEvent(
   let normalized = url.trim();
   if (!normalized.startsWith("http")) normalized = "https://" + normalized;
 
+  // Extract the event slug from the URL (last path segment)
+  const slug = normalized.replace(/\/$/, "").split("/").pop() ?? "";
+
   try {
+    // ── Try Luma public API first ────────────────────────────────────────────
+    const apiRes = await fetch(`https://api.lu.ma/public/v1/event/get?url=https://lu.ma/${slug}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (apiRes.ok) {
+      const json = await apiRes.json();
+      const ev = json?.event ?? json?.data?.event ?? json;
+      if (ev?.name) return { data: parseNextDataEvent(ev) };
+    }
+
+    // ── Fallback: scrape HTML ────────────────────────────────────────────────
     const res = await fetch(normalized, {
       headers: {
         "User-Agent":
@@ -261,7 +276,7 @@ export async function scrapeLumaEvent(
 
     const html = await res.text();
 
-    // ── Try __NEXT_DATA__ first ──────────────────────────────────────────────
+    // ── Try __NEXT_DATA__ ────────────────────────────────────────────────────
     const nextMatch = html.match(
       /<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/
     );
