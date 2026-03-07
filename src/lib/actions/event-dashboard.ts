@@ -252,14 +252,18 @@ export async function scrapeLumaEvent(
 
   try {
     // ── Try Luma public API first ────────────────────────────────────────────
-    const apiRes = await fetch(`https://api.lu.ma/public/v1/event/get?url=https://lu.ma/${slug}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    });
-    if (apiRes.ok) {
-      const json = await apiRes.json();
-      const ev = json?.event ?? json?.data?.event ?? json;
-      if (ev?.name) return { data: parseNextDataEvent(ev) };
+    // Luma API accepts either lu.ma or luma.com slugs
+    for (const lumaUrl of [`https://lu.ma/${slug}`, `https://luma.com/${slug}`]) {
+      const apiRes = await fetch(`https://api.lu.ma/public/v1/event/get?url=${encodeURIComponent(lumaUrl)}`, {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (apiRes.ok) {
+        const json = await apiRes.json();
+        // Luma API returns { event: {...}, ... } or { data: { event: {...} } }
+        const ev = json?.event ?? json?.data?.event ?? json?.data ?? json;
+        if (ev?.name) return { data: parseNextDataEvent(ev) };
+      }
     }
 
     // ── Fallback: scrape HTML ────────────────────────────────────────────────

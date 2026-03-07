@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import dynamic from "next/dynamic";
 import { Copy, Check, ExternalLink, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { markCreditRedeemed } from "@/lib/actions/cursor-credits";
 import type { CursorCredit } from "@/types";
+
+const QRCodeSVG = dynamic(() => import("qrcode.react").then((m) => m.QRCodeSVG), { ssr: false });
 
 const REDEMPTION_URL = (code: string) => `https://cursor.com/referral?code=${code}`;
 
