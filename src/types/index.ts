@@ -532,6 +532,7 @@ export interface Venue {
   name: string;
   address: string | null;
   city: string;
+  image_url: string | null;
   sort_order: number;
   created_at: string;
 }

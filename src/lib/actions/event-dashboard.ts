@@ -127,7 +127,7 @@ export async function createConversationTheme(data: {
 
 // ─── Venues ───────────────────────────────────────────────────────────────────
 
-export async function createVenue(data: { name: string; address?: string | null; city?: string }) {
+export async function createVenue(data: { name: string; address?: string | null; city?: string; image_url?: string | null }) {
   const name = data.name.trim();
   if (!name) return { error: "Venue name is required" };
 
@@ -144,7 +144,7 @@ export async function createVenue(data: { name: string; address?: string | null;
 
   const { data: row, error } = await supabase
     .from("venues")
-    .insert({ name, address: data.address?.trim() || null, city: data.city || "Calgary", sort_order: nextOrder })
+    .insert({ name, address: data.address?.trim() || null, city: data.city || "Calgary", image_url: data.image_url ?? null, sort_order: nextOrder })
     .select()
     .single();
 

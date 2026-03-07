@@ -10,7 +10,7 @@ import {
   scrapeLumaEvent,
 } from "@/lib/actions/event-dashboard";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck, Link2 } from "lucide-react";
+import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck, Link2, ImagePlus, Loader2 } from "lucide-react";
 import type { PlannedEvent, EventCalendarCity, Venue } from "@/types";
 
 interface CalendarAdminTabProps {
@@ -20,6 +20,33 @@ interface CalendarAdminTabProps {
 }
 
 type EditState = Partial<Omit<PlannedEvent, "id" | "created_at" | "updated_at" | "linked_event_id">>;
+
+// Returns a score 0–1 for how closely two venue name strings match
+function venueMatchScore(a: string, b: string): number {
+  const norm = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  if (na.includes(nb) || nb.includes(na)) return 0.9;
+  const wa = new Set(na.split(" "));
+  const wb = new Set(nb.split(" "));
+  const intersection = [...wa].filter((w) => wb.has(w)).length;
+  const union = new Set([...wa, ...wb]).size;
+  return intersection / union; // Jaccard similarity
+}
+
+function fuzzyMatchVenue(scraped: string | null, venues: Venue[]): Venue | null {
+  if (!scraped || venues.length === 0) return null;
+  let best: Venue | null = null;
+  let bestScore = 0;
+  for (const v of venues) {
+    const score = venueMatchScore(scraped, v.name);
+    if (score > bestScore) { bestScore = score; best = v; }
+  }
+  return bestScore >= 0.4 ? best : null;
+}
 
 function blankFor(city: string): EditState {
   return {
@@ -107,7 +134,15 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
       setLumaError(result.error);
       return;
     }
-    setNewEvent({ ...result.data, city: activeCity });
+    const scraped = result.data;
+    // Try to match the scraped venue name against known venues
+    const matched = fuzzyMatchVenue(scraped.venue, venues);
+    setNewEvent({
+      ...scraped,
+      city: activeCity,
+      venue: matched ? matched.name : scraped.venue,
+      address: matched ? (matched.address ?? scraped.address) : scraped.address,
+    });
     setCreating(true);
     setLumaUrl("");
   };
@@ -522,7 +557,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
       ))}
 
       <p className="text-[10px] uppercase tracking-[0.2em] text-gray-700 text-center font-medium pt-2">
-        Bulk import from spreadsheet · SQL INSERT into planned_events with city column
+        Bulk import from spreadsheet · SQL INSERT into planned_events with city column · Luma import supported above
       </p>
     </div>
   );
@@ -546,6 +581,8 @@ function EventForm({
   const [addingVenue, setAddingVenue] = useState(false);
   const [newVenueName, setNewVenueName] = useState("");
   const [newVenueAddress, setNewVenueAddress] = useState("");
+  const [newVenueImageUrl, setNewVenueImageUrl] = useState<string | null>(null);
+  const [uploadingVenueImage, setUploadingVenueImage] = useState(false);
   const [venueError, setVenueError] = useState<string | null>(null);
   const [venueSaving, setVenueSaving] = useState(false);
 
@@ -559,11 +596,35 @@ function EventForm({
     onChange("address", picked?.address ?? null);
   };
 
+  const handleVenueImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingVenueImage(true);
+    setVenueError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+      const res = await fetch("/api/admin/upload-venue-image", { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Upload failed");
+      }
+      const data = await res.json();
+      if (data.success && data.url) setNewVenueImageUrl(data.url);
+      else throw new Error("Upload failed");
+    } catch (err) {
+      setVenueError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploadingVenueImage(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   const handleAddVenue = async () => {
     if (!newVenueName.trim()) return;
     setVenueSaving(true);
     setVenueError(null);
-    const result = await createVenue({ name: newVenueName.trim(), address: newVenueAddress.trim() || null });
+    const result = await createVenue({ name: newVenueName.trim(), address: newVenueAddress.trim() || null, image_url: newVenueImageUrl });
     setVenueSaving(false);
     if (result.error) { setVenueError(result.error); return; }
     const created = result.data as Venue;
@@ -573,6 +634,7 @@ function EventForm({
     setAddingVenue(false);
     setNewVenueName("");
     setNewVenueAddress("");
+    setNewVenueImageUrl(null);
   };
 
   const selectedVenue = venues.find((v) => v.name === state.venue);
@@ -638,11 +700,44 @@ function EventForm({
               onKeyDown={(e) => e.key === "Enter" && handleAddVenue()}
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30"
             />
+            {/* Venue image upload */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block">
+                Venue Photo (optional)
+              </label>
+              {newVenueImageUrl ? (
+                <div className="relative rounded-xl overflow-hidden h-28">
+                  <img src={newVenueImageUrl} alt="Venue preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setNewVenueImageUrl(null)}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 flex items-center justify-center text-white/80 hover:text-white transition-all"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed cursor-pointer transition-all ${uploadingVenueImage ? "border-white/20 text-gray-600" : "border-white/10 text-gray-600 hover:border-white/30 hover:text-gray-400"}`}>
+                  {uploadingVenueImage ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Uploading…</span></>
+                  ) : (
+                    <><ImagePlus className="w-4 h-4" /><span className="text-sm">Upload photo</span></>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingVenueImage}
+                    onChange={handleVenueImageUpload}
+                  />
+                </label>
+              )}
+            </div>
             {venueError && <p className="text-xs text-red-400">{venueError}</p>}
             <button
               type="button"
               onClick={handleAddVenue}
-              disabled={venueSaving || !newVenueName.trim()}
+              disabled={venueSaving || !newVenueName.trim() || uploadingVenueImage}
               className="w-full py-2 rounded-xl bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-40"
             >
               {venueSaving ? "Saving…" : "Add Venue"}
