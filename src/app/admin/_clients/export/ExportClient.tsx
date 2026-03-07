@@ -101,7 +101,8 @@ export function ExportClient({
       if (allEvents) {
         const result = await getAllEventsRegistrations();
         if ("error" in result) { alert(result.error); return; }
-        exportToCSV(result.data!, "all-events-registrations");
+        if (!("data" in result)) return;
+        exportToCSV(result.data, "all-events-registrations");
       } else {
         const data = registrations.map((reg) => ({
           name: reg.user?.name || "",
@@ -124,7 +125,8 @@ export function ExportClient({
       if (allEvents) {
         const result = await getAllEventsQuestions();
         if ("error" in result) { alert(result.error); return; }
-        exportToCSV(result.data!, "all-events-questions");
+        if (!("data" in result)) return;
+        exportToCSV(result.data, "all-events-questions");
       } else {
         const data = questions.map((q) => ({
           content: q.content,
@@ -148,7 +150,8 @@ export function ExportClient({
       if (allEvents) {
         const result = await getAllEventsSurveyResponses();
         if ("error" in result) { alert(result.error); return; }
-        exportToCSV(result.data!, "all-events-survey-responses");
+        if (!("data" in result)) return;
+        exportToCSV(result.data, "all-events-survey-responses");
       } else {
         if (!survey) { alert("No survey available"); return; }
         const data = surveyResponses.map((response) => ({

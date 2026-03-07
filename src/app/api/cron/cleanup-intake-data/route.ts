@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 // This endpoint should be called by a cron job service (e.g., cron-job.org, GitHub Actions, Render cron)
 // It can be secured with an API key in the Authorization header
 export async function POST(request: NextRequest) {
