@@ -542,7 +542,8 @@ export interface Venue {
 export interface PlannedEvent {
   id: string;
   title: string;
-  event_date: string;      // DATE as ISO string (YYYY-MM-DD)
+  event_date: string;      // DATE as ISO string (YYYY-MM-DD) — start date
+  end_date: string | null; // DATE as ISO string — null for single-day events
   start_time: string | null;
   end_time: string | null;
   venue: string | null;

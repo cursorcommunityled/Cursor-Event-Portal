@@ -52,6 +52,7 @@ function blankFor(city: string): EditState {
   return {
     title: "",
     event_date: "",
+    end_date: null,
     city,
     start_time: null,
     end_time: null,
@@ -166,6 +167,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
     const result = await createPlannedEvent({
       title: newEvent.title.trim(),
       event_date: newEvent.event_date,
+      end_date: newEvent.end_date || null,
       city: activeCity,
       start_time: newEvent.start_time || null,
       end_time: newEvent.end_time || null,
@@ -195,6 +197,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
     setEditState({
       title: ev.title,
       event_date: ev.event_date,
+      end_date: ev.end_date,
       city: ev.city,
       start_time: ev.start_time,
       end_time: ev.end_time,
@@ -210,6 +213,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
     const result = await updatePlannedEvent(id, {
       title: editState.title?.trim() || undefined,
       event_date: editState.event_date || undefined,
+      end_date: editState.end_date ?? null,
       city: editState.city || undefined,
       start_time: editState.start_time ?? null,
       end_time: editState.end_time ?? null,
@@ -494,9 +498,15 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
                           <p className="text-[10px] uppercase tracking-widest text-gray-600 font-medium leading-none">
                             {new Date(ev.event_date + "T12:00:00").toLocaleDateString("en-CA", { month: "short" })}
                           </p>
-                          <p className="text-2xl font-light text-white/80 leading-tight">
-                            {String(Number(ev.event_date.slice(8))).padStart(2, "0")}
-                          </p>
+                          {ev.end_date && ev.end_date !== ev.event_date ? (
+                            <p className="text-base font-light text-white/80 leading-tight">
+                              {Number(ev.event_date.slice(8))}–{Number(ev.end_date.slice(8))}
+                            </p>
+                          ) : (
+                            <p className="text-2xl font-light text-white/80 leading-tight">
+                              {String(Number(ev.event_date.slice(8))).padStart(2, "0")}
+                            </p>
+                          )}
                         </div>
 
                         {/* Info */}
@@ -650,11 +660,22 @@ function EventForm({
       />
 
       <div>
-        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Date *</label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">Start Date *</label>
         <input
           type="date"
           value={state.event_date ?? ""}
           onChange={(e) => onChange("event_date", e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
+        />
+      </div>
+
+      <div>
+        <label className="text-[10px] uppercase tracking-widest text-gray-600 font-medium block mb-1">End Date <span className="text-gray-700 normal-case tracking-normal">(multi-day)</span></label>
+        <input
+          type="date"
+          value={state.end_date ?? ""}
+          min={state.event_date ?? undefined}
+          onChange={(e) => onChange("end_date", e.target.value || null)}
           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-white/30 transition-colors"
         />
       </div>

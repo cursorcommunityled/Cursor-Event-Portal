@@ -38,6 +38,7 @@ export async function clearEventTheme(eventId: string, adminCode: string) {
 export async function createPlannedEvent(data: {
   title: string;
   event_date: string;
+  end_date?: string | null;
   city: string;
   start_time?: string | null;
   end_time?: string | null;
@@ -62,6 +63,7 @@ export async function updatePlannedEvent(
   data: Partial<{
     title: string;
     event_date: string;
+    end_date: string | null;
     city: string;
     start_time: string | null;
     end_time: string | null;
@@ -251,28 +253,8 @@ export async function scrapeLumaEvent(
   const slug = normalized.replace(/\/$/, "").split("/").pop() ?? "";
 
   try {
-    // ── Try Luma public API first ────────────────────────────────────────────
-    // Luma API accepts either lu.ma or luma.com slugs
-    for (const lumaUrl of [`https://lu.ma/${slug}`, `https://luma.com/${slug}`]) {
-      const apiRes = await fetch(`https://api.lu.ma/public/v1/event/get?url=${encodeURIComponent(lumaUrl)}`, {
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-      console.log(`[scrapeLumaEvent] API ${lumaUrl} -> status ${apiRes.status}`);
-      if (apiRes.ok) {
-        const json = await apiRes.json();
-        console.log(`[scrapeLumaEvent] API json keys:`, Object.keys(json));
-        // Luma API returns { event: {...}, ... } or { data: { event: {...} } }
-        const ev = json?.event ?? json?.data?.event ?? json?.data ?? json;
-        console.log(`[scrapeLumaEvent] ev.name:`, ev?.name);
-        if (ev?.name) return { data: parseNextDataEvent(ev) };
-      } else {
-        const text = await apiRes.text();
-        console.log(`[scrapeLumaEvent] API error body:`, text.slice(0, 200));
-      }
-    }
-
     // ── Fallback: scrape HTML ────────────────────────────────────────────────
+    // (Luma API now requires an API key, so we go straight to HTML scraping)
     const res = await fetch(normalized, {
       headers: {
         "User-Agent":
@@ -282,11 +264,9 @@ export async function scrapeLumaEvent(
       cache: "no-store",
     });
 
-    console.log(`[scrapeLumaEvent] HTML fetch ${normalized} -> status ${res.status}`);
     if (!res.ok) return { error: `Could not fetch page (HTTP ${res.status})` };
 
     const html = await res.text();
-    console.log(`[scrapeLumaEvent] HTML length: ${html.length}, has __NEXT_DATA__: ${html.includes("__NEXT_DATA__")}, has ld+json: ${html.includes('application/ld+json')}`);
 
     // ── Try __NEXT_DATA__ ────────────────────────────────────────────────────
     const nextMatch = html.match(
@@ -297,15 +277,12 @@ export async function scrapeLumaEvent(
         const nextData = JSON.parse(nextMatch[1]);
         const pp = nextData?.props?.pageProps ?? {};
         const initialData = pp.initialData ?? {};
-        console.log(`[scrapeLumaEvent] initialData kind:`, initialData.kind);
-        console.log(`[scrapeLumaEvent] initialData.data keys:`, Object.keys(initialData.data ?? {}));
-        console.log(`[scrapeLumaEvent] initialData.data.event keys:`, Object.keys(initialData.data?.event ?? {}));
+        // Luma structure: props.pageProps.initialData = { kind, data: { event, ... } }
         const ev =
           initialData?.data?.event ??
           initialData?.data ??
           pp?.initialData?.event ??
           pp?.event;
-        console.log(`[scrapeLumaEvent] __NEXT_DATA__ ev.name:`, ev?.name);
         if (ev?.name) return { data: parseNextDataEvent(ev) };
       } catch {
         // fall through
@@ -318,16 +295,14 @@ export async function scrapeLumaEvent(
       try {
         const ld = JSON.parse(m[1]);
         const target = ld["@type"] === "Event" ? ld : (Array.isArray(ld) ? ld.find((x: { "@type": string }) => x["@type"] === "Event") : null);
-        console.log(`[scrapeLumaEvent] JSON-LD @type:`, ld?.["@type"], `target.name:`, target?.name);
         if (target?.name) return { data: parseJsonLdEvent(target) };
-      } catch (e) {
-        console.log(`[scrapeLumaEvent] JSON-LD parse error:`, e);
+      } catch {
+        // fall through
       }
     }
 
     return { error: "Could not find event data on this page. Make sure it's a public Luma event URL." };
   } catch (e) {
-    console.log(`[scrapeLumaEvent] exception:`, e);
     return { error: e instanceof Error ? e.message : "Failed to scrape URL" };
   }
 }
