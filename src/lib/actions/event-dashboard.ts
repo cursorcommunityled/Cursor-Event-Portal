@@ -295,9 +295,16 @@ export async function scrapeLumaEvent(
     if (nextMatch) {
       try {
         const nextData = JSON.parse(nextMatch[1]);
+        const pp = nextData?.props?.pageProps ?? {};
+        console.log(`[scrapeLumaEvent] props keys:`, Object.keys(nextData?.props ?? {}));
+        console.log(`[scrapeLumaEvent] pageProps keys:`, Object.keys(pp));
+        console.log(`[scrapeLumaEvent] initialData keys:`, Object.keys(pp.initialData ?? {}));
+        console.log(`[scrapeLumaEvent] data keys:`, Object.keys(pp.data ?? {}));
         const ev =
-          nextData?.props?.pageProps?.initialData?.event ??
-          nextData?.props?.pageProps?.event;
+          pp?.initialData?.event ??
+          pp?.event ??
+          pp?.data?.event ??
+          pp?.data;
         console.log(`[scrapeLumaEvent] __NEXT_DATA__ ev.name:`, ev?.name);
         if (ev?.name) return { data: parseNextDataEvent(ev) };
       } catch {
@@ -311,10 +318,10 @@ export async function scrapeLumaEvent(
       try {
         const ld = JSON.parse(m[1]);
         const target = ld["@type"] === "Event" ? ld : (Array.isArray(ld) ? ld.find((x: { "@type": string }) => x["@type"] === "Event") : null);
-        console.log(`[scrapeLumaEvent] JSON-LD target.name:`, target?.name);
+        console.log(`[scrapeLumaEvent] JSON-LD @type:`, ld?.["@type"], `target.name:`, target?.name);
         if (target?.name) return { data: parseJsonLdEvent(target) };
-      } catch {
-        // fall through
+      } catch (e) {
+        console.log(`[scrapeLumaEvent] JSON-LD parse error:`, e);
       }
     }
 
