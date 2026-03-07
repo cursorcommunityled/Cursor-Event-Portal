@@ -176,7 +176,7 @@ export function ExportClient({
         alert(result.error);
         return;
       }
-      if (result.data) {
+      if ("data" in result && result.data) {
         exportToCSV(result.data, allEvents ? "all-events-detailed-attendees" : `${event.slug}-detailed-attendees`);
       }
     } catch (err) {
