@@ -296,15 +296,15 @@ export async function scrapeLumaEvent(
       try {
         const nextData = JSON.parse(nextMatch[1]);
         const pp = nextData?.props?.pageProps ?? {};
-        console.log(`[scrapeLumaEvent] props keys:`, Object.keys(nextData?.props ?? {}));
-        console.log(`[scrapeLumaEvent] pageProps keys:`, Object.keys(pp));
-        console.log(`[scrapeLumaEvent] initialData keys:`, Object.keys(pp.initialData ?? {}));
-        console.log(`[scrapeLumaEvent] data keys:`, Object.keys(pp.data ?? {}));
+        const initialData = pp.initialData ?? {};
+        console.log(`[scrapeLumaEvent] initialData kind:`, initialData.kind);
+        console.log(`[scrapeLumaEvent] initialData.data keys:`, Object.keys(initialData.data ?? {}));
+        console.log(`[scrapeLumaEvent] initialData.data.event keys:`, Object.keys(initialData.data?.event ?? {}));
         const ev =
+          initialData?.data?.event ??
+          initialData?.data ??
           pp?.initialData?.event ??
-          pp?.event ??
-          pp?.data?.event ??
-          pp?.data;
+          pp?.event;
         console.log(`[scrapeLumaEvent] __NEXT_DATA__ ev.name:`, ev?.name);
         if (ev?.name) return { data: parseNextDataEvent(ev) };
       } catch {
