@@ -5,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileSpreadsheet, FileText, Users, MessageCircle, ClipboardCheck, UserCheck, Lock, X } from "lucide-react";
 import type { Event, Registration, Question, Survey, SurveyResponse } from "@/types";
-import { getDetailedAttendeeData } from "@/lib/actions/export";
+import {
+  getDetailedAttendeeData,
+  getAllEventsDetailedAttendeeData,
+  getAllEventsRegistrations,
+  getAllEventsQuestions,
+  getAllEventsSurveyResponses,
+} from "@/lib/actions/export";
 
 const DOWNLOAD_PASSWORD = "CursorCalgary2026";
 
@@ -24,6 +30,7 @@ export function ExportClient({
   survey,
   surveyResponses,
 }: ExportClientProps) {
+  const [allEvents, setAllEvents] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -88,61 +95,86 @@ export function ExportClient({
     document.body.removeChild(link);
   };
 
-  const exportRegistrations = () => {
+  const exportRegistrations = async () => {
     setExporting("registrations");
-    const data = registrations.map((reg) => ({
-      name: reg.user?.name || "",
-      email: reg.user?.email || "",
-      checked_in: reg.checked_in_at ? "Yes" : "No",
-      checked_in_at: reg.checked_in_at || "",
-      registered_at: reg.created_at,
-      source: reg.source,
-    }));
-    exportToCSV(data, `${event.slug}-registrations`);
-    setTimeout(() => setExporting(null), 1000);
-  };
-
-  const exportQuestions = () => {
-    setExporting("questions");
-    const data = questions.map((q) => ({
-      content: q.content,
-      author: q.user?.name || "Anonymous",
-      upvotes: q.upvotes,
-      status: q.status,
-      tags: q.tags.join("; "),
-      created_at: q.created_at,
-      answer_count: q.answers?.length || 0,
-    }));
-    exportToCSV(data, `${event.slug}-questions`);
-    setTimeout(() => setExporting(null), 1000);
-  };
-
-  const exportSurveyResponses = () => {
-    if (!survey) {
-      alert("No survey available");
-      return;
+    try {
+      if (allEvents) {
+        const result = await getAllEventsRegistrations();
+        if ("error" in result) { alert(result.error); return; }
+        exportToCSV(result.data!, "all-events-registrations");
+      } else {
+        const data = registrations.map((reg) => ({
+          name: reg.user?.name || "",
+          email: reg.user?.email || "",
+          checked_in: reg.checked_in_at ? "Yes" : "No",
+          checked_in_at: reg.checked_in_at || "",
+          registered_at: reg.created_at,
+          source: reg.source,
+        }));
+        exportToCSV(data, `${event.slug}-registrations`);
+      }
+    } finally {
+      setTimeout(() => setExporting(null), 1000);
     }
+  };
+
+  const exportQuestions = async () => {
+    setExporting("questions");
+    try {
+      if (allEvents) {
+        const result = await getAllEventsQuestions();
+        if ("error" in result) { alert(result.error); return; }
+        exportToCSV(result.data!, "all-events-questions");
+      } else {
+        const data = questions.map((q) => ({
+          content: q.content,
+          author: q.user?.name || "Anonymous",
+          upvotes: q.upvotes,
+          status: q.status,
+          tags: q.tags.join("; "),
+          created_at: q.created_at,
+          answer_count: q.answers?.length || 0,
+        }));
+        exportToCSV(data, `${event.slug}-questions`);
+      }
+    } finally {
+      setTimeout(() => setExporting(null), 1000);
+    }
+  };
+
+  const exportSurveyResponses = async () => {
     setExporting("survey");
-    const data = surveyResponses.map((response) => ({
-      user_id: response.user_id || "anonymous",
-      responses: JSON.stringify(response.responses),
-      created_at: response.created_at,
-    }));
-    exportToCSV(data, `${event.slug}-survey-responses`);
-    setTimeout(() => setExporting(null), 1000);
+    try {
+      if (allEvents) {
+        const result = await getAllEventsSurveyResponses();
+        if ("error" in result) { alert(result.error); return; }
+        exportToCSV(result.data!, "all-events-survey-responses");
+      } else {
+        if (!survey) { alert("No survey available"); return; }
+        const data = surveyResponses.map((response) => ({
+          user_id: response.user_id || "anonymous",
+          responses: JSON.stringify(response.responses),
+          created_at: response.created_at,
+        }));
+        exportToCSV(data, `${event.slug}-survey-responses`);
+      }
+    } finally {
+      setTimeout(() => setExporting(null), 1000);
+    }
   };
 
   const exportDetailedAttendees = async () => {
     setExporting("detailed");
     try {
-      const result = await getDetailedAttendeeData(event.id);
-      if (result.error) {
+      const result = allEvents
+        ? await getAllEventsDetailedAttendeeData()
+        : await getDetailedAttendeeData(event.id);
+      if ("error" in result) {
         alert(result.error);
-        setExporting(null);
         return;
       }
       if (result.data) {
-        exportToCSV(result.data, `${event.slug}-detailed-attendees`);
+        exportToCSV(result.data, allEvents ? "all-events-detailed-attendees" : `${event.slug}-detailed-attendees`);
       }
     } catch (err) {
       alert("Failed to export detailed attendee data");
@@ -154,6 +186,28 @@ export function ExportClient({
 
   return (
     <div className="space-y-6">
+      {/* All Events Toggle */}
+      <div className="glass rounded-[28px] px-8 py-5 border-white/[0.03] flex items-center justify-between">
+        <div>
+          <p className="text-sm font-light text-white/80">Scope</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-0.5">
+            {allEvents ? "All Events — Cross-event export" : "Current Event — " + event.slug}
+          </p>
+        </div>
+        <button
+          onClick={() => setAllEvents((v) => !v)}
+          className={`relative w-14 h-7 rounded-full transition-colors duration-300 ${
+            allEvents ? "bg-white" : "bg-white/10"
+          }`}
+        >
+          <span
+            className={`absolute top-1 w-5 h-5 rounded-full transition-all duration-300 ${
+              allEvents ? "left-8 bg-black" : "left-1 bg-white/40"
+            }`}
+          />
+        </button>
+      </div>
+
       {/* Registrations */}
       <div className="glass rounded-[40px] p-10 border-white/[0.03] group hover:bg-white/[0.01] transition-all">
         <div className="flex items-center justify-between gap-8">
@@ -164,7 +218,7 @@ export function ExportClient({
             <div className="space-y-1">
               <h3 className="text-2xl font-light tracking-tight text-white/90">Identity Matrix</h3>
               <p className="text-[10px] uppercase tracking-[0.2em] text-gray-800 font-medium">
-                {registrations.length} Verified Registrations
+                {allEvents ? "All Events" : `${registrations.length} Verified Registrations`}
               </p>
               <p className="text-[9px] text-gray-700 mt-2 tracking-tight">
                 Export attendee registration data including check-in status
@@ -173,9 +227,9 @@ export function ExportClient({
           </div>
           <button
             onClick={() => requirePassword(exportRegistrations)}
-            disabled={exporting !== null || registrations.length === 0}
+            disabled={exporting !== null || (!allEvents && registrations.length === 0)}
             className={`px-8 py-4 rounded-2xl font-medium text-sm transition-all flex items-center gap-3 ${
-              exporting !== null || registrations.length === 0
+              exporting !== null || (!allEvents && registrations.length === 0)
                 ? "bg-white/5 text-white/20 cursor-not-allowed"
                 : "bg-white text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             }`}
@@ -200,7 +254,7 @@ export function ExportClient({
             <div className="space-y-1">
               <h3 className="text-2xl font-light tracking-tight text-white/90">Query Streams</h3>
               <p className="text-[10px] uppercase tracking-[0.2em] text-gray-800 font-medium">
-                {questions.length} Active Submissions
+                {allEvents ? "All Events" : `${questions.length} Active Submissions`}
               </p>
               <p className="text-[9px] text-gray-700 mt-2 tracking-tight">
                 Export Q&A questions with upvotes, status, and answer counts
@@ -209,9 +263,9 @@ export function ExportClient({
           </div>
           <button
             onClick={() => requirePassword(exportQuestions)}
-            disabled={exporting !== null || questions.length === 0}
+            disabled={exporting !== null || (!allEvents && questions.length === 0)}
             className={`px-8 py-4 rounded-2xl font-medium text-sm transition-all flex items-center gap-3 ${
-              exporting !== null || questions.length === 0
+              exporting !== null || (!allEvents && questions.length === 0)
                 ? "bg-white/5 text-white/20 cursor-not-allowed"
                 : "bg-white text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             }`}
@@ -245,9 +299,9 @@ export function ExportClient({
           </div>
           <button
             onClick={() => requirePassword(exportDetailedAttendees)}
-            disabled={exporting !== null || registrations.length === 0}
+            disabled={exporting !== null || (!allEvents && registrations.length === 0)}
             className={`px-8 py-4 rounded-2xl font-medium text-sm transition-all flex items-center gap-3 ${
-              exporting !== null || registrations.length === 0
+              exporting !== null || (!allEvents && registrations.length === 0)
                 ? "bg-white/5 text-white/20 cursor-not-allowed"
                 : "bg-white text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             }`}
@@ -263,7 +317,7 @@ export function ExportClient({
       </div>
 
       {/* Survey Responses */}
-      {survey ? (
+      {(survey || allEvents) ? (
         <div className="glass rounded-[40px] p-10 border-white/[0.03] group hover:bg-white/[0.01] transition-all">
           <div className="flex items-center justify-between gap-8">
             <div className="flex items-center gap-6 flex-1">
@@ -273,15 +327,15 @@ export function ExportClient({
               <div className="space-y-1">
                 <h3 className="text-2xl font-light tracking-tight text-white/90">Feedback Surveys</h3>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-gray-800 font-medium">
-                  {surveyResponses.length} Received Inputs
+                  {allEvents ? "All Events" : `${surveyResponses.length} Received Inputs`}
                 </p>
               </div>
             </div>
             <button
               onClick={() => requirePassword(exportSurveyResponses)}
-              disabled={exporting !== null || surveyResponses.length === 0}
+              disabled={exporting !== null || (!allEvents && surveyResponses.length === 0)}
               className={`px-8 py-4 rounded-2xl font-medium text-sm transition-all flex items-center gap-3 ${
-                exporting !== null || surveyResponses.length === 0
+                exporting !== null || (!allEvents && surveyResponses.length === 0)
                   ? "bg-white/5 text-white/20 cursor-not-allowed"
                   : "bg-white text-black hover:scale-[1.02] shadow-[0_0_20px_rgba(255,255,255,0.15)]"
               }`}

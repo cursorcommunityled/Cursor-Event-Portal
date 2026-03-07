@@ -180,6 +180,209 @@ export async function getDetailedAttendeeData(eventId: string) {
 }
 
 // ============================================================================
+// ALL-EVENTS EXPORTS
+// ============================================================================
+
+async function checkAdminAuth() {
+  const session = await getSession();
+  if (!session) return { error: "Not authenticated" as const };
+  const supabase = await createServiceClient();
+  const { data: user } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", session.userId)
+    .single();
+  if (!user || user.role !== "admin") return { error: "Not authorized" as const };
+  return { supabase, session };
+}
+
+export async function getAllEventsRegistrations() {
+  const auth = await checkAdminAuth();
+  if ("error" in auth) return auth;
+  const { supabase } = auth;
+
+  const { data: registrations } = await supabase
+    .from("registrations")
+    .select("*, user:users(name, email), event:events(slug, title)")
+    .order("created_at", { ascending: false });
+
+  const data = (registrations || []).map((reg) => {
+    const user = Array.isArray(reg.user) ? reg.user[0] : reg.user;
+    const event = Array.isArray(reg.event) ? reg.event[0] : reg.event;
+    return {
+      event_slug: (event as any)?.slug || "",
+      event_title: (event as any)?.title || "",
+      name: (user as any)?.name || "",
+      email: (user as any)?.email || "",
+      checked_in: reg.checked_in_at ? "Yes" : "No",
+      checked_in_at: reg.checked_in_at || "",
+      registered_at: reg.created_at,
+      source: reg.source,
+    };
+  });
+
+  return { success: true, data };
+}
+
+export async function getAllEventsQuestions() {
+  const auth = await checkAdminAuth();
+  if ("error" in auth) return auth;
+  const { supabase } = auth;
+
+  const { data: questions } = await supabase
+    .from("questions")
+    .select("*, user:users(name), event:events(slug, title)")
+    .order("created_at", { ascending: false });
+
+  const data = (questions || []).map((q) => {
+    const event = Array.isArray(q.event) ? q.event[0] : q.event;
+    return {
+      event_slug: (event as any)?.slug || "",
+      event_title: (event as any)?.title || "",
+      content: q.content,
+      author: (q.user as any)?.name || "Anonymous",
+      upvotes: q.upvotes,
+      status: q.status,
+      tags: (q.tags || []).join("; "),
+      created_at: q.created_at,
+      answer_count: (q as any).answers?.length || 0,
+    };
+  });
+
+  return { success: true, data };
+}
+
+export async function getAllEventsSurveyResponses() {
+  const auth = await checkAdminAuth();
+  if ("error" in auth) return auth;
+  const { supabase } = auth;
+
+  const { data: responses } = await supabase
+    .from("survey_responses")
+    .select("*, survey:surveys(title, event:events(slug, title))")
+    .order("created_at", { ascending: false });
+
+  const data = (responses || []).map((r) => {
+    const survey = Array.isArray(r.survey) ? r.survey[0] : r.survey;
+    const event = survey?.event
+      ? Array.isArray(survey.event)
+        ? survey.event[0]
+        : survey.event
+      : null;
+    return {
+      event_slug: (event as any)?.slug || "",
+      event_title: (event as any)?.title || "",
+      survey_title: (survey as any)?.title || "",
+      user_id: r.user_id || "anonymous",
+      responses: JSON.stringify(r.responses),
+      created_at: r.created_at,
+    };
+  });
+
+  return { success: true, data };
+}
+
+export async function getAllEventsDetailedAttendeeData() {
+  const auth = await checkAdminAuth();
+  if ("error" in auth) return auth;
+  const { supabase } = auth;
+
+  const { data: registrations } = await supabase
+    .from("registrations")
+    .select("*, user:users(id, name, email, role, role_category, founder_stage, years_experience, degree_type, linkedin, github, website, intent, followup_consent, cursor_experience), event:events(id, slug, title)")
+    .order("created_at", { ascending: false });
+
+  if (!registrations) return { error: "Failed to fetch registrations" };
+
+  const userIds = registrations
+    .map((r) => {
+      const user = Array.isArray(r.user) ? r.user[0] : r.user;
+      return (user as any)?.id;
+    })
+    .filter(Boolean) as string[];
+
+  const [intakesRes, pollVotesRes, questionsRes, answersRes, upvotesRes] = await Promise.all([
+    supabase.from("attendee_intakes").select("*").in("user_id", userIds),
+    supabase.from("poll_votes").select("*, poll:polls(id, question, options, event_id)").in("user_id", userIds),
+    supabase.from("questions").select("*, event:events(slug, title)").in("user_id", userIds),
+    supabase.from("answers").select("*, question:questions(id, content, event_id)").in("user_id", userIds),
+    supabase.from("question_upvotes").select("*, question:questions(id, content, event_id)").in("user_id", userIds),
+  ]);
+
+  const intakes = intakesRes.data || [];
+  const pollVotes = pollVotesRes.data || [];
+  const questions = questionsRes.data || [];
+  const answers = answersRes.data || [];
+  const upvotes = upvotesRes.data || [];
+
+  const detailedData = registrations.map((reg) => {
+    const user = Array.isArray(reg.user) ? reg.user[0] : reg.user;
+    const eventRec = Array.isArray(reg.event) ? reg.event[0] : reg.event;
+    const userId = (user as any)?.id;
+    const eventId = (eventRec as any)?.id;
+
+    const intake = intakes.find((i) => i.user_id === userId && i.event_id === eventId);
+    const userPollVotes = pollVotes.filter(
+      (v) => v.user_id === userId && (v.poll as any)?.event_id === eventId
+    );
+    const userQuestions = questions.filter((q) => q.user_id === userId && q.event_id === eventId);
+    const userAnswers = answers.filter(
+      (a) => a.user_id === userId && (a.question as any)?.event_id === eventId
+    );
+    const userUpvotes = upvotes.filter(
+      (u) => u.user_id === userId && (u.question as any)?.event_id === eventId
+    );
+
+    return {
+      event_slug: (eventRec as any)?.slug || "",
+      event_title: (eventRec as any)?.title || "",
+      name: (user as any)?.name || "",
+      email: (user as any)?.email || "",
+      checked_in: reg.checked_in_at ? "Yes" : "No",
+      checked_in_at: reg.checked_in_at || "",
+      registered_at: reg.created_at,
+      goals: intake?.goals?.join("; ") || "",
+      goals_other: intake?.goals_other || "",
+      offers: intake?.offers?.join("; ") || "",
+      offers_other: intake?.offers_other || "",
+      role_category: intake?.role_category || (user as any)?.role_category || "",
+      founder_stage: intake?.founder_stage || (user as any)?.founder_stage || "",
+      years_experience: intake?.years_experience ?? (user as any)?.years_experience ?? "",
+      degree_type: intake?.degree_type || (user as any)?.degree_type || "",
+      linkedin: intake?.linkedin || (user as any)?.linkedin || "",
+      github: intake?.github || (user as any)?.github || "",
+      website: intake?.website || (user as any)?.website || "",
+      intent: intake?.intent || (user as any)?.intent || "",
+      commitment:
+        typeof intake?.followup_consent === "boolean"
+          ? intake.followup_consent ? "Yes" : "No"
+          : typeof (user as any)?.followup_consent === "boolean"
+            ? (user as any).followup_consent ? "Yes" : "No"
+            : "",
+      cursor_experience: intake?.cursor_experience || (user as any)?.cursor_experience || "",
+      intake_skipped: intake?.skipped ? "Yes" : "No",
+      intake_completed_at: intake?.created_at || "",
+      poll_votes_count: userPollVotes.length,
+      poll_votes: userPollVotes.map((v) => {
+        const poll = Array.isArray(v.poll) ? v.poll[0] : v.poll;
+        const options = (poll as any)?.options || [];
+        return `${(poll as any)?.question || ""}: ${options[v.option_index] || ""}`;
+      }).join(" | "),
+      questions_asked: userQuestions.length,
+      questions_content: userQuestions.map((q) => q.content).join(" | "),
+      answers_provided: userAnswers.length,
+      answers_content: userAnswers.map((a) => {
+        const q = Array.isArray(a.question) ? a.question[0] : a.question;
+        return `Q: ${(q as any)?.content || ""} | A: ${a.content}`;
+      }).join(" | "),
+      upvotes_count: userUpvotes.length,
+    };
+  });
+
+  return { success: true, data: detailedData };
+}
+
+// ============================================================================
 // ANALYTICS DATA EXPORT
 // ============================================================================
 
