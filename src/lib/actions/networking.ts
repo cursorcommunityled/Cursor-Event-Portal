@@ -169,7 +169,7 @@ export async function createNetworkingSession(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/${adminCode}/networking`);
+  revalidatePath(`/admin/${adminCode}/social`);
   return { data };
 }
 
@@ -302,7 +302,7 @@ export async function startNetworkingRound(
 
   if (updateErr) return { error: "Failed to update session status" };
 
-  revalidatePath(`/admin/${adminCode}/networking`);
+  revalidatePath(`/admin/${adminCode}/social`);
   return { data: { round, pairCount: pairings.length } };
 }
 
@@ -316,7 +316,7 @@ export async function endNetworkingRound(sessionId: string, adminCode: string) {
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/${adminCode}/networking`);
+  revalidatePath(`/admin/${adminCode}/social`);
   return { data: true };
 }
 
@@ -330,7 +330,7 @@ export async function endNetworkingSession(sessionId: string, adminCode: string)
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/${adminCode}/networking`);
+  revalidatePath(`/admin/${adminCode}/social`);
   return { data: true };
 }
 
@@ -344,6 +344,6 @@ export async function deleteNetworkingSession(sessionId: string, adminCode: stri
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/admin/${adminCode}/networking`);
+  revalidatePath(`/admin/${adminCode}/social`);
   return { data: true };
 }

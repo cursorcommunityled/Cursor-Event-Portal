@@ -110,7 +110,8 @@ export function NetworkingAdminClient({
     const result = await createNetworkingSession(eventId, selectedDuration, adminCode);
     if (result.error) {
       setError(result.error);
-    } else {
+    } else if ("data" in result && result.data) {
+      setSession(result.data as any);
       router.refresh();
     }
     setLoading(false);
