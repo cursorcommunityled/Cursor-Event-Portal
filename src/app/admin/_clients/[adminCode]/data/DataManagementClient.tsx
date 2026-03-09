@@ -106,6 +106,7 @@ export function DataManagementClient({
       if (allEvents) {
         const result = await getAllEventsRegistrations();
         if ("error" in result) { alert(result.error); return; }
+        if (!("data" in result)) return;
         exportToCSV(result.data ?? [], "all-events-registrations");
       } else {
         const data = registrations.map((reg) => ({
