@@ -122,7 +122,7 @@ export function EventSocialCard({
               </h3>
               <div className="flex items-center gap-2">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-                  Q&A, Polls & Broadcasts
+                  Copilot · Q&A · Help · Exchange · Polls · Broadcast · Surveys · Networking
                 </p>
                 {newQuestionAlert && (
                   <span className="text-[10px] uppercase tracking-[0.2em] text-green-400 font-bold flex items-center">

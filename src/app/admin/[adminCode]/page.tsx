@@ -139,7 +139,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-xl font-light tracking-tight text-white/90">Program</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Demos · Slides · Competitions</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Demos · Slides · Competitions · Themes · Calendar · Credits · Post-Event</p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
