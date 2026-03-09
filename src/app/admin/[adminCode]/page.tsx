@@ -193,7 +193,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
           </Link>
 
           {/* Enter Portal — full width */}
-          <Link href={`/${eventSlug}/agenda`} prefetch={false} className="md:col-span-2 animate-slide-up" style={{ animationDelay: "270ms" }}>
+          <Link href={`/${activeSlug || eventSlug}/agenda`} prefetch={false} className="md:col-span-2 animate-slide-up" style={{ animationDelay: "270ms" }}>
             <div className="glass rounded-[40px] p-8 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-400/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all group cursor-pointer relative overflow-hidden shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
