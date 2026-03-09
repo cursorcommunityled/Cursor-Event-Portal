@@ -1,4 +1,4 @@
-import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts } from "@/lib/supabase/queries";
+import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts, getNetworkingSession, getNetworkingCurrentRound, getNetworkingPairsForRound } from "@/lib/supabase/queries";
 import { EventSocialClient } from "../../_clients/[adminCode]/social/EventSocialClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
 
@@ -14,16 +14,20 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
 
   const sortBy = sort === "new" ? "new" : "trending";
   const statusFilter = (status === "answered" || status === "hidden" || status === "pinned" || status === "open") ? status : "all";
-  const activeTab = (tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements" || tab === "copilot" || tab === "exchange") ? tab : "copilot";
+  const activeTab = (tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements" || tab === "copilot" || tab === "exchange" || tab === "networking") ? tab : "copilot";
 
-  const [questions, polls, announcements, surveys, helpRequests, exchangePosts] = await Promise.all([
+  const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession] = await Promise.all([
     getQuestionsForAdmin(event.id, sortBy, true),
     getAllPolls(event.id),
     getAnnouncements(event.id),
     getAllSurveys(event.id),
     getHelpRequestsForAdmin(event.id),
     getExchangePosts(event.id),
+    getNetworkingSession(event.id),
   ]);
+
+  const networkingRound = networkingSession ? await getNetworkingCurrentRound(networkingSession.id) : null;
+  const networkingPairs = networkingRound ? await getNetworkingPairsForRound(networkingRound.id) : [];
 
   return (
     <EventSocialClient
@@ -37,6 +41,9 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
       initialSurveys={surveys}
       initialHelpRequests={helpRequests}
       initialExchangePosts={exchangePosts}
+      initialNetworkingSession={networkingSession}
+      initialNetworkingRound={networkingRound}
+      initialNetworkingPairs={networkingPairs}
       sortBy={sortBy}
       statusFilter={statusFilter as any}
       activeTab={activeTab as any}

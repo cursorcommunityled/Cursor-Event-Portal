@@ -4,16 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { MessageCircle, ClipboardCheck, Vote, Megaphone, HandHelping, Bot, Zap } from "lucide-react";
+import { MessageCircle, ClipboardCheck, Vote, Megaphone, HandHelping, Bot, Zap, Users2 } from "lucide-react";
 import { AdminQAClient } from "../../qa/AdminQAClient";
 import { PollsAdminClient } from "../../polls/PollsAdminClient";
 import { AnnouncementsClient } from "../../announcements/AnnouncementsClient";
 import { SurveysAdminClient } from "../../surveys/SurveysAdminClient";
 import { HelpQueueAdmin } from "@/components/help/HelpQueueAdmin";
 import { ExchangeAdminBoard } from "@/components/exchange/ExchangeAdminBoard";
+import { NetworkingAdminClient } from "../../networking/NetworkingAdminClient";
 import { CopilotTab } from "./CopilotTab";
 import { cn } from "@/lib/utils";
-import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost } from "@/types";
+import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost, SpeedNetworkingSession, SpeedNetworkingRound, SpeedNetworkingPair } from "@/types";
 
 interface EventSocialClientProps {
   event: Event;
@@ -26,12 +27,15 @@ interface EventSocialClientProps {
   initialSurveys: Survey[];
   initialHelpRequests: HelpRequest[];
   initialExchangePosts: ExchangePost[];
+  initialNetworkingSession: SpeedNetworkingSession | null;
+  initialNetworkingRound: SpeedNetworkingRound | null;
+  initialNetworkingPairs: SpeedNetworkingPair[];
   sortBy: "new" | "trending";
   statusFilter: "all" | "open" | "answered" | "pinned" | "hidden";
   activeTab: TabType;
 }
 
-type TabType = "qa" | "help" | "surveys" | "polls" | "announcements" | "copilot" | "exchange";
+type TabType = "qa" | "help" | "surveys" | "polls" | "announcements" | "copilot" | "exchange" | "networking";
 
 const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; description: string }> = [
   {
@@ -76,11 +80,17 @@ const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; desc
     icon: ClipboardCheck,
     description: "Collect feedback",
   },
+  {
+    id: "networking",
+    label: "Networking",
+    icon: Users2,
+    description: "Speed rounds · Color pairs",
+  },
 ];
 
-export function EventSocialClient({ 
+export function EventSocialClient({
   event,
-  eventSlug, 
+  eventSlug,
   adminCode,
   userId,
   initialQuestions,
@@ -89,6 +99,9 @@ export function EventSocialClient({
   initialSurveys,
   initialHelpRequests,
   initialExchangePosts,
+  initialNetworkingSession,
+  initialNetworkingRound,
+  initialNetworkingPairs,
   sortBy,
   statusFilter,
   activeTab: initialActiveTab
@@ -175,6 +188,16 @@ export function EventSocialClient({
             adminCode={adminCode}
             initialSurveys={initialSurveys}
             isEmbedded={true}
+          />
+        );
+      case "networking":
+        return (
+          <NetworkingAdminClient
+            eventId={event.id}
+            adminCode={adminCode}
+            initialSession={initialNetworkingSession}
+            initialRound={initialNetworkingRound}
+            initialPairs={initialNetworkingPairs}
           />
         );
     }
