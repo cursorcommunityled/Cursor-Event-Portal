@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Calendar, MessageCircle, FolderOpen, BarChart3, Lock, FileText, Menu, X, Trophy, MonitorPlay, Shuffle } from "lucide-react";
+import { Calendar, MessageCircle, FolderOpen, BarChart3, Lock, FileText, Menu, X, Trophy, MonitorPlay } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSeenItemIds, markMultipleItemsAsSeen } from "@/lib/supabase/seenItems";
 import { LiveSlidePopup } from "@/components/slides/LiveSlidePopup";
@@ -21,7 +21,6 @@ interface EventNavProps {
 const navItems = [
   { href: "agenda", label: "Event", icon: Calendar },
   { href: "demos", label: "Demos", icon: MonitorPlay },
-  { href: "networking", label: "Network", icon: Shuffle },
   { href: "socials", label: "Socials", icon: MessageCircle },
   { href: "slides", label: "Slides", icon: FileText },
   { href: "polls", label: "Polls", icon: BarChart3, hasAlert: true },
