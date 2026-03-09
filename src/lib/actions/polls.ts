@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
+import { fanOutNotification } from "@/lib/notifications";
 
 function getAdminPollsPath(eventSlug: string, adminCode?: string) {
   return adminCode ? `/admin/${eventSlug}/${adminCode}/polls` : `/admin/${eventSlug}/polls`;
@@ -268,6 +269,24 @@ export async function togglePollActive(pollId: string, eventSlug: string, adminC
 
   revalidatePath(getAdminPollsPath(eventSlug, adminCode));
   revalidatePath(`/${eventSlug}/polls`);
+
+  // Fan-out notification when poll goes live
+  if (!poll.is_active) {
+    const { data: pollData } = await supabase
+      .from("polls")
+      .select("question")
+      .eq("id", pollId)
+      .single();
+
+    fanOutNotification(
+      poll.event_id,
+      "poll_opened",
+      "New Poll Open",
+      pollData?.question ?? "A new poll is now live — go vote!",
+      `/${eventSlug}/polls`
+    ).catch(() => {});
+  }
+
   return { success: true, is_active: !poll.is_active };
 }
 

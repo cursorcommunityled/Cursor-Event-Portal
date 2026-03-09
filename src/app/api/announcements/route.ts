@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { fanOutNotification } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,6 +99,16 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Fan-out in-app notification (fire-and-forget)
+    const { data: eventFull } = await supabase.from("events").select("slug").eq("id", eventId).single();
+    fanOutNotification(
+      eventId,
+      "announcement",
+      "New Announcement",
+      content.trim(),
+      eventFull ? `/${eventFull.slug}` : undefined
+    ).catch(() => {});
 
     return NextResponse.json(announcement);
   } catch (error) {

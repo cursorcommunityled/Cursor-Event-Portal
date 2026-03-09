@@ -198,7 +198,7 @@ async function checkAdminAuth() {
 
 export async function getAllEventsRegistrations() {
   const auth = await checkAdminAuth();
-  if ("error" in auth) return auth;
+  if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
   const { data: registrations } = await supabase
@@ -226,7 +226,7 @@ export async function getAllEventsRegistrations() {
 
 export async function getAllEventsQuestions() {
   const auth = await checkAdminAuth();
-  if ("error" in auth) return auth;
+  if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
   const { data: questions } = await supabase
@@ -254,7 +254,7 @@ export async function getAllEventsQuestions() {
 
 export async function getAllEventsSurveyResponses() {
   const auth = await checkAdminAuth();
-  if ("error" in auth) return auth;
+  if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
   const { data: responses } = await supabase
@@ -284,7 +284,7 @@ export async function getAllEventsSurveyResponses() {
 
 export async function getAllEventsDetailedAttendeeData() {
   const auth = await checkAdminAuth();
-  if ("error" in auth) return auth;
+  if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
   const { data: registrations } = await supabase

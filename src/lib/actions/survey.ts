@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
+import { fanOutNotification } from "@/lib/notifications";
 
 function getAdminSurveysPath(eventSlug: string, adminCode?: string) {
   return adminCode ? `/admin/${eventSlug}/${adminCode}/surveys` : `/admin/${eventSlug}/surveys`;
@@ -138,6 +139,24 @@ export async function publishSurvey(surveyId: string, eventSlug: string, adminCo
 
   revalidatePath(getAdminSurveysPath(eventSlug, adminCode));
   revalidatePath(`/${eventSlug}/feedback`);
+
+  // Fan-out survey-live notification
+  const { data: surveyData } = await supabase
+    .from("surveys")
+    .select("title, event_id")
+    .eq("id", surveyId)
+    .single();
+
+  if (surveyData) {
+    fanOutNotification(
+      surveyData.event_id,
+      "survey_live",
+      "Survey Now Live",
+      `"${surveyData.title}" is open — share your feedback!`,
+      `/${eventSlug}/feedback`
+    ).catch(() => {});
+  }
+
   return { success: true };
 }
 

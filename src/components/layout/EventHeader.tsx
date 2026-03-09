@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { hasUserSeenItem, markItemAsSeen } from "@/lib/supabase/seenItems";
 import { MapPin } from "lucide-react";
 import { DemoStatusBadge } from "@/components/demos/DemoStatusBadge";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface EventHeaderProps {
   event: Event;
@@ -297,6 +298,15 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
 
           {/* Right-side badges */}
           <div className="flex items-center gap-2">
+            {/* Notification Bell */}
+            {userId && (
+              <NotificationBell
+                userId={userId}
+                eventId={event.id}
+                eventSlug={event.slug}
+              />
+            )}
+
             {tableAssignment && (
               <div className={cn(
                 "flex items-center gap-3 px-5 py-2.5 rounded-2xl border shadow-xl backdrop-blur-xl group hover:bg-white/[0.05] transition-all duration-500",

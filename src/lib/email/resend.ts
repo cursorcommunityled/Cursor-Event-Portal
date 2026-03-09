@@ -8,7 +8,7 @@ export async function sendMagicLink(email: string, token: string, eventName: str
 
   try {
     const { error } = await resend.emails.send({
-      from: "Cursor Pop-Up Portal <noreply@updates.cursor.com>",
+      from: "Cursor Pop-Up Portal <onboarding@resend.dev>",
       to: email,
       subject: `Sign in to ${eventName}`,
       html: `

@@ -256,6 +256,29 @@ export function CheckInClient({
         </div>
 
         <div className="flex flex-col gap-3 w-full">
+          {/* Save Registration List */}
+          <button
+            onClick={handleSaveList}
+            disabled={isSavingList || registrations.length === 0}
+            className={cn(
+              "w-full h-12 rounded-2xl border text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed",
+              saveListStatus === "success"
+                ? "bg-white/10 border-white/30 text-white"
+                : saveListStatus === "error"
+                ? "bg-red-500/10 border-red-500/30 text-red-400"
+                : "bg-white/[0.02] border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
+            )}
+          >
+            <Save className="w-3.5 h-3.5" />
+            {isSavingList
+              ? "Saving..."
+              : saveListStatus === "success"
+              ? `Saved — ${registrations.length} registered, ${checkedInCount} checked in`
+              : saveListStatus === "error"
+              ? "Save Failed"
+              : "Save Registration List"}
+          </button>
+
           {/* Remove All */}
           {confirmClearAll ? (
             <div className="flex items-center gap-3">
