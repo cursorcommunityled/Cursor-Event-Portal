@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSeenItemIds } from "@/lib/supabase/seenItems";
@@ -24,6 +25,7 @@ export function EventSocialCard({
   initialQuestions,
   userId,
 }: EventSocialCardProps) {
+  const router = useRouter();
   const [openQuestions, setOpenQuestions] = useState(initialOpenQuestions);
   const [questions, setQuestions] = useState(initialQuestions);
   const [newQuestionAlert, setNewQuestionAlert] = useState(false);
@@ -108,25 +110,47 @@ export function EventSocialCard({
     };
   }, [event.id, seenQuestionIds]);
 
+  const SOCIAL_TABS = [
+    { id: "copilot", label: "Copilot" },
+    { id: "qa", label: "Q&A" },
+    { id: "help", label: "Help" },
+    { id: "exchange", label: "Exchange" },
+    { id: "polls", label: "Polls" },
+    { id: "announcements", label: "Broadcast" },
+    { id: "surveys", label: "Surveys" },
+    { id: "networking", label: "Networking" },
+  ];
+
   return (
-    <Link href={`/admin/${adminCode}/social`} className="animate-slide-up" style={{ animationDelay: "700ms" }}>
-      <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
+    <div
+      className="animate-slide-up cursor-pointer"
+      style={{ animationDelay: "700ms" }}
+      onClick={() => router.push(`/admin/${adminCode}/social`)}
+    >
+      <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group relative overflow-hidden shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow relative">
+            <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
               <MessageCircle className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-light tracking-tight text-white/90">
-                Event Social
-              </h3>
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-                  Copilot · Q&A · Help · Exchange · Polls · Broadcast · Surveys · Networking
-                </p>
+              <h3 className="text-xl font-light tracking-tight text-white/90">Event Social</h3>
+              <div className="flex flex-wrap items-center gap-x-1">
+                {SOCIAL_TABS.map((tab, i, arr) => (
+                  <span key={tab.id} className="flex items-center gap-1">
+                    <Link
+                      href={`/admin/${adminCode}/social?tab=${tab.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors"
+                    >
+                      {tab.label}
+                    </Link>
+                    {i < arr.length - 1 && <span className="text-[10px] text-gray-700 select-none">·</span>}
+                  </span>
+                ))}
                 {newQuestionAlert && (
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-green-400 font-bold flex items-center">
-                    <span className="mr-1.5">•</span> New
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-green-400 font-bold flex items-center ml-1">
+                    <span className="mr-1">•</span> New
                   </span>
                 )}
               </div>
@@ -135,6 +159,6 @@ export function EventSocialCard({
           <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -14,7 +14,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
 
   const sortBy = sort === "new" ? "new" : "trending";
   const statusFilter = (status === "answered" || status === "hidden" || status === "pinned" || status === "open") ? status : "all";
-  const activeTab = (tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements" || tab === "copilot" || tab === "exchange" || tab === "networking") ? tab : "copilot";
+  const activeTab = (tab === "qa" || tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements" || tab === "copilot" || tab === "exchange" || tab === "networking") ? tab : "copilot";
 
   const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession] = await Promise.all([
     getQuestionsForAdmin(event.id, sortBy, true),

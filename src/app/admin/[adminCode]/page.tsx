@@ -130,22 +130,41 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Program */}
-          <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "150ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "150ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
+              <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="absolute inset-0 z-10" aria-label="Program" />
+              <div className="flex items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
                     <Layers className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-xl font-light tracking-tight text-white/90">Program</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Agenda · Demos · Slides · Competitions · Themes · Calendar · Credits · Post-Event</p>
+                    <div className="flex flex-wrap items-center gap-x-1 pointer-events-auto relative z-30">
+                      {[
+                        { id: "agenda", label: "Agenda" },
+                        { id: "demos", label: "Demos" },
+                        { id: "slides", label: "Slides" },
+                        { id: "competitions", label: "Competitions" },
+                        { id: "themes", label: "Themes" },
+                        { id: "calendar", label: "Calendar" },
+                        { id: "credits", label: "Credits" },
+                        { id: "post-event", label: "Post-Event" },
+                      ].map((tab, i, arr) => (
+                        <span key={tab.id} className="flex items-center gap-1">
+                          <Link href={`/admin/${adminCode}/event-dashboard?tab=${tab.id}`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">
+                            {tab.label}
+                          </Link>
+                          {i < arr.length - 1 && <span className="text-[10px] text-gray-700 select-none">·</span>}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
-          </Link>
+          </div>
 
           {/* Engagement */}
           <EventSocialCard
@@ -157,40 +176,50 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
           />
 
           {/* Attendance */}
-          <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "210ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "210ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
+              <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="absolute inset-0 z-10" aria-label="Attendance" />
+              <div className="flex items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
                     <UserCheck className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-xl font-light tracking-tight text-white/90">Attendance</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Check-In · Seating</p>
+                    <div className="flex items-center gap-1 pointer-events-auto relative z-30">
+                      <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Check-In</Link>
+                      <span className="text-[10px] text-gray-700 select-none">·</span>
+                      <Link href={`/admin/${adminCode}/groups`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Seating</Link>
+                    </div>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
-          </Link>
+          </div>
 
           {/* Intelligence */}
-          <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="animate-slide-up" style={{ animationDelay: "240ms" }}>
+          <div className="animate-slide-up" style={{ animationDelay: "240ms" }}>
             <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
+              <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="absolute inset-0 z-10" aria-label="Intelligence" />
+              <div className="flex items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
                     <BarChart3 className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-xl font-light tracking-tight text-white/90">Intelligence</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Analytics · Data</p>
+                    <div className="flex items-center gap-1 pointer-events-auto relative z-30">
+                      <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Analytics</Link>
+                      <span className="text-[10px] text-gray-700 select-none">·</span>
+                      <Link href={`/admin/${adminCode}/data`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Data</Link>
+                    </div>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
-          </Link>
+          </div>
 
           {/* Enter Portal — full width */}
           <Link href={`/${activeSlug || eventSlug}/agenda`} prefetch={false} className="md:col-span-2 animate-slide-up" style={{ animationDelay: "270ms" }}>
