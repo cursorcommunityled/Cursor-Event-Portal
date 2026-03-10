@@ -420,6 +420,10 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
         <div className="glass rounded-[40px] border border-white/5 w-20 pointer-events-auto shadow-[0_30px_60px_rgba(0,0,0,0.8)] transition-all duration-300 hover:w-24 hover:shadow-[0_30px_60px_rgba(0,0,0,0.9),0_0_20px_rgba(255,255,255,0.1)]">
           <div className="py-6">
             <div className="flex flex-col items-center gap-4">
+              {renderNavItems()}
+
+              <div className="w-8 h-px bg-white/10" />
+
               {/* Idea Generator button */}
               <div className="relative group flex flex-col items-center justify-center py-2 w-full">
                 <a
@@ -434,7 +438,7 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
                 <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 translate-x-1 group-hover:translate-x-0">
                   <div className="bg-black/95 border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] w-52">
                     <img
-                      src="/idea-generator-preview.gif"
+                      src="/idea-generator-preview.png"
                       alt="Build Idea Generator"
                       className="w-full h-28 object-cover object-top"
                     />
@@ -445,10 +449,6 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
                   </div>
                 </div>
               </div>
-
-              <div className="w-8 h-px bg-white/10" />
-
-              {renderNavItems()}
             </div>
           </div>
         </div>
@@ -470,6 +470,10 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
           >
             <div className="py-4 px-2 w-20">
               <div className="flex flex-col items-center gap-2">
+                {renderNavItems()}
+
+                <div className="w-8 h-px bg-white/10" />
+
                 {/* Idea Generator button - mobile */}
                 <a
                   href="https://build-idea-generator.onrender.com/"
@@ -483,10 +487,6 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
                   </div>
                   <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-gray-400 whitespace-nowrap mt-1">Ideas</span>
                 </a>
-
-                <div className="w-8 h-px bg-white/10" />
-
-                {renderNavItems()}
               </div>
             </div>
           </div>
