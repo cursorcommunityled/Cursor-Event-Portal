@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Calendar, MessageCircle, FolderOpen, BarChart3, Lock, FileText, Menu, X, Trophy, MonitorPlay } from "lucide-react";
+import { Calendar, MessageCircle, FolderOpen, BarChart3, Lock, FileText, Menu, X, Trophy, MonitorPlay, Lightbulb } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSeenItemIds, markMultipleItemsAsSeen } from "@/lib/supabase/seenItems";
 import { LiveSlidePopup } from "@/components/slides/LiveSlidePopup";
@@ -420,6 +420,34 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
         <div className="glass rounded-[40px] border border-white/5 w-20 pointer-events-auto shadow-[0_30px_60px_rgba(0,0,0,0.8)] transition-all duration-300 hover:w-24 hover:shadow-[0_30px_60px_rgba(0,0,0,0.9),0_0_20px_rgba(255,255,255,0.1)]">
           <div className="py-6">
             <div className="flex flex-col items-center gap-4">
+              {/* Idea Generator button */}
+              <div className="relative group flex flex-col items-center justify-center py-2 w-full">
+                <a
+                  href="https://build-idea-generator.onrender.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)] hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all duration-200 hover:scale-110 active:scale-95"
+                >
+                  <Lightbulb className="w-4 h-4 text-black stroke-[2px]" />
+                </a>
+                {/* Hover tooltip with preview */}
+                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 translate-x-1 group-hover:translate-x-0">
+                  <div className="bg-black/95 border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] w-52">
+                    <img
+                      src="/idea-generator-preview.gif"
+                      alt="Build Idea Generator"
+                      className="w-full h-28 object-cover object-top"
+                    />
+                    <div className="px-3 py-2">
+                      <p className="text-white text-[11px] font-semibold">Build Idea Generator</p>
+                      <p className="text-gray-400 text-[9px] mt-0.5 leading-tight">Generate AI business ideas tailored to your strengths</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-8 h-px bg-white/10" />
+
               {renderNavItems()}
             </div>
           </div>
@@ -442,6 +470,22 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
           >
             <div className="py-4 px-2 w-20">
               <div className="flex flex-col items-center gap-2">
+                {/* Idea Generator button - mobile */}
+                <a
+                  href="https://build-idea-generator.onrender.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleNavClick}
+                  className="flex flex-col items-center justify-center gap-1.5 py-3 w-full group"
+                >
+                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)] transition-all duration-200 group-active:scale-95">
+                    <Lightbulb className="w-4 h-4 text-black stroke-[2px]" />
+                  </div>
+                  <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-gray-400 whitespace-nowrap mt-1">Ideas</span>
+                </a>
+
+                <div className="w-8 h-px bg-white/10" />
+
                 {renderNavItems()}
               </div>
             </div>
