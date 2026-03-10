@@ -313,19 +313,37 @@ export function CheckInClient({
           eventId={event.id}
         />
 
-        {/* Capacity - Ultra Minimal */}
-        <div className="glass rounded-[32px] p-8 space-y-6">
+        {/* Capacity - Dual Bar */}
+        <div className="glass rounded-[32px] p-8 space-y-5">
           <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.4em] text-gray-700 px-1">
             <span>Venue Capacity</span>
-            <span>{checkedInCount} / {event.capacity}</span>
+            <span className="text-gray-600">{event.capacity} max</span>
           </div>
-          <div className="h-[2px] bg-white/[0.05] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-white transition-all duration-1000 ease-out"
-              style={{
-                width: `${Math.min((checkedInCount / event.capacity) * 100, 100)}%`,
-              }}
-            />
+          {/* Registered bar (blue) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.3em] px-0.5">
+              <span className="text-blue-400/70">Registered</span>
+              <span className="text-blue-400/70">{registrations.length} / {event.capacity}</span>
+            </div>
+            <div className="h-[3px] bg-white/[0.05] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-400 transition-all duration-1000 ease-out"
+                style={{ width: `${Math.min((registrations.length / event.capacity) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
+          {/* Checked-in bar (green) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.3em] px-0.5">
+              <span className="text-green-400/70">Checked In</span>
+              <span className="text-green-400/70">{checkedInCount} / {event.capacity}</span>
+            </div>
+            <div className="h-[3px] bg-white/[0.05] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-400 transition-all duration-1000 ease-out"
+                style={{ width: `${Math.min((checkedInCount / event.capacity) * 100, 100)}%` }}
+              />
+            </div>
           </div>
         </div>
 

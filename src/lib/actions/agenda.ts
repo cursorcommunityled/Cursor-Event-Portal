@@ -123,6 +123,7 @@ export async function updateEventDetails(
     start_time?: string | null;
     end_time?: string | null;
     venue_image_url?: string | null;
+    capacity?: number;
   }
 ) {
   const session = await getSession();
@@ -154,6 +155,7 @@ export async function updateEventDetails(
 
   revalidatePath(`/admin/${eventSlug}`);
   revalidatePath(`/admin/${eventSlug}/agenda`);
+  revalidatePath(`/admin/${eventSlug}/checkin`);
   revalidatePath(`/${eventSlug}`);
   revalidatePath(`/${eventSlug}/agenda`);
   // Revalidate event layout so attendee pages (header, check-in, agenda) show updated venue/address/image

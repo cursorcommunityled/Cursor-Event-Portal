@@ -76,6 +76,7 @@ export function AgendaAdminClient({
   const [venueImageUrl, setVenueImageUrl] = useState(event.venue_image_url || "");
   const [uploadingVenueImage, setUploadingVenueImage] = useState(false);
   const [eventDetailsSaved, setEventDetailsSaved] = useState(false);
+  const [eventCapacity, setEventCapacity] = useState(event.capacity ?? 65);
 
   const handleVenueImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,6 +155,7 @@ export function AgendaAdminClient({
         start_time: startTimeUtc,
         end_time: endTimeUtc,
         venue_image_url: venueImageUrl.trim() || null,
+        capacity: eventCapacity,
       });
 
       if (result.success) {
@@ -471,6 +473,18 @@ export function AgendaAdminClient({
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-white/20 transition-all"
                   />
                 </div>
+              </div>
+              <div className="w-40">
+                <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mb-2">
+                  Venue Capacity
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  value={eventCapacity}
+                  onChange={(e) => setEventCapacity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-white/20 transition-all"
+                />
               </div>
               <button
                 onClick={handleSaveEventDetails}

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CheckInClient } from "@/app/staff/[eventSlug]/checkin/CheckInClient";
 import { SeatingManagementClient } from "@/components/admin/SeatingManagementClient";
 import { ImportRegistrationsClient } from "@/components/admin/ImportRegistrationsClient";
+import { updateEventDetails } from "@/lib/actions/agenda";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 import type { Event, Registration, AgendaItem, AttendeeIntake, SuggestedGroup, TableQRCode } from "@/types";
 
 type TabType = "checkin" | "seating";
@@ -43,7 +46,24 @@ export function AttendanceHubClient({
   qrCodes,
   activeTab: initialTab,
 }: AttendanceHubClientProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [capacityInput, setCapacityInput] = useState(String(event.capacity ?? 65));
+  const [capacitySaved, setCapacitySaved] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSaveCapacity = () => {
+    const parsed = parseInt(capacityInput);
+    if (!parsed || parsed < 1) return;
+    startTransition(async () => {
+      const result = await updateEventDetails(event.id, event.slug, { capacity: parsed });
+      if (result.success) {
+        setCapacitySaved(true);
+        setTimeout(() => setCapacitySaved(false), 2000);
+        router.refresh();
+      }
+    });
+  };
 
   const updateTab = (tab: TabType) => {
     setActiveTab(tab);
@@ -101,6 +121,35 @@ export function AttendanceHubClient({
 
           {activeTab === "checkin" && (
             <>
+              {/* Capacity editor */}
+              <div className="glass rounded-[28px] p-6 border border-white/[0.04] mb-8 flex items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold mb-1">Venue Capacity</p>
+                  <p className="text-[9px] text-gray-700">Max attendees for this event</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min={1}
+                    value={capacityInput}
+                    onChange={(e) => setCapacityInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveCapacity()}
+                    className="w-24 bg-white/5 border border-white/10 rounded-2xl px-4 py-2.5 text-white text-sm text-center focus:outline-none focus:border-white/20 transition-all"
+                  />
+                  <button
+                    onClick={handleSaveCapacity}
+                    disabled={isPending}
+                    className={cn(
+                      "h-10 px-5 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] transition-all flex items-center gap-1.5",
+                      capacitySaved
+                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                        : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
+                    )}
+                  >
+                    {capacitySaved ? <><Check className="w-3 h-3" /> Saved</> : "Save"}
+                  </button>
+                </div>
+              </div>
               <CheckInClient
                 event={event}
                 eventSlug={eventSlug}
