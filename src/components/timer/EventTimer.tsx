@@ -44,7 +44,7 @@ export function EventTimer({ startTime, redThreshold }: EventTimerProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-4 right-4 z-50 glass rounded-2xl px-4 py-3 border backdrop-blur-3xl transition-all duration-300 shadow-xl",
+        "fixed bottom-4 left-4 z-50 glass rounded-2xl px-4 py-3 border backdrop-blur-3xl transition-all duration-300 shadow-xl",
         isRed
           ? "border-red-500/30 bg-red-500/10 text-red-400"
           : "border-white/10 bg-white/5 text-white"
