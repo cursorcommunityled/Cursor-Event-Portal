@@ -323,6 +323,15 @@ export async function toggleSurveyPopup(eventId: string, eventSlug: string, visi
   return { success: true };
 }
 
+export async function getSurveyResponseCount(surveyId: string): Promise<number> {
+  const supabase = await createServiceClient();
+  const { count } = await supabase
+    .from("survey_responses")
+    .select("id", { count: "exact", head: true })
+    .eq("survey_id", surveyId);
+  return count ?? 0;
+}
+
 export async function exportSurveyResponses(surveyId: string, adminCode?: string) {
   const supabase = await createServiceClient();
 

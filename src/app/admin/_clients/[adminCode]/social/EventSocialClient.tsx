@@ -6,12 +6,11 @@ import { MessageCircle, ClipboardCheck, Vote, Megaphone, Bot, Zap, Users2, Send 
 import { AdminQAClient } from "../../qa/AdminQAClient";
 import { PollsAdminClient } from "../../polls/PollsAdminClient";
 import { AnnouncementsClient } from "../../announcements/AnnouncementsClient";
-import { SurveysAdminClient } from "../../surveys/SurveysAdminClient";
 import { HelpQueueAdmin } from "@/components/help/HelpQueueAdmin";
 import { ExchangeAdminBoard } from "@/components/exchange/ExchangeAdminBoard";
 import { NetworkingAdminClient } from "../../networking/NetworkingAdminClient";
 import { CopilotTab } from "./CopilotTab";
-import { PostEventTab } from "../../event-dashboard/PostEventTab";
+import { FollowUpAdminClient } from "../../follow-up/FollowUpAdminClient";
 import { cn } from "@/lib/utils";
 import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost, SpeedNetworkingSession, SpeedNetworkingRound, SpeedNetworkingPair } from "@/types";
 
@@ -37,7 +36,6 @@ interface EventSocialClientProps {
 type TabType = "qa" | "connect" | "follow-up" | "polls" | "announcements" | "copilot";
 type QASubTab = "questions" | "help";
 type ConnectSubTab = "exchange" | "networking";
-type FollowUpSubTab = "surveys" | "post-event";
 
 const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; description: string }> = [
   {
@@ -128,7 +126,6 @@ export function EventSocialClient({
   const [activeTab, setActiveTab] = useState<TabType>(initialActiveTab);
   const [qaSubTab, setQaSubTab] = useState<QASubTab>("questions");
   const [connectSubTab, setConnectSubTab] = useState<ConnectSubTab>("exchange");
-  const [followUpSubTab, setFollowUpSubTab] = useState<FollowUpSubTab>("surveys");
 
   // Sync state if prop changes (e.g. via URL navigation)
   useEffect(() => {
@@ -238,31 +235,12 @@ export function EventSocialClient({
 
       case "follow-up":
         return (
-          <>
-            <SubToggle
-              options={[
-                { id: "surveys", label: "Surveys" },
-                { id: "post-event", label: "Post-Event" },
-              ]}
-              active={followUpSubTab}
-              onChange={setFollowUpSubTab}
-            />
-            {followUpSubTab === "surveys" && (
-              <SurveysAdminClient
-                event={event}
-                eventSlug={eventSlug}
-                adminCode={adminCode}
-                initialSurveys={initialSurveys}
-                isEmbedded={true}
-              />
-            )}
-            {followUpSubTab === "post-event" && (
-              <PostEventTab
-                eventId={event.id}
-                adminCode={adminCode}
-              />
-            )}
-          </>
+          <FollowUpAdminClient
+            event={event}
+            eventSlug={eventSlug}
+            adminCode={adminCode}
+            initialSurveys={initialSurveys}
+          />
         );
     }
   };
