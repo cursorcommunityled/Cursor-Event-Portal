@@ -113,12 +113,10 @@ export function EventSocialCard({
   const SOCIAL_TABS = [
     { id: "copilot", label: "Copilot" },
     { id: "qa", label: "Q&A" },
-    { id: "help", label: "Help" },
-    { id: "exchange", label: "Exchange" },
+    { id: "connect", label: "Connect" },
     { id: "polls", label: "Polls" },
     { id: "announcements", label: "Broadcast" },
-    { id: "surveys", label: "Surveys" },
-    { id: "networking", label: "Networking" },
+    { id: "follow-up", label: "Follow-Up" },
   ];
 
   return (
@@ -134,7 +132,7 @@ export function EventSocialCard({
               <MessageCircle className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-light tracking-tight text-white/90">Event Social</h3>
+              <h3 className="text-xl font-light tracking-tight text-white/90">Engagement</h3>
               <div className="flex flex-wrap items-center gap-x-1">
                 {SOCIAL_TABS.map((tab, i, arr) => (
                   <span key={tab.id} className="flex items-center gap-1">

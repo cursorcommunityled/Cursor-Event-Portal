@@ -23,7 +23,7 @@ interface EventDashboardPageProps {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const VALID_TABS = ["agenda", "demos", "slides", "competitions", "themes", "calendar", "credits", "post-event"] as const;
+const VALID_TABS = ["agenda", "demos", "slides", "competitions", "themes", "calendar", "credits"] as const;
 type TabType = typeof VALID_TABS[number];
 
 export default async function EventDashboardPage({

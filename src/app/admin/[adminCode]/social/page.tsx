@@ -14,7 +14,15 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
 
   const sortBy = sort === "new" ? "new" : "trending";
   const statusFilter = (status === "answered" || status === "hidden" || status === "pinned" || status === "open") ? status : "all";
-  const activeTab = (tab === "qa" || tab === "help" || tab === "surveys" || tab === "polls" || tab === "announcements" || tab === "copilot" || tab === "exchange" || tab === "networking") ? tab : "copilot";
+  // Map legacy tab names and validate against new tab types
+  const tabMap: Record<string, string> = {
+    help: "qa",
+    exchange: "connect",
+    networking: "connect",
+    surveys: "follow-up",
+  };
+  const resolvedTab = tabMap[tab ?? ""] ?? tab;
+  const activeTab = (resolvedTab === "qa" || resolvedTab === "connect" || resolvedTab === "follow-up" || resolvedTab === "polls" || resolvedTab === "announcements" || resolvedTab === "copilot") ? resolvedTab : "copilot";
 
   const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession] = await Promise.all([
     getQuestionsForAdmin(event.id, sortBy, true),

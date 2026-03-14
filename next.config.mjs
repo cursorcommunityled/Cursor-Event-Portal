@@ -62,6 +62,12 @@ const nextConfig = {
       ...config.resolve.alias,
       "@": path.resolve(__dirname, "./src"),
     };
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true") {
+      config.resolve.alias["@/lib/supabase/queries"] = path.resolve(
+        __dirname,
+        "./src/lib/mock/queries.ts"
+      );
+    }
     return config;
   },
 };

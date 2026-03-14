@@ -10,12 +10,11 @@ import { DemosAdminClient } from "../../demos/DemosAdminClient";
 import { SlideDeckAdminClient } from "../../slides/SlideDeckAdminClient";
 import { CompetitionsAdminClient } from "@/components/admin/CompetitionsAdminClient";
 import { CreditsAdminTab } from "../../event-dashboard/CreditsAdminTab";
-import { PostEventTab } from "../../event-dashboard/PostEventTab";
 import { cn } from "@/lib/utils";
 import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit } from "@/types";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
-type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar" | "credits" | "post-event";
+type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar" | "credits";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "agenda",       label: "Agenda",       description: "Event schedule" },
@@ -25,7 +24,6 @@ const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "themes",       label: "Themes",       description: "Conversation themes" },
   { id: "calendar",     label: "Calendar",     description: "Event planning" },
   { id: "credits",      label: "Credits",      description: "Sponsor codes" },
-  { id: "post-event",   label: "Post-Event",   description: "Followup emails" },
 ];
 
 interface EventDashboardClientProps {
@@ -195,12 +193,6 @@ export function EventDashboardClient({
               eventId={event.id}
               adminCode={adminCode}
               initialCredits={cursorCredits}
-            />
-          )}
-          {activeTab === "post-event" && (
-            <PostEventTab
-              eventId={event.id}
-              adminCode={adminCode}
             />
           )}
         </div>

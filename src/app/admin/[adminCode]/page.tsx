@@ -149,7 +149,6 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                         { id: "themes", label: "Themes" },
                         { id: "calendar", label: "Calendar" },
                         { id: "credits", label: "Credits" },
-                        { id: "post-event", label: "Post-Event" },
                       ].map((tab, i, arr) => (
                         <span key={tab.id} className="flex items-center gap-1">
                           <Link href={`/admin/${adminCode}/event-dashboard?tab=${tab.id}`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">

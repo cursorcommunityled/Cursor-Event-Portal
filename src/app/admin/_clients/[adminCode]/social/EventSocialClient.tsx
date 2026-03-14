@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { MessageCircle, ClipboardCheck, Vote, Megaphone, HandHelping, Bot, Zap, Users2 } from "lucide-react";
+import { MessageCircle, ClipboardCheck, Vote, Megaphone, Bot, Zap, Users2, Send } from "lucide-react";
 import { AdminQAClient } from "../../qa/AdminQAClient";
 import { PollsAdminClient } from "../../polls/PollsAdminClient";
 import { AnnouncementsClient } from "../../announcements/AnnouncementsClient";
@@ -13,6 +11,7 @@ import { HelpQueueAdmin } from "@/components/help/HelpQueueAdmin";
 import { ExchangeAdminBoard } from "@/components/exchange/ExchangeAdminBoard";
 import { NetworkingAdminClient } from "../../networking/NetworkingAdminClient";
 import { CopilotTab } from "./CopilotTab";
+import { PostEventTab } from "../../event-dashboard/PostEventTab";
 import { cn } from "@/lib/utils";
 import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost, SpeedNetworkingSession, SpeedNetworkingRound, SpeedNetworkingPair } from "@/types";
 
@@ -35,7 +34,10 @@ interface EventSocialClientProps {
   activeTab: TabType;
 }
 
-type TabType = "qa" | "help" | "surveys" | "polls" | "announcements" | "copilot" | "exchange" | "networking";
+type TabType = "qa" | "connect" | "follow-up" | "polls" | "announcements" | "copilot";
+type QASubTab = "questions" | "help";
+type ConnectSubTab = "exchange" | "networking";
+type FollowUpSubTab = "surveys" | "post-event";
 
 const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; description: string }> = [
   {
@@ -48,19 +50,13 @@ const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; desc
     id: "qa",
     label: "Q&A",
     icon: MessageCircle,
-    description: "Manage audience questions",
+    description: "Questions & help desk",
   },
   {
-    id: "help",
-    label: "Help",
-    icon: HandHelping,
-    description: "Help queue & support",
-  },
-  {
-    id: "exchange",
-    label: "Exchange",
+    id: "connect",
+    label: "Connect",
     icon: Zap,
-    description: "Need/Offer board",
+    description: "Exchange & networking",
   },
   {
     id: "polls",
@@ -75,18 +71,41 @@ const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; desc
     description: "Send announcements",
   },
   {
-    id: "surveys",
-    label: "Surveys",
-    icon: ClipboardCheck,
-    description: "Collect feedback",
-  },
-  {
-    id: "networking",
-    label: "Networking",
-    icon: Users2,
-    description: "Speed rounds · Color pairs",
+    id: "follow-up",
+    label: "Follow-Up",
+    icon: Send,
+    description: "Surveys & post-event emails",
   },
 ];
+
+function SubToggle<T extends string>({
+  options,
+  active,
+  onChange,
+}: {
+  options: { id: T; label: string }[];
+  active: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 mb-8">
+      {options.map((opt) => (
+        <button
+          key={opt.id}
+          onClick={() => onChange(opt.id)}
+          className={cn(
+            "px-5 py-2 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold transition-all duration-200",
+            active === opt.id
+              ? "bg-white/10 text-white border border-white/20"
+              : "text-gray-500 hover:text-white"
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function EventSocialClient({
   event,
@@ -106,15 +125,15 @@ export function EventSocialClient({
   statusFilter,
   activeTab: initialActiveTab
 }: EventSocialClientProps) {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>(initialActiveTab);
+  const [qaSubTab, setQaSubTab] = useState<QASubTab>("questions");
+  const [connectSubTab, setConnectSubTab] = useState<ConnectSubTab>("exchange");
+  const [followUpSubTab, setFollowUpSubTab] = useState<FollowUpSubTab>("surveys");
 
   // Sync state if prop changes (e.g. via URL navigation)
   useEffect(() => {
     setActiveTab(initialActiveTab);
   }, [initialActiveTab]);
-
-  const currentIndex = TABS.findIndex((t) => t.id === activeTab);
 
   const updateTab = (newTab: TabType) => {
     setActiveTab(newTab);
@@ -130,36 +149,71 @@ export function EventSocialClient({
     switch (activeTab) {
       case "copilot":
         return <CopilotTab event={event} adminCode={adminCode} />;
+
       case "qa":
         return (
-          <AdminQAClient
-            event={event}
-            initialQuestions={initialQuestions}
-            eventSlug={eventSlug}
-            adminCode={adminCode}
-            userId={userId}
-            sortBy={sortBy}
-            statusFilter={statusFilter}
-            isEmbedded={true}
-          />
+          <>
+            <SubToggle
+              options={[
+                { id: "questions", label: "Questions" },
+                { id: "help", label: "Help Desk" },
+              ]}
+              active={qaSubTab}
+              onChange={setQaSubTab}
+            />
+            {qaSubTab === "questions" && (
+              <AdminQAClient
+                event={event}
+                initialQuestions={initialQuestions}
+                eventSlug={eventSlug}
+                adminCode={adminCode}
+                userId={userId}
+                sortBy={sortBy}
+                statusFilter={statusFilter}
+                isEmbedded={true}
+              />
+            )}
+            {qaSubTab === "help" && (
+              <HelpQueueAdmin
+                initialRequests={initialHelpRequests}
+                eventId={event.id}
+                eventSlug={eventSlug}
+                adminCode={adminCode}
+              />
+            )}
+          </>
         );
-      case "help":
+
+      case "connect":
         return (
-          <HelpQueueAdmin
-            initialRequests={initialHelpRequests}
-            eventId={event.id}
-            eventSlug={eventSlug}
-            adminCode={adminCode}
-          />
+          <>
+            <SubToggle
+              options={[
+                { id: "exchange", label: "Exchange" },
+                { id: "networking", label: "Networking" },
+              ]}
+              active={connectSubTab}
+              onChange={setConnectSubTab}
+            />
+            {connectSubTab === "exchange" && (
+              <ExchangeAdminBoard
+                eventId={event.id}
+                adminCode={adminCode}
+                initialPosts={initialExchangePosts}
+              />
+            )}
+            {connectSubTab === "networking" && (
+              <NetworkingAdminClient
+                eventId={event.id}
+                adminCode={adminCode}
+                initialSession={initialNetworkingSession}
+                initialRound={initialNetworkingRound}
+                initialPairs={initialNetworkingPairs}
+              />
+            )}
+          </>
         );
-      case "exchange":
-        return (
-          <ExchangeAdminBoard
-            eventId={event.id}
-            adminCode={adminCode}
-            initialPosts={initialExchangePosts}
-          />
-        );
+
       case "polls":
         return (
           <PollsAdminClient
@@ -170,6 +224,7 @@ export function EventSocialClient({
             isEmbedded={true}
           />
         );
+
       case "announcements":
         return (
           <AnnouncementsClient
@@ -180,25 +235,34 @@ export function EventSocialClient({
             isEmbedded={true}
           />
         );
-      case "surveys":
+
+      case "follow-up":
         return (
-          <SurveysAdminClient
-            event={event}
-            eventSlug={eventSlug}
-            adminCode={adminCode}
-            initialSurveys={initialSurveys}
-            isEmbedded={true}
-          />
-        );
-      case "networking":
-        return (
-          <NetworkingAdminClient
-            eventId={event.id}
-            adminCode={adminCode}
-            initialSession={initialNetworkingSession}
-            initialRound={initialNetworkingRound}
-            initialPairs={initialNetworkingPairs}
-          />
+          <>
+            <SubToggle
+              options={[
+                { id: "surveys", label: "Surveys" },
+                { id: "post-event", label: "Post-Event" },
+              ]}
+              active={followUpSubTab}
+              onChange={setFollowUpSubTab}
+            />
+            {followUpSubTab === "surveys" && (
+              <SurveysAdminClient
+                event={event}
+                eventSlug={eventSlug}
+                adminCode={adminCode}
+                initialSurveys={initialSurveys}
+                isEmbedded={true}
+              />
+            )}
+            {followUpSubTab === "post-event" && (
+              <PostEventTab
+                eventId={event.id}
+                adminCode={adminCode}
+              />
+            )}
+          </>
         );
     }
   };
@@ -217,7 +281,7 @@ export function EventSocialClient({
       />
 
       <main className="max-w-4xl mx-auto px-6 py-8 w-full z-10 flex-1">
-        {/* Compact Tab Switcher (Pill style from image) */}
+        {/* Compact Tab Switcher (Pill style) */}
         <div className="flex items-center justify-center gap-2 mb-12">
           {TABS.map((tab) => {
             const TabIcon = tab.icon;
