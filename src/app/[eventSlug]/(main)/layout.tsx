@@ -3,6 +3,7 @@ import { getEventBySlug, getAnnouncements } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { EventHeader } from "@/components/layout/EventHeader";
 import { EventNavWrapper } from "@/components/layout/EventNavWrapper";
+import { AttendeeChatWidget } from "@/components/chatbot/AttendeeChatWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
       {children}
 
       <EventNavWrapper eventSlug={eventSlug} event={event} userId={userId} />
+      <AttendeeChatWidget eventSlug={eventSlug} eventName={event.name} />
     </div>
   );
 }
