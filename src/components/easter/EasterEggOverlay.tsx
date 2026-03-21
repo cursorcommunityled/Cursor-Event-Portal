@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { claimEasterEgg, getMyClaimedEggs } from "@/lib/actions/easter-eggs";
+import { createClient } from "@/lib/supabase/client";
 
 type Phase =
   | "idle"
@@ -151,9 +152,11 @@ function CrackSVG() {
 
 export function EasterEggOverlay({
   eventSlug,
+  eventId,
   userId,
 }: {
   eventSlug: string;
+  eventId: string;
   userId?: string;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
@@ -162,9 +165,11 @@ export function EasterEggOverlay({
     success: boolean;
     message: string;
   } | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
 
   const foundThisSession = useRef(new Set<string>());
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const notifTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // On mount, fetch already-claimed eggs so they can't be re-triggered
   useEffect(() => {
@@ -172,6 +177,39 @@ export function EasterEggOverlay({
       claimed.forEach((id) => foundThisSession.current.add(id));
     });
   }, [eventSlug]);
+
+  // Realtime: subscribe to new egg claims → show "Egg Found!" banner for all attendees
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`easter-eggs-${eventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "easter_egg_hunts",
+          filter: `event_id=eq.${eventId}`,
+        },
+        (payload) => {
+          const rec = payload.new as { egg_id: string; claimed_by: string | null };
+          if (!rec.claimed_by) return; // not a claim event
+          // Broadcast to other components (EggTally, "Found Here" indicators)
+          window.dispatchEvent(
+            new CustomEvent("egg-globally-claimed", { detail: { eggId: rec.egg_id } })
+          );
+          // Show banner only for users who didn't just claim it themselves
+          if (rec.claimed_by !== userId) {
+            if (notifTimer.current) clearTimeout(notifTimer.current);
+            setNotification(rec.egg_id);
+            notifTimer.current = setTimeout(() => setNotification(null), 4000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [eventId, userId]);
 
   const clearAllTimers = () => {
     timers.current.forEach(clearTimeout);
@@ -238,7 +276,7 @@ export function EasterEggOverlay({
     setClaimResult(null);
   };
 
-  if (phase === "idle") return null;
+  if (phase === "idle" && !notification) return null;
 
   const eggVisible = ["appearing", "shaking", "cracking"].includes(phase);
   const showExplosion = phase === "exploding";
@@ -323,10 +361,68 @@ export function EasterEggOverlay({
           0%   { background-position: -200% 0; }
           100% { background-position: 200%  0; }
         }
+        @keyframes notif-slide-in {
+          0%   { transform: translateY(-80px) scale(0.92); opacity: 0; }
+          60%  { transform: translateY(6px)   scale(1.02); opacity: 1; }
+          100% { transform: translateY(0)     scale(1);    opacity: 1; }
+        }
+        @keyframes notif-slide-out {
+          0%   { transform: translateY(0)    opacity: 1; }
+          100% { transform: translateY(-80px); opacity: 0; }
+        }
+        @keyframes egg-wobble {
+          0%,100% { transform: rotate(0deg); }
+          25% { transform: rotate(-12deg) scale(1.1); }
+          75% { transform: rotate(12deg)  scale(1.1); }
+        }
       `}</style>
 
-      {/* Backdrop */}
-      <div
+      {/* "Egg Found!" notification banner for other attendees */}
+      {notification && phase === "idle" && (
+        <div
+          className="fixed top-4 left-1/2 z-[400] pointer-events-none"
+          style={{
+            transform: "translateX(-50%)",
+            animation: "notif-slide-in 0.55s cubic-bezier(0.34,1.56,0.64,1) forwards",
+          }}
+        >
+          <div
+            className="flex items-center gap-3 px-5 py-3.5 rounded-2xl border border-white/20"
+            style={{
+              background: "rgba(10,10,10,0.92)",
+              backdropFilter: "blur(20px)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
+            }}
+          >
+            <div style={{ animation: "egg-wobble 0.8s ease-in-out 2" }}>
+              <svg viewBox="0 0 100 130" width="28" height="36">
+                <defs>
+                  <linearGradient id="notif-egg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#1c1c1c" />
+                    <stop offset="100%" stopColor="#050505" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M50 5 C22 5 5 40 5 68 C5 103 22 128 50 128 C78 128 95 103 95 68 C95 40 78 5 50 5Z"
+                  fill="url(#notif-egg)"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth="3"
+                />
+                <image href="/cursor-logo.png" x="22" y="42" width="56" height="56" preserveAspectRatio="xMidYMid meet" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-white text-sm font-medium leading-tight">Egg Found!</p>
+              <p className="text-gray-500 text-[10px] uppercase tracking-[0.2em] font-medium mt-0.5">
+                Someone cracked one 🎉
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop — only when egg animation is active */}
+      {phase !== "idle" && <div
         className="fixed inset-0 z-[300] flex items-center justify-center"
         style={{
           background: "rgba(0,0,0,0.78)",
@@ -578,7 +674,7 @@ export function EasterEggOverlay({
             </div>
           )}
         </div>
-      </div>
+      </div>}
     </>
   );
 }

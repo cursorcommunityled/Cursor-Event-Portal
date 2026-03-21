@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { createClient } from "@/lib/supabase/client";
 import { Copy, Check, ExternalLink, Lock, ChevronDown, ChevronUp } from "lucide-react";
 import { markCreditRedeemed } from "@/lib/actions/cursor-credits";
 import type { CursorCredit } from "@/types";
@@ -19,7 +20,29 @@ function isEasterCredit(credit: CursorCredit) {
 
 // ── Egg tally ──────────────────────────────────────────────────────────────────
 
-function EggTally({ foundCount }: { foundCount: number }) {
+function EggTally({ foundCount, eventId }: { foundCount: number; eventId: string }) {
+  const [globalCount, setGlobalCount] = useState(foundCount);
+
+  // Fetch current global claim count on mount
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("easter_egg_hunts")
+      .select("egg_id", { count: "exact" })
+      .eq("event_id", eventId)
+      .not("claimed_by", "is", null)
+      .then(({ count }) => {
+        if (count !== null) setGlobalCount(count);
+      });
+  }, [eventId]);
+
+  // Listen for new claims broadcast by EasterEggOverlay
+  useEffect(() => {
+    const handler = () => setGlobalCount((n) => Math.min(n + 1, TOTAL_EGGS));
+    window.addEventListener("egg-globally-claimed", handler);
+    return () => window.removeEventListener("egg-globally-claimed", handler);
+  }, []);
+
   return (
     <div className="glass rounded-[32px] p-6 border border-white/10">
       <p className="text-[10px] uppercase tracking-[0.35em] text-gray-500 font-medium mb-5 text-center">
@@ -27,7 +50,7 @@ function EggTally({ foundCount }: { foundCount: number }) {
       </p>
       <div className="flex items-center justify-center gap-6">
         {Array.from({ length: TOTAL_EGGS }, (_, i) => {
-          const found = i < foundCount;
+          const found = i < globalCount;
           return (
             <div key={i} className="flex flex-col items-center gap-2">
               <div
@@ -79,11 +102,11 @@ function EggTally({ foundCount }: { foundCount: number }) {
         })}
       </div>
       <p className="text-center text-xs text-gray-600 mt-5">
-        {foundCount === 0
+        {globalCount === 0
           ? "3 eggs hidden — find them all for $50 each"
-          : foundCount === TOTAL_EGGS
+          : globalCount === TOTAL_EGGS
           ? "🎉 All eggs found!"
-          : `${foundCount} of ${TOTAL_EGGS} found · keep hunting`}
+          : `${globalCount} of ${TOTAL_EGGS} found · keep hunting`}
       </p>
     </div>
   );
@@ -285,9 +308,10 @@ interface AttendeeCreditsViewProps {
   credits: CursorCredit[];
   userId: string;
   eventSlug: string;
+  eventId: string;
 }
 
-export function AttendeeCreditsView({ credits, userId, eventSlug }: AttendeeCreditsViewProps) {
+export function AttendeeCreditsView({ credits, userId, eventSlug, eventId }: AttendeeCreditsViewProps) {
   const easterCredits = credits.filter(isEasterCredit);
   const sponsorCredits = credits.filter((c) => !isEasterCredit(c));
   const sponsorCredit = sponsorCredits[0] ?? null;
@@ -296,7 +320,7 @@ export function AttendeeCreditsView({ credits, userId, eventSlug }: AttendeeCred
   return (
     <div className="space-y-6">
       {/* Egg tally — only for easter event */}
-      {isEasterEvent && <EggTally foundCount={easterCredits.length} />}
+      {isEasterEvent && <EggTally foundCount={easterCredits.length} eventId={eventId} />}
 
       {/* Easter egg credits */}
       {easterCredits.map((c) => (

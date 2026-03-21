@@ -31,6 +31,17 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
   const hasMarkedAsSeen = useRef(false);
   const [venueHovered, setVenueHovered] = useState(false);
   const venueTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [egg1Found, setEgg1Found] = useState(false);
+
+  // Listen for egg_1 being claimed by anyone
+  useEffect(() => {
+    if (event.slug !== "calgary-march-2026") return;
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.eggId === "egg_1") setEgg1Found(true);
+    };
+    window.addEventListener("egg-globally-claimed", handler);
+    return () => window.removeEventListener("egg-globally-claimed", handler);
+  }, [event.slug]);
 
   const handleVenueEnter = () => {
     if (venueTimeoutRef.current) clearTimeout(venueTimeoutRef.current);
@@ -286,6 +297,14 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
                           className="w-full h-full object-cover group-hover/venue-img:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        {egg1Found && (
+                          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 border border-white/20 backdrop-blur-sm">
+                            <svg viewBox="0 0 100 130" width="12" height="16">
+                              <path d="M50 5 C22 5 5 40 5 68 C5 103 22 128 50 128 C78 128 95 103 95 68 C95 40 78 5 50 5Z" fill="#1a1a1a" stroke="rgba(255,255,255,0.5)" strokeWidth="4" />
+                            </svg>
+                            <span className="text-[9px] text-white/70 uppercase tracking-[0.15em] font-medium">Egg Found Here</span>
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="p-5 space-y-2">

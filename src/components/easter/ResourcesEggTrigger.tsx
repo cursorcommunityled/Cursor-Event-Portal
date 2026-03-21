@@ -1,10 +1,22 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Info } from "lucide-react";
 
 const EASTER_EVENT_SLUG = "calgary-march-2026";
 
 export function ResourcesEggTrigger({ eventSlug }: { eventSlug: string }) {
+  const [egg2Found, setEgg2Found] = useState(false);
+
+  useEffect(() => {
+    if (eventSlug !== EASTER_EVENT_SLUG) return;
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.eggId === "egg_2") setEgg2Found(true);
+    };
+    window.addEventListener("egg-globally-claimed", handler);
+    return () => window.removeEventListener("egg-globally-claimed", handler);
+  }, [eventSlug]);
+
   if (eventSlug !== EASTER_EVENT_SLUG) return null;
 
   const handleClick = () => {
@@ -32,6 +44,14 @@ export function ResourcesEggTrigger({ eventSlug }: { eventSlug: string }) {
               <h3 className="text-lg font-light text-white tracking-tight">About Cursor</h3>
               <p className="text-xs text-gray-600 font-light mt-1 tracking-wide">Learn about the team behind Cursor</p>
             </div>
+            {egg2Found && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 flex-shrink-0">
+                <svg viewBox="0 0 100 130" width="10" height="13">
+                  <path d="M50 5 C22 5 5 40 5 68 C5 103 22 128 50 128 C78 128 95 103 95 68 C95 40 78 5 50 5Z" fill="#1a1a1a" stroke="rgba(255,255,255,0.5)" strokeWidth="5" />
+                </svg>
+                <span className="text-[9px] text-white/50 uppercase tracking-[0.15em] font-medium">Found</span>
+              </div>
+            )}
           </div>
         </button>
       </div>
