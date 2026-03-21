@@ -75,14 +75,15 @@ function EggSVG() {
         strokeLinejoin="round"
       />
 
-      {/* Cursor arrow logo — centered in egg */}
-      <g transform="translate(28, 38) scale(2.5)">
-        <path
-          d="M2,2 L2,20 L6.5,15.5 L10,23 L12.5,22 L9,14.5 L15,14.5 Z"
-          fill="white"
-          opacity="0.92"
-        />
-      </g>
+      {/* Cursor logo */}
+      <image
+        href="/cursor-logo.png"
+        x="22"
+        y="42"
+        width="56"
+        height="56"
+        preserveAspectRatio="xMidYMid meet"
+      />
 
       {/* Shine highlight */}
       <ellipse
