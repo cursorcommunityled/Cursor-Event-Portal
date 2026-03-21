@@ -85,6 +85,31 @@ export async function claimEasterEgg(
   return { success: true, message: "🥚 Credit claimed! Check your Credits tab." };
 }
 
+export async function resetEasterEggs(
+  eventId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createServiceClient();
+
+  // Unclaim all eggs for this event
+  const { error: eggErr } = await supabase
+    .from("easter_egg_hunts")
+    .update({ claimed_by: null, claimed_at: null })
+    .eq("event_id", eventId);
+
+  if (eggErr) return { success: false, error: eggErr.message };
+
+  // Delete placeholder Easter egg cursor_credits for this event
+  const { error: creditErr } = await supabase
+    .from("cursor_credits")
+    .delete()
+    .eq("event_id", eventId)
+    .like("credit_code", "EASTER_%");
+
+  if (creditErr) return { success: false, error: creditErr.message };
+
+  return { success: true };
+}
+
 export async function getMyClaimedEggs(eventSlug: string): Promise<string[]> {
   if (eventSlug !== EASTER_EVENT_SLUG) return [];
 

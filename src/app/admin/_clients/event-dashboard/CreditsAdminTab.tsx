@@ -8,8 +8,9 @@ import {
   deleteCreditCode,
   fetchCursorCredits,
 } from "@/lib/actions/cursor-credits";
+import { resetEasterEggs } from "@/lib/actions/easter-eggs";
 import { cn } from "@/lib/utils";
-import { Gift, ChevronDown, ChevronUp, Trash2, UserX } from "lucide-react";
+import { Gift, ChevronDown, ChevronUp, Trash2, UserX, RotateCcw } from "lucide-react";
 import type { CursorCredit } from "@/types";
 
 interface CreditsAdminTabProps {
@@ -42,6 +43,8 @@ export function CreditsAdminTab({
   const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [rowLoading, setRowLoading] = useState<string | null>(null);
+  const [eggResetMsg, setEggResetMsg] = useState<string | null>(null);
+  const [eggResetting, setEggResetting] = useState(false);
 
   const total = credits.length;
   const assigned = credits.filter((c) => c.assigned_to).length;
@@ -100,6 +103,21 @@ export function CreditsAdminTab({
     }
   };
 
+  const handleEggReset = async () => {
+    if (!confirm("Reset all Easter eggs? This unclaims all eggs and deletes the placeholder credits so the hunt can be re-run.")) return;
+    setEggResetting(true);
+    setEggResetMsg(null);
+    const result = await resetEasterEggs(eventId);
+    setEggResetting(false);
+    if (result.success) {
+      setEggResetMsg("Easter eggs reset — all unclaimed, placeholder credits removed.");
+      const fresh = await fetchCursorCredits(eventId);
+      setCredits(fresh);
+    } else {
+      setEggResetMsg(`Error: ${result.error}`);
+    }
+  };
+
   const handleDelete = async (creditId: string) => {
     setRowLoading(creditId);
     const result = await deleteCreditCode(creditId, adminCode);
@@ -131,6 +149,32 @@ export function CreditsAdminTab({
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Easter Egg Reset */}
+      <div className="glass rounded-3xl p-6 border border-white/[0.06] space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-base">🥚</span>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">
+            Easter Egg Hunt — Reset
+          </p>
+        </div>
+        <p className="text-sm text-gray-500">
+          Unclaims all eggs and removes placeholder credits. Use for testing — does not affect real $20 sponsor credits.
+        </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleEggReset}
+            disabled={eggResetting}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-40"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            {eggResetting ? "Resetting…" : "Reset Eggs"}
+          </button>
+          {eggResetMsg && (
+            <p className="text-xs text-gray-500">{eggResetMsg}</p>
+          )}
+        </div>
       </div>
 
       {/* Auto-assign */}
