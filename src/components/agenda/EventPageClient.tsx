@@ -6,7 +6,7 @@ import { EventSeriesSection } from "@/components/agenda/EventSeriesSection";
 import { EventSubNav } from "@/components/agenda/EventSubNav";
 import { AttendeeThemesView } from "@/components/agenda/AttendeeThemesView";
 import { AttendeeCreditsView } from "@/components/agenda/AttendeeCreditsView";
-import { fetchMyCredit } from "@/lib/actions/cursor-credits";
+import { fetchMyCredits } from "@/lib/actions/cursor-credits";
 import type { AgendaItem, Event, ConversationTheme, CursorCredit } from "@/types";
 
 interface SeriesEvent {
@@ -24,7 +24,7 @@ interface EventPageClientProps {
   agendaItems: AgendaItem[];
   seriesEvents: SeriesEvent[];
   activeTheme: ConversationTheme | null;
-  credit: CursorCredit | null;
+  credits: CursorCredit[];
   userId: string;
 }
 
@@ -33,17 +33,17 @@ export function EventPageClient({
   agendaItems,
   seriesEvents,
   activeTheme,
-  credit: initialCredit,
+  credits: initialCredits,
   userId,
 }: EventPageClientProps) {
   const [activeTab, setActiveTab] = useState<"schedule" | "themes" | "credits">("schedule");
-  const [credit, setCredit] = useState<CursorCredit | null>(initialCredit);
+  const [credits, setCredits] = useState<CursorCredit[]>(initialCredits);
 
   const handleTabChange = async (tab: "schedule" | "themes" | "credits") => {
     setActiveTab(tab);
     if (tab === "credits") {
-      const fresh = await fetchMyCredit(event.id, userId);
-      setCredit(fresh);
+      const fresh = await fetchMyCredits(event.id, userId);
+      setCredits(fresh);
     }
   };
 
@@ -116,7 +116,7 @@ export function EventPageClient({
         )}
 
         {activeTab === "credits" && (
-          <AttendeeCreditsView credit={credit} userId={userId} />
+          <AttendeeCreditsView credits={credits} userId={userId} eventSlug={event.slug} />
         )}
       </div>
     </main>

@@ -84,3 +84,22 @@ export async function claimEasterEgg(
 
   return { success: true, message: "🥚 Credit claimed! Check your Credits tab." };
 }
+
+export async function getMyClaimedEggs(eventSlug: string): Promise<string[]> {
+  if (eventSlug !== EASTER_EVENT_SLUG) return [];
+
+  const session = await getSession();
+  if (!session) return [];
+
+  const supabase = await createServiceClient();
+  const event = await getEventBySlug(eventSlug);
+  if (!event) return [];
+
+  const { data } = await supabase
+    .from("easter_egg_hunts")
+    .select("egg_id")
+    .eq("event_id", event.id)
+    .eq("claimed_by", session.userId);
+
+  return (data ?? []).map((r: { egg_id: string }) => r.egg_id);
+}

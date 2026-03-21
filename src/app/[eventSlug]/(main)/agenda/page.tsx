@@ -4,10 +4,10 @@ import {
   getAgendaItems,
   getSeriesEvents,
   getEventThemeSelection,
-  getCursorCredit,
 } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { getIntakeStatus } from "@/lib/actions/intake";
+import { fetchMyCredits } from "@/lib/actions/cursor-credits";
 import { EventPageClient } from "@/components/agenda/EventPageClient";
 
 interface AgendaPageProps {
@@ -30,11 +30,11 @@ export default async function AgendaPage({ params }: AgendaPageProps) {
     redirect(`/${eventSlug}/intake`);
   }
 
-  const [items, seriesEvents, themeSelection, credit] = await Promise.all([
+  const [items, seriesEvents, themeSelection, credits] = await Promise.all([
     getAgendaItems(event.id),
     event.series_id ? getSeriesEvents(event.series_id) : Promise.resolve([]),
     getEventThemeSelection(event.id),
-    getCursorCredit(event.id, session.userId),
+    fetchMyCredits(event.id, session.userId),
   ]);
 
   const activeTheme = themeSelection?.theme ?? null;
@@ -45,7 +45,7 @@ export default async function AgendaPage({ params }: AgendaPageProps) {
       agendaItems={items}
       seriesEvents={seriesEvents}
       activeTheme={activeTheme}
-      credit={credit}
+      credits={credits}
       userId={session.userId}
     />
   );

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { claimEasterEgg } from "@/lib/actions/easter-eggs";
+import { claimEasterEgg, getMyClaimedEggs } from "@/lib/actions/easter-eggs";
 
 type Phase =
   | "idle"
@@ -165,6 +165,13 @@ export function EasterEggOverlay({
 
   const foundThisSession = useRef(new Set<string>());
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // On mount, fetch already-claimed eggs so they can't be re-triggered
+  useEffect(() => {
+    getMyClaimedEggs(eventSlug).then((claimed) => {
+      claimed.forEach((id) => foundThisSession.current.add(id));
+    });
+  }, [eventSlug]);
 
   const clearAllTimers = () => {
     timers.current.forEach(clearTimeout);

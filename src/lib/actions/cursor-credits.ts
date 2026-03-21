@@ -14,18 +14,19 @@ export async function fetchCursorCredits(eventId: string): Promise<CursorCredit[
   return (data ?? []) as CursorCredit[];
 }
 
-export async function fetchMyCredit(
+export async function fetchMyCredits(
   eventId: string,
   userId: string
-): Promise<CursorCredit | null> {
+): Promise<CursorCredit[]> {
   const supabase = await createServiceClient();
   const { data } = await supabase
     .from("cursor_credits")
     .select("*")
     .eq("event_id", eventId)
     .eq("assigned_to", userId)
-    .maybeSingle();
-  return (data ?? null) as CursorCredit | null;
+    .order("amount_usd", { ascending: false })
+    .order("created_at", { ascending: true });
+  return (data ?? []) as CursorCredit[];
 }
 
 // ─── Import Codes ─────────────────────────────────────────────────────────────
