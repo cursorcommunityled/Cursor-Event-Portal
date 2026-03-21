@@ -22,9 +22,9 @@ const EGG_LABELS: Record<string, string> = {
 };
 
 const PARTICLE_COLORS = [
-  "#f093fb", "#f5576c", "#4facfe", "#ffd700",
-  "#a8edea", "#ff9a9e", "#43e97b", "#fa709a",
-  "#c084fc", "#60a5fa", "#34d399", "#fbbf24",
+  "#ffffff", "#e4e4e4", "#b0b0b0", "#d0d0d0",
+  "#f5f5f5", "#888888", "#cccccc", "#f0f0f0",
+  "#aaaaaa", "#e8e8e8", "#999999", "#dddddd",
 ];
 
 // Stable particles (generated once, not per render)
@@ -43,13 +43,9 @@ function EggSVG() {
     <svg viewBox="0 0 100 130" width="156" height="204" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="egg-main" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f093fb" />
-          <stop offset="45%" stopColor="#a855f7" />
-          <stop offset="100%" stopColor="#60a5fa" />
-        </linearGradient>
-        <linearGradient id="egg-stripe" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#ffd700" />
-          <stop offset="100%" stopColor="#ffa500" />
+          <stop offset="0%" stopColor="#1c1c1c" />
+          <stop offset="50%" stopColor="#111111" />
+          <stop offset="100%" stopColor="#050505" />
         </linearGradient>
         <filter id="egg-glow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="5" result="blur" />
@@ -65,32 +61,28 @@ function EggSVG() {
         d="M50 5 C22 5 5 40 5 68 C5 103 22 128 50 128 C78 128 95 103 95 68 C95 40 78 5 50 5Z"
         fill="url(#egg-main)"
         filter="url(#egg-glow)"
-        stroke="rgba(255,255,255,0.25)"
+        stroke="rgba(255,255,255,0.18)"
         strokeWidth="1.5"
       />
 
-      {/* Zigzag gold stripe */}
+      {/* Subtle white zigzag stripe */}
       <polyline
         points="6,70 18,59 30,70 42,59 58,70 70,59 82,70 94,59"
         fill="none"
-        stroke="url(#egg-stripe)"
+        stroke="rgba(255,255,255,0.12)"
         strokeWidth="5.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
 
-      {/* Top gem dot */}
-      <circle cx="50" cy="30" r="7" fill="rgba(255,255,255,0.55)" />
-      <circle cx="50" cy="30" r="4" fill="rgba(255,255,255,0.9)" />
-
-      {/* Side accent dots */}
-      <circle cx="26" cy="55" r="4.5" fill="rgba(255,215,0,0.65)" />
-      <circle cx="74" cy="55" r="4.5" fill="rgba(255,215,0,0.65)" />
-
-      {/* Lower dots */}
-      <circle cx="33" cy="98" r="3" fill="rgba(255,255,255,0.3)" />
-      <circle cx="67" cy="98" r="3" fill="rgba(255,255,255,0.3)" />
-      <circle cx="50" cy="108" r="2.5" fill="rgba(255,215,0,0.4)" />
+      {/* Cursor arrow logo — centered in egg */}
+      <g transform="translate(28, 38) scale(2.5)">
+        <path
+          d="M2,2 L2,20 L6.5,15.5 L10,23 L12.5,22 L9,14.5 L15,14.5 Z"
+          fill="white"
+          opacity="0.92"
+        />
+      </g>
 
       {/* Shine highlight */}
       <ellipse
@@ -98,7 +90,7 @@ function EggSVG() {
         cy="22"
         rx="11"
         ry="7"
-        fill="rgba(255,255,255,0.32)"
+        fill="rgba(255,255,255,0.22)"
         transform="rotate(-28 31 22)"
       />
     </svg>
@@ -299,8 +291,8 @@ export function EasterEggOverlay({
           100% { transform: translateY(0)     scale(1);    opacity: 1; }
         }
         @keyframes card-pulse-glow {
-          0%,100% { box-shadow: 0 0 24px rgba(168,85,247,0.35), 0 24px 64px rgba(0,0,0,0.65); }
-          50%     { box-shadow: 0 0 60px rgba(168,85,247,0.7), 0 0 110px rgba(96,165,250,0.3), 0 24px 64px rgba(0,0,0,0.65); }
+          0%,100% { box-shadow: 0 0 24px rgba(255,255,255,0.12), 0 24px 64px rgba(0,0,0,0.65); }
+          50%     { box-shadow: 0 0 60px rgba(255,255,255,0.28), 0 0 110px rgba(255,255,255,0.08), 0 24px 64px rgba(0,0,0,0.65); }
         }
         @keyframes fly-to-nav {
           0%   { transform: translate(0,0) scale(1); opacity: 1; }
@@ -382,7 +374,7 @@ export function EasterEggOverlay({
                   width: 220,
                   height: 220,
                   borderRadius: "50%",
-                  border: "3px solid rgba(168,85,247,0.7)",
+                  border: "3px solid rgba(255,255,255,0.6)",
                   animation: "spark-ring 0.75s ease-out forwards",
                 }}
               />
@@ -394,7 +386,7 @@ export function EasterEggOverlay({
                   width: 160,
                   height: 160,
                   borderRadius: "50%",
-                  border: "2px solid rgba(96,165,250,0.5)",
+                  border: "2px solid rgba(255,255,255,0.35)",
                   animation: "spark-ring 0.75s 0.1s ease-out forwards",
                 }}
               />
@@ -447,7 +439,7 @@ export function EasterEggOverlay({
                     <span
                       key={i}
                       style={{
-                        color: "#ffd700",
+                        color: "rgba(255,255,255,0.7)",
                         animation: `star-spin 1.8s ${i * 0.35}s ease-in-out infinite`,
                         display: "inline-block",
                       }}
@@ -461,7 +453,7 @@ export function EasterEggOverlay({
                 <div className="space-y-1 mb-6">
                   <p
                     className="text-[11px] uppercase font-bold tracking-[0.35em]"
-                    style={{ color: "#c084fc" }}
+                    style={{ color: "rgba(255,255,255,0.85)" }}
                   >
                     🥚 Easter Egg Found!
                   </p>
@@ -475,7 +467,7 @@ export function EasterEggOverlay({
                   <div
                     className="text-[72px] font-extralight leading-none"
                     style={{
-                      background: "linear-gradient(135deg, #f093fb, #60a5fa)",
+                      background: "linear-gradient(135deg, #ffffff, #aaaaaa)",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                     }}
@@ -490,7 +482,7 @@ export function EasterEggOverlay({
                   className="h-[1px] w-full mb-6 rounded-full"
                   style={{
                     background:
-                      "linear-gradient(90deg, transparent, rgba(168,85,247,0.6), rgba(96,165,250,0.6), transparent)",
+                      "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), rgba(200,200,200,0.4), transparent)",
                     backgroundSize: "200% 100%",
                     animation: "shimmer-bar 2s linear infinite",
                   }}
@@ -519,11 +511,11 @@ export function EasterEggOverlay({
                     <button
                       onClick={handleClaim}
                       disabled={phase === "claiming"}
-                      className="w-full py-4 rounded-2xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+                      className="w-full py-4 rounded-2xl text-sm font-semibold transition-all disabled:opacity-50"
                       style={{
-                        background:
-                          "linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%)",
-                        boxShadow: "0 8px 32px rgba(168,85,247,0.4)",
+                        background: "rgba(255,255,255,0.95)",
+                        color: "#000000",
+                        boxShadow: "0 8px 32px rgba(255,255,255,0.18)",
                       }}
                     >
                       {phase === "claiming" ? "✨ Claiming..." : "→ Claim My $50 Credit"}
@@ -544,20 +536,20 @@ export function EasterEggOverlay({
           {flyVisible && (
             <div style={{ animation: "fly-to-nav 1.15s cubic-bezier(0.4,0,0.2,1) forwards" }}>
               <div
-                className="rounded-2xl border border-purple-500/30 text-center px-8 py-5"
-                style={{ background: "linear-gradient(135deg, #0e0e1c, #08080f)" }}
+                className="rounded-2xl border border-white/20 text-center px-8 py-5"
+                style={{ background: "linear-gradient(135deg, #1a1a1a, #080808)" }}
               >
                 <div
                   className="text-4xl font-extralight"
                   style={{
-                    background: "linear-gradient(135deg, #f093fb, #60a5fa)",
+                    background: "linear-gradient(135deg, #ffffff, #aaaaaa)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                   }}
                 >
                   $50
                 </div>
-                <p className="text-[10px] text-purple-400 uppercase tracking-widest mt-1">Credit</p>
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Credit</p>
               </div>
             </div>
           )}

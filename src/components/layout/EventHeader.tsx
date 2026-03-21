@@ -266,7 +266,10 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
                     {event.venue_image_url && (
                       <div
                         className="w-full h-36 overflow-hidden relative cursor-pointer group/venue-img"
-                        onClick={() => {
+                        onTouchStart={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                           if (event.slug === "calgary-march-2026") {
                             window.dispatchEvent(
                               new CustomEvent("egg-found", {
