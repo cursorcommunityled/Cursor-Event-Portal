@@ -37,7 +37,7 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
   useEffect(() => {
     if (event.slug !== "calgary-march-2026") return;
     const handler = (e: Event) => {
-      if ((e as CustomEvent).detail?.eggId === "egg_1") setEgg1Found(true);
+      if ((e as unknown as CustomEvent).detail?.eggId === "egg_1") setEgg1Found(true);
     };
     window.addEventListener("egg-globally-claimed", handler);
     return () => window.removeEventListener("egg-globally-claimed", handler);

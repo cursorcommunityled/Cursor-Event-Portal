@@ -11,7 +11,7 @@ export function ResourcesEggTrigger({ eventSlug }: { eventSlug: string }) {
   useEffect(() => {
     if (eventSlug !== EASTER_EVENT_SLUG) return;
     const handler = (e: Event) => {
-      if ((e as CustomEvent).detail?.eggId === "egg_2") setEgg2Found(true);
+      if ((e as unknown as CustomEvent).detail?.eggId === "egg_2") setEgg2Found(true);
     };
     window.addEventListener("egg-globally-claimed", handler);
     return () => window.removeEventListener("egg-globally-claimed", handler);
