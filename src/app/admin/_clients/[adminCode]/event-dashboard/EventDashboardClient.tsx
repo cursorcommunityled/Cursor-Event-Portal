@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { ActiveVenueSelector } from "@/components/admin/ActiveVenueSelector";
 import { AgendaAdminClient } from "../../agenda/AgendaAdminClient";
+import { VenueAdminTab } from "../../event-dashboard/VenueAdminTab";
 import { ThemesAdminTab } from "../../event-dashboard/ThemesAdminTab";
 import { CalendarAdminTab } from "../../event-dashboard/CalendarAdminTab";
 import { DemosAdminClient } from "../../demos/DemosAdminClient";
@@ -14,10 +14,11 @@ import { cn } from "@/lib/utils";
 import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit } from "@/types";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
-type TabType = "agenda" | "demos" | "slides" | "competitions" | "themes" | "calendar" | "credits";
+type TabType = "agenda" | "venue" | "demos" | "slides" | "competitions" | "themes" | "calendar" | "credits";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "agenda",       label: "Agenda",       description: "Event schedule" },
+  { id: "venue",        label: "Venue",        description: "Venue & active event" },
   { id: "demos",        label: "Demos",        description: "Signup management" },
   { id: "slides",       label: "Slides",       description: "Presentation deck" },
   { id: "competitions", label: "Competitions", description: "Project showcase" },
@@ -102,11 +103,6 @@ export function EventDashboardClient({
       />
 
       <main className="max-w-4xl mx-auto px-6 py-8 w-full z-10 flex-1">
-        {/* Venue selector */}
-        <div className="mb-10">
-          <ActiveVenueSelector events={allEvents} activeSlug={activeSlug} />
-        </div>
-
         {/* Tab switcher */}
         <div className="flex items-center justify-center mb-12">
           <div className="flex items-center gap-1 p-1 rounded-full bg-white/[0.04] border border-white/[0.08]">
@@ -143,9 +139,16 @@ export function EventDashboardClient({
             <AgendaAdminClient
               event={event}
               eventSlug={eventSlug}
-              adminCode={adminCode}
               initialItems={initialAgendaItems}
+            />
+          )}
+          {activeTab === "venue" && (
+            <VenueAdminTab
+              event={event}
+              eventSlug={eventSlug}
               venues={venues}
+              allEvents={allEvents}
+              activeSlug={activeSlug}
             />
           )}
           {activeTab === "demos" && demoSettings && (

@@ -264,11 +264,23 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
                     onMouseLeave={handleVenueLeave}
                   >
                     {event.venue_image_url && (
-                      <div className="w-full h-36 overflow-hidden relative">
+                      <div
+                        className="w-full h-36 overflow-hidden relative cursor-pointer group/venue-img"
+                        onClick={() => {
+                          if (event.slug === "calgary-march-2026") {
+                            window.dispatchEvent(
+                              new CustomEvent("egg-found", {
+                                detail: { eggId: "egg_1" },
+                              })
+                            );
+                          }
+                        }}
+                        title={event.slug === "calgary-march-2026" ? "👀" : undefined}
+                      >
                         <img
                           src={event.venue_image_url}
                           alt={event.venue}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover/venue-img:scale-105 transition-transform duration-500"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       </div>

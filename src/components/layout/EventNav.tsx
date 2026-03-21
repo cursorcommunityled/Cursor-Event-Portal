@@ -41,6 +41,7 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
   const [seenPollIds, setSeenPollIds] = useState<Set<string>>(new Set());
   const [publishedSurvey, setPublishedSurvey] = useState<Survey | null>(null);
   const [helpWaitingCount, setHelpWaitingCount] = useState(0);
+  const [demosEnabled, setDemosEnabled] = useState<boolean | null>(null);
 
   // Load seen poll IDs from Supabase
   const loadSeenPollIds = useCallback(async () => {
@@ -287,6 +288,36 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
     };
   }, [event]);
 
+  // Check demo_signup_settings.is_enabled and subscribe to changes
+  useEffect(() => {
+    if (!event) return;
+
+    const supabase = createClient();
+
+    const checkDemosEnabled = async () => {
+      const { data } = await supabase
+        .from("demo_signup_settings")
+        .select("is_enabled")
+        .eq("event_id", event.id)
+        .maybeSingle();
+      // No settings row = feature not configured = hide
+      setDemosEnabled(data?.is_enabled ?? false);
+    };
+
+    checkDemosEnabled();
+
+    const channel = supabase
+      .channel(`demo-settings-nav-${event.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "demo_signup_settings", filter: `event_id=eq.${event.id}` },
+        () => { checkDemosEnabled(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [event]);
+
   // Close mobile menu when navigating
   const handleNavClick = () => {
     setIsMobileMenuOpen(false);
@@ -294,6 +325,9 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
 
   const renderNavItems = () => (
     navItems.map((item) => {
+      // Hide Demos entirely when disabled (null = loading, treat as hidden)
+      if (item.href === "demos" && !demosEnabled) return null;
+
       const isActive = pathname.includes(`/${eventSlug}/${item.href}`);
       const Icon = item.icon;
       const showPollAlert =

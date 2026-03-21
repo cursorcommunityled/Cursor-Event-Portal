@@ -54,6 +54,10 @@ export default async function DemosPage({ params }: DemoPageProps) {
     redirect(`/${eventSlug}`);
   }
 
+  if (!settings.is_enabled) {
+    redirect(`/${eventSlug}/agenda`);
+  }
+
   const [slots, mySignup] = await Promise.all([
     getDemoSlotsWithCounts(event.id),
     supabase

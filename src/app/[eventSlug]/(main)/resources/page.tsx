@@ -3,6 +3,7 @@ import { getEventBySlug } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { getIntakeStatus } from "@/lib/actions/intake";
 import { ExternalLink, Download, Code, MessageSquare, Users } from "lucide-react";
+import { ResourcesEggTrigger } from "@/components/easter/ResourcesEggTrigger";
 
 interface ResourcesPageProps {
   params: Promise<{ eventSlug: string }>;
@@ -94,6 +95,8 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
           </div>
         </div>
       ))}
+
+      <ResourcesEggTrigger eventSlug={eventSlug} />
     </main>
   );
 }

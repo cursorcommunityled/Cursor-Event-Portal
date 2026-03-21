@@ -47,22 +47,44 @@ export function EventPageClient({
     }
   };
 
+  const isEasterEvent = event.slug === "calgary-march-2026";
+
   return (
     <main className="max-w-[704px] mx-auto w-full px-6 py-12 space-y-8">
       {/* Page heading */}
-      <div className="space-y-2">
-        <p
-          className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium animate-slide-up"
-          style={{ animationDelay: "100ms" }}
-        >
-          Tonight
-        </p>
+      <div className="space-y-2 relative">
+        <div className="flex items-center gap-3">
+          <p
+            className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium animate-slide-up"
+            style={{ animationDelay: "100ms" }}
+          >
+            Tonight
+          </p>
+          {isEasterEvent && (
+            <span
+              className="animate-slide-up select-none pointer-events-none"
+              style={{ animationDelay: "150ms", fontSize: 13, opacity: 0.35 }}
+            >
+              🥚
+            </span>
+          )}
+        </div>
         <h1
           className="text-4xl font-light text-white tracking-tight animate-slide-up"
           style={{ animationDelay: "200ms" }}
         >
           Event
         </h1>
+        {isEasterEvent && (
+          <div
+            className="absolute top-0 right-0 flex gap-2 select-none pointer-events-none animate-fade-in"
+            style={{ animationDelay: "400ms", opacity: 0.2, fontSize: 13 }}
+          >
+            <span>🌸</span>
+            <span>🥚</span>
+            <span>🌸</span>
+          </div>
+        )}
       </div>
 
       {/* Sub-nav */}

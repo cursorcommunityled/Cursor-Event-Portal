@@ -47,12 +47,21 @@ export function AttendeeChatWidget({ eventSlug, eventName }: AttendeeChatWidgetP
     setMessages(newMessages);
     setLoading(true);
 
-    const { reply, error } = await attendeeChat(eventSlug, newMessages);
+    const { reply, error, eggTriggered } = await attendeeChat(eventSlug, newMessages);
     setMessages((prev) => [
       ...prev,
       { role: "assistant", content: error || reply },
     ]);
     setLoading(false);
+
+    if (eggTriggered) {
+      // Small delay so the chat response appears first
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("egg-found", { detail: { eggId: eggTriggered } })
+        );
+      }, 600);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

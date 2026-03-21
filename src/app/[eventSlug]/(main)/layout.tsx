@@ -4,6 +4,7 @@ import { getSession } from "@/lib/actions/registration";
 import { EventHeader } from "@/components/layout/EventHeader";
 import { EventNavWrapper } from "@/components/layout/EventNavWrapper";
 import { AttendeeChatWidget } from "@/components/chatbot/AttendeeChatWidget";
+import { EasterEggOverlay } from "@/components/easter/EasterEggOverlay";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
 
       <EventNavWrapper eventSlug={eventSlug} event={event} userId={userId} />
       <AttendeeChatWidget eventSlug={eventSlug} eventName={event.name} />
+      {eventSlug === "calgary-march-2026" && (
+        <EasterEggOverlay eventSlug={eventSlug} userId={userId} />
+      )}
     </div>
   );
 }

@@ -18,13 +18,40 @@ export interface ChatMessage {
   content: string;
 }
 
+const EASTER_EVENT_SLUG = "calgary-march-2026";
+const EASTER_KEYWORDS = [
+  "easter",
+  "egg hunt",
+  "easter egg",
+  "$50",
+  "50 credit",
+  "cursor credit",
+  "hidden egg",
+  "easter eggs",
+  "egg credit",
+  "egg hunt credit",
+];
+
 export async function attendeeChat(
   eventSlug: string,
   messages: ChatMessage[]
-): Promise<{ reply: string; error?: string }> {
+): Promise<{ reply: string; error?: string; eggTriggered?: string }> {
   try {
     const event = await getEventBySlug(eventSlug);
     if (!event) return { reply: "", error: "Event not found." };
+
+    // Easter egg trigger — chatbot egg_3
+    if (eventSlug === EASTER_EVENT_SLUG) {
+      const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() ?? "";
+      const isEasterQuery = EASTER_KEYWORDS.some((kw) => lastUserMsg.includes(kw));
+      if (isEasterQuery) {
+        return {
+          reply:
+            "🥚 You whispered the magic words... something is hatching on your screen right now. Check it out!",
+          eggTriggered: "egg_3",
+        };
+      }
+    }
 
     const [agendaItems, activePolls, themeSelection, themes, exchangePosts, competitions] =
       await Promise.all([
