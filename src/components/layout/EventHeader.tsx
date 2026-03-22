@@ -36,8 +36,8 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
   // Listen for egg_1 being claimed by anyone
   useEffect(() => {
     if (event.slug !== "calgary-march-2026") return;
-    const handler = (e: Event) => {
-      if ((e as unknown as CustomEvent).detail?.eggId === "egg_1") setEgg1Found(true);
+    const handler: EventListener = (e) => {
+      if ((e as CustomEvent).detail?.eggId === "egg_1") setEgg1Found(true);
     };
     window.addEventListener("egg-globally-claimed", handler);
     return () => window.removeEventListener("egg-globally-claimed", handler);
