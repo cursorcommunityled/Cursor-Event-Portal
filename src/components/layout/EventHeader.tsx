@@ -234,73 +234,105 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
       {/* Main Header */}
       <div className="glass border-b border-white/5 py-8 backdrop-blur-3xl">
         <div className="max-w-lg mx-auto px-6 flex items-center justify-between">
-          <Link href={`/${event.slug}`} className="flex items-center gap-5 group">
-            <div className="w-[86px] h-[86px] rounded-2xl bg-white/5 border border-white/10 overflow-hidden shadow-2xl group-hover:scale-105 transition-all flex items-center justify-center p-1">
-              <div className="w-full h-full rounded-[14px] overflow-hidden">
-                <Image
-                  src="/cursor-calgary.avif"
-                  alt="Cursor Calgary"
-                  width={86}
-                  height={86}
-                  className="w-full h-full object-cover"
-                  priority
-                />
+          <div className="flex items-center gap-5">
+            <Link href={`/${event.slug}`} className="flex items-center gap-5 group">
+              <div className="w-[86px] h-[86px] rounded-2xl bg-white/5 border border-white/10 overflow-hidden shadow-2xl group-hover:scale-105 transition-all flex items-center justify-center p-1">
+                <div className="w-full h-full rounded-[14px] overflow-hidden">
+                  <Image
+                    src="/cursor-calgary.avif"
+                    alt="Cursor Calgary"
+                    width={86}
+                    height={86}
+                    className="w-full h-full object-cover"
+                    priority
+                  />
+                </div>
               </div>
-            </div>
+            </Link>
             <div className="flex flex-col gap-1">
-              <span className="font-semibold text-white text-xl leading-tight tracking-tight">
-                {event.name}
-              </span>
+              <Link href={`/${event.slug}`} className="group">
+                <span className="font-semibold text-white text-xl leading-tight tracking-tight">
+                  {event.name}
+                </span>
+              </Link>
               {event.venue ? (
                 <div
                   className="relative"
                   onMouseEnter={handleVenueEnter}
                   onMouseLeave={handleVenueLeave}
-                  onTouchStart={() => setVenueHovered(v => !v)}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setVenueHovered(v => !v);
+                  }}
                 >
                   <span className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-bold leading-tight cursor-pointer hover:text-gray-300 transition-colors flex items-center gap-1.5">
                     <MapPin className="w-2.5 h-2.5" />
                     {event.venue}
                   </span>
 
-                  {/* Venue Popup */}
+                  {/* Venue Popup — fully isolated from parent Link */}
+                  {venueHovered && (
+                    <div
+                      className="fixed inset-0 z-[99]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        setVenueHovered(false);
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        setVenueHovered(false);
+                      }}
+                    />
+                  )}
                   <div
                     className={cn(
-                      "absolute top-full left-0 mt-3 w-72 rounded-[20px] overflow-hidden border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl bg-black/90 transition-all duration-300 origin-top-left z-50",
+                      "absolute top-full left-0 mt-3 w-72 rounded-[20px] overflow-hidden border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl bg-black/90 transition-all duration-300 origin-top-left z-[100]",
                       venueHovered
                         ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
                     )}
                     onMouseEnter={handleVenueEnter}
                     onMouseLeave={handleVenueLeave}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
                   >
                     {event.venue_image_url && (
                       <div
-                        className="w-full h-36 overflow-hidden relative group/venue-img"
+                        className="w-full h-36 overflow-hidden relative group/venue-img cursor-pointer"
                         title={event.slug === "calgary-march-2026" ? "👀" : undefined}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (event.slug === "calgary-march-2026") {
+                            window.dispatchEvent(
+                              new CustomEvent("egg-found", {
+                                detail: { eggId: "egg_1" },
+                              })
+                            );
+                          }
+                        }}
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          if (event.slug === "calgary-march-2026") {
+                            window.dispatchEvent(
+                              new CustomEvent("egg-found", {
+                                detail: { eggId: "egg_1" },
+                              })
+                            );
+                          }
+                        }}
                       >
                         <img
                           src={event.venue_image_url}
                           alt={event.venue}
                           className="w-full h-full object-cover group-hover/venue-img:scale-105 transition-transform duration-500"
                         />
-                        {/* Full-coverage clickable layer for egg trigger */}
-                        <div
-                          className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent cursor-pointer"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            if (event.slug === "calgary-march-2026") {
-                              window.dispatchEvent(
-                                new CustomEvent("egg-found", {
-                                  detail: { eggId: "egg_1" },
-                                })
-                              );
-                            }
-                          }}
-                          onTouchStart={(e) => e.stopPropagation()}
-                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                         {egg1Found && (
                           <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 border border-white/20 backdrop-blur-sm pointer-events-none">
                             <svg viewBox="0 0 100 130" width="12" height="16">
@@ -332,7 +364,7 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
                 </span>
               )}
             </div>
-          </Link>
+          </div>
 
           {/* Right-side badges */}
           <div className="flex items-center gap-2">
