@@ -15,7 +15,7 @@ const EASTER_EVENT_SLUG = "calgary-march-2026";
 const TOTAL_EGGS = 3;
 
 function isEasterCredit(credit: CursorCredit) {
-  return credit.credit_code.startsWith("EASTER_");
+  return credit.amount_usd === 50;
 }
 
 // ── Egg tally ──────────────────────────────────────────────────────────────────
@@ -115,10 +115,20 @@ function EggTally({ foundCount, eventId }: { foundCount: number; eventId: string
 // ── Single easter egg credit card ──────────────────────────────────────────────
 
 function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: string }) {
+  const [copied, setCopied] = useState(false);
   const [redeemed, setRedeemed] = useState<string | null>(credit.redeemed_at ?? null);
   const [markingRedeemed, setMarkingRedeemed] = useState(false);
 
   const isPending = credit.credit_code.startsWith("EASTER_");
+  const url = isPending ? "" : REDEMPTION_URL(credit.credit_code);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(credit.credit_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
 
   const handleMarkRedeemed = async () => {
     setMarkingRedeemed(true);
@@ -128,7 +138,7 @@ function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: st
   };
 
   return (
-    <div className="glass rounded-[32px] p-6 border border-white/10 space-y-4">
+    <div className="glass rounded-[32px] p-6 border border-white/10 space-y-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-xl">🥚</span>
@@ -149,11 +159,41 @@ function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: st
           </p>
         </div>
       ) : (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] px-5 py-3 flex items-center gap-4">
-          <code className="flex-1 font-mono text-sm text-white tracking-widest truncate">
-            {credit.credit_code}
-          </code>
-        </div>
+        <>
+          <div className="glass rounded-[24px] p-6 border border-white/10 flex flex-col items-center gap-5">
+            <div className="rounded-2xl overflow-hidden bg-white p-3">
+              <QRCodeSVG value={url} size={160} bgColor="#ffffff" fgColor="#000000" level="M" />
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+              Scan with your phone&apos;s camera to redeem
+            </p>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl bg-white text-black font-medium text-sm hover:bg-white/90 transition-all shadow-[0_2px_20px_rgba(255,255,255,0.15)]"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Click Here to Redeem
+            </a>
+          </div>
+
+          <div className="glass rounded-2xl p-4 border border-white/10 flex items-center gap-3">
+            <code className="flex-1 font-mono text-base text-white tracking-widest truncate">
+              {credit.credit_code}
+            </code>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-sm text-white hover:bg-white/20 transition-all flex-shrink-0"
+            >
+              {copied ? (
+                <><Check className="w-4 h-4 text-green-400" /><span className="text-green-400">Copied!</span></>
+              ) : (
+                <><Copy className="w-4 h-4" />Copy</>
+              )}
+            </button>
+          </div>
+        </>
       )}
 
       <div className="flex items-center justify-end">

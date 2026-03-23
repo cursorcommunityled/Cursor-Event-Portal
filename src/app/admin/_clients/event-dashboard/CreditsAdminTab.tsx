@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   importCreditCodes,
   autoAssignCredits,
@@ -8,9 +8,10 @@ import {
   deleteCreditCode,
   fetchCursorCredits,
 } from "@/lib/actions/cursor-credits";
-import { resetEasterEggs } from "@/lib/actions/easter-eggs";
+import { resetEasterEggs, fetchEasterEggs, saveEggRewardCode } from "@/lib/actions/easter-eggs";
+import type { EggRow } from "@/lib/actions/easter-eggs";
 import { cn } from "@/lib/utils";
-import { Gift, ChevronDown, ChevronUp, Trash2, UserX, RotateCcw } from "lucide-react";
+import { Gift, ChevronDown, ChevronUp, Trash2, UserX, RotateCcw, Check, Pencil } from "lucide-react";
 import type { CursorCredit } from "@/types";
 
 interface CreditsAdminTabProps {
@@ -45,6 +46,40 @@ export function CreditsAdminTab({
   const [rowLoading, setRowLoading] = useState<string | null>(null);
   const [eggResetMsg, setEggResetMsg] = useState<string | null>(null);
   const [eggResetting, setEggResetting] = useState(false);
+  const [eggs, setEggs] = useState<EggRow[]>([]);
+  const [eggInputs, setEggInputs] = useState<Record<string, string>>({});
+  const [eggEditing, setEggEditing] = useState<string | null>(null);
+  const [eggSaving, setEggSaving] = useState<string | null>(null);
+  const [eggSaveMsg, setEggSaveMsg] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetchEasterEggs(eventId).then((rows) => {
+      setEggs(rows);
+      const inputs: Record<string, string> = {};
+      rows.forEach((r) => { inputs[r.egg_id] = r.credit_code || ""; });
+      setEggInputs(inputs);
+    });
+  }, [eventId]);
+
+  const handleSaveEggCode = async (eggId: string) => {
+    const code = eggInputs[eggId]?.trim();
+    if (!code) return;
+    setEggSaving(eggId);
+    const result = await saveEggRewardCode(eventId, eggId, code);
+    setEggSaving(null);
+    if (result.success) {
+      setEggSaveMsg((prev) => ({ ...prev, [eggId]: "Saved" }));
+      setEggEditing(null);
+      const fresh = await fetchEasterEggs(eventId);
+      setEggs(fresh);
+      const inputs: Record<string, string> = {};
+      fresh.forEach((r) => { inputs[r.egg_id] = r.credit_code || ""; });
+      setEggInputs(inputs);
+      setTimeout(() => setEggSaveMsg((prev) => { const n = { ...prev }; delete n[eggId]; return n; }), 2000);
+    } else {
+      setEggSaveMsg((prev) => ({ ...prev, [eggId]: `Error: ${result.error}` }));
+    }
+  };
 
   const total = credits.length;
   const assigned = credits.filter((c) => c.assigned_to).length;
@@ -110,9 +145,11 @@ export function CreditsAdminTab({
     const result = await resetEasterEggs(eventId);
     setEggResetting(false);
     if (result.success) {
-      setEggResetMsg("Easter eggs reset — all unclaimed, placeholder credits removed.");
+      setEggResetMsg("Easter eggs reset — all unclaimed, $50 credits removed. Reward codes preserved.");
       const fresh = await fetchCursorCredits(eventId);
       setCredits(fresh);
+      const freshEggs = await fetchEasterEggs(eventId);
+      setEggs(freshEggs);
     } else {
       setEggResetMsg(`Error: ${result.error}`);
     }
@@ -151,29 +188,122 @@ export function CreditsAdminTab({
         ))}
       </div>
 
-      {/* Easter Egg Reset */}
-      <div className="glass rounded-3xl p-6 border border-white/[0.06] space-y-3">
+      {/* Easter Egg Hunt */}
+      <div className="glass rounded-3xl p-6 border border-white/[0.06] space-y-5">
         <div className="flex items-center gap-2">
           <span className="text-base">🥚</span>
           <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">
-            Easter Egg Hunt — Reset
+            Easter Egg Hunt
           </p>
         </div>
-        <p className="text-sm text-gray-500">
-          Unclaims all eggs and removes placeholder credits. Use for testing — does not affect real $20 sponsor credits.
-        </p>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleEggReset}
-            disabled={eggResetting}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-40"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            {eggResetting ? "Resetting…" : "Reset Eggs"}
-          </button>
-          {eggResetMsg && (
-            <p className="text-xs text-gray-500">{eggResetMsg}</p>
-          )}
+
+        {/* Reward codes per egg */}
+        {eggs.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">
+              Pre-load $50 reward codes. When someone claims an egg they get the code instantly.
+            </p>
+            <div className="space-y-2">
+              {eggs.map((egg) => {
+                const isEditing = eggEditing === egg.egg_id;
+                const isSaving = eggSaving === egg.egg_id;
+                const msg = eggSaveMsg[egg.egg_id];
+                return (
+                  <div key={egg.egg_id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium w-10">
+                          {egg.egg_id.replace("_", " ")}
+                        </span>
+                        <span className="text-xs text-gray-500">{egg.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {egg.claimed_by ? (
+                          <span className="text-[10px] uppercase tracking-widest font-medium px-2.5 py-1 rounded-full text-blue-400 bg-blue-400/10">
+                            Claimed
+                          </span>
+                        ) : (
+                          <span className="text-[10px] uppercase tracking-widest font-medium px-2.5 py-1 rounded-full text-gray-500 bg-white/5">
+                            Unclaimed
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isEditing || !egg.credit_code ? (
+                        <>
+                          <input
+                            type="text"
+                            value={eggInputs[egg.egg_id] || ""}
+                            onChange={(e) => setEggInputs((prev) => ({ ...prev, [egg.egg_id]: e.target.value }))}
+                            placeholder="Paste referral code or URL…"
+                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 font-mono"
+                          />
+                          <button
+                            onClick={() => handleSaveEggCode(egg.egg_id)}
+                            disabled={isSaving || !eggInputs[egg.egg_id]?.trim()}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-40"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            {isSaving ? "Saving…" : "Save"}
+                          </button>
+                          {isEditing && (
+                            <button
+                              onClick={() => {
+                                setEggEditing(null);
+                                setEggInputs((prev) => ({ ...prev, [egg.egg_id]: egg.credit_code || "" }));
+                              }}
+                              className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <code className="flex-1 font-mono text-sm text-white/70 truncate">
+                            {egg.credit_code}
+                          </code>
+                          <button
+                            onClick={() => setEggEditing(egg.egg_id)}
+                            className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+                            title="Edit code"
+                          >
+                            <Pencil className="w-3 h-3 text-gray-500" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {msg && (
+                      <p className={cn("text-xs", msg.startsWith("Error") ? "text-red-400" : "text-green-400")}>
+                        {msg}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Reset */}
+        <div className="pt-2 border-t border-white/[0.04] space-y-2">
+          <p className="text-xs text-gray-600">
+            Reset unclaims all eggs and removes $50 credits. Pre-loaded codes are preserved.
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleEggReset}
+              disabled={eggResetting}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-40"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              {eggResetting ? "Resetting…" : "Reset Eggs"}
+            </button>
+            {eggResetMsg && (
+              <p className="text-xs text-gray-500">{eggResetMsg}</p>
+            )}
+          </div>
         </div>
       </div>
 
