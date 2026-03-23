@@ -50,41 +50,48 @@ export function EventPageClient({
   const isEasterEvent = event.slug === "calgary-march-2026";
 
   return (
-    <main className="max-w-[704px] mx-auto w-full px-6 py-12 space-y-8">
-      {/* Page heading */}
-      <div className="space-y-2 relative">
-        <div className="flex items-center gap-3">
-          <p
-            className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium animate-slide-up"
-            style={{ animationDelay: "100ms" }}
+    <main className="max-w-[704px] mx-auto w-full px-6 py-12 space-y-8 relative">
+      {/* Scattered Easter decorations */}
+      {isEasterEvent && (
+        <>
+          {/* Top-right corner */}
+          <span
+            className="absolute top-10 right-4 select-none pointer-events-none animate-fade-in"
+            style={{ fontSize: 14, opacity: 0.18, animationDelay: "600ms" }}
           >
-            Tonight
-          </p>
-          {isEasterEvent && (
-            <span
-              className="animate-slide-up select-none pointer-events-none"
-              style={{ animationDelay: "150ms", fontSize: 13, opacity: 0.35 }}
-            >
-              🥚
-            </span>
-          )}
-        </div>
+            🌸
+          </span>
+          {/* Mid-left edge */}
+          <span
+            className="absolute top-[45%] -left-1 select-none pointer-events-none animate-fade-in"
+            style={{ fontSize: 11, opacity: 0.15, animationDelay: "900ms" }}
+          >
+            🥚
+          </span>
+          {/* Lower-right */}
+          <span
+            className="absolute bottom-24 right-2 select-none pointer-events-none animate-fade-in"
+            style={{ fontSize: 12, opacity: 0.14, animationDelay: "1200ms" }}
+          >
+            🌸
+          </span>
+        </>
+      )}
+
+      {/* Page heading */}
+      <div className="space-y-2">
+        <p
+          className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium animate-slide-up"
+          style={{ animationDelay: "100ms" }}
+        >
+          Tonight
+        </p>
         <h1
           className="text-4xl font-light text-white tracking-tight animate-slide-up"
           style={{ animationDelay: "200ms" }}
         >
           Event
         </h1>
-        {isEasterEvent && (
-          <div
-            className="absolute top-0 right-0 flex gap-2 select-none pointer-events-none animate-fade-in"
-            style={{ animationDelay: "400ms", opacity: 0.2, fontSize: 13 }}
-          >
-            <span>🌸</span>
-            <span>🥚</span>
-            <span>🌸</span>
-          </div>
-        )}
       </div>
 
       {/* Sub-nav */}
