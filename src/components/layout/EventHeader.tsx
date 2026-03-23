@@ -273,22 +273,11 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
                     )}
                     onMouseEnter={handleVenueEnter}
                     onMouseLeave={handleVenueLeave}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {event.venue_image_url && (
                       <div
-                        className="w-full h-36 overflow-hidden relative cursor-pointer group/venue-img"
-                        onTouchStart={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          if (event.slug === "calgary-march-2026") {
-                            window.dispatchEvent(
-                              new CustomEvent("egg-found", {
-                                detail: { eggId: "egg_1" },
-                              })
-                            );
-                          }
-                        }}
+                        className="w-full h-36 overflow-hidden relative group/venue-img"
                         title={event.slug === "calgary-march-2026" ? "👀" : undefined}
                       >
                         <img
@@ -296,9 +285,24 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
                           alt={event.venue}
                           className="w-full h-full object-cover group-hover/venue-img:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        {/* Full-coverage clickable layer for egg trigger */}
+                        <div
+                          className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            if (event.slug === "calgary-march-2026") {
+                              window.dispatchEvent(
+                                new CustomEvent("egg-found", {
+                                  detail: { eggId: "egg_1" },
+                                })
+                              );
+                            }
+                          }}
+                          onTouchStart={(e) => e.stopPropagation()}
+                        />
                         {egg1Found && (
-                          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 border border-white/20 backdrop-blur-sm">
+                          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 border border-white/20 backdrop-blur-sm pointer-events-none">
                             <svg viewBox="0 0 100 130" width="12" height="16">
                               <path d="M50 5 C22 5 5 40 5 68 C5 103 22 128 50 128 C78 128 95 103 95 68 C95 40 78 5 50 5Z" fill="#1a1a1a" stroke="rgba(255,255,255,0.5)" strokeWidth="4" />
                             </svg>
