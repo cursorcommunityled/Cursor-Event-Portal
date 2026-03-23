@@ -100,11 +100,12 @@ export async function autoAssignCredits(
 
   if (!regs || regs.length === 0) return { assigned: 0, noCodesLeft: false };
 
-  // Get existing assigned user_ids for this event
+  // Get existing assigned user_ids for sponsor credits only (exclude $50 egg credits)
   const { data: existing } = await supabase
     .from("cursor_credits")
     .select("assigned_to")
     .eq("event_id", eventId)
+    .neq("amount_usd", 50)
     .not("assigned_to", "is", null);
 
   const assignedUserIds = new Set((existing ?? []).map((c: any) => c.assigned_to));
@@ -112,11 +113,12 @@ export async function autoAssignCredits(
 
   if (unassignedRegs.length === 0) return { assigned: 0, noCodesLeft: false };
 
-  // Get available (unassigned) codes for this event
+  // Get available (unassigned) sponsor codes only (exclude $50 egg credits)
   const { data: available, error: availErr } = await supabase
     .from("cursor_credits")
     .select("id")
     .eq("event_id", eventId)
+    .neq("amount_usd", 50)
     .is("assigned_to", null)
     .order("created_at", { ascending: true })
     .limit(unassignedRegs.length);
