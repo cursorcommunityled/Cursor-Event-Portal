@@ -58,6 +58,52 @@ const AGENDA_TEMPLATES: Record<string, { title: string; description?: string; sp
     },
   ],
 
+  // House 831 - March 25, 2026 @ 5:30 PM MDT (UTC-6)
+  "calgary-march-2026": [
+    {
+      title: "Arrival & Mingle",
+      description:
+        "Get settled in, grab a drink, and connect with fellow builders.",
+      start_time: "2026-03-25T23:30:00Z", // 5:30pm MDT
+      end_time: "2026-03-26T00:00:00Z",   // 6:00pm MDT
+      sort_order: 0,
+    },
+    {
+      title: "Intro to Cursor",
+      description:
+        "A quick overview of what Cursor can do and how to get the most out of tonight.",
+      speaker: "Simon Loewen",
+      start_time: "2026-03-26T00:00:00Z", // 6:00pm MDT
+      end_time: "2026-03-26T00:10:00Z",   // 6:10pm MDT
+      sort_order: 1,
+    },
+    {
+      title: "Speakers",
+      description:
+        "Hear from builders and experts in the community. Featuring:\n- Philippe Burns, Tech Thursdays\n- Youssef Triki, Punchard.io",
+      speaker: "Simon Loewen",
+      start_time: "2026-03-26T00:10:00Z", // 6:10pm MDT
+      end_time: "2026-03-26T00:30:00Z",   // 6:30pm MDT
+      sort_order: 2,
+    },
+    {
+      title: "Build & Egg Hunt (Credits)",
+      description:
+        "Build your best idea with Cursor — and hunt for hidden $50 credit Easter eggs scattered across the venue and this app. First to find wins!",
+      start_time: "2026-03-26T00:30:00Z", // 6:30pm MDT
+      end_time: "2026-03-26T02:00:00Z",   // 8:00pm MDT
+      sort_order: 3,
+    },
+    {
+      title: "Demos & Networking",
+      description:
+        "Present what you built, watch live demos, and connect with the community.",
+      start_time: "2026-03-26T02:00:00Z", // 8:00pm MDT
+      end_time: "2026-03-26T02:30:00Z",   // 8:30pm MDT
+      sort_order: 4,
+    },
+  ],
+
   // House 831 - February 26, 2026 @ 5:30 PM MST (UTC-7)
   "house-831": [
     {
