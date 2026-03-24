@@ -139,13 +139,13 @@ export function CreditsAdminTab({
   };
 
   const handleEggReset = async () => {
-    if (!confirm("Reset all Easter eggs? This unclaims all eggs and deletes the placeholder credits so the hunt can be re-run.")) return;
+    if (!confirm("Reset all Cursor eggs? This unclaims all eggs and deletes the placeholder credits so the hunt can be re-run.")) return;
     setEggResetting(true);
     setEggResetMsg(null);
     const result = await resetEasterEggs(eventId);
     setEggResetting(false);
     if (result.success) {
-      setEggResetMsg("Easter eggs reset — all unclaimed, $50 credits removed. Reward codes preserved.");
+      setEggResetMsg("Cursor eggs reset — all unclaimed, $50 credits removed. Reward codes preserved.");
       const fresh = await fetchCursorCredits(eventId);
       setCredits(fresh);
       const freshEggs = await fetchEasterEggs(eventId);
@@ -188,12 +188,12 @@ export function CreditsAdminTab({
         ))}
       </div>
 
-      {/* Easter Egg Hunt */}
+      {/* Cursor Egg Hunt */}
       <div className="glass rounded-3xl p-6 border border-white/[0.06] space-y-5">
         <div className="flex items-center gap-2">
           <span className="text-base">🥚</span>
           <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">
-            Easter Egg Hunt
+            Cursor Egg Hunt
           </p>
         </div>
 

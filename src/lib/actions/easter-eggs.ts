@@ -51,7 +51,7 @@ export async function claimEasterEgg(
   eventSlug: string
 ): Promise<{ success: boolean; message: string }> {
   if (eventSlug !== EASTER_EVENT_SLUG) {
-    return { success: false, message: "Easter eggs are not available for this event." };
+    return { success: false, message: "Cursor eggs are not available for this event." };
   }
 
   if (!["egg_1", "egg_2", "egg_3"].includes(eggId)) {
@@ -79,7 +79,7 @@ export async function claimEasterEgg(
   if ((existingEggCredits ?? 0) >= 1) {
     return {
       success: false,
-      message: "🥚 You've already claimed your Easter egg credit! One per person.",
+      message: "🥚 You've already claimed your Cursor egg credit! One per person.",
     };
   }
 

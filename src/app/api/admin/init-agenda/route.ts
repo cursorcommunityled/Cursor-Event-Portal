@@ -89,7 +89,7 @@ const AGENDA_TEMPLATES: Record<string, { title: string; description?: string; sp
     {
       title: "Build & Egg Hunt (Credits)",
       description:
-        "Build your best idea with Cursor — and hunt for hidden $50 credit Easter eggs scattered across the venue and this app. First to find wins!",
+        "Build your best idea with Cursor — and hunt for hidden $50 credit Cursor eggs scattered across the venue and this app. First to find wins!",
       start_time: "2026-03-26T00:30:00Z", // 6:30pm MDT
       end_time: "2026-03-26T02:00:00Z",   // 8:00pm MDT
       sort_order: 3,

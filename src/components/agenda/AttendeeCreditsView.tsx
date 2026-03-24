@@ -46,7 +46,7 @@ function EggTally({ foundCount, eventId }: { foundCount: number; eventId: string
   return (
     <div className="glass rounded-[32px] p-6 border border-white/10">
       <p className="text-[10px] uppercase tracking-[0.35em] text-gray-500 font-medium mb-5 text-center">
-        Easter Egg Hunt
+        Cursor Egg Hunt
       </p>
       <div className="flex items-center justify-center gap-6">
         {Array.from({ length: TOTAL_EGGS }, (_, i) => {
@@ -112,7 +112,7 @@ function EggTally({ foundCount, eventId }: { foundCount: number; eventId: string
   );
 }
 
-// ── Single easter egg credit card ──────────────────────────────────────────────
+// ── Single cursor egg credit card ──────────────────────────────────────────────
 
 function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: string }) {
   const [copied, setCopied] = useState(false);
@@ -143,7 +143,7 @@ function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: st
         <div className="flex items-center gap-3">
           <span className="text-xl">🥚</span>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Easter Egg</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Cursor Egg</p>
             <p className="text-lg font-light text-white">$50 Cursor Credit</p>
           </div>
         </div>
@@ -362,7 +362,7 @@ export function AttendeeCreditsView({ credits, userId, eventSlug, eventId }: Att
       {/* Egg tally — only for easter event */}
       {isEasterEvent && <EggTally foundCount={easterCredits.length} eventId={eventId} />}
 
-      {/* Easter egg credits */}
+      {/* Cursor egg credits */}
       {easterCredits.map((c) => (
         <EasterCreditCard key={c.id} credit={c} userId={userId} />
       ))}

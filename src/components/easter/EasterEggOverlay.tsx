@@ -563,7 +563,7 @@ export function EasterEggOverlay({
                     className="text-[11px] uppercase font-bold tracking-[0.35em]"
                     style={{ color: "rgba(255,255,255,0.85)" }}
                   >
-                    🥚 Easter Egg Found!
+                    🥚 Cursor Egg Found!
                   </p>
                   <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500 font-medium">
                     {EGG_LABELS[currentEggId] ?? "Hidden Secret"}
