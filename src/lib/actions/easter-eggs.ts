@@ -68,6 +68,21 @@ export async function claimEasterEgg(
   const event = await getEventBySlug(eventSlug);
   if (!event) return { success: false, message: "Event not found." };
 
+  // Max 1 easter-egg ($50) credit per user per event
+  const { count: existingEggCredits } = await supabase
+    .from("cursor_credits")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", event.id)
+    .eq("assigned_to", session.userId)
+    .eq("amount_usd", 50);
+
+  if ((existingEggCredits ?? 0) >= 1) {
+    return {
+      success: false,
+      message: "🥚 You've already claimed your Easter egg credit! One per person.",
+    };
+  }
+
   const { data: egg } = await supabase
     .from("easter_egg_hunts")
     .select("egg_id, credit_code, claimed_by, claimed_at")

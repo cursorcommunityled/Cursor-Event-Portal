@@ -171,10 +171,13 @@ export function EasterEggOverlay({
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const notifTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // On mount, fetch already-claimed eggs so they can't be re-triggered
+  // On mount, fetch already-claimed eggs.
+  // Max 1 egg credit per user → if ANY egg claimed, block ALL future triggers.
   useEffect(() => {
     getMyClaimedEggs(eventSlug).then((claimed) => {
-      claimed.forEach((id) => foundThisSession.current.add(id));
+      if (claimed.length > 0) {
+        ["egg_1", "egg_2", "egg_3"].forEach((id) => foundThisSession.current.add(id));
+      }
     });
   }, [eventSlug]);
 
@@ -256,7 +259,8 @@ export function EasterEggOverlay({
     const result = await claimEasterEgg(currentEggId, eventSlug);
 
     if (result.success) {
-      foundThisSession.current.add(currentEggId);
+      // Block all future egg triggers (max 1 credit per user)
+      ["egg_1", "egg_2", "egg_3"].forEach((id) => foundThisSession.current.add(id));
       setPhase("flying");
       const t1 = setTimeout(() => setPhase("done"), 1300);
       const t2 = setTimeout(() => {

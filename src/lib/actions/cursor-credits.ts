@@ -89,7 +89,7 @@ export async function autoAssignCredits(
 ): Promise<{ assigned: number; noCodesLeft: boolean; error?: string }> {
   const supabase = await createServiceClient();
 
-  // Get checked-in registrations without a credit
+  // Get checked-in registrations (max 1 sponsor/$20 credit per user per event)
   const { data: regs, error: regsError } = await supabase
     .from("registrations")
     .select("id, user_id")
@@ -100,7 +100,7 @@ export async function autoAssignCredits(
 
   if (!regs || regs.length === 0) return { assigned: 0, noCodesLeft: false };
 
-  // Get existing assigned user_ids for sponsor credits only (exclude $50 egg credits)
+  // Users who already have a $20 sponsor credit for this event (limit: 1 per user)
   const { data: existing } = await supabase
     .from("cursor_credits")
     .select("assigned_to")
