@@ -78,7 +78,7 @@ function EggSVG() {
 
       {/* Cursor logo */}
       <image
-        href="/cursor-logo.png"
+        href="/cursor-logo.jpeg"
         x="22"
         y="42"
         width="56"
@@ -412,7 +412,7 @@ export function EasterEggOverlay({
                   stroke="rgba(255,255,255,0.3)"
                   strokeWidth="3"
                 />
-                <image href="/cursor-logo.png" x="22" y="42" width="56" height="56" preserveAspectRatio="xMidYMid meet" />
+                <image href="/cursor-logo.jpeg" x="22" y="42" width="56" height="56" preserveAspectRatio="xMidYMid meet" />
               </svg>
             </div>
             <div>

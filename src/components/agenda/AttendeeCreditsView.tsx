@@ -75,7 +75,7 @@ function EggTally({ foundCount, eventId }: { foundCount: number; eventId: string
                         strokeWidth="2"
                       />
                       <image
-                        href="/cursor-logo.png"
+                        href="/cursor-logo.jpeg"
                         x="22"
                         y="42"
                         width="56"
