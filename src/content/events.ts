@@ -17,8 +17,8 @@ export const events: CursorEvent[] = [
     displayDate: 'February 25, 2026',
     attendees: 40,
     location: 'Calgary, Canada',
-    thumbnail: '/showcase.png',
-    galleryImages: ['/attendees.png', '/group-synthesis.png'],
+    thumbnail: '/cursor-event-01.jpg',
+    galleryImages: ['/cursor-event-02.jpg', '/cursor-event-03.jpg'],
     status: 'past',
   },
 ];
