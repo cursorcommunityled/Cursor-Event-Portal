@@ -57,8 +57,8 @@ const PastEvents: React.FC = () => {
 
           return (
             <motion.div key={event.id} variants={itemVariants}>
-              <div className="relative bg-[#1B1913] border border-cursor-border rounded-none sm:rounded-md overflow-hidden transition-all duration-300 hover:border-[#f54e00]/50 hover:shadow-[0_0_30px_rgba(245,78,0,0.12)]">
-                <div className="pointer-events-none absolute -inset-px sm:rounded-md bg-[radial-gradient(ellipse_at_bottom,rgba(245,78,0,0.06),transparent_60%)] opacity-0 hover:opacity-100 transition-opacity duration-500 z-10" />
+              <div className="relative bg-[#1B1913] border border-cursor-border rounded-none sm:rounded-md overflow-hidden transition-all duration-300 hover:border-white/20 hover:shadow-[0_0_30px_rgba(255,255,255,0.06)]">
+                <div className="pointer-events-none absolute -inset-px sm:rounded-md bg-[radial-gradient(ellipse_at_bottom,rgba(255,255,255,0.04),transparent_60%)] opacity-0 hover:opacity-100 transition-opacity duration-500 z-10" />
                 {event.thumbnail ? (
                   <div className="relative">
                     <div

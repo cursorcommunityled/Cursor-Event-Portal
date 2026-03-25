@@ -107,7 +107,7 @@ export default function Navbar({ onOpenPortal }: { onOpenPortal: () => void }) {
             })}
             <button
               onClick={onOpenPortal}
-              className="text-sm font-medium px-3.5 py-1.5 rounded-md bg-[#f54e00] text-white hover:bg-[#e04500] transition-colors"
+              className="text-sm font-medium px-3.5 py-1.5 rounded-md bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors"
             >
               {t('nav.eventPortal')}
             </button>
@@ -145,7 +145,7 @@ export default function Navbar({ onOpenPortal }: { onOpenPortal: () => void }) {
                 closeMobile();
                 onOpenPortal();
               }}
-              className="text-base font-medium px-5 py-2.5 rounded-md bg-[#f54e00] text-white hover:bg-[#e04500] transition-colors"
+              className="text-base font-medium px-5 py-2.5 rounded-md bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors"
             >
               {t('nav.eventPortal')}
             </button>
