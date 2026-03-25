@@ -3,7 +3,7 @@ export const siteConfig = {
   communityNameLocal: 'Calgary',
   city: 'Calgary',
   country: 'Canada',
-  lumaUrl: 'https://lu.ma/cursor-calgary',
+  lumaUrl: 'https://lu.ma/cursor-canada',
   cursorCommunityUrl: 'https://cursor.com/community',
   defaultLocale: 'en',
   locales: ['en'],
