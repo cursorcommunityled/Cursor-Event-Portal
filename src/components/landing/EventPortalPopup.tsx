@@ -52,15 +52,15 @@ export default function EventPortalPopup({ isOpen, onClose, activeEventSlug }: E
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="relative z-10 w-full max-w-md text-center space-y-8"
+            className="relative z-10 w-full max-w-md text-center space-y-8 bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={onClose}
-              className="absolute -top-12 right-0 text-white/50 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
               aria-label="Close"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
 
             <div className="space-y-6">
@@ -84,7 +84,7 @@ export default function EventPortalPopup({ isOpen, onClose, activeEventSlug }: E
               </div>
             </div>
 
-            <div className="glass rounded-[40px] p-8 space-y-4">
+            <div className="glass rounded-[40px] p-8 space-y-4" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
               <Link
                 href={`/${activeEventSlug}`}
                 className="block w-full h-16 rounded-[24px] bg-white text-black flex items-center justify-center font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-200 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98]"
