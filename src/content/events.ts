@@ -33,7 +33,7 @@ export const events: CursorEvent[] = [
   },
   {
     id: 'calgary-feb-2026',
-    title: 'Cursor Calgary — Community Builder',
+    title: 'Cursor Calgary Meetup',
     date: '2026-02-25',
     displayDate: 'February 25, 2026',
     attendees: 40,
