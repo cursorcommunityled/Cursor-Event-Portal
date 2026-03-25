@@ -33,8 +33,8 @@ export const headerPhotos: HeaderPhoto[] = [
     mobile: { row: 3, col: 2 },
   },
   {
-    src: '/event-coding.jpg',
-    alt: 'Participants coding at Cursor Hackathon',
+    src: '/feb-meetup-vr.jpg',
+    alt: 'VR demo at Cursor Calgary meetup',
     row: 3,
     col: 1,
     rowSpan: 2,
@@ -50,8 +50,8 @@ export const headerPhotos: HeaderPhoto[] = [
     mobileHidden: true,
   },
   {
-    src: '/event-networking.jpg',
-    alt: 'Networking at Cursor Hackathon',
+    src: '/coworking-venue.jpg',
+    alt: 'Cursor Coworking Calgary',
     row: 3,
     col: 4,
     rowSpan: 2,
