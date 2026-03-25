@@ -16,7 +16,7 @@
     "viewSlides": "View slides"
   },
   "ambassadors": {
-    "title": "Cursor {communityName} ambassadors",
+    "title": "{communityName} ambassadors",
     "heading": "Meet the Team"
   },
   "footer": {
