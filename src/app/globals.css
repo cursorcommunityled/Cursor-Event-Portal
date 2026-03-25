@@ -60,6 +60,17 @@ body {
   100% { transform: translateY(0px) rotate(0deg); }
 }
 
+/* Slow rotation for popup logo */
+.slow-spin {
+  animation: slow-spin 20s linear infinite;
+}
+
+@keyframes slow-spin {
+  0% { transform: perspective(800px) rotateY(0deg); }
+  50% { transform: perspective(800px) rotateY(8deg); }
+  100% { transform: perspective(800px) rotateY(0deg); }
+}
+
 /* Beam animation for buttons */
 @keyframes beam {
   0% { left: -100%; opacity: 0; }

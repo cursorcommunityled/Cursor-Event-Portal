@@ -52,19 +52,19 @@ export default function EventPortalPopup({ isOpen, onClose, activeEventSlug }: E
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="relative z-10 w-full max-w-md text-center space-y-8 bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8"
+            className="relative z-10 w-full max-w-md text-center space-y-8 bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 floating"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors z-10"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="space-y-6">
-              <div className="relative w-full max-w-[280px] mx-auto">
+              <div className="relative w-full max-w-[280px] mx-auto slow-spin">
                 <Image
                   src="/cursor-calgary.avif"
                   alt="Cursor Calgary"
