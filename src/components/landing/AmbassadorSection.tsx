@@ -73,12 +73,12 @@ const AmbassadorSection: React.FC = () => {
               className="bg-cursor-bg-dark border border-cursor-border rounded-md p-5 group hover:border-cursor-accent-purple/30 hover:shadow-[0_0_15px_rgba(184,168,200,0.08)] transition-all duration-300"
             >
               <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-cursor-border-emphasis">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-cursor-border-emphasis group-hover:scale-110 group-hover:border-cursor-accent-purple/40 transition-all duration-300">
                   <Image
                     src={ambassador.photo}
                     alt={ambassador.name}
                     fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition duration-500"
+                    className="object-cover transition duration-300 group-hover:brightness-110"
                     sizes="80px"
                   />
                 </div>
