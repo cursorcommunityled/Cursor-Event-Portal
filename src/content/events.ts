@@ -3,12 +3,23 @@ import { CursorEvent } from '@/lib/landing-types';
 export const events: CursorEvent[] = [
   {
     id: 'calgary-apr-2026',
-    title: 'Cursor Calgary Meetup',
-    date: '2026-04-22',
-    displayDate: 'April 22, 2026',
+    title: 'Cursor Meetup Calgary April',
+    date: '2026-04-29',
+    displayDate: 'April 29, 2026',
     location: 'Calgary, Canada',
-    lumaUrl: 'https://lu.ma/cursor-calgary',
+    lumaUrl: 'https://lu.ma/onlcm9o9',
     status: 'upcoming',
+  },
+  {
+    id: 'calgary-hackathon-mar-2026',
+    title: 'Cursor Hackathon UCalgary',
+    date: '2026-03-14',
+    displayDate: 'March 14–15, 2026',
+    attendees: 72,
+    location: 'Calgary, Canada',
+    thumbnail: '/event-venue-wide.jpg',
+    galleryImages: ['/event-winners-1st.jpg', '/event-winners-3rd.jpg'],
+    status: 'past',
   },
   {
     id: 'calgary-feb-2026',
@@ -17,8 +28,6 @@ export const events: CursorEvent[] = [
     displayDate: 'February 25, 2026',
     attendees: 40,
     location: 'Calgary, Canada',
-    thumbnail: '/event-venue-wide.jpg',
-    galleryImages: ['/event-winners-1st.jpg', '/event-winners-3rd.jpg'],
     status: 'past',
   },
 ];
