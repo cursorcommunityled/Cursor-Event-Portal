@@ -76,14 +76,15 @@ function EggSVG() {
         strokeLinejoin="round"
       />
 
-      {/* Cursor logo */}
+      {/* Cursor cube logo */}
       <image
-        href="/cursor-logo.jpeg"
+        href="/cursor-cube.svg"
         x="22"
-        y="42"
+        y="38"
         width="56"
         height="56"
         preserveAspectRatio="xMidYMid meet"
+        style={{ filter: "invert(1)" }}
       />
 
       {/* Shine highlight */}
@@ -412,7 +413,7 @@ export function EasterEggOverlay({
                   stroke="rgba(255,255,255,0.3)"
                   strokeWidth="3"
                 />
-                <image href="/cursor-logo.jpeg" x="22" y="42" width="56" height="56" preserveAspectRatio="xMidYMid meet" />
+                <image href="/cursor-cube.svg" x="22" y="38" width="56" height="56" preserveAspectRatio="xMidYMid meet" style={{ filter: "invert(1)" }} />
               </svg>
             </div>
             <div>

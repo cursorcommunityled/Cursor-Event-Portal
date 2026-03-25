@@ -1,0 +1,60 @@
+import { HeaderPhoto } from '@/lib/landing-types';
+
+export const headerPhotos: HeaderPhoto[] = [
+  {
+    src: '/agenda-intro.png',
+    alt: 'Cursor Calgary event introduction',
+    row: 1,
+    col: 1,
+    rowSpan: 2,
+    colSpan: 2,
+    mobile: { row: 1, col: 1, rowSpan: 2, colSpan: 2 },
+  },
+  {
+    src: '/agenda-build.png',
+    alt: 'Build session at Cursor Calgary',
+    row: 1,
+    col: 3,
+    mobile: { row: 3, col: 1 },
+  },
+  {
+    src: '/agenda-networking.png',
+    alt: 'Networking at Cursor Calgary',
+    row: 1,
+    col: 4,
+    rowSpan: 2,
+    mobileHidden: true,
+  },
+  {
+    src: '/agenda-demos.png',
+    alt: 'Demo session at Cursor Calgary',
+    row: 2,
+    col: 3,
+    mobile: { row: 3, col: 2 },
+  },
+  {
+    src: '/group-synthesis.png',
+    alt: 'Group collaboration at Cursor Calgary',
+    row: 3,
+    col: 1,
+    rowSpan: 2,
+    mobileHidden: true,
+  },
+  {
+    src: '/showcase.png',
+    alt: 'Project showcase at Cursor Calgary',
+    row: 3,
+    col: 2,
+    rowSpan: 2,
+    colSpan: 2,
+    mobileHidden: true,
+  },
+  {
+    src: '/attendees.png',
+    alt: 'Cursor Calgary attendees',
+    row: 3,
+    col: 4,
+    rowSpan: 2,
+    mobile: { row: 4, col: 1, colSpan: 2 },
+  },
+];

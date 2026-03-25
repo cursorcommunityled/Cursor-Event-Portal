@@ -9,12 +9,13 @@ interface CountdownBarProps {
   event: Event;
 }
 
-function formatRemaining(ms: number) {
+function decompose(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return {
+    hours: String(Math.floor(totalSeconds / 3600)).padStart(2, "0"),
+    minutes: String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0"),
+    seconds: String(totalSeconds % 60).padStart(2, "0"),
+  };
 }
 
 export function CountdownBar({ event }: CountdownBarProps) {
@@ -24,6 +25,7 @@ export function CountdownBar({ event }: CountdownBarProps) {
   const [remainingMs, setRemainingMs] = useState(0);
   const [showExpired, setShowExpired] = useState(false);
   const [hideAfterExpired, setHideAfterExpired] = useState(false);
+  const [prevSeconds, setPrevSeconds] = useState("");
   const totalMsRef = useRef<number | null>(null);
   const expireTimeoutRef = useRef<number | null>(null);
 
@@ -111,38 +113,110 @@ export function CountdownBar({ event }: CountdownBarProps) {
     return null;
   }
 
+  const { hours, minutes, seconds } = decompose(remainingMs);
   const totalMs = totalMsRef.current || remainingMs || 1;
   const progress = Math.max(0, Math.min(100, (remainingMs / totalMs) * 100));
 
+  const changed = seconds !== prevSeconds;
+  if (changed && prevSeconds !== "") {
+    requestAnimationFrame(() => setPrevSeconds(seconds));
+  } else if (prevSeconds === "") {
+    setPrevSeconds(seconds);
+  }
+
   return (
-    <div className="sticky top-0 z-40">
-      <div className="glass border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-2 h-2 rounded-full",
-                showExpired ? "bg-red-500 animate-pulse" : "bg-white/40"
-              )} />
-              <p className="text-[10px] uppercase tracking-[0.4em] text-gray-400 font-medium">
-                {showExpired ? "Time's Up" : (timerLabel || "Countdown")}
-              </p>
+    <>
+      <style>{`
+        @keyframes countdown-digit-tick {
+          0%   { opacity: 0.4; transform: translateY(2px); }
+          100% { opacity: 1;   transform: translateY(0); }
+        }
+        .countdown-tick {
+          animation: countdown-digit-tick 400ms ease-out;
+        }
+      `}</style>
+      <div className="sticky top-0 z-40">
+        <div
+          className="border-b backdrop-blur-xl"
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            borderColor: showExpired ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.08)",
+          }}
+        >
+          <div className="max-w-2xl mx-auto px-6 py-5">
+            {/* Label */}
+            <p className={cn(
+              "text-[10px] uppercase tracking-[0.3em] font-medium text-center mb-4",
+              showExpired ? "text-red-400" : "text-gray-500"
+            )}>
+              {showExpired ? "Time's Up" : (timerLabel || "Countdown")}
+            </p>
+
+            {/* Digit groups */}
+            <div className="flex items-start justify-center" role="timer">
+              <DigitGroup value={hours} label="Hours" expired={showExpired} />
+              <span className={cn(
+                "text-3xl sm:text-4xl font-light px-3 sm:px-4 select-none leading-none",
+                showExpired ? "text-red-400/60" : "text-gray-600"
+              )}>
+                :
+              </span>
+              <DigitGroup value={minutes} label="Minutes" expired={showExpired} />
+              <span className={cn(
+                "text-3xl sm:text-4xl font-light px-3 sm:px-4 select-none leading-none",
+                showExpired ? "text-red-400/60" : "text-gray-600"
+              )}>
+                :
+              </span>
+              <DigitGroup value={seconds} label="Seconds" expired={showExpired} animate />
             </div>
-            <div className="text-white text-lg font-light tracking-tight tabular-nums">
-              {showExpired ? "TIME'S UP!" : formatRemaining(remainingMs)}
+
+            {/* Progress bar */}
+            <div className="mt-4 h-[2px] rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-1000 ease-linear",
+                  showExpired ? "bg-red-500" : "bg-white/40"
+                )}
+                style={{ width: `${progress}%` }}
+              />
             </div>
-          </div>
-          <div className="mt-3 h-1 bg-white/10 rounded-full overflow-hidden">
-            <div
-              className={cn(
-                "h-full transition-all duration-1000",
-                showExpired ? "bg-red-500" : "bg-white"
-              )}
-              style={{ width: `${progress}%` }}
-            />
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+function DigitGroup({
+  value,
+  label,
+  expired,
+  animate,
+}: {
+  value: string;
+  label: string;
+  expired: boolean;
+  animate?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <span
+        key={animate ? value : undefined}
+        className={cn(
+          "text-4xl sm:text-5xl font-bold tabular-nums leading-none tracking-tight",
+          expired ? "text-red-400" : "text-white",
+          animate && "countdown-tick"
+        )}
+      >
+        {value}
+      </span>
+      <span className={cn(
+        "text-[9px] uppercase tracking-[0.12em] font-medium",
+        expired ? "text-red-400/60" : "text-gray-600"
+      )}>
+        {label}
+      </span>
     </div>
   );
 }
