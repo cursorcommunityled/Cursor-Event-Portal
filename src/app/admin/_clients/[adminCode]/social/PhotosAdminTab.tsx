@@ -467,8 +467,7 @@ export function PhotosAdminTab({
                   onClick={() => handleToggleHeroFeatured(photo.id)}
                   disabled={isPending}
                   className={cn(
-                    "absolute top-2 z-20 w-7 h-7 rounded-full flex items-center justify-center transition-all disabled:opacity-50",
-                    photo.status === "pending" ? "left-10" : "left-2",
+                    "absolute top-2 left-2 z-20 w-7 h-7 rounded-full flex items-center justify-center transition-all disabled:opacity-50",
                     heroFeaturedIds.has(photo.id)
                       ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                       : "bg-black/40 text-white/30 border border-white/10 opacity-0 group-hover:opacity-100 hover:text-amber-400"
