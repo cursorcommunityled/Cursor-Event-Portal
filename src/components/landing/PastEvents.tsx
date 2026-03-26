@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import { Calendar, Users, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { pastEvents } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
@@ -30,7 +29,15 @@ interface RecapEvent {
 
 const PHOTOS_PER_PAGE = 6;
 
-function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
+function prefetchUrls(urls: string[]) {
+  for (const url of urls) {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = url;
+  }
+}
+
+const PhotoGallery = memo(function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
   const [page, setPage] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
@@ -45,6 +52,29 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
     [totalPages]
   );
 
+  // Warm cache for prev/next page so arrow clicks feel instant
+  useEffect(() => {
+    if (photos.length === 0 || totalPages <= 1) return;
+    const urls: string[] = [];
+    if (page > 0) {
+      const o = (page - 1) * PHOTOS_PER_PAGE;
+      urls.push(...photos.slice(o, o + PHOTOS_PER_PAGE));
+    }
+    if (page < totalPages - 1) {
+      const o = (page + 1) * PHOTOS_PER_PAGE;
+      urls.push(...photos.slice(o, o + PHOTOS_PER_PAGE));
+    }
+    prefetchUrls(urls);
+  }, [page, photos, totalPages]);
+
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const neighbors: string[] = [];
+    if (lightboxIndex > 0) neighbors.push(photos[lightboxIndex - 1]);
+    if (lightboxIndex < photos.length - 1) neighbors.push(photos[lightboxIndex + 1]);
+    prefetchUrls(neighbors);
+  }, [lightboxIndex, photos]);
+
   if (photos.length === 0) return null;
 
   const pageOffset = page * PHOTOS_PER_PAGE;
@@ -52,24 +82,23 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
 
   return (
     <>
-      <div className="relative group/gallery">
+      <div className="relative group/gallery [contain:layout]">
         <div className="overflow-hidden">
           <div className="grid grid-cols-3 gap-1 aspect-[3/1]">
             {pagePhotos.map((src, i) => (
               <button
-                key={`${page}-${i}-${src}`}
+                key={`${pageOffset + i}-${src}`}
                 type="button"
-                className="relative overflow-hidden cursor-pointer min-h-0"
+                className="relative min-h-0 overflow-hidden cursor-pointer bg-black/20"
                 onClick={() => setLightboxIndex(pageOffset + i)}
               >
-                <Image
+                <img
                   src={src}
                   alt={`${title} photo ${pageOffset + i + 1}`}
-                  fill
                   loading="lazy"
-                  className="object-cover hover:scale-105 transition-transform duration-300"
-                  sizes="(max-width: 768px) 33vw, 22vw"
-                  unoptimized={src.startsWith('http')}
+                  decoding="async"
+                  fetchPriority={page === 0 && i < 3 ? "high" : "low"}
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               </button>
             ))}
@@ -81,24 +110,24 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
             <button
               type="button"
               onClick={() => goPage('left')}
-              className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all ${page === 0 ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover/gallery:opacity-100'}`}
+              className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white/90 hover:bg-black/90 ${page === 0 ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover/gallery:opacity-100'}`}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               type="button"
               onClick={() => goPage('right')}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all ${page >= totalPages - 1 ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover/gallery:opacity-100'}`}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/75 text-white/90 hover:bg-black/90 ${page >= totalPages - 1 ? 'pointer-events-none opacity-0' : 'opacity-0 group-hover/gallery:opacity-100'}`}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 max-w-[90%] overflow-x-auto py-1">
+            <div className="absolute bottom-2 left-1/2 z-10 flex max-w-[90%] -translate-x-1/2 items-center gap-1.5 overflow-x-auto py-1">
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
                   type="button"
                   key={i}
                   onClick={() => setPage(i)}
-                  className={`shrink-0 w-1.5 h-1.5 rounded-full transition-all ${i === page ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'}`}
+                  className={`h-1.5 shrink-0 rounded-full ${i === page ? 'w-4 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/60'}`}
                 />
               ))}
             </div>
@@ -106,7 +135,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
         )}
 
         {photos.length > 0 && (
-          <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-[10px] text-white/70 tabular-nums">
+          <div className="absolute right-2 top-2 z-10 rounded-full border border-white/15 bg-black/75 px-2 py-0.5 text-[10px] tabular-nums text-white/80">
             {photos.length} photo{photos.length !== 1 ? 's' : ''}
           </div>
         )}
@@ -114,7 +143,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
 
       {lightboxIndex !== null && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/92"
           onClick={() => setLightboxIndex(null)}
         >
           <button
@@ -128,7 +157,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all"
+              className="absolute left-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white hover:bg-white/20"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -137,7 +166,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all"
+              className="absolute right-4 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/12 text-white hover:bg-white/20"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -159,7 +188,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
       )}
     </>
   );
-}
+});
 
 interface PastEventsProps {
   eventsWithPhotos?: EventWithPhotos[];
