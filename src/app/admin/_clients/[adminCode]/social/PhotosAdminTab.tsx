@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Check, X, Trash2, CheckCheck, ImageIcon, Filter } from "lucide-react";
+import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2 } from "lucide-react";
 import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos } from "@/lib/actions/photos";
 import { cn } from "@/lib/utils";
 import type { Event, EventPhoto, PhotoStatus } from "@/types";
@@ -25,6 +25,68 @@ export function PhotosAdminTab({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null);
+
+  // Admin upload state
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAdminUpload = useCallback(async (files: FileList | File[]) => {
+    setUploadError(null);
+    setUploading(true);
+
+    const fileArray = Array.from(files);
+    const results: EventPhoto[] = [];
+
+    for (const file of fileArray) {
+      const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+      if (!allowedTypes.includes(file.type)) {
+        setUploadError(`${file.name}: Only image files are supported`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadError(`${file.name}: File exceeds 10MB limit`);
+        continue;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("autoApprove", "true");
+
+      try {
+        const res = await fetch("/api/admin/upload-event-photo", {
+          method: "POST",
+          headers: {
+            "x-admin-code": adminCode,
+            "x-event-id": event.id,
+          },
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.photo) {
+          results.push(data.photo);
+        } else {
+          setUploadError(data.error || `Failed to upload ${file.name}`);
+        }
+      } catch {
+        setUploadError(`Failed to upload ${file.name}`);
+      }
+    }
+
+    if (results.length > 0) {
+      setPhotos((prev) => [...results, ...prev]);
+    }
+    setUploading(false);
+  }, [adminCode, event.id]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) {
+      handleAdminUpload(e.dataTransfer.files);
+    }
+  }, [handleAdminUpload]);
 
   const filteredPhotos = filter === "all"
     ? photos
@@ -143,6 +205,55 @@ export function PhotosAdminTab({
 
   return (
     <div className="space-y-6">
+      {/* Admin upload zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={cn(
+          "glass rounded-3xl border-2 border-dashed p-8 text-center cursor-pointer transition-all",
+          dragOver
+            ? "border-white/40 bg-white/10"
+            : "border-white/10 hover:border-white/20 hover:bg-white/5"
+        )}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files.length > 0) {
+              handleAdminUpload(e.target.files);
+            }
+            e.target.value = "";
+          }}
+        />
+        <div className="flex flex-col items-center gap-3">
+          {uploading ? (
+            <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
+          ) : (
+            <Upload className="w-8 h-8 text-gray-500" />
+          )}
+          <div>
+            <p className="text-sm text-white/80 font-medium">
+              {uploading ? "Uploading..." : "Drop photos here or click to upload"}
+            </p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-1">
+              Admin uploads are auto-approved · Multiple files supported · 10MB max each
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {uploadError && (
+        <div className="glass rounded-2xl border border-red-500/20 bg-red-500/5 p-3">
+          <p className="text-sm text-red-400">{uploadError}</p>
+        </div>
+      )}
+
       {/* Filter chips + bulk actions */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2">
