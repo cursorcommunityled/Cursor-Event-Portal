@@ -22,6 +22,10 @@ function getSizes(colSpan: number, cols: number, fallback = 100) {
   return `${Math.round(ratio * fallback)}vw`;
 }
 
+function isExternal(src: string) {
+  return src.startsWith('http');
+}
+
 const BentoGrid: React.FC<BentoGridProps> = ({
   photos,
   cols = 4,
@@ -65,6 +69,7 @@ const BentoGrid: React.FC<BentoGridProps> = ({
                 className="object-cover"
                 sizes={getSizes(mobile.colSpan ?? 1, mobileCols)}
                 priority={index < 4}
+                unoptimized={isExternal(photo.src)}
               />
             </div>
           );
@@ -94,6 +99,7 @@ const BentoGrid: React.FC<BentoGridProps> = ({
               className="object-cover"
               sizes={getSizes(photo.colSpan ?? 1, cols)}
               priority={index < 4}
+              unoptimized={isExternal(photo.src)}
             />
           </div>
         ))}

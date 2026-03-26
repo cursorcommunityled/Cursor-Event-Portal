@@ -1715,3 +1715,50 @@ export async function getUserEventPhotos(eventId: string, userId: string): Promi
   }
   return (data ?? []) as EventPhoto[];
 }
+
+export interface EventWithPhotos {
+  id: string;
+  slug: string;
+  name: string;
+  start_time: string | null;
+  status: string;
+  venue: string | null;
+  photos: EventPhoto[];
+}
+
+export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> {
+  noStore();
+  const supabase = await createServiceClient();
+
+  const { data: photos, error: photosError } = await supabase
+    .from("event_photos")
+    .select("*")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
+
+  if (photosError || !photos || photos.length === 0) {
+    return [];
+  }
+
+  const eventIds = [...new Set(photos.map((p) => p.event_id))];
+
+  const { data: events, error: eventsError } = await supabase
+    .from("events")
+    .select("id, slug, name, start_time, status, venue")
+    .in("id", eventIds)
+    .order("start_time", { ascending: false });
+
+  if (eventsError || !events) {
+    return [];
+  }
+
+  return events.map((ev: any) => ({
+    id: ev.id,
+    slug: ev.slug,
+    name: ev.name,
+    start_time: ev.start_time,
+    status: ev.status,
+    venue: ev.venue,
+    photos: photos.filter((p) => p.event_id === ev.id) as EventPhoto[],
+  }));
+}

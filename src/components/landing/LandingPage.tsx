@@ -15,6 +15,7 @@ import JsonLd from '@/components/landing/JsonLd';
 import EventPortalPopup from '@/components/landing/EventPortalPopup';
 import { siteConfig } from '@/content/site.config';
 import { upcomingEvents } from '@/content/events';
+import type { EventWithPhotos } from '@/lib/supabase/queries';
 
 function buildHomeJsonLd() {
   const org = {
@@ -45,9 +46,10 @@ function buildHomeJsonLd() {
 
 interface LandingPageProps {
   activeEventSlug: string;
+  eventsWithPhotos?: EventWithPhotos[];
 }
 
-export default function LandingPage({ activeEventSlug }: LandingPageProps) {
+export default function LandingPage({ activeEventSlug, eventsWithPhotos = [] }: LandingPageProps) {
   const [showPortal, setShowPortal] = useState(false);
 
   return (
@@ -55,7 +57,7 @@ export default function LandingPage({ activeEventSlug }: LandingPageProps) {
       <main className="min-h-screen bg-cursor-bg text-cursor-text scroll-smooth">
         <JsonLd data={buildHomeJsonLd()} />
         <Navbar onOpenPortal={() => setShowPortal(true)} />
-        <HeroHeader />
+        <HeroHeader eventsWithPhotos={eventsWithPhotos} />
 
         <div className="max-w-5xl mx-auto px-6 py-16 md:py-24">
           <AmbassadorSection />
@@ -64,7 +66,7 @@ export default function LandingPage({ activeEventSlug }: LandingPageProps) {
           <SectionDivider />
           <UpcomingEvents />
           <SectionDivider />
-          <PastEvents />
+          <PastEvents eventsWithPhotos={eventsWithPhotos} />
           <SectionDivider />
           <GlobalEvents />
           <LandingFooter />

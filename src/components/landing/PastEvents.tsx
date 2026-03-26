@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Calendar, Users } from 'lucide-react';
 import { pastEvents } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
+import type { EventWithPhotos } from '@/lib/supabase/queries';
 
 const containerVariants = {
   hidden: {},
@@ -17,10 +18,63 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-const PastEvents: React.FC = () => {
+interface RecapEvent {
+  id: string;
+  title: string;
+  date: string;
+  attendees?: number;
+  thumbnail?: string;
+  galleryImages?: string[];
+}
+
+interface PastEventsProps {
+  eventsWithPhotos?: EventWithPhotos[];
+}
+
+const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
   const { t, locale } = useI18n();
 
-  if (pastEvents.length === 0) {
+  const mergedEvents = useMemo(() => {
+    const staticRecaps: RecapEvent[] = pastEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      date: e.date,
+      attendees: e.attendees,
+      thumbnail: e.thumbnail,
+      galleryImages: e.galleryImages,
+    }));
+
+    const staticIds = new Set(pastEvents.map((e) => e.id));
+
+    const dbRecaps: RecapEvent[] = eventsWithPhotos
+      .filter((ev) => ev.photos.length > 0 && !staticIds.has(ev.slug))
+      .map((ev) => ({
+        id: ev.slug || ev.id,
+        title: ev.name,
+        date: ev.start_time ? ev.start_time.split('T')[0] : '',
+        thumbnail: ev.photos[0]?.file_url,
+        galleryImages: ev.photos.slice(1, 3).map((p) => p.file_url),
+      }));
+
+    // For static events, overlay DB photos if they exist (matched by slug)
+    const enhanced = staticRecaps.map((se) => {
+      const dbMatch = eventsWithPhotos.find((ev) => ev.slug === se.id);
+      if (!dbMatch || dbMatch.photos.length === 0) return se;
+      return {
+        ...se,
+        thumbnail: dbMatch.photos[0]?.file_url ?? se.thumbnail,
+        galleryImages: dbMatch.photos.length > 1
+          ? dbMatch.photos.slice(1, 3).map((p) => p.file_url)
+          : se.galleryImages,
+      };
+    });
+
+    return [...dbRecaps, ...enhanced].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [eventsWithPhotos]);
+
+  if (mergedEvents.length === 0) {
     return null;
   }
 
@@ -47,11 +101,13 @@ const PastEvents: React.FC = () => {
         viewport={{ once: true, margin: '-50px' }}
         className="space-y-6 -mx-3 sm:mx-0"
       >
-        {pastEvents.map((event) => {
-          const displayDate = new Date(`${event.date}T00:00:00`).toLocaleDateString(
-            locale === 'en' ? 'en-US' : locale,
-            { year: 'numeric', month: 'long', day: 'numeric' }
-          );
+        {mergedEvents.map((event) => {
+          const displayDate = event.date
+            ? new Date(`${event.date}T00:00:00`).toLocaleDateString(
+                locale === 'en' ? 'en-US' : locale,
+                { year: 'numeric', month: 'long', day: 'numeric' }
+              )
+            : '';
 
           const hasGallery = event.galleryImages && event.galleryImages.length > 0;
 
@@ -71,6 +127,7 @@ const PastEvents: React.FC = () => {
                           fill
                           className="object-cover"
                           sizes="(max-width: 768px) 100vw, 60vw"
+                          unoptimized={event.thumbnail.startsWith('http')}
                         />
                       </div>
                       {hasGallery &&
@@ -82,6 +139,7 @@ const PastEvents: React.FC = () => {
                               fill
                               className="object-cover"
                               sizes="(max-width: 768px) 33vw, 20vw"
+                              unoptimized={img.startsWith('http')}
                             />
                           </div>
                         ))}
@@ -92,10 +150,12 @@ const PastEvents: React.FC = () => {
                 <div className="px-5 py-4">
                   <h3 className="text-lg text-cursor-text font-medium mb-1.5">{event.title}</h3>
                   <div className="flex flex-wrap items-center gap-3 text-sm text-cursor-text-muted">
-                    <div className="flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4" />
-                      <span>{displayDate}</span>
-                    </div>
+                    {displayDate && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4" />
+                        <span>{displayDate}</span>
+                      </div>
+                    )}
                     {event.attendees ? (
                       <div className="flex items-center gap-1.5">
                         <Users className="w-4 h-4" />
