@@ -13,34 +13,23 @@ interface HeroHeaderProps {
 
 const HeroHeader: React.FC<HeroHeaderProps> = ({ eventsWithPhotos = [] }) => {
   const photos = useMemo(() => {
-    const allDbPhotos = eventsWithPhotos.flatMap((ev) =>
-      ev.photos.map((p) => ({ url: p.file_url, eventName: ev.name }))
-    );
+    const eventsWithDbPhotos = eventsWithPhotos.filter((ev) => ev.photos.length > 0);
+    if (eventsWithDbPhotos.length === 0) return headerPhotos;
 
-    if (allDbPhotos.length === 0) return headerPhotos;
+    // Pick one random photo per event, then swap into a few static slots
+    const picks = eventsWithDbPhotos.map((ev) => {
+      const idx = Math.floor(Math.random() * ev.photos.length);
+      return { url: ev.photos[idx].file_url, name: ev.name };
+    });
 
-    // Pick DB photos round-robin across events for variety
-    const byEvent = eventsWithPhotos
-      .filter((ev) => ev.photos.length > 0)
-      .map((ev) => ev.photos.map((p) => ({ url: p.file_url, name: ev.name })));
+    // Only replace up to 2 static photos (keep the curated mix mostly intact)
+    const maxReplacements = Math.min(picks.length, 2);
+    const replacementSlots = [3, 5];
 
-    const mixed: { url: string; name: string }[] = [];
-    let round = 0;
-    while (mixed.length < 7 && round < 10) {
-      for (const eventPhotos of byEvent) {
-        if (round < eventPhotos.length && mixed.length < 7) {
-          mixed.push(eventPhotos[round]);
-        }
-      }
-      round++;
-    }
-
-    if (mixed.length === 0) return headerPhotos;
-
-    // Map the static grid layout positions, replacing src with DB photos
     const result: HeaderPhoto[] = headerPhotos.map((slot, i) => {
-      if (i < mixed.length) {
-        return { ...slot, src: mixed[i].url, alt: `${mixed[i].name} event photo` };
+      const ri = replacementSlots.indexOf(i);
+      if (ri !== -1 && ri < maxReplacements) {
+        return { ...slot, src: picks[ri].url, alt: `${picks[ri].name} event photo` };
       }
       return slot;
     });
