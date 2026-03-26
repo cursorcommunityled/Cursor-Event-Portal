@@ -2,7 +2,8 @@
 
 import { useState, useTransition, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2 } from "lucide-react";
+import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive } from "lucide-react";
+import JSZip from "jszip";
 import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos } from "@/lib/actions/photos";
 import { cn } from "@/lib/utils";
 import type { Event, EventPhoto, PhotoStatus } from "@/types";
@@ -30,54 +31,125 @@ export function PhotosAdminTab({
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+  const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+
+  const isImageFile = (name: string, type?: string) => {
+    if (type && IMAGE_TYPES.includes(type)) return true;
+    const lower = name.toLowerCase();
+    return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+  };
+
+  const getMimeType = (name: string) => {
+    const lower = name.toLowerCase();
+    if (lower.endsWith(".png")) return "image/png";
+    if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+    if (lower.endsWith(".webp")) return "image/webp";
+    if (lower.endsWith(".gif")) return "image/gif";
+    return "image/png";
+  };
+
+  const extractImagesFromZip = async (file: File): Promise<File[]> => {
+    const zip = await JSZip.loadAsync(file);
+    const imageFiles: File[] = [];
+
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (entry.dir) continue;
+      const fileName = path.split("/").pop() || path;
+      if (fileName.startsWith(".") || fileName.startsWith("__")) continue;
+      if (!isImageFile(fileName)) continue;
+
+      const blob = await entry.async("blob");
+      if (blob.size > 10 * 1024 * 1024) continue;
+      const imageFile = new File([blob], fileName, { type: getMimeType(fileName) });
+      imageFiles.push(imageFile);
+    }
+
+    return imageFiles;
+  };
+
+  const uploadSingleFile = async (file: File): Promise<EventPhoto | null> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("autoApprove", "true");
+
+    const res = await fetch("/api/admin/upload-event-photo", {
+      method: "POST",
+      headers: {
+        "x-admin-code": adminCode,
+        "x-event-id": event.id,
+      },
+      body: formData,
+    });
+    const data = await res.json();
+    if (res.ok && data.photo) return data.photo;
+    throw new Error(data.error || `Failed to upload ${file.name}`);
+  };
 
   const handleAdminUpload = useCallback(async (files: FileList | File[]) => {
     setUploadError(null);
     setUploading(true);
+    setUploadProgress(null);
 
     const fileArray = Array.from(files);
-    const results: EventPhoto[] = [];
+    const imagesToUpload: File[] = [];
+    const errors: string[] = [];
 
     for (const file of fileArray) {
-      const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
-      if (!allowedTypes.includes(file.type)) {
-        setUploadError(`${file.name}: Only image files are supported`);
-        continue;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        setUploadError(`${file.name}: File exceeds 10MB limit`);
-        continue;
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("autoApprove", "true");
-
-      try {
-        const res = await fetch("/api/admin/upload-event-photo", {
-          method: "POST",
-          headers: {
-            "x-admin-code": adminCode,
-            "x-event-id": event.id,
-          },
-          body: formData,
-        });
-        const data = await res.json();
-        if (res.ok && data.photo) {
-          results.push(data.photo);
-        } else {
-          setUploadError(data.error || `Failed to upload ${file.name}`);
+      if (file.name.toLowerCase().endsWith(".zip") || file.type === "application/zip" || file.type === "application/x-zip-compressed") {
+        try {
+          const extracted = await extractImagesFromZip(file);
+          if (extracted.length === 0) {
+            errors.push(`${file.name}: No images found in ZIP`);
+          } else {
+            imagesToUpload.push(...extracted);
+          }
+        } catch {
+          errors.push(`${file.name}: Failed to read ZIP file`);
         }
-      } catch {
-        setUploadError(`Failed to upload ${file.name}`);
+      } else if (isImageFile(file.name, file.type)) {
+        if (file.size > 10 * 1024 * 1024) {
+          errors.push(`${file.name}: File exceeds 10MB limit`);
+        } else {
+          imagesToUpload.push(file);
+        }
+      } else {
+        errors.push(`${file.name}: Unsupported file type`);
       }
     }
 
-    if (results.length > 0) {
-      setPhotos((prev) => [...results, ...prev]);
+    if (errors.length > 0) {
+      setUploadError(errors.join(" · "));
     }
+
+    if (imagesToUpload.length === 0) {
+      setUploading(false);
+      return;
+    }
+
+    setUploadProgress({ current: 0, total: imagesToUpload.length });
+    const results: EventPhoto[] = [];
+
+    for (let i = 0; i < imagesToUpload.length; i++) {
+      setUploadProgress({ current: i + 1, total: imagesToUpload.length });
+      try {
+        const photo = await uploadSingleFile(imagesToUpload[i]);
+        if (photo) {
+          results.push(photo);
+          setPhotos((prev) => [photo, ...prev]);
+        }
+      } catch (err) {
+        errors.push(err instanceof Error ? err.message : `Failed to upload ${imagesToUpload[i].name}`);
+        setUploadError(errors.join(" · "));
+      }
+    }
+
     setUploading(false);
+    setUploadProgress(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminCode, event.id]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -221,7 +293,7 @@ export function PhotosAdminTab({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+          accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,.zip,application/zip"
           multiple
           className="hidden"
           onChange={(e) => {
@@ -233,16 +305,30 @@ export function PhotosAdminTab({
         />
         <div className="flex flex-col items-center gap-3">
           {uploading ? (
-            <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
+              {uploadProgress && (
+                <p className="text-xs text-gray-400 tabular-nums">
+                  {uploadProgress.current} / {uploadProgress.total}
+                </p>
+              )}
+            </div>
           ) : (
-            <Upload className="w-8 h-8 text-gray-500" />
+            <div className="flex items-center gap-3">
+              <Upload className="w-8 h-8 text-gray-500" />
+              <Archive className="w-6 h-6 text-gray-600" />
+            </div>
           )}
           <div>
             <p className="text-sm text-white/80 font-medium">
-              {uploading ? "Uploading..." : "Drop photos here or click to upload"}
+              {uploading
+                ? uploadProgress
+                  ? `Uploading ${uploadProgress.current} of ${uploadProgress.total}...`
+                  : "Extracting..."
+                : "Drop photos or a ZIP file here, or click to upload"}
             </p>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-1">
-              Admin uploads are auto-approved · Multiple files supported · 10MB max each
+              Auto-approved · Multiple files or ZIP archives · 10MB per image
             </p>
           </div>
         </div>
