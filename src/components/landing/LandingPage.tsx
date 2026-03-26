@@ -47,9 +47,10 @@ function buildHomeJsonLd() {
 interface LandingPageProps {
   activeEventSlug: string;
   eventsWithPhotos?: EventWithPhotos[];
+  heroFeaturedIds?: string[];
 }
 
-export default function LandingPage({ activeEventSlug, eventsWithPhotos = [] }: LandingPageProps) {
+export default function LandingPage({ activeEventSlug, eventsWithPhotos = [], heroFeaturedIds = [] }: LandingPageProps) {
   const [showPortal, setShowPortal] = useState(false);
 
   return (
@@ -57,7 +58,7 @@ export default function LandingPage({ activeEventSlug, eventsWithPhotos = [] }: 
       <main className="min-h-screen bg-cursor-bg text-cursor-text scroll-smooth">
         <JsonLd data={buildHomeJsonLd()} />
         <Navbar onOpenPortal={() => setShowPortal(true)} />
-        <HeroHeader eventsWithPhotos={eventsWithPhotos} />
+        <HeroHeader eventsWithPhotos={eventsWithPhotos} heroFeaturedIds={heroFeaturedIds} />
 
         <div className="max-w-5xl mx-auto px-6 py-16 md:py-24">
           <AmbassadorSection />

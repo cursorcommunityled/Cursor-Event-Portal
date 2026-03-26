@@ -30,6 +30,7 @@ interface EventSocialClientProps {
   initialNetworkingRound: SpeedNetworkingRound | null;
   initialNetworkingPairs: SpeedNetworkingPair[];
   initialPhotos: EventPhoto[];
+  initialHeroFeaturedIds?: string[];
   sortBy: "new" | "trending";
   statusFilter: "all" | "open" | "answered" | "pinned" | "hidden";
   activeTab: TabType;
@@ -128,6 +129,7 @@ export function EventSocialClient({
   initialNetworkingRound,
   initialNetworkingPairs,
   initialPhotos,
+  initialHeroFeaturedIds = [],
   sortBy,
   statusFilter,
   activeTab: initialActiveTab
@@ -258,6 +260,7 @@ export function EventSocialClient({
             event={event}
             adminCode={adminCode}
             initialPhotos={initialPhotos}
+            initialHeroFeaturedIds={initialHeroFeaturedIds}
           />
         );
     }

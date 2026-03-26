@@ -178,3 +178,51 @@ export async function bulkApprovePhotos(
   revalidatePath(`/admin/${adminCode}/social`);
   return { success: true };
 }
+
+// ─── Hero Gallery Featured Photos ─────────────────────────────────────────────
+
+const HERO_FEATURED_KEY = "hero_featured_photo_ids";
+
+export async function getHeroFeaturedIds(): Promise<string[]> {
+  const supabase = await createServiceClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", HERO_FEATURED_KEY)
+    .single();
+
+  if (!data?.value) return [];
+  try {
+    return JSON.parse(data.value);
+  } catch {
+    return [];
+  }
+}
+
+export async function toggleHeroFeatured(
+  photoId: string,
+  eventId: string,
+  adminCode: string
+) {
+  const supabase = await createServiceClient();
+  const auth = await validateAdminAccess(supabase, eventId, adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const current = await getHeroFeaturedIds();
+  const isCurrentlyFeatured = current.includes(photoId);
+  const updated = isCurrentlyFeatured
+    ? current.filter((id) => id !== photoId)
+    : [...current, photoId];
+
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ key: HERO_FEATURED_KEY, value: JSON.stringify(updated) }, { onConflict: "key" });
+
+  if (error) {
+    console.error("[toggleHeroFeatured] Error:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/");
+  return { success: true, featured: !isCurrentlyFeatured, featuredIds: updated };
+}

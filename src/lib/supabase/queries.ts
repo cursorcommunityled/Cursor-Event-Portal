@@ -1762,3 +1762,20 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
     photos: photos.filter((p) => p.event_id === ev.id) as EventPhoto[],
   }));
 }
+
+export async function getHeroFeaturedPhotoIds(): Promise<string[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "hero_featured_photo_ids")
+    .single();
+
+  if (!data?.value) return [];
+  try {
+    return JSON.parse(data.value);
+  } catch {
+    return [];
+  }
+}

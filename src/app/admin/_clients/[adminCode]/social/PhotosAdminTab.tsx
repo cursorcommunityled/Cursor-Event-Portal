@@ -2,9 +2,9 @@
 
 import { useState, useTransition, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive } from "lucide-react";
+import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive, Star } from "lucide-react";
 import JSZip from "jszip";
-import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos } from "@/lib/actions/photos";
+import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos, toggleHeroFeatured } from "@/lib/actions/photos";
 import { cn } from "@/lib/utils";
 import type { Event, EventPhoto, PhotoStatus } from "@/types";
 
@@ -12,6 +12,7 @@ interface PhotosAdminTabProps {
   event: Event;
   adminCode: string;
   initialPhotos: EventPhoto[];
+  initialHeroFeaturedIds?: string[];
 }
 
 type FilterStatus = "all" | PhotoStatus;
@@ -20,12 +21,14 @@ export function PhotosAdminTab({
   event,
   adminCode,
   initialPhotos,
+  initialHeroFeaturedIds = [],
 }: PhotosAdminTabProps) {
   const [photos, setPhotos] = useState(initialPhotos);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null);
+  const [heroFeaturedIds, setHeroFeaturedIds] = useState<Set<string>>(new Set(initialHeroFeaturedIds));
 
   // Admin upload state
   const [uploading, setUploading] = useState(false);
@@ -260,6 +263,22 @@ export function PhotosAdminTab({
     });
   };
 
+  const handleToggleHeroFeatured = (photoId: string) => {
+    startTransition(async () => {
+      const result = await toggleHeroFeatured(photoId, event.id, adminCode);
+      if (result.success) {
+        setHeroFeaturedIds((prev) => {
+          const next = new Set(prev);
+          if (result.featured) next.add(photoId);
+          else next.delete(photoId);
+          return next;
+        });
+      }
+    });
+  };
+
+  const heroCount = heroFeaturedIds.size;
+
   const FILTERS: Array<{ id: FilterStatus; label: string; count: number }> = [
     { id: "all", label: "All", count: photos.length },
     { id: "pending", label: "Pending", count: pendingCount },
@@ -337,6 +356,16 @@ export function PhotosAdminTab({
       {uploadError && (
         <div className="glass rounded-2xl border border-red-500/20 bg-red-500/5 p-3">
           <p className="text-sm text-red-400">{uploadError}</p>
+        </div>
+      )}
+
+      {/* Hero gallery indicator */}
+      {heroCount > 0 && (
+        <div className="glass rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 flex items-center gap-2">
+          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+          <p className="text-sm text-amber-300">
+            <span className="font-bold">{heroCount}</span> photo{heroCount !== 1 ? "s" : ""} featured in the hero gallery on the homepage
+          </p>
         </div>
       )}
 
@@ -431,6 +460,24 @@ export function PhotosAdminTab({
               )}>
                 {photo.status}
               </div>
+
+              {/* Hero featured star */}
+              {photo.status === "approved" && (
+                <button
+                  onClick={() => handleToggleHeroFeatured(photo.id)}
+                  disabled={isPending}
+                  className={cn(
+                    "absolute top-2 z-20 w-7 h-7 rounded-full flex items-center justify-center transition-all disabled:opacity-50",
+                    photo.status === "pending" ? "left-10" : "left-2",
+                    heroFeaturedIds.has(photo.id)
+                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                      : "bg-black/40 text-white/30 border border-white/10 opacity-0 group-hover:opacity-100 hover:text-amber-400"
+                  )}
+                  title={heroFeaturedIds.has(photo.id) ? "Remove from hero gallery" : "Feature in hero gallery"}
+                >
+                  <Star className={cn("w-3.5 h-3.5", heroFeaturedIds.has(photo.id) && "fill-amber-400")} />
+                </button>
+              )}
 
               {/* Image */}
               <button
@@ -532,6 +579,21 @@ export function PhotosAdminTab({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {photo.status === "approved" && (
+                    <button
+                      onClick={() => handleToggleHeroFeatured(photo.id)}
+                      disabled={isPending}
+                      className={cn(
+                        "flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold border transition-all disabled:opacity-50",
+                        heroFeaturedIds.has(photo.id)
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                          : "bg-white/5 text-gray-400 border-white/10 hover:text-amber-400 hover:border-amber-500/20"
+                      )}
+                    >
+                      <Star className={cn("w-3.5 h-3.5", heroFeaturedIds.has(photo.id) && "fill-amber-400")} />
+                      {heroFeaturedIds.has(photo.id) ? "Featured" : "Feature"}
+                    </button>
+                  )}
                   {photo.status === "pending" && (
                     <>
                       <button

@@ -1,4 +1,4 @@
-import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts, getNetworkingSession, getNetworkingCurrentRound, getNetworkingPairsForRound, getEventPhotosForAdmin } from "@/lib/supabase/queries";
+import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts, getNetworkingSession, getNetworkingCurrentRound, getNetworkingPairsForRound, getEventPhotosForAdmin, getHeroFeaturedPhotoIds } from "@/lib/supabase/queries";
 import { EventSocialClient } from "../../_clients/[adminCode]/social/EventSocialClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
 
@@ -24,7 +24,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
   const resolvedTab = tabMap[tab ?? ""] ?? tab;
   const activeTab = (resolvedTab === "qa" || resolvedTab === "connect" || resolvedTab === "follow-up" || resolvedTab === "polls" || resolvedTab === "announcements" || resolvedTab === "copilot" || resolvedTab === "photos") ? resolvedTab : "copilot";
 
-  const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession, photos] = await Promise.all([
+  const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession, photos, heroFeaturedIds] = await Promise.all([
     getQuestionsForAdmin(event.id, sortBy, true),
     getAllPolls(event.id),
     getAnnouncements(event.id),
@@ -33,6 +33,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
     getExchangePosts(event.id),
     getNetworkingSession(event.id),
     getEventPhotosForAdmin(event.id),
+    getHeroFeaturedPhotoIds(),
   ]);
 
   const networkingRound = networkingSession ? await getNetworkingCurrentRound(networkingSession.id) : null;
@@ -54,6 +55,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
       initialNetworkingRound={networkingRound}
       initialNetworkingPairs={networkingPairs}
       initialPhotos={photos}
+      initialHeroFeaturedIds={heroFeaturedIds}
       sortBy={sortBy}
       statusFilter={statusFilter as any}
       activeTab={activeTab as any}

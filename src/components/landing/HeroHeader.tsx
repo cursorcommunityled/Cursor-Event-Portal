@@ -9,33 +9,63 @@ import type { EventWithPhotos } from '@/lib/supabase/queries';
 
 interface HeroHeaderProps {
   eventsWithPhotos?: EventWithPhotos[];
+  heroFeaturedIds?: string[];
 }
 
-const HeroHeader: React.FC<HeroHeaderProps> = ({ eventsWithPhotos = [] }) => {
+const HeroHeader: React.FC<HeroHeaderProps> = ({ eventsWithPhotos = [], heroFeaturedIds = [] }) => {
   const photos = useMemo(() => {
-    const eventsWithDbPhotos = eventsWithPhotos.filter((ev) => ev.photos.length > 0);
-    if (eventsWithDbPhotos.length === 0) return headerPhotos;
+    const slotCount = headerPhotos.length;
+    const allDbPhotos = eventsWithPhotos.flatMap((ev) =>
+      ev.photos.map((p) => ({ id: p.id, url: p.file_url, eventName: ev.name }))
+    );
 
-    // Pick one random photo per event, then swap into a few static slots
-    const picks = eventsWithDbPhotos.map((ev) => {
-      const idx = Math.floor(Math.random() * ev.photos.length);
-      return { url: ev.photos[idx].file_url, name: ev.name };
-    });
+    // 1. Admin-curated featured photos fill first
+    const featured = heroFeaturedIds
+      .map((id) => allDbPhotos.find((p) => p.id === id))
+      .filter(Boolean) as { id: string; url: string; eventName: string }[];
 
-    // Only replace up to 2 static photos (keep the curated mix mostly intact)
-    const maxReplacements = Math.min(picks.length, 2);
-    const replacementSlots = [3, 5];
+    // 2. Fill remaining slots proportionally across events (round-robin)
+    const usedIds = new Set(featured.map((p) => p.id));
+    const remaining = slotCount - featured.length;
+
+    const filler: { url: string; eventName: string }[] = [];
+    if (remaining > 0) {
+      const eventsWithUnused = eventsWithPhotos
+        .map((ev) => ({
+          name: ev.name,
+          photos: ev.photos.filter((p) => !usedIds.has(p.id)),
+        }))
+        .filter((ev) => ev.photos.length > 0);
+
+      if (eventsWithUnused.length > 0) {
+        let round = 0;
+        while (filler.length < remaining && round < 20) {
+          for (const ev of eventsWithUnused) {
+            if (round < ev.photos.length && filler.length < remaining) {
+              filler.push({ url: ev.photos[round].file_url, eventName: ev.name });
+            }
+          }
+          round++;
+        }
+      }
+    }
+
+    const combined = [
+      ...featured.map((p) => ({ url: p.url, eventName: p.eventName })),
+      ...filler,
+    ];
+
+    if (combined.length === 0) return headerPhotos;
 
     const result: HeaderPhoto[] = headerPhotos.map((slot, i) => {
-      const ri = replacementSlots.indexOf(i);
-      if (ri !== -1 && ri < maxReplacements) {
-        return { ...slot, src: picks[ri].url, alt: `${picks[ri].name} event photo` };
+      if (i < combined.length) {
+        return { ...slot, src: combined[i].url, alt: `${combined[i].eventName} event photo` };
       }
       return slot;
     });
 
     return result;
-  }, [eventsWithPhotos]);
+  }, [eventsWithPhotos, heroFeaturedIds]);
 
   return (
     <motion.div
