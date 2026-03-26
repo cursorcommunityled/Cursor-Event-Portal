@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Calendar, Users, ChevronLeft, ChevronRight, X } from 'lucide-react';
@@ -31,86 +31,74 @@ interface RecapEvent {
 const PHOTOS_PER_PAGE = 6;
 
 function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const totalPages = Math.ceil(photos.length / PHOTOS_PER_PAGE);
 
-  const scroll = useCallback((dir: 'left' | 'right') => {
-    const next = dir === 'right' ? Math.min(page + 1, totalPages - 1) : Math.max(page - 1, 0);
-    setPage(next);
-    scrollRef.current?.scrollTo({ left: next * scrollRef.current.offsetWidth, behavior: 'smooth' });
-  }, [page, totalPages]);
+  const goPage = useCallback(
+    (dir: 'left' | 'right') => {
+      setPage((p) => {
+        const next = dir === 'right' ? Math.min(p + 1, totalPages - 1) : Math.max(p - 1, 0);
+        return next;
+      });
+    },
+    [totalPages]
+  );
 
   if (photos.length === 0) return null;
+
+  const pageOffset = page * PHOTOS_PER_PAGE;
+  const pagePhotos = photos.slice(pageOffset, pageOffset + PHOTOS_PER_PAGE);
 
   return (
     <>
       <div className="relative group/gallery">
-        <div
-          ref={scrollRef}
-          className="overflow-hidden"
-          onScroll={(e) => {
-            const el = e.currentTarget;
-            const newPage = Math.round(el.scrollLeft / el.offsetWidth);
-            if (newPage !== page) setPage(newPage);
-          }}
-        >
-          <div
-            className="grid gap-1"
-            style={{
-              gridTemplateColumns: `repeat(${totalPages}, 100%)`,
-            }}
-          >
-            {Array.from({ length: totalPages }).map((_, pageIdx) => {
-              const pagePhotos = photos.slice(pageIdx * PHOTOS_PER_PAGE, (pageIdx + 1) * PHOTOS_PER_PAGE);
-              return (
-                <div key={pageIdx} className="grid grid-cols-3 gap-1 aspect-[3/1]">
-                  {pagePhotos.map((src, i) => (
-                    <button
-                      key={i}
-                      className="relative overflow-hidden cursor-pointer"
-                      onClick={() => setLightboxIndex(pageIdx * PHOTOS_PER_PAGE + i)}
-                    >
-                      <Image
-                        src={src}
-                        alt={`${title} photo ${pageIdx * PHOTOS_PER_PAGE + i + 1}`}
-                        fill
-                        className="object-cover hover:scale-105 transition-transform duration-300"
-                        sizes="(max-width: 768px) 33vw, 20vw"
-                        unoptimized={src.startsWith('http')}
-                      />
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
+        <div className="overflow-hidden">
+          <div className="grid grid-cols-3 gap-1 aspect-[3/1]">
+            {pagePhotos.map((src, i) => (
+              <button
+                key={`${page}-${i}-${src}`}
+                type="button"
+                className="relative overflow-hidden cursor-pointer min-h-0"
+                onClick={() => setLightboxIndex(pageOffset + i)}
+              >
+                <Image
+                  src={src}
+                  alt={`${title} photo ${pageOffset + i + 1}`}
+                  fill
+                  loading="lazy"
+                  className="object-cover hover:scale-105 transition-transform duration-300"
+                  sizes="(max-width: 768px) 33vw, 22vw"
+                  unoptimized={src.startsWith('http')}
+                />
+              </button>
+            ))}
           </div>
         </div>
 
         {totalPages > 1 && (
           <>
             <button
-              onClick={() => scroll('left')}
+              type="button"
+              onClick={() => goPage('left')}
               className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all ${page === 0 ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover/gallery:opacity-100'}`}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
-              onClick={() => scroll('right')}
+              type="button"
+              onClick={() => goPage('right')}
               className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all ${page >= totalPages - 1 ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover/gallery:opacity-100'}`}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 max-w-[90%] overflow-x-auto py-1">
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button
+                  type="button"
                   key={i}
-                  onClick={() => {
-                    setPage(i);
-                    scrollRef.current?.scrollTo({ left: i * (scrollRef.current?.offsetWidth ?? 0), behavior: 'smooth' });
-                  }}
-                  className={`w-1.5 h-1.5 rounded-full transition-all ${i === page ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'}`}
+                  onClick={() => setPage(i)}
+                  className={`shrink-0 w-1.5 h-1.5 rounded-full transition-all ${i === page ? 'bg-white w-4' : 'bg-white/40 hover:bg-white/60'}`}
                 />
               ))}
             </div>
@@ -130,6 +118,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
           onClick={() => setLightboxIndex(null)}
         >
           <button
+            type="button"
             onClick={() => setLightboxIndex(null)}
             className="absolute top-4 right-4 z-10 text-white/60 hover:text-white transition-colors"
           >
@@ -137,6 +126,7 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
           </button>
           {lightboxIndex > 0 && (
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all"
             >
@@ -145,23 +135,22 @@ function PhotoGallery({ photos, title }: { photos: string[]; title: string }) {
           )}
           {lightboxIndex < photos.length - 1 && (
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/20 transition-all"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
           )}
-          <div className="relative w-full max-w-4xl max-h-[85vh] mx-6" onClick={(e) => e.stopPropagation()}>
-            <div className="relative w-full h-[75vh]">
-              <Image
-                src={photos[lightboxIndex]}
-                alt={`${title} photo ${lightboxIndex + 1}`}
-                fill
-                className="object-contain"
-                sizes="100vw"
-                unoptimized={photos[lightboxIndex].startsWith('http')}
-              />
-            </div>
+          <div className="relative w-full max-w-4xl max-h-[85vh] mx-6 flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            {/* Native img: one decode at a time, avoids stacking Next/Image buffers when paging fast */}
+            <img
+              key={lightboxIndex}
+              src={photos[lightboxIndex]}
+              alt={`${title} photo ${lightboxIndex + 1}`}
+              decoding="async"
+              className="max-h-[75vh] max-w-full w-auto h-auto object-contain"
+            />
             <p className="text-center text-xs text-white/50 mt-3 tabular-nums">
               {lightboxIndex + 1} / {photos.length}
             </p>
