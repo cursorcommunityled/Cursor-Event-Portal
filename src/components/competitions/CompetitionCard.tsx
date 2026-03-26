@@ -270,11 +270,12 @@ export function CompetitionCard({ competition, eventSlug, userId, isAdmin = fals
                 const showEntry = !isTop3 || !top3Locked || isFinalist || competition.status !== "voting" || isAdmin;
                 if (!showEntry) return null;
 
-                return (
+                  return (
                   <EntryCard
                     key={entry.id}
                     entry={entry}
                     competitionId={competition.id}
+                    eventId={competition.event_id}
                     eventSlug={eventSlug}
                     userId={userId}
                     canVote={canVote && (!isTop3 || (top3Locked && isFinalist))}

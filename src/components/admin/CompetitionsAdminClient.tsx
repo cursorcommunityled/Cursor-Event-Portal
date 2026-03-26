@@ -16,6 +16,7 @@ import {
   Users,
   Code,
   ThumbsUp,
+  Undo2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -54,6 +55,12 @@ const statusActions: Record<string, { label: string; next: CompetitionStatus; ic
   draft: { label: "Activate", next: "active", icon: Play },
   active: { label: "Open Voting", next: "voting", icon: Vote },
   voting: { label: "End Competition", next: "ended", icon: Square },
+};
+
+const revertActions: Record<string, { label: string; prev: CompetitionStatus; warning: string }> = {
+  active: { label: "Back to Draft", prev: "draft", warning: "This will hide the competition from attendees." },
+  voting: { label: "Reopen Submissions", prev: "active", warning: "This will clear all votes and top-3 selections. Submissions will reopen." },
+  ended: { label: "Reopen Voting", prev: "voting", warning: "This will clear winner selections. Voting will reopen." },
 };
 
 const statusBadge: Record<string, string> = {
@@ -171,6 +178,27 @@ export function CompetitionsAdminClient({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Status update failed.");
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleRevert = async (compId: string, prevStatus: string, warning: string) => {
+    if (!confirm(`Revert competition?\n\n${warning}\n\nThis cannot be undone.`)) return;
+    setLoading(compId);
+    setError(null);
+
+    try {
+      const result = await updateCompetitionStatus(compId, eventSlug, prevStatus, adminCode);
+      if (result && "error" in result && result.error) {
+        setError(result.error);
+      } else if (result && "success" in result && result.success) {
+        router.refresh();
+      } else {
+        setError("Revert failed. No response from server.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Revert failed.");
     } finally {
       setLoading(null);
     }
@@ -418,6 +446,20 @@ export function CompetitionsAdminClient({
               </button>
 
               <div className="flex items-center gap-2 ml-4">
+                {revertActions[comp.status] && (
+                  <button
+                    onClick={() => {
+                      const ra = revertActions[comp.status];
+                      handleRevert(comp.id, ra.prev, ra.warning);
+                    }}
+                    disabled={loading === comp.id}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-all disabled:opacity-50"
+                    title={revertActions[comp.status].warning}
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    {revertActions[comp.status].label}
+                  </button>
+                )}
                 {action && (
                   <button
                     onClick={() => handleStatusChange(comp.id, action.next)}

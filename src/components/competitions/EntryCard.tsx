@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, ThumbsUp, ExternalLink, Code, Users, Star } from "lucide-react";
+import { Trophy, ThumbsUp, ExternalLink, Code, Users, Star, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { castVote } from "@/lib/actions/competitions";
 import { WinnerCelebration } from "@/components/competitions/Confetti";
+import { EditEntryModal } from "./EditEntryModal";
 import type { CompetitionEntry, VotingMode } from "@/types";
 
 interface EntryCardProps {
   entry: CompetitionEntry;
   competitionId: string;
+  eventId: string;
   eventSlug: string;
   userId: string;
   canVote: boolean;
@@ -76,6 +78,7 @@ function isDirectVideoUrl(url: string): boolean {
 export function EntryCard({
   entry,
   competitionId,
+  eventId,
   eventSlug,
   userId,
   canVote,
@@ -91,7 +94,9 @@ export function EntryCard({
   const [voting, setVoting] = useState(false);
   const [voteError, setVoteError] = useState<string | null>(null);
   const [judgeScore, setJudgeScore] = useState(3);
+  const [showEditModal, setShowEditModal] = useState(false);
   const isOwn = entry.user_id === userId;
+  const canEdit = isOwn && competitionStatus && ["active", "voting"].includes(competitionStatus);
   const ghRepo = parseGitHubRepo(entry.repo_url);
   const stackBlitzUrl = ghRepo ? `https://stackblitz.com/github/${ghRepo.owner}/${ghRepo.repo}` : null;
   const videoEmbedUrl = entry.video_url ? getVideoEmbedUrl(entry.video_url) : null;
@@ -226,6 +231,16 @@ export function EntryCard({
 
         {/* Action buttons */}
         <div className="flex items-center gap-3 pt-1 flex-wrap">
+          {canEdit && (
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-all"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Edit
+            </button>
+          )}
+
           {stackBlitzUrl && (
             <a
               href={stackBlitzUrl}
@@ -304,6 +319,19 @@ export function EntryCard({
           )}
         </div>
       </div>
+
+      {showEditModal && (
+        <EditEntryModal
+          entry={entry}
+          competitionId={competitionId}
+          eventId={eventId}
+          eventSlug={eventSlug}
+          onClose={() => {
+            setShowEditModal(false);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

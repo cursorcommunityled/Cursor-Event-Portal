@@ -63,9 +63,9 @@ export async function POST(request: NextRequest) {
       .eq("event_id", eventId)
       .single();
 
-    if (compError || !competition || competition.status !== "active") {
+    if (compError || !competition || !["active", "voting"].includes(competition.status)) {
       return NextResponse.json(
-        { error: "Competition not found or not accepting submissions" },
+        { error: "Competition not found or not accepting uploads" },
         { status: 400 }
       );
     }
