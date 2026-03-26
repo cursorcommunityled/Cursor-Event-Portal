@@ -16,6 +16,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   published: { label: "Published", color: "text-blue-400" },
   draft:     { label: "Draft",     color: "text-gray-500" },
   completed: { label: "Completed", color: "text-gray-600" },
+  archived:  { label: "Archived",  color: "text-gray-700" },
 };
 
 export default async function AdminEventsPage({ params }: AdminEventsPageProps) {
