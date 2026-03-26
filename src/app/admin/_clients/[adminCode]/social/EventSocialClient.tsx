@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { MessageCircle, ClipboardCheck, Vote, Megaphone, Bot, Zap, Users2, Send } from "lucide-react";
+import { MessageCircle, ClipboardCheck, Vote, Megaphone, Bot, Zap, Users2, Send, Camera } from "lucide-react";
 import { AdminQAClient } from "../../qa/AdminQAClient";
 import { PollsAdminClient } from "../../polls/PollsAdminClient";
 import { AnnouncementsClient } from "../../announcements/AnnouncementsClient";
@@ -11,8 +11,9 @@ import { ExchangeAdminBoard } from "@/components/exchange/ExchangeAdminBoard";
 import { NetworkingAdminClient } from "../../networking/NetworkingAdminClient";
 import { CopilotTab } from "./CopilotTab";
 import { FollowUpAdminClient } from "../../follow-up/FollowUpAdminClient";
+import { PhotosAdminTab } from "./PhotosAdminTab";
 import { cn } from "@/lib/utils";
-import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost, SpeedNetworkingSession, SpeedNetworkingRound, SpeedNetworkingPair } from "@/types";
+import type { Event, Question, Poll, Announcement, Survey, HelpRequest, ExchangePost, SpeedNetworkingSession, SpeedNetworkingRound, SpeedNetworkingPair, EventPhoto } from "@/types";
 
 interface EventSocialClientProps {
   event: Event;
@@ -28,12 +29,13 @@ interface EventSocialClientProps {
   initialNetworkingSession: SpeedNetworkingSession | null;
   initialNetworkingRound: SpeedNetworkingRound | null;
   initialNetworkingPairs: SpeedNetworkingPair[];
+  initialPhotos: EventPhoto[];
   sortBy: "new" | "trending";
   statusFilter: "all" | "open" | "answered" | "pinned" | "hidden";
   activeTab: TabType;
 }
 
-type TabType = "qa" | "connect" | "follow-up" | "polls" | "announcements" | "copilot";
+type TabType = "qa" | "connect" | "follow-up" | "polls" | "announcements" | "copilot" | "photos";
 type QASubTab = "questions" | "help";
 type ConnectSubTab = "exchange" | "networking";
 
@@ -73,6 +75,12 @@ const TABS: Array<{ id: TabType; label: string; icon: typeof MessageCircle; desc
     label: "Follow-Up",
     icon: Send,
     description: "Surveys & post-event emails",
+  },
+  {
+    id: "photos",
+    label: "Photos",
+    icon: Camera,
+    description: "Attendee photo submissions",
   },
 ];
 
@@ -119,6 +127,7 @@ export function EventSocialClient({
   initialNetworkingSession,
   initialNetworkingRound,
   initialNetworkingPairs,
+  initialPhotos,
   sortBy,
   statusFilter,
   activeTab: initialActiveTab
@@ -240,6 +249,15 @@ export function EventSocialClient({
             eventSlug={eventSlug}
             adminCode={adminCode}
             initialSurveys={initialSurveys}
+          />
+        );
+
+      case "photos":
+        return (
+          <PhotosAdminTab
+            event={event}
+            adminCode={adminCode}
+            initialPhotos={initialPhotos}
           />
         );
     }

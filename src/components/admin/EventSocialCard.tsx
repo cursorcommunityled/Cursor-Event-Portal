@@ -14,7 +14,8 @@ interface EventSocialCardProps {
   adminCode: string;
   initialOpenQuestions: number;
   initialQuestions: Question[];
-  userId?: string; // Optional: if provided, uses Supabase for seen tracking
+  pendingPhotos?: number;
+  userId?: string;
 }
 
 export function EventSocialCard({
@@ -23,6 +24,7 @@ export function EventSocialCard({
   adminCode,
   initialOpenQuestions,
   initialQuestions,
+  pendingPhotos = 0,
   userId,
 }: EventSocialCardProps) {
   const router = useRouter();
@@ -117,6 +119,7 @@ export function EventSocialCard({
     { id: "polls", label: "Polls" },
     { id: "announcements", label: "Broadcast" },
     { id: "follow-up", label: "Follow-Up" },
+    { id: "photos", label: "Photos" },
   ];
 
   return (
@@ -149,6 +152,11 @@ export function EventSocialCard({
                 {newQuestionAlert && (
                   <span className="text-[10px] uppercase tracking-[0.2em] text-green-400 font-bold flex items-center ml-1">
                     <span className="mr-1">•</span> New
+                  </span>
+                )}
+                {pendingPhotos > 0 && (
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-amber-400 font-bold flex items-center ml-1">
+                    <span className="mr-1">•</span> {pendingPhotos} Photo{pendingPhotos !== 1 ? "s" : ""}
                   </span>
                 )}
               </div>

@@ -719,3 +719,21 @@ export interface CursorCredit {
   created_at: string;
   user?: { name: string; email: string | null };
 }
+
+// ─── Event Photos ─────────────────────────────────────────────────────────────
+
+export type PhotoStatus = "pending" | "approved" | "rejected";
+
+export interface EventPhoto {
+  id: string;
+  event_id: string;
+  uploaded_by: string | null;
+  file_url: string;
+  storage_path: string;
+  caption: string | null;
+  status: PhotoStatus;
+  reviewed_by: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  uploader?: Pick<User, "id" | "name" | "email">;
+}

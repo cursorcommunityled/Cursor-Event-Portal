@@ -1,4 +1,4 @@
-import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey, getAllEvents } from "@/lib/supabase/queries";
+import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey, getAllEvents, getPendingPhotoCount } from "@/lib/supabase/queries";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -32,11 +32,12 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
   const supabase = await createClient();
 
-  const [stats, questions, allEvents, activeSlug] = await Promise.all([
+  const [stats, questions, allEvents, activeSlug, pendingPhotos] = await Promise.all([
     getEventStats(event.id),
     getQuestions(event.id),
     getAllEvents(),
     getActiveEventSlug(),
+    getPendingPhotoCount(event.id),
   ]);
 
   // Auto-default live event to most recent only if no active slug is set yet
@@ -172,6 +173,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             adminCode={adminCode}
             initialOpenQuestions={openQuestions}
             initialQuestions={questions}
+            pendingPhotos={pendingPhotos}
           />
 
           {/* Attendance */}

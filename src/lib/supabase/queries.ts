@@ -30,6 +30,8 @@ import type {
   PlannedEvent,
   EventCalendarCity,
   Venue,
+  EventPhoto,
+  PhotoStatus,
 } from "@/types";
 
 // Event queries
@@ -1637,4 +1639,79 @@ export async function getOpenExchangePosts(eventId: string): Promise<ExchangePos
     return [];
   }
   return (data ?? []) as ExchangePost[];
+}
+
+// ─── Event Photos ─────────────────────────────────────────────────────────────
+
+export async function getEventPhotosForAdmin(eventId: string, status?: PhotoStatus): Promise<EventPhoto[]> {
+  noStore();
+  const supabase = await createServiceClient();
+
+  let query = supabase
+    .from("event_photos")
+    .select("*, uploader:users!event_photos_uploaded_by_fkey(id, name, email)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: false });
+
+  if (status) {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("[getEventPhotosForAdmin] Error:", error);
+    return [];
+  }
+  return (data ?? []) as EventPhoto[];
+}
+
+export async function getApprovedEventPhotos(eventId: string): Promise<EventPhoto[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("event_photos")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getApprovedEventPhotos] Error:", error);
+    return [];
+  }
+  return (data ?? []) as EventPhoto[];
+}
+
+export async function getPendingPhotoCount(eventId: string): Promise<number> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { count, error } = await supabase
+    .from("event_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("[getPendingPhotoCount] Error:", error);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+export async function getUserEventPhotos(eventId: string, userId: string): Promise<EventPhoto[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("event_photos")
+    .select("*")
+    .eq("event_id", eventId)
+    .eq("uploaded_by", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getUserEventPhotos] Error:", error);
+    return [];
+  }
+  return (data ?? []) as EventPhoto[];
 }

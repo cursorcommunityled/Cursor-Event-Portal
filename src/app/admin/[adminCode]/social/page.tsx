@@ -1,4 +1,4 @@
-import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts, getNetworkingSession, getNetworkingCurrentRound, getNetworkingPairsForRound } from "@/lib/supabase/queries";
+import { getQuestionsForAdmin, getAllPolls, getAnnouncements, getAllSurveys, getHelpRequestsForAdmin, getExchangePosts, getNetworkingSession, getNetworkingCurrentRound, getNetworkingPairsForRound, getEventPhotosForAdmin } from "@/lib/supabase/queries";
 import { EventSocialClient } from "../../_clients/[adminCode]/social/EventSocialClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
 
@@ -22,9 +22,9 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
     surveys: "follow-up",
   };
   const resolvedTab = tabMap[tab ?? ""] ?? tab;
-  const activeTab = (resolvedTab === "qa" || resolvedTab === "connect" || resolvedTab === "follow-up" || resolvedTab === "polls" || resolvedTab === "announcements" || resolvedTab === "copilot") ? resolvedTab : "copilot";
+  const activeTab = (resolvedTab === "qa" || resolvedTab === "connect" || resolvedTab === "follow-up" || resolvedTab === "polls" || resolvedTab === "announcements" || resolvedTab === "copilot" || resolvedTab === "photos") ? resolvedTab : "copilot";
 
-  const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession] = await Promise.all([
+  const [questions, polls, announcements, surveys, helpRequests, exchangePosts, networkingSession, photos] = await Promise.all([
     getQuestionsForAdmin(event.id, sortBy, true),
     getAllPolls(event.id),
     getAnnouncements(event.id),
@@ -32,6 +32,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
     getHelpRequestsForAdmin(event.id),
     getExchangePosts(event.id),
     getNetworkingSession(event.id),
+    getEventPhotosForAdmin(event.id),
   ]);
 
   const networkingRound = networkingSession ? await getNetworkingCurrentRound(networkingSession.id) : null;
@@ -52,6 +53,7 @@ export default async function EventSocialPage({ params, searchParams }: EventSoc
       initialNetworkingSession={networkingSession}
       initialNetworkingRound={networkingRound}
       initialNetworkingPairs={networkingPairs}
+      initialPhotos={photos}
       sortBy={sortBy}
       statusFilter={statusFilter as any}
       activeTab={activeTab as any}
