@@ -3,7 +3,7 @@ import { CursorEvent } from '@/lib/landing-types';
 export const events: CursorEvent[] = [
   {
     id: 'calgary-apr-2026',
-    title: 'Cursor Meetup Calgary April',
+    title: 'Cursor Meetup — April',
     date: '2026-04-29',
     displayDate: 'April 29, 2026',
     location: 'Calgary, Canada',
@@ -12,7 +12,7 @@ export const events: CursorEvent[] = [
   },
   {
     id: 'calgary-hackathon-sait-may-2026',
-    title: 'Cursor Calgary Hackathon - SAIT',
+    title: 'Cursor Hackathon — SAIT',
     date: '2026-05-23',
     displayDate: 'May 23–24, 2026',
     location: 'Calgary, Canada',
