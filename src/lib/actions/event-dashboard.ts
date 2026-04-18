@@ -425,7 +425,6 @@ export async function promoteToEvent(
       end_time,
       status: "draft",
       admin_code,
-      timezone: tz,
       capacity: 65,
     })
     .select("id, slug, admin_code")
