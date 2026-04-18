@@ -2,6 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { EventStatus } from "@/types";
 
 export async function setActiveEventSlug(slug: string): Promise<{ error?: string }> {
   // Admin access is controlled by the secret adminCode in the URL — no session cookie needed.
@@ -12,6 +13,20 @@ export async function setActiveEventSlug(slug: string): Promise<{ error?: string
 
   if (error) return { error: error.message };
   revalidatePath("/");
+  revalidatePath("/admin");
+  return {};
+}
+
+export async function setEventStatus(
+  eventId: string,
+  status: EventStatus
+): Promise<{ error?: string }> {
+  const service = await createServiceClient();
+  const { error } = await service
+    .from("events")
+    .update({ status })
+    .eq("id", eventId);
+  if (error) return { error: error.message };
   revalidatePath("/admin");
   return {};
 }
