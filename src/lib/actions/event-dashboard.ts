@@ -213,6 +213,9 @@ function parseNextDataEvent(ev: any): ScrapedLumaEvent {
   const fullAddress: string | null =
     geo.full_address ?? geo.address ?? null;
 
+  const description: string | null =
+    ev.description_md ?? ev.description ?? null;
+
   return {
     title: ev.name ?? "",
     event_date: start?.date ?? "",
@@ -220,7 +223,7 @@ function parseNextDataEvent(ev: any): ScrapedLumaEvent {
     end_time: end?.time ?? null,
     venue: venueName,
     address: fullAddress,
-    notes: null,
+    notes: description,
   };
 }
 
@@ -250,7 +253,7 @@ function parseJsonLdEvent(ld: any): ScrapedLumaEvent {
     end_time: endRaw ? parseTime(endRaw) : null,
     venue: venueName,
     address: fullAddress,
-    notes: null,
+    notes: ld.description ?? null,
   };
 }
 
@@ -350,4 +353,91 @@ export async function createEventCalendarCity(name: string) {
 
   revalidatePath("/admin");
   return { success: true, data: row };
+}
+
+// ─── Promote Planned Event → Live Event ───────────────────────────────────────
+
+function toTimestamptz(dateStr: string, timeStr: string, tz: string): string {
+  // Convert a local date+time (in tz) to a UTC ISO string.
+  // Strategy: treat the inputs as UTC first, compute the tz offset at that moment
+  // and shift accordingly. Works correctly across DST boundaries.
+  const guessUtc = new Date(`${dateStr}T${timeStr}:00Z`);
+  const localStr = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).format(guessUtc); // e.g. "2026-04-29 11:30:00"
+  const localAsUtcMs = new Date(localStr.replace(" ", "T") + "Z").getTime();
+  const offsetMs = guessUtc.getTime() - localAsUtcMs;
+  return new Date(guessUtc.getTime() + offsetMs).toISOString();
+}
+
+export async function promoteToEvent(
+  plannedEventId: string
+): Promise<{ error: string } | { data: { id: string; slug: string; admin_code: string } }> {
+  const supabase = await createServiceClient();
+
+  const { data: pe, error: peErr } = await supabase
+    .from("planned_events")
+    .select("*")
+    .eq("id", plannedEventId)
+    .single();
+
+  if (peErr || !pe) return { error: "Planned event not found" };
+  if (pe.linked_event_id) return { error: "Already linked to an event" };
+
+  const slugBase = (pe.title as string)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  let slug = slugBase;
+  let suffix = 2;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data: existing } = await supabase.from("events").select("id").eq("slug", slug).maybeSingle();
+    if (!existing) break;
+    slug = `${slugBase}-${suffix++}`;
+  }
+
+  const admin_code = String(Math.floor(Math.random() * 100_000_000)).padStart(8, "0");
+
+  const [year, monthNum] = (pe.event_date as string).split("-");
+  const MONTH_CODES = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  const code = `${MONTH_CODES[parseInt(monthNum) - 1]}${year}`;
+
+  const tz = "America/Edmonton";
+  const start_time = pe.start_time ? toTimestamptz(pe.event_date, pe.start_time, tz) : null;
+  const end_time = pe.end_time ? toTimestamptz(pe.event_date, pe.end_time, tz) : null;
+
+  const { data: newEvent, error: insertErr } = await supabase
+    .from("events")
+    .insert({
+      slug,
+      code,
+      name: pe.title,
+      venue: pe.venue ?? null,
+      address: pe.address ?? null,
+      start_time,
+      end_time,
+      status: "draft",
+      admin_code,
+      timezone: tz,
+      capacity: 65,
+    })
+    .select("id, slug, admin_code")
+    .single();
+
+  if (insertErr || !newEvent) return { error: insertErr?.message ?? "Failed to create event" };
+
+  await supabase
+    .from("planned_events")
+    .update({ linked_event_id: newEvent.id })
+    .eq("id", plannedEventId);
+
+  revalidatePath("/admin");
+  return { data: { id: newEvent.id, slug: newEvent.slug, admin_code: newEvent.admin_code } };
 }
