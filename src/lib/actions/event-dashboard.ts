@@ -359,9 +359,9 @@ export async function createEventCalendarCity(name: string) {
 
 function toTimestamptz(dateStr: string, timeStr: string, tz: string): string {
   // Convert a local date+time (in tz) to a UTC ISO string.
-  // Strategy: treat the inputs as UTC first, compute the tz offset at that moment
-  // and shift accordingly. Works correctly across DST boundaries.
-  const guessUtc = new Date(`${dateStr}T${timeStr}:00Z`);
+  // Normalize to HH:MM — Postgres TIME returns HH:MM:SS; slice to avoid double-seconds.
+  const hhmm = timeStr.slice(0, 5);
+  const guessUtc = new Date(`${dateStr}T${hhmm}:00Z`);
   const localStr = new Intl.DateTimeFormat("sv-SE", {
     timeZone: tz,
     year: "numeric", month: "2-digit", day: "2-digit",
