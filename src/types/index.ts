@@ -553,6 +553,7 @@ export interface PlannedEvent {
   confirmed: boolean;
   city: string;
   linked_event_id: string | null;
+  linked_event: { id: string; slug: string; admin_code: string; status: string } | null;
   created_at: string;
   updated_at: string;
 }

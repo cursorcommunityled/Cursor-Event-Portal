@@ -8,9 +8,10 @@ import {
   createEventCalendarCity,
   createVenue,
   scrapeLumaEvent,
+  promoteToEvent,
 } from "@/lib/actions/event-dashboard";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck, Link2, ImagePlus, Loader2 } from "lucide-react";
+import { Plus, Trash2, Check, X, MapPin, Clock, StickyNote, CalendarCheck, Link2, ImagePlus, Loader2, ExternalLink, Zap } from "lucide-react";
 import type { PlannedEvent, EventCalendarCity, Venue } from "@/types";
 
 interface CalendarAdminTabProps {
@@ -237,6 +238,29 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
       setUpdateError(result.error);
     }
     setLoading(null);
+  };
+
+  // ── Promote planned event to live event ──────────────────────────────────
+  const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [promoteError, setPromoteError] = useState<string | null>(null);
+
+  const handlePromote = async (id: string) => {
+    setPromotingId(id);
+    setPromoteError(null);
+    const result = await promoteToEvent(id);
+    setPromotingId(null);
+    if ("error" in result) {
+      setPromoteError(result.error);
+      return;
+    }
+    // Update local state: set linked_event on the planned event
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === id
+          ? { ...e, linked_event_id: result.data.id, linked_event: { id: result.data.id, slug: result.data.slug, admin_code: result.data.admin_code, status: "draft" } }
+          : e
+      )
+    );
   };
 
   // ── Delete event ──────────────────────────────────────────────────────────
@@ -551,7 +575,29 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                        {ev.linked_event ? (
+                          <a
+                            href={`/admin/${ev.linked_event.admin_code}/event-dashboard`}
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-[10px] uppercase tracking-widest font-medium hover:bg-green-500/20 transition-all"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            {ev.linked_event.status === "draft" ? "Draft" : ev.linked_event.status === "published" ? "Live" : ev.linked_event.status}
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => handlePromote(ev.id)}
+                            disabled={promotingId === ev.id}
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-400 text-[10px] uppercase tracking-widest font-medium hover:bg-white/10 hover:text-white transition-all disabled:opacity-40"
+                          >
+                            {promotingId === ev.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Zap className="w-3 h-3" />
+                            )}
+                            {promotingId === ev.id ? "Creating…" : "Create Event"}
+                          </button>
+                        )}
                         <button
                           onClick={() => startEdit(ev)}
                           className="text-[10px] uppercase tracking-widest text-gray-600 hover:text-white transition-colors font-medium px-2 py-1"
@@ -575,6 +621,9 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
         </div>
       ))}
 
+      {promoteError && (
+        <p className="text-xs text-red-400 text-center">{promoteError}</p>
+      )}
       <p className="text-[10px] uppercase tracking-[0.2em] text-gray-700 text-center font-medium pt-2">
         Bulk import from spreadsheet · SQL INSERT into planned_events with city column · Luma import supported above
       </p>

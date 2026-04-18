@@ -1469,7 +1469,7 @@ export async function getPlannedEvents(): Promise<PlannedEvent[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("planned_events")
-    .select("*")
+    .select("*, linked_event:events!linked_event_id(id, slug, admin_code, status)")
     .order("event_date", { ascending: true });
   if (error) return [];
   return (data ?? []) as PlannedEvent[];
