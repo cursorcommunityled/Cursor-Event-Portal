@@ -14,6 +14,10 @@
 --   - sessions             (defined in schema.sql, no RLS — sensitive: holds passcodes)
 --   - admin_emails         (defined in admin-users.sql, no RLS — sensitive: admin allow-list)
 --   - magic_links          (referenced by auth.ts; create if missing + lock down)
+--
+-- This migration is idempotent and self-contained: every table is
+-- created if missing, and every policy/RLS-enable is wrapped so it
+-- skips tables that don't exist on this database.
 -- ============================================================
 
 -- ---------- agenda_items: public read, server-only writes ----------
@@ -42,6 +46,14 @@ ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 -- This prevents anyone with the anon key from listing valid passcodes.
 
 -- ---------- admin_emails: server-only access (admin allow-list) ----------
+-- admin_emails is normally created by supabase/admin-users.sql, which is a
+-- manual bootstrap script and not a migration. Create it here if missing
+-- so this migration is self-contained on a fresh database.
+CREATE TABLE IF NOT EXISTS public.admin_emails (
+  email      TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 ALTER TABLE public.admin_emails ENABLE ROW LEVEL SECURITY;
 
 -- No public policies. Middleware/admin-role checks must use the
@@ -71,30 +83,37 @@ ALTER TABLE public.magic_links ENABLE ROW LEVEL SECURITY;
 
 -- ---------- Backfill UPDATE/DELETE policies on tables that only had INSERT/SELECT ----------
 -- Some earlier migrations enabled RLS + SELECT/INSERT but never added UPDATE
--- or DELETE policies, which silently breaks server-side updates if the service
--- role key is ever rotated to anon by mistake. Add the missing service-role
--- pass-throughs so the existing pattern is uniform.
+-- or DELETE policies. Skip any table that doesn't exist on this DB so the
+-- migration still succeeds on partially-bootstrapped projects.
 
-DROP POLICY IF EXISTS "venues_update" ON public.venues;
-CREATE POLICY "venues_update" ON public.venues FOR UPDATE USING (true);
-
-DROP POLICY IF EXISTS "venues_delete" ON public.venues;
-CREATE POLICY "venues_delete" ON public.venues FOR DELETE USING (true);
-
-DROP POLICY IF EXISTS "event_calendar_cities_update" ON public.event_calendar_cities;
-CREATE POLICY "event_calendar_cities_update" ON public.event_calendar_cities FOR UPDATE USING (true);
-
-DROP POLICY IF EXISTS "event_calendar_cities_delete" ON public.event_calendar_cities;
-CREATE POLICY "event_calendar_cities_delete" ON public.event_calendar_cities FOR DELETE USING (true);
-
-DROP POLICY IF EXISTS "conversation_themes_update" ON public.conversation_themes;
-CREATE POLICY "conversation_themes_update" ON public.conversation_themes FOR UPDATE USING (true);
-
-DROP POLICY IF EXISTS "conversation_themes_delete" ON public.conversation_themes;
-CREATE POLICY "conversation_themes_delete" ON public.conversation_themes FOR DELETE USING (true);
-
-DROP POLICY IF EXISTS "event_theme_selections_delete" ON public.event_theme_selections;
-CREATE POLICY "event_theme_selections_delete" ON public.event_theme_selections FOR DELETE USING (true);
-
-DROP POLICY IF EXISTS "planned_events_delete" ON public.planned_events;
-CREATE POLICY "planned_events_delete" ON public.planned_events FOR DELETE USING (true);
+DO $$
+DECLARE
+  t RECORD;
+BEGIN
+  FOR t IN
+    SELECT table_name, policy_suffix, action FROM (VALUES
+      ('venues',                  'update', 'UPDATE'),
+      ('venues',                  'delete', 'DELETE'),
+      ('event_calendar_cities',   'update', 'UPDATE'),
+      ('event_calendar_cities',   'delete', 'DELETE'),
+      ('conversation_themes',     'update', 'UPDATE'),
+      ('conversation_themes',     'delete', 'DELETE'),
+      ('event_theme_selections',  'delete', 'DELETE'),
+      ('planned_events',          'delete', 'DELETE')
+    ) AS x(table_name, policy_suffix, action)
+  LOOP
+    IF to_regclass(format('public.%I', t.table_name)) IS NOT NULL THEN
+      EXECUTE format(
+        'DROP POLICY IF EXISTS %I ON public.%I',
+        t.table_name || '_' || t.policy_suffix,
+        t.table_name
+      );
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR %s USING (true)',
+        t.table_name || '_' || t.policy_suffix,
+        t.table_name,
+        t.action
+      );
+    END IF;
+  END LOOP;
+END $$;
