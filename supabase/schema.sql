@@ -168,6 +168,18 @@ ALTER TABLE answers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE question_upvotes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE surveys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE survey_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agenda_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+
+-- Agenda items: public read; mutations only via service-role server actions
+CREATE POLICY "Agenda items are viewable by everyone" ON agenda_items FOR SELECT USING (true);
+
+-- Announcements: public read; mutations only via service-role server actions
+CREATE POLICY "Announcements are viewable by everyone" ON announcements FOR SELECT USING (true);
+
+-- Sessions: server-only (passcodes are sensitive). Service role bypasses RLS,
+-- so loginWithPasscode / createPasscodeSession keep working.
 
 -- Basic RLS policies (allow all reads, restrict writes based on auth)
 -- In production, you'd want more restrictive policies

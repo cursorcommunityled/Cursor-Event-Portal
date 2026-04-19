@@ -55,11 +55,15 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!user || user.role !== "admin") {
-        console.error("Admin check failed:", { userId: session.userId, user, userError });
-        return NextResponse.json({
-          error: "Admin access required",
-          debug: { userId: session.userId, userFound: !!user, role: user?.role }
-        }, { status: 403 });
+        // Log details server-side; never echo userIds/roles to the client.
+        console.error("[import-registrations] Admin check failed", {
+          hasUser: !!user,
+          userError: userError?.message,
+        });
+        return NextResponse.json(
+          { error: "Admin access required" },
+          { status: 403 }
+        );
       }
     }
 

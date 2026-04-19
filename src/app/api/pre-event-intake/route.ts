@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import { rateLimit, getClientIp } from "@/lib/auth/rate-limit";
 
 // Create a temporary session for pre-event intake completion
 export async function POST(request: NextRequest) {
@@ -12,6 +13,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing eventId or email" },
         { status: 400 }
+      );
+    }
+
+    // Throttle email-enumeration attempts against this endpoint.
+    const ip = getClientIp(request);
+    const ipLimit = rateLimit(`pre-intake:ip:${ip}`, { limit: 20, windowMs: 60_000 });
+    const emailLimit = rateLimit(`pre-intake:email:${String(email).toLowerCase()}`, {
+      limit: 5,
+      windowMs: 60_000,
+    });
+    if (!ipLimit.ok || !emailLimit.ok) {
+      const retryAfter = Math.max(
+        ipLimit.ok ? 0 : ipLimit.retryAfterSeconds,
+        emailLimit.ok ? 0 : emailLimit.retryAfterSeconds
+      );
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
       );
     }
 

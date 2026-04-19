@@ -2,11 +2,37 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendMagicLink } from "@/lib/email/resend";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { generatePasscode } from "@/lib/utils";
+import { rateLimit } from "@/lib/auth/rate-limit";
 import crypto from "crypto";
 
+async function getActionIp(): Promise<string> {
+  try {
+    const h = await headers();
+    const xff = h.get("x-forwarded-for");
+    if (xff) {
+      const first = xff.split(",")[0]?.trim();
+      if (first) return first;
+    }
+    return h.get("x-real-ip") ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 export async function requestMagicLink(email: string, eventId: string, eventName: string) {
+  // Throttle by IP and by email to prevent spamming users / Resend quota.
+  const ip = await getActionIp();
+  const ipLimit = rateLimit(`magic-link:ip:${ip}`, { limit: 10, windowMs: 60_000 });
+  const emailLimit = rateLimit(`magic-link:email:${email.toLowerCase()}`, {
+    limit: 3,
+    windowMs: 5 * 60_000,
+  });
+  if (!ipLimit.ok || !emailLimit.ok) {
+    return { error: "Too many requests. Please wait a few minutes and try again." };
+  }
+
   const supabase = await createServiceClient();
 
   // Generate secure token
