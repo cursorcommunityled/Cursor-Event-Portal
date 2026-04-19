@@ -21,6 +21,19 @@ const PREF_EMAIL: Record<NotificationType, string> = {
 /**
  * Fan out an in-app (and optionally email) notification to all registered
  * attendees of an event, respecting their individual preferences.
+ *
+ * Trust model: this function intentionally uses the service-role client so
+ * it can write to `in_app_notifications` and read user emails. It MUST only
+ * be called from server contexts (server actions or API routes) that have
+ * already authorised the caller as an admin or as a system trigger (cron).
+ * It is not exposed as an HTTP endpoint and must never be wrapped in one
+ * without an admin guard.
+ *
+ * Current callers (all admin-gated):
+ *   - lib/actions/polls.ts        (createPoll/openPoll  — admin-only)
+ *   - lib/actions/survey.ts       (publishSurvey        — admin-only)
+ *   - app/api/announcements/route.ts (POST              — admin-guarded)
+ *   - app/api/cron/process-scheduled/route.ts (cron     — secret-guarded)
  */
 export async function fanOutNotification(
   eventId: string,

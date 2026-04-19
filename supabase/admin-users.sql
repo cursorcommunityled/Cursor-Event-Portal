@@ -116,6 +116,11 @@ CREATE TABLE IF NOT EXISTS public.admin_emails (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- RLS: admin_emails is the admin allow-list — must not be readable by the
+-- anon client. Server code uses the service role (which bypasses RLS) to
+-- check if a logged-in user's email is in this table.
+ALTER TABLE public.admin_emails ENABLE ROW LEVEL SECURITY;
+
 -- Insert admin emails
 INSERT INTO public.admin_emails (email) VALUES
   ('simonloewen@gmail.com'),

@@ -24,15 +24,11 @@ function isAllowedImage(file: File) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("[upload-slide] Request received");
-  
   try {
     const session = await getSession();
     if (!session) {
-      console.log("[upload-slide] No session found");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    console.log("[upload-slide] Session found for user:", session.userId);
 
     const supabase = await createServiceClient();
 
@@ -43,74 +39,58 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError) {
-      console.error("[upload-slide] Error fetching user:", userError);
+      console.error("[upload-slide] Error fetching user role");
     }
-    
+
     if (!user || user.role !== "admin") {
-      console.log("[upload-slide] User not admin:", user?.role);
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
-    console.log("[upload-slide] User is admin");
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const eventId = formData.get("eventId") as string | null;
 
-    console.log("[upload-slide] File:", file?.name, "Size:", file?.size, "Type:", file?.type);
-    console.log("[upload-slide] EventId:", eventId);
-
     if (!file || !eventId) {
-      console.log("[upload-slide] Missing file or eventId");
       return NextResponse.json({ error: "Missing file or eventId" }, { status: 400 });
     }
 
     if (!isAllowedImage(file)) {
-      console.log("[upload-slide] Invalid file type:", file.type);
       return NextResponse.json({ error: "Only image files are supported" }, { status: 400 });
     }
 
     if (file.size > MAX_SIZE_BYTES) {
-      console.log("[upload-slide] File too large:", file.size);
       return NextResponse.json(
         { error: "File size exceeds 20MB limit" },
         { status: 400 }
       );
     }
 
-    console.log("[upload-slide] Checking storage buckets...");
     const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-    
+
     if (bucketError) {
-      console.error("[upload-slide] Bucket list error:", bucketError);
+      console.error("[upload-slide] Bucket list error:", bucketError.message);
       return NextResponse.json(
-        { error: `Storage access error: ${bucketError.message}` },
+        { error: "Storage is unavailable. Please try again." },
         { status: 500 }
       );
     }
-    
-    console.log("[upload-slide] Available buckets:", buckets?.map(b => b.name).join(", ") || "none");
 
     const bucket = buckets?.find((item) => item.name === "slides");
     if (!bucket) {
-      console.log("[upload-slide] Creating 'slides' bucket...");
       const { error: createError } = await supabase.storage.createBucket("slides", { public: true });
       if (createError) {
-        console.error("[upload-slide] Failed to create bucket:", createError);
+        console.error("[upload-slide] Bucket create error:", createError.message);
         return NextResponse.json(
-          { error: `Storage bucket 'slides' not found and could not be created: ${createError.message}` },
+          { error: "Storage bucket could not be initialised." },
           { status: 500 }
         );
       }
-      console.log("[upload-slide] Bucket created successfully");
     } else if (!bucket.public) {
-      console.log("[upload-slide] Making bucket public...");
       await supabase.storage.updateBucket("slides", { public: true });
     }
 
     const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${eventId}/${Date.now()}-${safeFileName}`;
-    
-    console.log("[upload-slide] Uploading to path:", filePath);
 
     const { error: uploadError } = await supabase.storage
       .from("slides")
@@ -120,9 +100,9 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error("[upload-slide] Upload error:", uploadError);
+      console.error("[upload-slide] Upload error:", uploadError.message);
       return NextResponse.json(
-        { error: `Failed to upload slide: ${uploadError.message}` },
+        { error: "Failed to upload slide." },
         { status: 500 }
       );
     }
@@ -130,8 +110,6 @@ export async function POST(request: NextRequest) {
     const { data: urlData } = supabase.storage
       .from("slides")
       .getPublicUrl(filePath);
-
-    console.log("[upload-slide] Upload successful, URL:", urlData.publicUrl);
 
     return NextResponse.json({
       success: true,
@@ -145,7 +123,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[upload-slide] Unexpected error:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal server error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

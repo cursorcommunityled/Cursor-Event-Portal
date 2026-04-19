@@ -3,15 +3,23 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// This endpoint should be called by a cron job service (e.g., cron-job.org, GitHub Actions, Render cron)
-// It can be secured with an API key in the Authorization header
+// This endpoint should be called by a cron job service (e.g., cron-job.org, GitHub Actions, Render cron).
+// It MUST be called with `Authorization: Bearer <CRON_SECRET_KEY>`. If the
+// env var is unset on the server we fail closed so the endpoint cannot be
+// triggered by an unauthenticated request.
 export async function POST(request: NextRequest) {
   try {
-    // Optional: Verify API key for security
-    const authHeader = request.headers.get("authorization");
     const expectedKey = process.env.CRON_SECRET_KEY;
-    
-    if (expectedKey && authHeader !== `Bearer ${expectedKey}`) {
+    if (!expectedKey) {
+      console.error("[cleanup-intake-data] CRON_SECRET_KEY is not set; refusing to run.");
+      return NextResponse.json(
+        { error: "Endpoint disabled (missing CRON_SECRET_KEY)" },
+        { status: 503 }
+      );
+    }
+
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${expectedKey}`) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

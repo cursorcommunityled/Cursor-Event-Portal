@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit, getClientIp } from "@/lib/auth/rate-limit";
 
 // Health check for debugging
 export async function GET() {
@@ -16,6 +17,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Email is required" },
         { status: 400 }
+      );
+    }
+
+    // Rate limit by IP and by email so brute-force / enumeration attempts
+    // get throttled even when the attacker rotates one of the two.
+    const ip = getClientIp(request);
+    const ipLimit = rateLimit(`admin-login:ip:${ip}`, { limit: 10, windowMs: 60_000 });
+    const emailLimit = rateLimit(`admin-login:email:${String(email).toLowerCase()}`, {
+      limit: 5,
+      windowMs: 5 * 60_000,
+    });
+    if (!ipLimit.ok || !emailLimit.ok) {
+      const retryAfter = Math.max(
+        ipLimit.ok ? 0 : ipLimit.retryAfterSeconds,
+        emailLimit.ok ? 0 : emailLimit.retryAfterSeconds
+      );
+      return NextResponse.json(
+        { error: "Too many login attempts. Please wait and try again." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } }
       );
     }
 
