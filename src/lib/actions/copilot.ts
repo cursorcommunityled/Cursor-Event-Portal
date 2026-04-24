@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { createServiceClient } from "@/lib/supabase/server";
+import { requireEventAdmin } from "@/lib/auth/admin-action";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -138,8 +139,15 @@ export async function getOpsMetrics(eventId: string): Promise<OpsMetrics> {
 // ============================================================================
 
 export async function getOpsRecommendations(
-  eventId: string
+  eventId: string,
+  adminCode?: string | null
 ): Promise<{ recommendations: Recommendation[]; metrics: OpsMetrics }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) {
+    // Return empty payload on unauthorized so the dashboard surfaces nothing.
+    const metrics = await getOpsMetrics(eventId);
+    return { recommendations: [], metrics };
+  }
   const metrics = await getOpsMetrics(eventId);
 
   const prompt = `You are an AI ops copilot for a live tech event facilitator. Analyze the real-time event metrics below and return a JSON array of actionable recommendations.
@@ -206,8 +214,12 @@ Respond with ONLY a raw JSON array (no wrapper object, no markdown):
 
 export async function sendStaffAlertSMS(
   message: string,
-  eventId: string
+  eventId: string,
+  adminCode?: string | null
 ): Promise<{ success: boolean; sent: number; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return { success: false, sent: 0, error: authError.error };
+
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_FROM_NUMBER;

@@ -2,6 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { requireEventAdmin, requireAnyAdmin } from "@/lib/auth/admin-action";
 
 // ─── Theme Selection ──────────────────────────────────────────────────────────
 
@@ -10,6 +11,9 @@ export async function selectEventTheme(
   themeId: string,
   adminCode: string
 ) {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
   const supabase = await createServiceClient();
   const { error } = await supabase
     .from("event_theme_selections")
@@ -23,6 +27,9 @@ export async function selectEventTheme(
 }
 
 export async function clearEventTheme(eventId: string, adminCode: string) {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
   const supabase = await createServiceClient();
   const { error } = await supabase
     .from("event_theme_selections")
@@ -46,7 +53,10 @@ export async function createPlannedEvent(data: {
   address?: string | null;
   notes?: string | null;
   confirmed?: boolean;
-}) {
+}, adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const supabase = await createServiceClient();
   const { data: row, error } = await supabase
     .from("planned_events")
@@ -71,8 +81,12 @@ export async function updatePlannedEvent(
     address: string | null;
     notes: string | null;
     confirmed: boolean;
-  }>
+  }>,
+  adminCode?: string | null
 ) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const supabase = await createServiceClient();
   const { error } = await supabase
     .from("planned_events")
@@ -83,7 +97,10 @@ export async function updatePlannedEvent(
   return { success: true };
 }
 
-export async function deletePlannedEvent(id: string) {
+export async function deletePlannedEvent(id: string, adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const supabase = await createServiceClient();
   const { error } = await supabase
     .from("planned_events")
@@ -101,7 +118,10 @@ export async function createConversationTheme(data: {
   description?: string | null;
   emoji?: string | null;
   category?: string | null;
-}) {
+}, adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const name = data.name.trim();
   if (!name) return { error: "Theme name is required" };
 
@@ -129,7 +149,10 @@ export async function createConversationTheme(data: {
 
 // ─── Venues ───────────────────────────────────────────────────────────────────
 
-export async function createVenue(data: { name: string; address?: string | null; city?: string; image_url?: string | null }) {
+export async function createVenue(data: { name: string; address?: string | null; city?: string; image_url?: string | null }, adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const name = data.name.trim();
   if (!name) return { error: "Venue name is required" };
 
@@ -158,7 +181,10 @@ export async function createVenue(data: { name: string; address?: string | null;
   return { success: true, data: row };
 }
 
-export async function updateVenue(id: string, data: Partial<{ name: string; address: string | null; city: string; image_url: string | null }>) {
+export async function updateVenue(id: string, data: Partial<{ name: string; address: string | null; city: string; image_url: string | null }>, adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const supabase = await createServiceClient();
   const { error } = await supabase
     .from("venues")
@@ -258,8 +284,12 @@ function parseJsonLdEvent(ld: any): ScrapedLumaEvent {
 }
 
 export async function scrapeLumaEvent(
-  url: string
+  url: string,
+  adminCode?: string | null
 ): Promise<{ error: string } | { data: ScrapedLumaEvent }> {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return { error: authError.error };
+
   let normalized = url.trim();
   if (!normalized.startsWith("http")) normalized = "https://" + normalized;
 
@@ -323,7 +353,10 @@ export async function scrapeLumaEvent(
 
 // ─── Calendar Cities ──────────────────────────────────────────────────────────
 
-export async function createEventCalendarCity(name: string) {
+export async function createEventCalendarCity(name: string, adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return authError;
+
   const trimmed = name.trim();
   if (!trimmed) return { error: "City name is required" };
 
@@ -374,8 +407,12 @@ function toTimestamptz(dateStr: string, timeStr: string, tz: string): string {
 }
 
 export async function promoteToEvent(
-  plannedEventId: string
+  plannedEventId: string,
+  adminCode?: string | null
 ): Promise<{ error: string } | { data: { id: string; slug: string; admin_code: string } }> {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return { error: authError.error };
+
   const supabase = await createServiceClient();
 
   const { data: pe, error: peErr } = await supabase

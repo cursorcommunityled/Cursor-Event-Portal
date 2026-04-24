@@ -104,7 +104,7 @@ export function DataManagementClient({
     setExporting("registrations");
     try {
       if (allEvents) {
-        const result = await getAllEventsRegistrations();
+        const result = await getAllEventsRegistrations(adminCode);
         if ("error" in result) { alert(result.error); return; }
         if (!("data" in result)) return;
         exportToCSV(result.data ?? [], "all-events-registrations");
@@ -128,7 +128,7 @@ export function DataManagementClient({
     setExporting("questions");
     try {
       if (allEvents) {
-        const result = await getAllEventsQuestions();
+        const result = await getAllEventsQuestions(adminCode);
         if ("error" in result) { alert(result.error); return; }
         exportToCSV(result.data ?? [], "all-events-questions");
       } else {
@@ -152,7 +152,7 @@ export function DataManagementClient({
     setExporting("survey");
     try {
       if (allEvents) {
-        const result = await getAllEventsSurveyResponses();
+        const result = await getAllEventsSurveyResponses(adminCode);
         if ("error" in result) { alert(result.error); return; }
         exportToCSV(result.data ?? [], "all-events-survey-responses");
       } else {
@@ -173,11 +173,11 @@ export function DataManagementClient({
     setExporting("detailed");
     try {
       if (allEvents) {
-        const result = await getAllEventsDetailedAttendeeData();
+        const result = await getAllEventsDetailedAttendeeData(adminCode);
         if ("error" in result) { alert(result.error); return; }
         if (result.data) exportToCSV(result.data, "all-events-detailed-attendees");
       } else {
-        const result = await getDetailedAttendeeData(event.id);
+        const result = await getDetailedAttendeeData(event.id, adminCode);
         if ("error" in result) { alert(result.error); return; }
         if (result.data) exportToCSV(result.data, `${event.slug}-detailed-attendees`);
       }
@@ -192,7 +192,7 @@ export function DataManagementClient({
   const exportAnalytics = async () => {
     setExporting("analytics");
     try {
-      const result = await getAnalyticsExport(event.id);
+      const result = await getAnalyticsExport(event.id, adminCode);
       if ("error" in result) { alert(result.error); return; }
       if (result.data) {
         const pageViewsData = (result.data.pageViews || []).map((pv: any) => ({

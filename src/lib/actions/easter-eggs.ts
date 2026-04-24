@@ -2,6 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { requireEventAdmin } from "@/lib/auth/admin-action";
 import { getEventBySlug } from "@/lib/supabase/queries";
 
 const EASTER_EVENT_SLUG = "calgary-march-2026";
@@ -14,7 +15,13 @@ export interface EggRow {
   claimed_at: string | null;
 }
 
-export async function fetchEasterEggs(eventId: string): Promise<EggRow[]> {
+export async function fetchEasterEggs(
+  eventId: string,
+  adminCode?: string | null
+): Promise<EggRow[]> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return [];
+
   const supabase = await createServiceClient();
   const { data } = await supabase
     .from("easter_egg_hunts")
@@ -27,8 +34,12 @@ export async function fetchEasterEggs(eventId: string): Promise<EggRow[]> {
 export async function saveEggRewardCode(
   eventId: string,
   eggId: string,
-  creditCode: string
+  creditCode: string,
+  adminCode?: string | null
 ): Promise<{ success: boolean; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return { success: false, error: authError.error };
+
   const supabase = await createServiceClient();
   const trimmed = creditCode.trim()
     .replace(/^https:\/\/cursor\.com\/referral\?code=/, "")
@@ -138,8 +149,12 @@ export async function claimEasterEgg(
 }
 
 export async function resetEasterEggs(
-  eventId: string
+  eventId: string,
+  adminCode?: string | null
 ): Promise<{ success: boolean; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return { success: false, error: authError.error };
+
   const supabase = await createServiceClient();
 
   // Unclaim all eggs but preserve the pre-loaded credit codes

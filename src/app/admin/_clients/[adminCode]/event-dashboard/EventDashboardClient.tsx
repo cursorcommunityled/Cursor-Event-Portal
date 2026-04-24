@@ -190,7 +190,7 @@ export function EventDashboardClient({
             />
           )}
           {activeTab === "calendar" && (
-            <CalendarAdminTab initialEvents={plannedEvents} initialCities={calendarCities} initialVenues={venues} />
+            <CalendarAdminTab initialEvents={plannedEvents} initialCities={calendarCities} initialVenues={venues} adminCode={adminCode} />
           )}
           {activeTab === "credits" && (
             <CreditsAdminTab
