@@ -353,10 +353,10 @@ function ImportModal({ targetEventId, targetEventSlug, adminCode, onClose, onImp
       Array.from(selectedIds),
       adminCode
     );
-    if (result.success) {
+    if ("success" in result && result.success) {
       onImported();
     } else {
-      setError(result.error || "Import failed");
+      setError(("error" in result && result.error) || "Import failed");
       setImporting(false);
     }
   };

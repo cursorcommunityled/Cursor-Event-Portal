@@ -124,12 +124,12 @@ export function VenueAdminTab({
         },
         adminCode ?? event.admin_code
       );
-      if (result.success) {
+      if ("success" in result && result.success) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
         router.refresh();
       } else {
-        setError(result.error || "Failed to save venue");
+        setError(("error" in result && result.error) || "Failed to save venue");
       }
     });
   };
