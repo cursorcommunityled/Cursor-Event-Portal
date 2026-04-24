@@ -110,15 +110,20 @@ export function VenueAdminTab({
   const handleSave = () => {
     setError(null);
     startTransition(async () => {
-      const result = await updateEventDetails(event.id, eventSlug, {
-        name: event.name,
-        venue: eventVenue.trim() || null,
-        address: eventAddress.trim() || null,
-        start_time: event.start_time,
-        end_time: event.end_time,
-        venue_image_url: venueImageUrl.trim() || null,
-        capacity: event.capacity,
-      });
+      const result = await updateEventDetails(
+        event.id,
+        eventSlug,
+        {
+          name: event.name,
+          venue: eventVenue.trim() || null,
+          address: eventAddress.trim() || null,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          venue_image_url: venueImageUrl.trim() || null,
+          capacity: event.capacity,
+        },
+        adminCode ?? event.admin_code
+      );
       if (result.success) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
