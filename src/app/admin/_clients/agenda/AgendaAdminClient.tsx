@@ -31,12 +31,14 @@ interface AgendaAdminClientProps {
   event: Event;
   eventSlug: string;
   initialItems: AgendaItem[];
+  adminCode?: string;
 }
 
 export function AgendaAdminClient({
   event,
   eventSlug,
   initialItems,
+  adminCode,
 }: AgendaAdminClientProps) {
   const router = useRouter();
   const [items, setItems] = useState(initialItems);
@@ -91,7 +93,7 @@ export function AgendaAdminClient({
   const handleApplyTemplate = () => {
     setError(null);
     startTransition(async () => {
-      const result = await applyAgendaTemplate(event.id, eventSlug);
+      const result = await applyAgendaTemplate(event.id, eventSlug, adminCode ?? event.admin_code);
       if (result.success) {
         router.refresh();
       } else {

@@ -11,5 +11,12 @@ export default async function AdminAgendaPage({ params }: AdminAgendaPageProps) 
   const event = await getEventForAdmin(adminCode);
   const items = await getAgendaItems(event.id);
 
-  return <AgendaAdminClient event={event} eventSlug={event.slug} initialItems={items} />;
+  return (
+    <AgendaAdminClient
+      event={event}
+      eventSlug={event.slug}
+      initialItems={items}
+      adminCode={adminCode}
+    />
+  );
 }
