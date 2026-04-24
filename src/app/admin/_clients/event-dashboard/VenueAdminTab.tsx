@@ -67,9 +67,15 @@ export function VenueAdminTab({
     setUploadingImage(true);
     setError(null);
     try {
+      // Buffer the file into memory before posting. Chrome aborts the request with
+      // ERR_UPLOAD_FILE_CHANGED if the file's mtime shifts between selection and send
+      // (e.g. iCloud syncs, antivirus rewrites, file-watcher updates).
+      const buffer = await file.arrayBuffer();
+      const blob = new Blob([buffer], { type: file.type });
+
       const formData = new FormData();
-      formData.append("file", file, file.name);
-      // Read the file fully into memory before sending to avoid ERR_UPLOAD_FILE_CHANGED on some browsers.
+      formData.append("file", blob, file.name);
+
       const headers: Record<string, string> = {};
       const code = adminCode ?? event.admin_code;
       if (code) {
