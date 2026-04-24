@@ -144,6 +144,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     <div className="flex flex-wrap items-center gap-x-1 pointer-events-auto relative z-30">
                       {[
                         { id: "agenda", label: "Agenda" },
+                        { id: "venue", label: "Venue" },
                         { id: "demos", label: "Demos" },
                         { id: "slides", label: "Slides" },
                         { id: "competitions", label: "Competitions" },
