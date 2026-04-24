@@ -57,25 +57,13 @@ export async function createAgendaItem(
     end_time?: string | null;
     sort_order?: number;
     image_url?: string | null;
-  }
+  },
+  adminCode?: string | null
 ) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
+  const authError = await authoriseAgendaAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  // Verify user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
 
   // Get max sort_order for this event
   const { data: existingItems } = await supabase
@@ -118,25 +106,25 @@ export async function createAgendaItem(
 export async function updateAgendaItem(
   itemId: string,
   eventSlug: string,
-  data: Partial<Omit<AgendaItem, "id" | "event_id" | "created_at">>
+  data: Partial<Omit<AgendaItem, "id" | "event_id" | "created_at">>,
+  adminCode?: string | null
 ) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
-
   const supabase = await createServiceClient();
 
-  // Verify user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
+  // Look up the agenda item's event_id so authoriseAgendaAdmin can verify
+  // the per-event adminCode against the right event.
+  const { data: existingItem, error: lookupErr } = await supabase
+    .from("agenda_items")
+    .select("event_id")
+    .eq("id", itemId)
+    .maybeSingle();
 
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
+  if (lookupErr || !existingItem) {
+    return { error: "Agenda item not found" };
   }
+
+  const authError = await authoriseAgendaAdmin(existingItem.event_id, adminCode);
+  if (authError) return authError;
 
   const { error } = await supabase
     .from("agenda_items")
@@ -441,24 +429,25 @@ export async function applyAgendaTemplate(
   return { success: true, count: inserts.length };
 }
 
-export async function deleteAgendaItem(itemId: string, eventSlug: string) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
-
+export async function deleteAgendaItem(
+  itemId: string,
+  eventSlug: string,
+  adminCode?: string | null
+) {
   const supabase = await createServiceClient();
 
-  // Verify user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
+  const { data: existingItem, error: lookupErr } = await supabase
+    .from("agenda_items")
+    .select("event_id")
+    .eq("id", itemId)
+    .maybeSingle();
 
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
+  if (lookupErr || !existingItem) {
+    return { error: "Agenda item not found" };
   }
+
+  const authError = await authoriseAgendaAdmin(existingItem.event_id, adminCode);
+  if (authError) return authError;
 
   const { error } = await supabase
     .from("agenda_items")

@@ -60,12 +60,12 @@ export function AgendaAdminClient({
 
     setError(null);
     startTransition(async () => {
-      const result = await deleteAgendaItem(itemId, eventSlug);
-      if (result.success) {
+      const result = await deleteAgendaItem(itemId, eventSlug, adminCode ?? event.admin_code);
+      if ("success" in result && result.success) {
         setItems((prev) => prev.filter((i) => i.id !== itemId));
         router.refresh();
       } else {
-        setError(result.error || "Failed to delete agenda item");
+        setError(("error" in result && result.error) || "Failed to delete agenda item");
       }
     });
   };
@@ -81,12 +81,12 @@ export function AgendaAdminClient({
   }) => {
     setError(null);
     startTransition(async () => {
-      const result = await createAgendaItem(event.id, eventSlug, data);
-      if (result.success) {
+      const result = await createAgendaItem(event.id, eventSlug, data, adminCode ?? event.admin_code);
+      if ("success" in result && result.success) {
         router.refresh();
         setShowCreateModal(false);
       } else {
-        setError(result.error || "Failed to create agenda item");
+        setError(("error" in result && result.error) || "Failed to create agenda item");
       }
     });
   };
@@ -106,12 +106,12 @@ export function AgendaAdminClient({
   const handleUpdate = async (itemId: string, data: Partial<AgendaItem>) => {
     setError(null);
     startTransition(async () => {
-      const result = await updateAgendaItem(itemId, eventSlug, data);
-      if (result.success) {
+      const result = await updateAgendaItem(itemId, eventSlug, data, adminCode ?? event.admin_code);
+      if ("success" in result && result.success) {
         router.refresh();
         setEditingItem(null);
       } else {
-        setError(result.error || "Failed to update agenda item");
+        setError(("error" in result && result.error) || "Failed to update agenda item");
       }
     });
   };
