@@ -5,6 +5,46 @@ import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
 import type { AgendaItem } from "@/types";
 
+/**
+ * Authorise an agenda admin action. Accepts either:
+ *   1. A `portal_session` cookie belonging to a user with role = 'admin', or
+ *   2. The per-event `adminCode` matching the target event (URL-based auth
+ *      used by /admin/[adminCode] pages, where attendees never have a
+ *      portal_session for the admin user).
+ *
+ * Returns null on success, or an `{ error }` object the caller should bubble
+ * up. Always fails closed.
+ */
+async function authoriseAgendaAdmin(
+  eventId: string,
+  adminCode?: string | null
+): Promise<{ error: string } | null> {
+  const supabase = await createServiceClient();
+
+  // 1) Legacy portal_session cookie + admin role
+  const session = await getSession();
+  if (session) {
+    const { data: user } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", session.userId)
+      .maybeSingle();
+    if (user?.role === "admin") return null;
+  }
+
+  // 2) Per-event admin code (passed in from the /admin/[adminCode] URL)
+  if (adminCode) {
+    const { data: event } = await supabase
+      .from("events")
+      .select("admin_code")
+      .eq("id", eventId)
+      .maybeSingle();
+    if (event?.admin_code && event.admin_code === adminCode) return null;
+  }
+
+  return { error: "Not authenticated" };
+}
+
 export async function createAgendaItem(
   eventId: string,
   eventSlug: string,
@@ -343,18 +383,15 @@ function zonedWallTimeToUtcIso(
   return new Date(guess.getTime() - offsetMs).toISOString();
 }
 
-export async function applyAgendaTemplate(eventId: string, eventSlug: string) {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
+export async function applyAgendaTemplate(
+  eventId: string,
+  eventSlug: string,
+  adminCode?: string
+) {
+  const authError = await authoriseAgendaAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-  if (!user || user.role !== "admin") return { error: "Not authorized" };
 
   // Pull event so we can anchor times to the event's date in its own timezone.
   const { data: event } = await supabase
