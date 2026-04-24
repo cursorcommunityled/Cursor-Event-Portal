@@ -1463,42 +1463,79 @@ export async function getEventThemeSelection(eventId: string): Promise<EventThem
 }
 
 // ─── Planned Events (Planning Calendar) ──────────────────────────────────────
+//
+// These three queries (planned_events, venues, event_calendar_cities) feed the
+// admin Calendar tab. We try the service-role client first so that any RLS
+// policy hiccup (e.g. RLS enabled before a SELECT policy was attached) can't
+// silently empty out the dashboard, then fall back to the anon SSR client.
+
+type AnyClient = Awaited<ReturnType<typeof createServiceClient>> | Awaited<ReturnType<typeof createClient>>;
+
+async function fetchWithFallback<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  query: (client: AnyClient) => any,
+  label: string
+): Promise<T[]> {
+  try {
+    const service = await createServiceClient();
+    const { data, error } = await query(service);
+    if (!error && Array.isArray(data) && data.length > 0) return data as T[];
+    if (error) console.warn(`[queries] ${label}: service-role read failed`, error);
+  } catch (err) {
+    console.warn(`[queries] ${label}: service-role client unavailable`, err);
+  }
+  try {
+    const anon = await createClient();
+    const { data, error } = await query(anon);
+    if (error) {
+      console.warn(`[queries] ${label}: anon read failed`, error);
+      return [];
+    }
+    return (data ?? []) as T[];
+  } catch (err) {
+    console.warn(`[queries] ${label}: anon client unavailable`, err);
+    return [];
+  }
+}
 
 export async function getPlannedEvents(): Promise<PlannedEvent[]> {
   noStore();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("planned_events")
-    .select("*, linked_event:events!linked_event_id(id, slug, admin_code, status)")
-    .order("event_date", { ascending: true });
-  if (error) return [];
-  return (data ?? []) as PlannedEvent[];
+  return fetchWithFallback<PlannedEvent>(
+    (client) =>
+      client
+        .from("planned_events")
+        .select("*, linked_event:events!linked_event_id(id, slug, admin_code, status)")
+        .order("event_date", { ascending: true }),
+    "getPlannedEvents"
+  );
 }
 
 // ─── Venues ───────────────────────────────────────────────────────────────────
 
 export async function getVenues(): Promise<Venue[]> {
   noStore();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("venues")
-    .select("*")
-    .order("sort_order", { ascending: true });
-  if (error) return [];
-  return (data ?? []) as Venue[];
+  return fetchWithFallback<Venue>(
+    (client) =>
+      client
+        .from("venues")
+        .select("*")
+        .order("sort_order", { ascending: true }),
+    "getVenues"
+  );
 }
 
 // ─── Calendar Cities ──────────────────────────────────────────────────────────
 
 export async function getEventCalendarCities(): Promise<EventCalendarCity[]> {
   noStore();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("event_calendar_cities")
-    .select("*")
-    .order("sort_order", { ascending: true });
-  if (error) return [];
-  return (data ?? []) as EventCalendarCity[];
+  return fetchWithFallback<EventCalendarCity>(
+    (client) =>
+      client
+        .from("event_calendar_cities")
+        .select("*")
+        .order("sort_order", { ascending: true }),
+    "getEventCalendarCities"
+  );
 }
 
 // ─── Cursor Credits ───────────────────────────────────────────────────────────
