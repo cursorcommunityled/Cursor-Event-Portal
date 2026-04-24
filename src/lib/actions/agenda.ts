@@ -394,17 +394,27 @@ export async function applyAgendaTemplate(
   const supabase = await createServiceClient();
 
   // Pull event so we can anchor times to the event's date in its own timezone.
-  const { data: event } = await supabase
+  // Use maybeSingle() + surface the underlying error so we can diagnose any
+  // weird 0-row / type-mismatch / RLS edge cases instead of returning a vague
+  // "Event not found".
+  const { data: eventRow, error: eventErr } = await supabase
     .from("events")
     .select("id, start_time, timezone")
     .eq("id", eventId)
-    .single();
-  if (!event) return { error: "Event not found" };
+    .maybeSingle();
+  if (eventErr) {
+    console.error("[applyAgendaTemplate] event lookup failed:", { eventId, eventErr });
+    return { error: `Event lookup failed: ${eventErr.message}` };
+  }
+  if (!eventRow) {
+    console.error("[applyAgendaTemplate] event not found:", { eventId });
+    return { error: `Event not found (id=${eventId})` };
+  }
 
-  const timezone = event.timezone || "America/Edmonton";
+  const timezone = eventRow.timezone || "America/Edmonton";
 
   // Determine the event's local calendar date. Fall back to "today" in the event timezone.
-  const baseUtc = event.start_time ? new Date(event.start_time) : new Date();
+  const baseUtc = eventRow.start_time ? new Date(eventRow.start_time) : new Date();
   const dateParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
@@ -438,10 +448,10 @@ export async function applyAgendaTemplate(
     sort_order: baseOrder + i,
   }));
 
-  const { error } = await supabase.from("agenda_items").insert(inserts);
-  if (error) {
-    console.error("Failed to apply agenda template:", error);
-    return { error: "Failed to apply template" };
+  const { error: insertErr } = await supabase.from("agenda_items").insert(inserts);
+  if (insertErr) {
+    console.error("[applyAgendaTemplate] insert failed:", insertErr);
+    return { error: `Failed to apply template: ${insertErr.message}` };
   }
 
   revalidatePath(`/admin/${eventSlug}/agenda`);
