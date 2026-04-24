@@ -3,9 +3,9 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { createAgendaItem, updateAgendaItem, deleteAgendaItem } from "@/lib/actions/agenda";
+import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImport, importAgendaFromEvent, applyAgendaTemplate } from "@/lib/actions/agenda";
 import type { Event, AgendaItem } from "@/types";
-import { Plus, Trash2, Edit2, Clock, MapPin, User, Check } from "lucide-react";
+import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download, Sparkles } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 
 // Convert UTC ISO string to datetime-local format in MST
@@ -50,6 +50,7 @@ export function AgendaAdminClient({
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const handleDelete = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this agenda item?")) return;
@@ -87,6 +88,18 @@ export function AgendaAdminClient({
     });
   };
 
+  const handleApplyTemplate = () => {
+    setError(null);
+    startTransition(async () => {
+      const result = await applyAgendaTemplate(event.id, eventSlug);
+      if (result.success) {
+        router.refresh();
+      } else {
+        setError(result.error || "Failed to apply template");
+      }
+    });
+  };
+
   const handleUpdate = async (itemId: string, data: Partial<AgendaItem>) => {
     setError(null);
     startTransition(async () => {
@@ -107,12 +120,21 @@ export function AgendaAdminClient({
         eventSlug={eventSlug} 
         subtitle="Agenda Management"
         rightElement={
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-all shadow-xl"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all"
+              title="Import from previous event"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-all shadow-xl"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          </div>
         }
       />
 
@@ -126,11 +148,44 @@ export function AgendaAdminClient({
 
         {/* Agenda Items */}
         {items.length === 0 ? (
-          <div className="glass rounded-[40px] border-dashed border-white/5 p-10 text-center">
-            <p className="text-[10px] uppercase tracking-[0.3em] font-medium text-gray-600">
-              No agenda items yet
+          <div className="glass rounded-[40px] border-dashed border-white/5 p-10 text-center space-y-6">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-medium text-gray-600">
+                No agenda items yet
+              </p>
+              <p className="text-xs text-gray-700 mt-1">
+                Start with the standard meetup template and tweak from there.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-2">
+              <button
+                onClick={handleApplyTemplate}
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-white text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xl"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {isPending ? "Adding..." : "Insert Template"}
+              </button>
+              <button
+                onClick={() => setShowImportModal(true)}
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 disabled:opacity-30 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Import From Event
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                disabled={isPending}
+                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 disabled:opacity-30 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Manually
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-700 tracking-wide pt-1">
+              Template times use the event date in {event.timezone || "America/Edmonton"}.
             </p>
-            <p className="text-xs text-gray-700 mt-1">Use the + button to add your first item</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -231,6 +286,213 @@ export function AgendaAdminClient({
           isPending={isPending}
         />
       )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportModal
+          targetEventId={event.id}
+          targetEventSlug={eventSlug}
+          onClose={() => setShowImportModal(false)}
+          onImported={() => {
+            setShowImportModal(false);
+            router.refresh();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type SourceEvent = { id: string; name: string; slug: string; start_time: string | null; items: AgendaItem[] };
+
+interface ImportModalProps {
+  targetEventId: string;
+  targetEventSlug: string;
+  onClose: () => void;
+  onImported: () => void;
+}
+
+function ImportModal({ targetEventId, targetEventSlug, onClose, onImported }: ImportModalProps) {
+  const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<SourceEvent[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<SourceEvent | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getEventsForImport(targetEventId).then((data) => {
+      setEvents(data);
+      setLoading(false);
+    });
+  }, [targetEventId]);
+
+  const selectEvent = (ev: SourceEvent) => {
+    setSelectedEvent(ev);
+    setSelectedIds(new Set(ev.items.map((i) => i.id)));
+  };
+
+  const toggleItem = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleImport = async () => {
+    if (!selectedEvent || selectedIds.size === 0) return;
+    setImporting(true);
+    setError(null);
+    const result = await importAgendaFromEvent(
+      selectedEvent.id,
+      targetEventId,
+      targetEventSlug,
+      Array.from(selectedIds)
+    );
+    if (result.success) {
+      onImported();
+    } else {
+      setError(result.error || "Import failed");
+      setImporting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-2xl glass rounded-[40px] p-10 space-y-8 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-light text-white">Import Agenda</h2>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 mt-1">
+              {selectedEvent ? "Select items to copy" : "Choose a source event"}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/10 transition-all flex items-center justify-center text-white"
+          >
+            ×
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+            ))}
+          </div>
+        ) : !selectedEvent ? (
+          events.length === 0 ? (
+            <p className="text-sm text-gray-600 text-center py-8">No other events have agenda items yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {events.map((ev) => (
+                <button
+                  key={ev.id}
+                  onClick={() => selectEvent(ev)}
+                  className="w-full text-left glass rounded-[24px] px-6 py-5 border-white/[0.03] hover:bg-white/[0.04] transition-all"
+                >
+                  <p className="text-white font-light">{ev.name}</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 mt-1">
+                    {ev.items.length} item{ev.items.length !== 1 ? "s" : ""}
+                    {ev.start_time && ` · ${new Date(ev.start_time).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )
+        ) : (
+          <div className="space-y-6">
+            <button
+              onClick={() => setSelectedEvent(null)}
+              className="text-[10px] uppercase tracking-[0.2em] text-gray-600 hover:text-white transition-all"
+            >
+              ← Back to events
+            </button>
+
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600">
+                {selectedIds.size} of {selectedEvent.items.length} selected
+              </p>
+              <button
+                onClick={() =>
+                  selectedIds.size === selectedEvent.items.length
+                    ? setSelectedIds(new Set())
+                    : setSelectedIds(new Set(selectedEvent.items.map((i) => i.id)))
+                }
+                className="text-[10px] uppercase tracking-[0.2em] text-gray-600 hover:text-white transition-all"
+              >
+                {selectedIds.size === selectedEvent.items.length ? "Deselect all" : "Select all"}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {selectedEvent.items.map((item) => {
+                const checked = selectedIds.has(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleItem(item.id)}
+                    className={`w-full text-left glass rounded-[24px] px-6 py-5 border transition-all flex items-start gap-4 ${
+                      checked ? "border-white/20 bg-white/[0.04]" : "border-white/[0.03] opacity-50"
+                    }`}
+                  >
+                    <div
+                      className={`mt-1 w-5 h-5 rounded-lg border flex items-center justify-center flex-shrink-0 transition-all ${
+                        checked ? "bg-white border-white" : "border-white/20"
+                      }`}
+                    >
+                      {checked && <Check className="w-3 h-3 text-black" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-light">{item.title}</p>
+                      {item.description && (
+                        <p className="text-xs text-gray-600 mt-1 truncate">{item.description}</p>
+                      )}
+                      <div className="flex items-center gap-4 mt-1 text-[10px] text-gray-700 uppercase tracking-[0.15em]">
+                        {item.speaker && <span>{item.speaker}</span>}
+                        {item.location && <span>{item.location}</span>}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-[10px] text-gray-700 tracking-wide">
+              Times will be cleared — update them after import.
+            </p>
+
+            <div className="flex items-center gap-4 pt-2">
+              <button
+                onClick={handleImport}
+                disabled={importing || selectedIds.size === 0}
+                className="flex-1 h-14 rounded-full bg-white text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xl"
+              >
+                {importing ? "Importing..." : `Import ${selectedIds.size} Item${selectedIds.size !== 1 ? "s" : ""}`}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-8 h-14 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
