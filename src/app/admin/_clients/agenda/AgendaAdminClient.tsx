@@ -94,7 +94,7 @@ export function AgendaAdminClient({
     setError(null);
     startTransition(async () => {
       const result = await applyAgendaTemplate(event.id, eventSlug, adminCode ?? event.admin_code);
-      if (result.success) {
+      if ("success" in result) {
         router.refresh();
       } else {
         setError(result.error || "Failed to apply template");
