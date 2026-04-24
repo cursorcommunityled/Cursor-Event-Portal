@@ -62,7 +62,7 @@ export function AttendanceHubClient({
         { capacity: parsed },
         adminCode ?? event.admin_code
       );
-      if (result.success) {
+      if ("success" in result && result.success) {
         setCapacitySaved(true);
         setTimeout(() => setCapacitySaved(false), 2000);
         router.refresh();
