@@ -165,6 +165,19 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                 </div>
               )}
 
+              {/* Admin-uploaded banner image (always visible) */}
+              {item.image_url && (
+                <div className="relative z-10 -mx-10 md:-mx-12 -mt-10 md:-mt-12 mb-6 md:mb-8 overflow-hidden rounded-t-[40px]">
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    className="w-full h-48 md:h-64 object-cover"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+                </div>
+              )}
+
               <div className="relative z-20 space-y-5 md:space-y-6 max-w-full md:max-w-[65%] transition-all duration-500">
                 {/* Time and Duration Row */}
                 <div className="flex items-center gap-5 md:gap-6 flex-wrap">
@@ -231,16 +244,14 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                 )}
               </div>
 
-              {/* Hover Image Preview */}
-              {(() => {
-                // For blitz items, always use blitz image
+              {/* Hover Image Preview - decorative title-based images only.
+                  Admin-uploaded image_url renders as a banner above instead. */}
+              {!item.image_url && (() => {
                 const titleLower = item.title.toLowerCase();
                 const isBlitz = titleLower.includes("blitz") || titleLower.includes("lightning") || titleLower.includes("rapid");
-                
+
                 const agendaImage = isBlitz
                   ? { url: "/blitz2.png", caption: "Quick-fire rounds" }
-                  : item.image_url
-                  ? { url: item.image_url, caption: "" }
                   : getAgendaImage(item.title);
 
                 if (!agendaImage) return null;
