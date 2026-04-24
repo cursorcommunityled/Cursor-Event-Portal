@@ -64,7 +64,7 @@ export function CopilotTab({ event, adminCode }: CopilotTabProps) {
   const fetchRecommendations = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
     try {
-      const { recommendations: recs, metrics: m } = await getOpsRecommendations(event.id);
+      const { recommendations: recs, metrics: m } = await getOpsRecommendations(event.id, adminCode);
       setRecommendations(recs);
       setMetrics(m);
       setLastRefresh(new Date());
@@ -73,7 +73,7 @@ export function CopilotTab({ event, adminCode }: CopilotTabProps) {
     } finally {
       setLoading(false);
     }
-  }, [event.id]);
+  }, [event.id, adminCode]);
 
   useEffect(() => {
     fetchRecommendations(true);
@@ -124,7 +124,8 @@ export function CopilotTab({ event, adminCode }: CopilotTabProps) {
       } else if (type === "staff_alert") {
         const result = await sendStaffAlertSMS(
           `${rec.headline} — ${rec.detail}`,
-          event.id
+          event.id,
+          adminCode
         );
         if (result.success) {
           setActionResults((prev) => ({

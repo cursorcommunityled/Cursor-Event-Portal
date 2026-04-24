@@ -53,24 +53,24 @@ export function CreditsAdminTab({
   const [eggSaveMsg, setEggSaveMsg] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchEasterEggs(eventId).then((rows) => {
+    fetchEasterEggs(eventId, adminCode).then((rows) => {
       setEggs(rows);
       const inputs: Record<string, string> = {};
       rows.forEach((r) => { inputs[r.egg_id] = r.credit_code || ""; });
       setEggInputs(inputs);
     });
-  }, [eventId]);
+  }, [eventId, adminCode]);
 
   const handleSaveEggCode = async (eggId: string) => {
     const code = eggInputs[eggId]?.trim();
     if (!code) return;
     setEggSaving(eggId);
-    const result = await saveEggRewardCode(eventId, eggId, code);
+    const result = await saveEggRewardCode(eventId, eggId, code, adminCode);
     setEggSaving(null);
     if (result.success) {
       setEggSaveMsg((prev) => ({ ...prev, [eggId]: "Saved" }));
       setEggEditing(null);
-      const fresh = await fetchEasterEggs(eventId);
+      const fresh = await fetchEasterEggs(eventId, adminCode);
       setEggs(fresh);
       const inputs: Record<string, string> = {};
       fresh.forEach((r) => { inputs[r.egg_id] = r.credit_code || ""; });
@@ -142,13 +142,13 @@ export function CreditsAdminTab({
     if (!confirm("Reset all Cursor eggs? This unclaims all eggs and deletes the placeholder credits so the hunt can be re-run.")) return;
     setEggResetting(true);
     setEggResetMsg(null);
-    const result = await resetEasterEggs(eventId);
+    const result = await resetEasterEggs(eventId, adminCode);
     setEggResetting(false);
     if (result.success) {
       setEggResetMsg("Cursor eggs reset — all unclaimed, $50 credits removed. Reward codes preserved.");
       const fresh = await fetchCursorCredits(eventId);
       setCredits(fresh);
-      const freshEggs = await fetchEasterEggs(eventId);
+      const freshEggs = await fetchEasterEggs(eventId, adminCode);
       setEggs(freshEggs);
     } else {
       setEggResetMsg(`Error: ${result.error}`);

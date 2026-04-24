@@ -18,6 +18,7 @@ interface ImportRegistrationsClientProps {
   eventId: string;
   eventSlug: string;
   existingEmails: string[];
+  adminCode?: string;
 }
 
 interface ParsedAttendee {
@@ -30,6 +31,7 @@ export function ImportRegistrationsClient({
   eventId,
   eventSlug,
   existingEmails,
+  adminCode,
 }: ImportRegistrationsClientProps) {
   const router = useRouter();
   const [csvText, setCsvText] = useState("");
@@ -163,9 +165,14 @@ export function ImportRegistrationsClient({
     setResult(null);
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (adminCode) {
+        headers["x-admin-code"] = adminCode;
+        headers["x-event-id"] = eventId;
+      }
       const response = await fetch("/api/admin/import-registrations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           eventId,
           attendees: toImport.map((a) => ({ name: a.name, email: a.email })),

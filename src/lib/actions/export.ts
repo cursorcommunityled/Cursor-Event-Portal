@@ -1,30 +1,17 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getSession } from "./registration";
+import { requireEventAdmin, requireAnyAdmin } from "@/lib/auth/admin-action";
 
 // ============================================================================
 // ATTENDEE DATA EXPORT
 // ============================================================================
 
-export async function getDetailedAttendeeData(eventId: string) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
+export async function getDetailedAttendeeData(eventId: string, adminCode?: string | null) {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  // Check if user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
 
   // Get all registrations with user data
   const { data: registrations } = await supabase
@@ -183,21 +170,15 @@ export async function getDetailedAttendeeData(eventId: string) {
 // ALL-EVENTS EXPORTS
 // ============================================================================
 
-async function checkAdminAuth() {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" as const };
+async function checkAdminAuth(adminCode?: string | null) {
+  const authError = await requireAnyAdmin(adminCode);
+  if (authError) return { error: authError.error as "Not authenticated" };
   const supabase = await createServiceClient();
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-  if (!user || user.role !== "admin") return { error: "Not authorized" as const };
-  return { supabase, session };
+  return { supabase };
 }
 
-export async function getAllEventsRegistrations() {
-  const auth = await checkAdminAuth();
+export async function getAllEventsRegistrations(adminCode?: string | null) {
+  const auth = await checkAdminAuth(adminCode);
   if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
@@ -224,8 +205,8 @@ export async function getAllEventsRegistrations() {
   return { success: true, data };
 }
 
-export async function getAllEventsQuestions() {
-  const auth = await checkAdminAuth();
+export async function getAllEventsQuestions(adminCode?: string | null) {
+  const auth = await checkAdminAuth(adminCode);
   if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
@@ -252,8 +233,8 @@ export async function getAllEventsQuestions() {
   return { success: true, data };
 }
 
-export async function getAllEventsSurveyResponses() {
-  const auth = await checkAdminAuth();
+export async function getAllEventsSurveyResponses(adminCode?: string | null) {
+  const auth = await checkAdminAuth(adminCode);
   if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
@@ -282,8 +263,8 @@ export async function getAllEventsSurveyResponses() {
   return { success: true, data };
 }
 
-export async function getAllEventsDetailedAttendeeData() {
-  const auth = await checkAdminAuth();
+export async function getAllEventsDetailedAttendeeData(adminCode?: string | null) {
+  const auth = await checkAdminAuth(adminCode);
   if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
 
@@ -386,24 +367,11 @@ export async function getAllEventsDetailedAttendeeData() {
 // ANALYTICS DATA EXPORT
 // ============================================================================
 
-export async function getAnalyticsExport(eventId: string) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
+export async function getAnalyticsExport(eventId: string, adminCode?: string | null) {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  // Check if user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
 
   // Fetch page views
   const { data: pageViews } = await supabase
@@ -503,24 +471,11 @@ export async function getAnalyticsExport(eventId: string) {
 // ANALYTICS SUMMARY EXPORT (Aggregated metrics)
 // ============================================================================
 
-export async function getAnalyticsSummary(eventId: string) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
+export async function getAnalyticsSummary(eventId: string, adminCode?: string | null) {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  // Check if user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
 
   // Page views by type
   const { data: pageViews } = await supabase
@@ -598,24 +553,11 @@ export async function getAnalyticsSummary(eventId: string) {
 // FULL EVENT EXPORT (Everything in one file)
 // ============================================================================
 
-export async function getFullEventExport(eventId: string) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
+export async function getFullEventExport(eventId: string, adminCode?: string | null) {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  // Check if user is admin
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
 
   // Fetch event details
   const { data: event } = await supabase
@@ -625,9 +567,9 @@ export async function getFullEventExport(eventId: string) {
     .single();
 
   // Fetch all attendee data
-  const attendeeResult = await getDetailedAttendeeData(eventId);
-  const analyticsResult = await getAnalyticsExport(eventId);
-  const summaryResult = await getAnalyticsSummary(eventId);
+  const attendeeResult = await getDetailedAttendeeData(eventId, adminCode);
+  const analyticsResult = await getAnalyticsExport(eventId, adminCode);
+  const summaryResult = await getAnalyticsSummary(eventId, adminCode);
 
   // Fetch all questions
   const { data: questions } = await supabase

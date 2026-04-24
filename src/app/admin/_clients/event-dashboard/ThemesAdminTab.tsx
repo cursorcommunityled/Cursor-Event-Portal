@@ -54,7 +54,7 @@ export function ThemesAdminTab({
       description: form.description.trim() || null,
       emoji: form.emoji.trim() || null,
       category: form.category.trim() || null,
-    });
+    }, adminCode);
     setFormSaving(false);
     if (result.error) { setFormError(result.error); return; }
     if (result.data) setLocalThemes((prev) => [...prev, result.data as ConversationTheme]);

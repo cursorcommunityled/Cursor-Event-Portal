@@ -18,6 +18,7 @@ interface CalendarAdminTabProps {
   initialEvents: PlannedEvent[];
   initialCities: EventCalendarCity[];
   initialVenues: Venue[];
+  adminCode?: string;
 }
 
 type EditState = Partial<Omit<PlannedEvent, "id" | "created_at" | "updated_at" | "linked_event_id">>;
@@ -86,7 +87,7 @@ function monthLabel(key: string) {
   return new Date(y, m - 1).toLocaleDateString("en-CA", { month: "long", year: "numeric" });
 }
 
-export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }: CalendarAdminTabProps) {
+export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, adminCode }: CalendarAdminTabProps) {
   const [cities, setCities] = useState<EventCalendarCity[]>(initialCities);
   const [activeCity, setActiveCity] = useState<string>(initialCities[0]?.name ?? "Calgary");
   const [events, setEvents] = useState<PlannedEvent[]>(initialEvents);
@@ -107,7 +108,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
     if (!newCityName.trim()) return;
     setCityLoading(true);
     setCityError(null);
-    const result = await createEventCalendarCity(newCityName.trim());
+    const result = await createEventCalendarCity(newCityName.trim(), adminCode);
     if (result.error) {
       setCityError(result.error);
       setCityLoading(false);
@@ -130,7 +131,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
     if (!trimmed) return;
     setLumaLoading(true);
     setLumaError(null);
-    const result = await scrapeLumaEvent(trimmed);
+    const result = await scrapeLumaEvent(trimmed, adminCode);
     setLumaLoading(false);
     if ("error" in result) {
       setLumaError(result.error);
@@ -176,7 +177,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
       address: newEvent.address || null,
       notes: newEvent.notes || null,
       confirmed: newEvent.confirmed ?? false,
-    });
+    }, adminCode);
     if (!result.error && result.data) {
       setEvents((prev) =>
         [...prev, result.data as PlannedEvent].sort((a, b) =>
@@ -226,7 +227,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
       address: editState.address ?? null,
       notes: editState.notes ?? null,
       confirmed: editState.confirmed,
-    });
+    }, adminCode);
     if (!result.error) {
       setEvents((prev) =>
         prev
@@ -247,7 +248,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
   const handlePromote = async (id: string) => {
     setPromotingId(id);
     setPromoteError(null);
-    const result = await promoteToEvent(id);
+    const result = await promoteToEvent(id, adminCode);
     setPromotingId(null);
     if ("error" in result) {
       setPromoteError(result.error);
@@ -267,7 +268,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues }
   const handleDelete = async (id: string) => {
     if (!confirm("Remove this planned event?")) return;
     setLoading(id + "-del");
-    const result = await deletePlannedEvent(id);
+    const result = await deletePlannedEvent(id, adminCode);
     if (!result.error) setEvents((prev) => prev.filter((e) => e.id !== id));
     setLoading(null);
   };
@@ -692,7 +693,7 @@ function EventForm({
     if (!newVenueName.trim()) return;
     setVenueSaving(true);
     setVenueError(null);
-    const result = await createVenue({ name: newVenueName.trim(), address: newVenueAddress.trim() || null, image_url: newVenueImageUrl });
+    const result = await createVenue({ name: newVenueName.trim(), address: newVenueAddress.trim() || null, image_url: newVenueImageUrl }, adminCode);
     setVenueSaving(false);
     if (result.error) { setVenueError(result.error); return; }
     const created = result.data as Venue;

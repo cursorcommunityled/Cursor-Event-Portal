@@ -47,14 +47,14 @@ export function CopilotWidget({ eventId, adminCode }: CopilotWidgetProps) {
   const fetchAlerts = useCallback(async (showLoader = false) => {
     if (showLoader) setAlertsLoading(true);
     try {
-      const { recommendations: recs } = await getOpsRecommendations(eventId);
+      const { recommendations: recs } = await getOpsRecommendations(eventId, adminCode);
       setRecommendations(recs);
     } catch {
       // silent
     } finally {
       setAlertsLoading(false);
     }
-  }, [eventId]);
+  }, [eventId, adminCode]);
 
   // Poll alerts every 60s (widget is lighter than the full tab)
   useEffect(() => {

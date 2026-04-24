@@ -21,6 +21,7 @@ interface ExportClientProps {
   questions: Question[];
   survey: Survey | null;
   surveyResponses: SurveyResponse[];
+  adminCode?: string;
 }
 
 export function ExportClient({
@@ -29,6 +30,7 @@ export function ExportClient({
   questions,
   survey,
   surveyResponses,
+  adminCode,
 }: ExportClientProps) {
   const [allEvents, setAllEvents] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export function ExportClient({
     setExporting("registrations");
     try {
       if (allEvents) {
-        const result = await getAllEventsRegistrations();
+        const result = await getAllEventsRegistrations(adminCode);
         if ("error" in result) { alert(result.error); return; }
         if (!("data" in result)) return;
         exportToCSV(result.data, "all-events-registrations");
@@ -123,7 +125,7 @@ export function ExportClient({
     setExporting("questions");
     try {
       if (allEvents) {
-        const result = await getAllEventsQuestions();
+        const result = await getAllEventsQuestions(adminCode);
         if ("error" in result) { alert(result.error); return; }
         if (!("data" in result)) return;
         exportToCSV(result.data, "all-events-questions");
@@ -148,7 +150,7 @@ export function ExportClient({
     setExporting("survey");
     try {
       if (allEvents) {
-        const result = await getAllEventsSurveyResponses();
+        const result = await getAllEventsSurveyResponses(adminCode);
         if ("error" in result) { alert(result.error); return; }
         if (!("data" in result)) return;
         exportToCSV(result.data, "all-events-survey-responses");
@@ -170,8 +172,8 @@ export function ExportClient({
     setExporting("detailed");
     try {
       const result = allEvents
-        ? await getAllEventsDetailedAttendeeData()
-        : await getDetailedAttendeeData(event.id);
+        ? await getAllEventsDetailedAttendeeData(adminCode)
+        : await getDetailedAttendeeData(event.id, adminCode);
       if ("error" in result) {
         alert(result.error);
         return;

@@ -93,7 +93,7 @@ export function VenueAdminTab({
         const newUrl = data.url as string;
         setVenueImageUrl(newUrl);
         if (selectedVenueId) {
-          await updateVenue(selectedVenueId, { image_url: newUrl });
+          await updateVenue(selectedVenueId, { image_url: newUrl }, adminCode);
         }
       }
     } catch (err) {
