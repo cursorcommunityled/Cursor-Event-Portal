@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImport, importAgendaFromEvent, applyAgendaTemplate } from "@/lib/actions/agenda";
 import type { Event, AgendaItem } from "@/types";
-import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download, Sparkles } from "lucide-react";
+import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 
 // Convert UTC ISO string to datetime-local format in MST
@@ -163,25 +163,22 @@ export function AgendaAdminClient({
               <button
                 onClick={handleApplyTemplate}
                 disabled={isPending}
-                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-white text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xl"
+                className="h-12 px-6 rounded-full bg-white text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xl"
               >
-                <Sparkles className="w-3.5 h-3.5" />
                 {isPending ? "Adding..." : "Insert Template"}
               </button>
               <button
                 onClick={() => setShowImportModal(true)}
                 disabled={isPending}
-                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 disabled:opacity-30 transition-all"
+                className="h-12 px-6 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 disabled:opacity-30 transition-all"
               >
-                <Download className="w-3.5 h-3.5" />
                 Import From Event
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
                 disabled={isPending}
-                className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 disabled:opacity-30 transition-all"
+                className="h-12 px-6 rounded-full bg-white/5 border border-white/10 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-white/10 disabled:opacity-30 transition-all"
               >
-                <Plus className="w-3.5 h-3.5" />
                 Add Manually
               </button>
             </div>
