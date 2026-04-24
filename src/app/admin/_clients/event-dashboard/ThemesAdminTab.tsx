@@ -35,13 +35,13 @@ export function ThemesAdminTab({
       // Deselect
       setLoading("clear");
       const result = await clearEventTheme(eventId, adminCode);
-      if (!result.error) setActiveThemeId(null);
+      if (!("error" in result)) setActiveThemeId(null);
       setLoading(null);
       return;
     }
     setLoading(themeId);
     const result = await selectEventTheme(eventId, themeId, adminCode);
-    if (!result.error) setActiveThemeId(themeId);
+    if (!("error" in result)) setActiveThemeId(themeId);
     setLoading(null);
   };
 
@@ -56,7 +56,7 @@ export function ThemesAdminTab({
       category: form.category.trim() || null,
     }, adminCode);
     setFormSaving(false);
-    if (result.error) { setFormError(result.error); return; }
+    if ("error" in result) { setFormError(result.error); return; }
     if (result.data) setLocalThemes((prev) => [...prev, result.data as ConversationTheme]);
     setForm({ name: "", description: "", emoji: "", category: "" });
     setShowForm(false);

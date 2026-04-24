@@ -615,9 +615,9 @@ export async function getFullEventExport(eventId: string, adminCode?: string | n
     success: true,
     data: {
       event,
-      attendees: attendeeResult.success ? attendeeResult.data : [],
-      analytics: analyticsResult.success ? analyticsResult.data : {},
-      summary: summaryResult.success ? summaryResult.data : {},
+      attendees: "data" in attendeeResult ? attendeeResult.data : [],
+      analytics: "data" in analyticsResult ? analyticsResult.data : {},
+      summary: "data" in summaryResult ? summaryResult.data : {},
       questions: questions || [],
       polls: polls || [],
       pollVotes: pollVotes || [],

@@ -109,7 +109,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
     setCityLoading(true);
     setCityError(null);
     const result = await createEventCalendarCity(newCityName.trim(), adminCode);
-    if (result.error) {
+    if ("error" in result) {
       setCityError(result.error);
       setCityLoading(false);
       return;
@@ -178,7 +178,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
       notes: newEvent.notes || null,
       confirmed: newEvent.confirmed ?? false,
     }, adminCode);
-    if (!result.error && result.data) {
+    if (!("error" in result) && result.data) {
       setEvents((prev) =>
         [...prev, result.data as PlannedEvent].sort((a, b) =>
           a.event_date.localeCompare(b.event_date)
@@ -228,7 +228,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
       notes: editState.notes ?? null,
       confirmed: editState.confirmed,
     }, adminCode);
-    if (!result.error) {
+    if (!("error" in result)) {
       setEvents((prev) =>
         prev
           .map((e) => e.id === id ? { ...e, ...editState, updated_at: new Date().toISOString() } : e)
@@ -269,7 +269,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
     if (!confirm("Remove this planned event?")) return;
     setLoading(id + "-del");
     const result = await deletePlannedEvent(id, adminCode);
-    if (!result.error) setEvents((prev) => prev.filter((e) => e.id !== id));
+    if (!("error" in result)) setEvents((prev) => prev.filter((e) => e.id !== id));
     setLoading(null);
   };
 
@@ -436,6 +436,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
             venues={venues}
             onChange={(k, v) => setNewEvent((s) => ({ ...s, [k]: v }))}
             onVenueCreated={(v) => setVenues((prev) => [...prev, v])}
+            adminCode={adminCode}
           />
           <div className="flex gap-3 pt-2">
             <button
@@ -503,6 +504,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
                         venues={venues}
                         onChange={(k, v) => setEditState((s) => ({ ...s, [k]: v }))}
                         onVenueCreated={(v) => setVenues((prev) => [...prev, v])}
+                        adminCode={adminCode}
                       />
                       <div className="flex gap-3 pt-1 flex-wrap">
                         <button
@@ -640,12 +642,14 @@ function EventForm({
   venues,
   onChange,
   onVenueCreated,
+  adminCode,
 }: {
   state: EditState;
   cities: string[];
   venues: Venue[];
   onChange: (key: keyof EditState, value: string | boolean | null) => void;
   onVenueCreated: (v: Venue) => void;
+  adminCode?: string;
 }) {
   const [addingVenue, setAddingVenue] = useState(false);
   const [newVenueName, setNewVenueName] = useState("");
@@ -673,7 +677,9 @@ function EventForm({
     try {
       const formData = new FormData();
       formData.append("file", file, file.name);
-      const res = await fetch("/api/admin/upload-venue-image", { method: "POST", body: formData });
+      const headers: Record<string, string> = {};
+      if (adminCode) headers["x-admin-code"] = adminCode;
+      const res = await fetch("/api/admin/upload-venue-image", { method: "POST", headers, body: formData });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Upload failed");
@@ -695,7 +701,7 @@ function EventForm({
     setVenueError(null);
     const result = await createVenue({ name: newVenueName.trim(), address: newVenueAddress.trim() || null, image_url: newVenueImageUrl }, adminCode);
     setVenueSaving(false);
-    if (result.error) { setVenueError(result.error); return; }
+    if ("error" in result) { setVenueError(result.error); return; }
     const created = result.data as Venue;
     onVenueCreated(created);
     onChange("venue", created.name);
