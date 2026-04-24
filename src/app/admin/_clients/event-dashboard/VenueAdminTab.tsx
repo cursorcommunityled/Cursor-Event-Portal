@@ -9,6 +9,7 @@ import { updateVenue } from "@/lib/actions/event-dashboard";
 import { setEventStatus } from "@/lib/actions/settings";
 import type { EventStatus } from "@/types";
 import type { Event, Venue } from "@/types";
+import { readFileToBlob } from "@/lib/utils/read-file";
 
 type EventOption = {
   id: string;
@@ -67,11 +68,7 @@ export function VenueAdminTab({
     setUploadingImage(true);
     setError(null);
     try {
-      // Buffer the file into memory before posting. Chrome aborts the request with
-      // ERR_UPLOAD_FILE_CHANGED if the file's mtime shifts between selection and send
-      // (e.g. iCloud syncs, antivirus rewrites, file-watcher updates).
-      const buffer = await file.arrayBuffer();
-      const blob = new Blob([buffer], { type: file.type });
+      const blob = await readFileToBlob(file);
 
       const formData = new FormData();
       formData.append("file", blob, file.name);
