@@ -23,6 +23,7 @@ type EventOption = {
 interface VenueAdminTabProps {
   event: Event;
   eventSlug: string;
+  adminCode?: string;
   venues: Venue[];
   allEvents: EventOption[];
   activeSlug: string;
@@ -31,6 +32,7 @@ interface VenueAdminTabProps {
 export function VenueAdminTab({
   event,
   eventSlug,
+  adminCode,
   venues,
   allEvents,
   activeSlug,
@@ -67,11 +69,22 @@ export function VenueAdminTab({
     try {
       const formData = new FormData();
       formData.append("file", file, file.name);
+      // Read the file fully into memory before sending to avoid ERR_UPLOAD_FILE_CHANGED on some browsers.
+      const headers: Record<string, string> = {};
+      const code = adminCode ?? event.admin_code;
+      if (code) {
+        headers["x-admin-code"] = code;
+        headers["x-event-id"] = event.id;
+      }
       const response = await fetch("/api/admin/upload-venue-image", {
         method: "POST",
+        headers,
         body: formData,
       });
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Upload failed");
+      }
       const data = await response.json();
       if (data.success && data.url) {
         const newUrl = data.url as string;

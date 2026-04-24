@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getSession } from "@/lib/actions/registration";
+import { requireAdmin } from "@/lib/auth/admin-guard";
 
 const MAX_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 const ALLOWED_TYPES = new Set([
@@ -25,26 +25,18 @@ function isAllowedImage(file: File) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    // Auth first (uses headers — won't consume the body so we can still read formData).
+    // Accepts Supabase auth, portal_session admin user, or per-event admin code
+    // via `x-admin-code` + `x-event-id` headers.
+    const headerEventId = request.headers.get("x-event-id") ?? undefined;
+    const auth = await requireAdmin(request, { eventId: headerEventId });
+    if ("response" in auth) return auth.response;
 
     const supabase = await createServiceClient();
 
-    const { data: user } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", session.userId)
-      .single();
-
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const eventId = formData.get("eventId") as string | null;
+    const eventId = (formData.get("eventId") as string | null) ?? headerEventId ?? null;
 
     if (!file || !eventId) {
       return NextResponse.json({ error: "Missing file or eventId" }, { status: 400 });

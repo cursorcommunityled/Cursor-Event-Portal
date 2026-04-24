@@ -276,6 +276,7 @@ export function AgendaAdminClient({
         <CreateEditModal
           item={editingItem}
           eventId={event.id}
+          adminCode={adminCode ?? event.admin_code}
           onClose={() => {
             setShowCreateModal(false);
             setEditingItem(null);
@@ -511,6 +512,7 @@ interface CreateEditModalProps {
   }) => void;
   onUpdate?: (data: Partial<AgendaItem>) => void;
   isPending: boolean;
+  adminCode?: string;
 }
 
 function CreateEditModal({
@@ -520,6 +522,7 @@ function CreateEditModal({
   onCreate,
   onUpdate,
   isPending,
+  adminCode,
 }: CreateEditModalProps) {
   const [title, setTitle] = useState(item?.title || "");
   const [description, setDescription] = useState(item?.description || "");
@@ -551,8 +554,12 @@ function CreateEditModal({
       formData.append("file", blob, file.name);
       formData.append("eventId", eventId);
 
+      const headers: Record<string, string> = { "x-event-id": eventId };
+      if (adminCode) headers["x-admin-code"] = adminCode;
+
       const response = await fetch("/api/admin/upload-agenda-image", {
         method: "POST",
+        headers,
         body: formData,
       });
 
