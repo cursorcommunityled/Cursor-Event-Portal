@@ -146,6 +146,7 @@ export function EventDashboardClient({
             <VenueAdminTab
               event={event}
               eventSlug={eventSlug}
+              adminCode={adminCode}
               venues={venues}
               allEvents={allEvents}
               activeSlug={activeSlug}
