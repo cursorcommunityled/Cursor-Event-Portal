@@ -56,7 +56,12 @@ export function AttendanceHubClient({
     const parsed = parseInt(capacityInput);
     if (!parsed || parsed < 1) return;
     startTransition(async () => {
-      const result = await updateEventDetails(event.id, event.slug, { capacity: parsed });
+      const result = await updateEventDetails(
+        event.id,
+        event.slug,
+        { capacity: parsed },
+        adminCode ?? event.admin_code
+      );
       if (result.success) {
         setCapacitySaved(true);
         setTimeout(() => setCapacitySaved(false), 2000);

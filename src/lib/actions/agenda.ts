@@ -164,24 +164,15 @@ export async function updateEventDetails(
     end_time?: string | null;
     venue_image_url?: string | null;
     capacity?: number;
-  }
+  },
+  adminCode?: string | null
 ) {
-  const session = await getSession();
-  if (!session) {
-    return { error: "Not authenticated" };
-  }
+  // Accepts either a portal_session admin cookie OR the per-event adminCode
+  // (used by /admin/[adminCode] URLs where the visitor has no admin login).
+  const authError = await authoriseAgendaAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-
-  if (!user || user.role !== "admin") {
-    return { error: "Not authorized" };
-  }
 
   const { error } = await supabase
     .from("events")
@@ -203,20 +194,17 @@ export async function updateEventDetails(
   return { success: true };
 }
 
-export async function getEventsForImport(currentEventId: string): Promise<
+export async function getEventsForImport(
+  currentEventId: string,
+  adminCode?: string | null
+): Promise<
   { id: string; name: string; slug: string; start_time: string | null; items: AgendaItem[] }[]
 > {
-  const session = await getSession();
-  if (!session) return [];
+  // Accepts either a portal_session admin cookie OR the per-event adminCode.
+  const authError = await authoriseAgendaAdmin(currentEventId, adminCode);
+  if (authError) return [];
 
   const supabase = await createServiceClient();
-
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-  if (!user || user.role !== "admin") return [];
 
   const { data: events } = await supabase
     .from("events")
@@ -247,19 +235,13 @@ export async function importAgendaFromEvent(
   sourceEventId: string,
   targetEventId: string,
   targetEventSlug: string,
-  itemIds: string[]
+  itemIds: string[],
+  adminCode?: string | null
 ) {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
+  const authError = await authoriseAgendaAdmin(targetEventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
-
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .single();
-  if (!user || user.role !== "admin") return { error: "Not authorized" };
 
   const { data: sourceItems } = await supabase
     .from("agenda_items")
@@ -393,13 +375,13 @@ export async function applyAgendaTemplate(
 
   const supabase = await createServiceClient();
 
-  // Pull event so we can anchor times to the event's date in its own timezone.
-  // Use maybeSingle() + surface the underlying error so we can diagnose any
-  // weird 0-row / type-mismatch / RLS edge cases instead of returning a vague
-  // "Event not found".
+  // Pull just the columns we need. We deliberately do NOT select `timezone`
+  // because not every database has the add_timezone_to_events.sql migration
+  // applied, and per-event timezone editing isn't surfaced in the UI yet.
+  // If/when that lands, swap to selecting `timezone` and using it here.
   const { data: eventRow, error: eventErr } = await supabase
     .from("events")
-    .select("id, start_time, timezone")
+    .select("id, start_time")
     .eq("id", eventId)
     .maybeSingle();
   if (eventErr) {
@@ -411,7 +393,7 @@ export async function applyAgendaTemplate(
     return { error: `Event not found (id=${eventId})` };
   }
 
-  const timezone = eventRow.timezone || "America/Edmonton";
+  const timezone = "America/Edmonton";
 
   // Determine the event's local calendar date. Fall back to "today" in the event timezone.
   const baseUtc = eventRow.start_time ? new Date(eventRow.start_time) : new Date();

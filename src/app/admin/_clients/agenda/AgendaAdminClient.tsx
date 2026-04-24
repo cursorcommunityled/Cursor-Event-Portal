@@ -292,6 +292,7 @@ export function AgendaAdminClient({
         <ImportModal
           targetEventId={event.id}
           targetEventSlug={eventSlug}
+          adminCode={adminCode ?? event.admin_code}
           onClose={() => setShowImportModal(false)}
           onImported={() => {
             setShowImportModal(false);
@@ -308,11 +309,12 @@ type SourceEvent = { id: string; name: string; slug: string; start_time: string 
 interface ImportModalProps {
   targetEventId: string;
   targetEventSlug: string;
+  adminCode?: string | null;
   onClose: () => void;
   onImported: () => void;
 }
 
-function ImportModal({ targetEventId, targetEventSlug, onClose, onImported }: ImportModalProps) {
+function ImportModal({ targetEventId, targetEventSlug, adminCode, onClose, onImported }: ImportModalProps) {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<SourceEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<SourceEvent | null>(null);
@@ -321,11 +323,11 @@ function ImportModal({ targetEventId, targetEventSlug, onClose, onImported }: Im
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getEventsForImport(targetEventId).then((data) => {
+    getEventsForImport(targetEventId, adminCode).then((data) => {
       setEvents(data);
       setLoading(false);
     });
-  }, [targetEventId]);
+  }, [targetEventId, adminCode]);
 
   const selectEvent = (ev: SourceEvent) => {
     setSelectedEvent(ev);
@@ -348,7 +350,8 @@ function ImportModal({ targetEventId, targetEventSlug, onClose, onImported }: Im
       selectedEvent.id,
       targetEventId,
       targetEventSlug,
-      Array.from(selectedIds)
+      Array.from(selectedIds),
+      adminCode
     );
     if (result.success) {
       onImported();
