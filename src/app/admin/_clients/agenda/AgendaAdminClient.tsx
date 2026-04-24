@@ -7,6 +7,7 @@ import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImpor
 import type { Event, AgendaItem } from "@/types";
 import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download } from "lucide-react";
 import { formatTime } from "@/lib/utils";
+import { readFileToBlob } from "@/lib/utils/read-file";
 
 // Convert UTC ISO string to datetime-local format in MST
 function utcToMstLocal(utcString: string): string {
@@ -549,9 +550,7 @@ function CreateEditModal({
     setError(null);
 
     try {
-      // Read file into memory immediately to avoid ERR_UPLOAD_FILE_CHANGED
-      const buffer = await file.arrayBuffer();
-      const blob = new Blob([buffer], { type: file.type });
+      const blob = await readFileToBlob(file);
 
       const formData = new FormData();
       formData.append("file", blob, file.name);
