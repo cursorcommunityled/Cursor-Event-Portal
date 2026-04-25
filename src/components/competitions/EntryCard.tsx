@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy, ThumbsUp, ExternalLink, Code, Users, Star, Pencil } from "lucide-react";
+import { Trophy, ThumbsUp, ExternalLink, Code, Users, Star, Pencil, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { castVote } from "@/lib/actions/competitions";
 import { WinnerCelebration } from "@/components/competitions/Confetti";
@@ -95,10 +95,12 @@ export function EntryCard({
   const [voteError, setVoteError] = useState<string | null>(null);
   const [judgeScore, setJudgeScore] = useState(3);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [copiedProjectUrl, setCopiedProjectUrl] = useState(false);
   const isOwn = entry.user_id === userId;
   const canEdit = isOwn && competitionStatus && ["active", "voting"].includes(competitionStatus);
   const ghRepo = parseGitHubRepo(entry.repo_url);
   const stackBlitzUrl = ghRepo ? `https://stackblitz.com/github/${ghRepo.owner}/${ghRepo.repo}` : null;
+  const projectUrl = entry.project_url || entry.repo_url;
   const videoEmbedUrl = entry.video_url ? getVideoEmbedUrl(entry.video_url) : null;
   const directVideoUrl = entry.video_url && !videoEmbedUrl && isDirectVideoUrl(entry.video_url) ? entry.video_url : null;
   const isAnyWinner = isAdminWinner || isGroupWinner || isWinner;
@@ -113,6 +115,16 @@ export function EntryCard({
       setVoteError(result.error);
     } else {
       router.refresh();
+    }
+  };
+
+  const handleCopyProjectUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(projectUrl);
+      setCopiedProjectUrl(true);
+      setTimeout(() => setCopiedProjectUrl(false), 2000);
+    } catch {
+      setVoteError("Could not copy project URL.");
     }
   };
 
@@ -221,6 +233,31 @@ export function EntryCard({
             by {entry.user.name}
           </p>
         )}
+
+        <div className="rounded-xl border border-white/10 bg-black/20 p-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+            Project URL
+          </p>
+          <div className="flex items-center gap-2">
+            <a
+              href={projectUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-w-0 flex-1 text-xs text-blue-300 hover:text-blue-200 break-all"
+            >
+              {projectUrl}
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyProjectUrl}
+              className="flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-[10px] uppercase tracking-[0.15em] text-gray-300 hover:bg-white/15 hover:text-white transition-all"
+              title="Copy project URL"
+            >
+              {copiedProjectUrl ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedProjectUrl ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
 
         {/* Description */}
         {entry.description && (
