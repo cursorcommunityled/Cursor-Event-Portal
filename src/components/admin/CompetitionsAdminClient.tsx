@@ -17,6 +17,8 @@ import {
   Code,
   ThumbsUp,
   Undo2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -104,6 +106,7 @@ export function CompetitionsAdminClient({
   // admin voting state
   const [votingEntryId, setVotingEntryId] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
+  const [copiedEntryId, setCopiedEntryId] = useState<string | null>(null);
 
   const toggleTop3Selection = (compId: string, entryId: string) => {
     setTop3Selections((prev) => {
@@ -273,6 +276,18 @@ export function CompetitionsAdminClient({
       setVoteErrors((prev) => ({ ...prev, [entryId]: result.error! }));
     } else {
       router.refresh();
+    }
+  };
+
+  const handleCopyProjectUrl = async (url: string, entryId: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedEntryId(entryId);
+      setTimeout(() => {
+        setCopiedEntryId((current) => (current === entryId ? null : current));
+      }, 2000);
+    } catch {
+      setError("Could not copy project URL.");
     }
   };
 
@@ -596,6 +611,7 @@ export function CompetitionsAdminClient({
                       const isWinner = entry.id === comp.winner_entry_id;
 
                       const hasMedia = !!(entry.preview_image_url || entry.video_url);
+                      const projectUrl = entry.project_url || entry.repo_url;
 
                       return (
                         <div
@@ -658,25 +674,54 @@ export function CompetitionsAdminClient({
                           )}
 
                           <div className="p-4 flex items-center justify-between gap-3">
-                          <div className="space-y-1 flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {isAdminWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
-                              {isGroupWinner && <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
-                              {isWinner && !isTop3 && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
-                              <span className="text-sm text-white">{entry.title}</span>
-                              {isFinalist && !isAdminWinner && !isGroupWinner && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Finalist</span>
-                              )}
-                              {isAdminWinner && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Admin Pick</span>
-                              )}
-                              {isGroupWinner && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300">People&apos;s Choice</span>
-                              )}
+                          <div className="space-y-3 flex-1 min-w-0">
+                            <div className="space-y-1">
+                              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+                                Project
+                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {isAdminWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
+                                {isGroupWinner && <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                                {isWinner && !isTop3 && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
+                                <span className="text-base text-white">{entry.title}</span>
+                                {isFinalist && !isAdminWinner && !isGroupWinner && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Finalist</span>
+                                )}
+                                {isAdminWinner && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Admin Pick</span>
+                                )}
+                                {isGroupWinner && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300">People&apos;s Choice</span>
+                                )}
+                              </div>
                             </div>
                             <p className="text-xs text-gray-500">
                               {entry.user?.name || "Unknown"} — {entry.vote_count || 0} vote{(entry.vote_count || 0) !== 1 ? "s" : ""}
                             </p>
+                            <div className="rounded-lg border border-white/10 bg-black/20 p-2.5 space-y-1.5">
+                              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+                                URL
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={projectUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="min-w-0 flex-1 text-xs text-blue-300 hover:text-blue-200 break-all"
+                                >
+                                  {projectUrl}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyProjectUrl(projectUrl, entry.id)}
+                                  className="flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/10 text-[10px] uppercase tracking-[0.15em] text-gray-300 hover:bg-white/15 hover:text-white transition-all"
+                                  title="Copy project URL"
+                                >
+                                  {copiedEntryId === entry.id ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                                  {copiedEntryId === entry.id ? "Copied" : "Copy"}
+                                </button>
+                              </div>
+                            </div>
                           </div>
 
                           <div className="flex items-center gap-2 ml-3 shrink-0">
