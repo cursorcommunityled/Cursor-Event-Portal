@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -12,7 +13,7 @@ const PdfDeckViewer = dynamic(
 );
 import { getSlideDeck } from "@/lib/supabase/queries";
 import type { Event, SlideDeck } from "@/types";
-import { ArrowLeft, Upload, X, Trash2, FileText, Loader2, Eye, EyeOff, PanelRight } from "lucide-react";
+import { Upload, X, Trash2, FileText, Loader2, Eye, EyeOff, PanelRight, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SlideDeckAdminClientProps {
@@ -35,6 +36,7 @@ export function SlideDeckAdminClient({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPresenter, setShowPresenter] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>("");
 
@@ -362,9 +364,17 @@ export function SlideDeckAdminClient({
             <div className="mt-6 p-4 rounded-2xl bg-white/5 border border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600">Live Control</p>
-                <p className="text-[9px] text-blue-400">
-                  Attendees see what you see
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[9px] text-blue-400">Attendees see what you see</p>
+                  <button
+                    onClick={() => setShowPresenter(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
+                    title="Open fullscreen presenter mode"
+                  >
+                    <Maximize2 className="w-3 h-3 text-gray-400" />
+                    <span className="text-[9px] text-gray-400 uppercase tracking-[0.15em]">Present</span>
+                  </button>
+                </div>
               </div>
               <div className="aspect-video rounded-xl overflow-hidden bg-black/40 border border-white/5">
                 <PdfDeckViewer
@@ -469,11 +479,21 @@ export function SlideDeckAdminClient({
     </div>
   ) : null;
 
+  const presenterOverlay = showPresenter && deck ? (
+    <PresenterOverlay
+      deck={deck}
+      eventId={event.id}
+      adminCode={adminCode}
+      onClose={() => setShowPresenter(false)}
+    />
+  ) : null;
+
   if (embedded) {
     return (
       <>
         {mainContent}
         {uploadModal}
+        {presenterOverlay}
       </>
     );
   }
@@ -502,6 +522,115 @@ export function SlideDeckAdminClient({
         <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">Slide Deck</p>
       </footer>
       {uploadModal}
+      {presenterOverlay}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fullscreen presenter overlay — admin-side only, syncs page to attendees
+// ---------------------------------------------------------------------------
+
+function PresenterOverlay({
+  deck,
+  eventId,
+  adminCode,
+  onClose,
+}: {
+  deck: SlideDeck;
+  eventId: string;
+  adminCode?: string;
+  onClose: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(deck.current_page || 1);
+  const [pageCount, setPageCount] = useState(0);
+  // Refs so keyboard handler always sees latest values without stale closure
+  const currentPageRef = useRef(deck.current_page || 1);
+  const pageCountRef = useRef(0);
+
+  useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
+  useEffect(() => { pageCountRef.current = pageCount; }, [pageCount]);
+
+  // Enter fullscreen on mount
+  useEffect(() => {
+    containerRef.current?.requestFullscreen().catch(() => {});
+  }, []);
+
+  // Exit overlay when the user leaves fullscreen (Escape or browser button)
+  useEffect(() => {
+    const handleFsChange = () => {
+      if (!document.fullscreenElement) onClose();
+    };
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () => document.removeEventListener("fullscreenchange", handleFsChange);
+  }, [onClose]);
+
+  const navigate = useCallback((delta: number) => {
+    const count = pageCountRef.current;
+    if (count === 0) return;
+    const next = Math.max(1, Math.min(currentPageRef.current + delta, count));
+    if (next === currentPageRef.current) return;
+    setCurrentPage(next);
+    updateSlideCurrentPage(eventId, next, adminCode);
+  }, [eventId, adminCode]);
+
+  // Keyboard shortcuts: ← / ↑ = prev, → / ↓ / Space = next, Esc = exit
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " ") {
+        e.preventDefault();
+        navigate(1);
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "Escape") {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [navigate]);
+
+  return createPortal(
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-[9999] bg-black flex items-center justify-center"
+    >
+      <PdfDeckViewer
+        pdfUrl={deck.pdf_url}
+        className="w-full h-full"
+        showControls={true}
+        syncedPage={currentPage}
+        onPageCount={(count) => setPageCount(count)}
+        onPageChange={(p) => {
+          setCurrentPage(p);
+          updateSlideCurrentPage(eventId, p, adminCode);
+        }}
+      />
+
+      {/* Exit button */}
+      <button
+        onClick={() => document.exitFullscreen().catch(() => {})}
+        className="absolute top-6 right-6 z-50 w-12 h-12 rounded-2xl bg-black/60 backdrop-blur-sm border border-white/20 hover:bg-black/80 transition-all flex items-center justify-center group"
+        title="Exit presenter (Esc)"
+      >
+        <X className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
+      </button>
+
+      {/* Live sync indicator */}
+      <div className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2 rounded-full bg-black/60 backdrop-blur-sm border border-white/20">
+        <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+        <span className="text-[10px] text-white/60 uppercase tracking-wider">Syncing to attendees</span>
+      </div>
+
+      {/* Keyboard shortcuts hint */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/20">
+        <p className="text-[10px] text-white/40 uppercase tracking-wider">
+          ← → navigate &nbsp;·&nbsp; Space next &nbsp;·&nbsp; Esc exit
+        </p>
+      </div>
+    </div>,
+    document.body
   );
 }
