@@ -306,21 +306,22 @@ function SortableAgendaItem({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`glass rounded-[32px] p-8 border-white/[0.03] hover:bg-white/[0.01] transition-all flex gap-4 ${isDragging ? "opacity-50 z-10" : ""}`}
+      className={`glass rounded-[32px] p-8 border-white/[0.03] hover:bg-white/[0.01] transition-all flex gap-4 relative overflow-hidden ${isDragging ? "opacity-50 z-10" : ""}`}
     >
+      {item.image_url && (
+        <div className="absolute inset-y-0 right-0 w-[40%] overflow-hidden z-0 pointer-events-none rounded-[32px]">
+          <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/70 to-transparent" />
+        </div>
+      )}
       <div
         {...attributes}
         {...listeners}
-        className="flex items-center self-stretch cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 transition-colors pr-2 touch-none"
+        className="flex items-center self-stretch cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 transition-colors pr-2 touch-none relative z-10"
       >
         <GripVertical className="w-4 h-4" />
       </div>
-      <div className="flex-1 min-w-0">
-        {item.image_url && (
-          <div className="w-full h-32 rounded-2xl overflow-hidden border border-white/10 mb-5">
-            <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
-          </div>
-        )}
+      <div className="flex-1 min-w-0 relative z-10">
         <div className="flex items-start justify-between gap-6">
           <div className="flex-1 space-y-4">
             <div className="flex items-center gap-4">
