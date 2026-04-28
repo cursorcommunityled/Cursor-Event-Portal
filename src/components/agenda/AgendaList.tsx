@@ -165,16 +165,16 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                 </div>
               )}
 
-              {/* Admin-uploaded banner image (always visible) */}
+              {/* Admin-uploaded image — right-side fade, always visible */}
               {item.image_url && (
-                <div className="relative z-10 -mx-10 md:-mx-12 -mt-10 md:-mt-12 mb-6 md:mb-8 overflow-hidden rounded-t-[40px]">
+                <div className="absolute inset-y-0 right-0 w-full md:w-[40%] overflow-hidden z-0 pointer-events-none rounded-[40px]">
                   <img
                     src={item.image_url}
                     alt={item.title}
-                    className="w-full h-48 md:h-64 object-cover"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                   />
-                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/70 to-transparent" />
                 </div>
               )}
 
