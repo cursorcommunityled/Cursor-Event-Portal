@@ -389,6 +389,28 @@ export async function applyAgendaTemplate(
   return { success: true, count: inserts.length };
 }
 
+export async function reorderAgendaItems(
+  eventId: string,
+  eventSlug: string,
+  updates: { id: string; sort_order: number }[],
+  adminCode?: string | null
+) {
+  const authError = await authoriseAgendaAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const supabase = await createServiceClient();
+
+  await Promise.all(
+    updates.map(({ id, sort_order }) =>
+      supabase.from("agenda_items").update({ sort_order }).eq("id", id)
+    )
+  );
+
+  revalidatePath(`/admin/${eventSlug}/agenda`);
+  revalidatePath(`/${eventSlug}/agenda`);
+  return { success: true };
+}
+
 export async function deleteAgendaItem(
   itemId: string,
   eventSlug: string,

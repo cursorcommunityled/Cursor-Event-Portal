@@ -3,11 +3,15 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImport, importAgendaFromEvent, applyAgendaTemplate } from "@/lib/actions/agenda";
+import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImport, importAgendaFromEvent, applyAgendaTemplate, reorderAgendaItems } from "@/lib/actions/agenda";
 import type { Event, AgendaItem } from "@/types";
-import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download } from "lucide-react";
+import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download, GripVertical } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { readFileToBlob } from "@/lib/utils/read-file";
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // Convert UTC ISO string to datetime-local format in MST
 function utcToMstLocal(utcString: string): string {
@@ -50,6 +54,21 @@ export function AgendaAdminClient({
   }, [initialItems]);
 
   const [isPending, startTransition] = useTransition();
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((i) => i.id === active.id);
+    const newIndex = items.findIndex((i) => i.id === over.id);
+    const reordered = arrayMove(items, oldIndex, newIndex);
+    setItems(reordered);
+    const updates = reordered.map((item, idx) => ({ id: item.id, sort_order: idx }));
+    startTransition(async () => {
+      await reorderAgendaItems(event.id, eventSlug, updates, adminCode ?? event.admin_code);
+    });
+  };
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
@@ -77,7 +96,7 @@ export function AgendaAdminClient({
     speaker?: string;
     start_time?: string;
     end_time?: string;
-    image_url?: string;
+    image_url?: string | null;
   }) => {
     setError(null);
     startTransition(async () => {
@@ -194,73 +213,20 @@ export function AgendaAdminClient({
                 {items.length} item{items.length !== 1 ? "s" : ""}
               </p>
             </div>
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="glass rounded-[32px] p-8 border-white/[0.03] hover:bg-white/[0.01] transition-all"
-              >
-                {item.image_url && (
-                  <div className="w-full h-32 rounded-2xl overflow-hidden border border-white/10 mb-5">
-                    <img
-                      src={item.image_url}
-                      alt={item.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex items-start justify-between gap-6">
-                  <div className="flex-1 space-y-4">
-                    <div className="flex items-center gap-4">
-                      {item.start_time && (
-                        <div className="flex items-center gap-2 text-[10px] text-gray-600 uppercase tracking-[0.2em]">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(item.start_time, event.timezone || "America/Edmonton")}
-                          {item.end_time && ` – ${formatTime(item.end_time, event.timezone || "America/Edmonton")}`}
-                        </div>
-                      )}
-                    </div>
-                    <h3 className="text-2xl font-light tracking-tight text-white/90">
-                      {item.title}
-                    </h3>
-                    {item.description && (
-                      <p className="text-sm text-gray-500 leading-relaxed">
-                        {item.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-6 text-[10px] text-gray-700">
-                      {item.speaker && (
-                        <div className="flex items-center gap-2">
-                          <User className="w-3 h-3" />
-                          {item.speaker}
-                        </div>
-                      )}
-                      {item.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3 h-3" />
-                          {item.location}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setEditingItem(item)}
-                      disabled={isPending}
-                      className="w-10 h-10 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-white hover:border-white/20 transition-all flex items-center justify-center"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={isPending}
-                      className="w-10 h-10 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-800 hover:text-red-500 hover:border-red-500/20 transition-all flex items-center justify-center"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                {items.map((item) => (
+                  <SortableAgendaItem
+                    key={item.id}
+                    item={item}
+                    event={event}
+                    isPending={isPending}
+                    onEdit={() => setEditingItem(item)}
+                    onDelete={() => handleDelete(item.id)}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </main>
@@ -301,6 +267,92 @@ export function AgendaAdminClient({
           }}
         />
       )}
+    </div>
+  );
+}
+
+function SortableAgendaItem({
+  item,
+  event,
+  isPending,
+  onEdit,
+  onDelete,
+}: {
+  item: AgendaItem;
+  event: Event;
+  isPending: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`glass rounded-[32px] p-8 border-white/[0.03] hover:bg-white/[0.01] transition-all flex gap-4 ${isDragging ? "opacity-50 z-10" : ""}`}
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="flex items-center self-stretch cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 transition-colors pr-2 touch-none"
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        {item.image_url && (
+          <div className="w-full h-32 rounded-2xl overflow-hidden border border-white/10 mb-5">
+            <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+          </div>
+        )}
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex-1 space-y-4">
+            <div className="flex items-center gap-4">
+              {item.start_time && (
+                <div className="flex items-center gap-2 text-[10px] text-gray-600 uppercase tracking-[0.2em]">
+                  <Clock className="w-3 h-3" />
+                  {formatTime(item.start_time, event.timezone || "America/Edmonton")}
+                  {item.end_time && ` – ${formatTime(item.end_time, event.timezone || "America/Edmonton")}`}
+                </div>
+              )}
+            </div>
+            <h3 className="text-2xl font-light tracking-tight text-white/90">{item.title}</h3>
+            {item.description && (
+              <p className="text-sm text-gray-500 leading-relaxed">{item.description}</p>
+            )}
+            <div className="flex items-center gap-6 text-[10px] text-gray-700">
+              {item.speaker && (
+                <div className="flex items-center gap-2">
+                  <User className="w-3 h-3" />
+                  {item.speaker}
+                </div>
+              )}
+              {item.location && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-3 h-3" />
+                  {item.location}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={onEdit}
+              disabled={isPending}
+              className="w-10 h-10 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-600 hover:text-white hover:border-white/20 transition-all flex items-center justify-center"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onDelete}
+              disabled={isPending}
+              className="w-10 h-10 rounded-2xl bg-white/[0.02] border border-white/5 text-gray-800 hover:text-red-500 hover:border-red-500/20 transition-all flex items-center justify-center"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -512,7 +564,7 @@ interface CreateEditModalProps {
     speaker?: string;
     start_time?: string;
     end_time?: string;
-    image_url?: string;
+    image_url?: string | null;
   }) => void;
   onUpdate?: (data: Partial<AgendaItem>) => void;
   isPending: boolean;
@@ -627,7 +679,7 @@ function CreateEditModal({
       speaker: speaker.trim() || undefined,
       start_time: startTimeUtc,
       end_time: endTimeUtc,
-      image_url: imageUrl.trim() || undefined,
+      image_url: imageUrl.trim() || null,
     };
 
     if (item && onUpdate) {
