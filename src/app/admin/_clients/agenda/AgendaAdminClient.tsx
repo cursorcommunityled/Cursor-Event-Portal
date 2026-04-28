@@ -13,23 +13,39 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-// Convert UTC ISO string to datetime-local format in MST
-function utcToMstLocal(utcString: string): string {
+const TZ = "America/Edmonton";
+
+// UTC ISO string → datetime-local value in Edmonton time
+function utcToEdmontonLocal(utcString: string): string {
   const date = new Date(utcString);
-  const mstDate = new Date(date.toLocaleString("en-US", { timeZone: "America/Edmonton" }));
-  const year = mstDate.getFullYear();
-  const month = String(mstDate.getMonth() + 1).padStart(2, "0");
-  const day = String(mstDate.getDate()).padStart(2, "0");
-  const hours = String(mstDate.getHours()).padStart(2, "0");
-  const minutes = String(mstDate.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(date);
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const hour = String(Number(get("hour")) % 24).padStart(2, "0");
+  return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
 }
 
-// Get timezone offset in milliseconds for a given timezone
-function getTimezoneOffset(timezone: string, date: Date): number {
-  const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-  const tzDate = new Date(date.toLocaleString("en-US", { timeZone: timezone }));
-  return utcDate.getTime() - tzDate.getTime();
+// datetime-local value (treated as Edmonton wall-clock time) → UTC ISO string
+function edmontonLocalToUtc(datetimeLocal: string): string {
+  const [datePart, timePart] = datetimeLocal.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hours, minutes] = timePart.split(":").map(Number);
+  // Treat the wall-clock time as UTC to seed the Intl lookup, then correct for DST
+  const guess = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(guess);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)!.value);
+  const tzHour = get("hour") % 24;
+  const tzAsUtc = Date.UTC(get("year"), get("month") - 1, get("day"), tzHour, get("minute"), get("second"));
+  const offsetMs = tzAsUtc - guess.getTime();
+  return new Date(guess.getTime() - offsetMs).toISOString();
 }
 
 interface AgendaAdminClientProps {
@@ -585,10 +601,10 @@ function CreateEditModal({
   const [location, setLocation] = useState(item?.location || "");
   const [speaker, setSpeaker] = useState(item?.speaker || "");
   const [startTime, setStartTime] = useState(
-    item?.start_time ? utcToMstLocal(item.start_time) : ""
+    item?.start_time ? utcToEdmontonLocal(item.start_time) : ""
   );
   const [endTime, setEndTime] = useState(
-    item?.end_time ? utcToMstLocal(item.end_time) : ""
+    item?.end_time ? utcToEdmontonLocal(item.end_time) : ""
   );
   const [imageUrl, setImageUrl] = useState(item?.image_url || "");
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -648,29 +664,8 @@ function CreateEditModal({
       return;
     }
 
-    // Convert MST local times to UTC for storage
-    let startTimeUtc: string | undefined;
-    let endTimeUtc: string | undefined;
-
-    if (startTime) {
-      // Parse datetime-local value as MST and convert to UTC
-      const [datePart, timePart] = startTime.split("T");
-      const [year, month, day] = datePart.split("-").map(Number);
-      const [hours, minutes] = timePart.split(":").map(Number);
-      // Create date assuming the input is in MST
-      const localDate = new Date(year, month - 1, day, hours, minutes);
-      const offset = getTimezoneOffset("America/Edmonton", localDate);
-      startTimeUtc = new Date(localDate.getTime() + offset).toISOString();
-    }
-
-    if (endTime) {
-      const [datePart, timePart] = endTime.split("T");
-      const [year, month, day] = datePart.split("-").map(Number);
-      const [hours, minutes] = timePart.split(":").map(Number);
-      const localDate = new Date(year, month - 1, day, hours, minutes);
-      const offset = getTimezoneOffset("America/Edmonton", localDate);
-      endTimeUtc = new Date(localDate.getTime() + offset).toISOString();
-    }
+    const startTimeUtc = startTime ? edmontonLocalToUtc(startTime) : undefined;
+    const endTimeUtc = endTime ? edmontonLocalToUtc(endTime) : undefined;
 
     const data = {
       title: title.trim(),
