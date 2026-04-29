@@ -145,6 +145,13 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
           const hasDetails = item.description || item.speaker || item.location;
 
           const parsed = parseDescription(item.description);
+          const titleLower = item.title.toLowerCase();
+          const isBlitz = titleLower.includes("blitz") || titleLower.includes("lightning") || titleLower.includes("rapid");
+          const agendaImage = item.image_url
+            ? { url: item.image_url, caption: item.title }
+            : isBlitz
+              ? { url: "/blitz2.png", caption: "Quick-fire rounds" }
+              : getAgendaImage(item.title);
 
           return (
             <div
@@ -162,19 +169,6 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                     <span className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-white/70 font-medium">Live</span>
                     <div className="w-3 h-3 rounded-full bg-white animate-pulse shadow-[0_0_12px_rgba(255,255,255,0.8)]" />
                   </div>
-                </div>
-              )}
-
-              {/* Admin-uploaded image — right-side fade, always visible */}
-              {item.image_url && (
-                <div className="absolute inset-y-0 right-0 w-full md:w-[40%] overflow-hidden z-0 pointer-events-none rounded-[40px]">
-                  <img
-                    src={item.image_url}
-                    alt={item.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/70 to-transparent" />
                 </div>
               )}
 
@@ -244,33 +238,21 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                 )}
               </div>
 
-              {/* Hover Image Preview - decorative title-based images only.
-                  Admin-uploaded image_url renders as a banner above instead. */}
-              {!item.image_url && (() => {
-                const titleLower = item.title.toLowerCase();
-                const isBlitz = titleLower.includes("blitz") || titleLower.includes("lightning") || titleLower.includes("rapid");
-
-                const agendaImage = isBlitz
-                  ? { url: "/blitz2.png", caption: "Quick-fire rounds" }
-                  : getAgendaImage(item.title);
-
-                if (!agendaImage) return null;
-
-                return (
-                  <div className="absolute inset-y-0 right-0 w-full md:w-[40%] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-500 pointer-events-none overflow-hidden z-0">
-                    <div className="relative w-full h-full">
-                      <img
-                        src={agendaImage.url}
-                        alt={item.title}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                      />
-                      {/* Gradient to blend with card content */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent z-0" />
-                    </div>
+              {/* Hover Image Preview */}
+              {agendaImage && (
+                <div className="absolute inset-y-0 right-0 w-full md:w-[40%] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-opacity duration-500 pointer-events-none overflow-hidden z-0">
+                  <div className="relative w-full h-full">
+                    <img
+                      src={agendaImage.url}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                      loading={item.image_url ? "lazy" : "eager"}
+                    />
+                    {/* Gradient to blend with card content */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent z-0" />
                   </div>
-                );
-              })()}
+                </div>
+              )}
             </div>
           );
         })}
