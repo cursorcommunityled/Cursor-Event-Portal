@@ -81,12 +81,27 @@ export async function votePoll(
   // Check if user already voted
   const { data: existingVote } = await supabase
     .from("poll_votes")
-    .select("id")
+    .select("id, option_index")
     .eq("poll_id", pollId)
     .eq("user_id", session.userId)
     .single();
 
   if (existingVote) {
+    if (existingVote.option_index === optionIndex) {
+      const { error } = await supabase
+        .from("poll_votes")
+        .delete()
+        .eq("id", existingVote.id);
+
+      if (error) {
+        console.error("Failed to remove vote:", error);
+        return { error: "Failed to remove vote" };
+      }
+
+      revalidatePath(`/${eventSlug}/polls`);
+      return { success: true, removed: true };
+    }
+
     // Update existing vote
     const { error } = await supabase
       .from("poll_votes")

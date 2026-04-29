@@ -72,28 +72,42 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
   const handleVote = async (optionIndex: number) => {
     if (loading || isEnded) return;
 
+    const previousVoteCounts = voteCounts;
+    const previousTotalVotes = totalVotes;
+    const previousSelectedOption = selectedOption;
+    const previousHasVoted = hasVoted;
+    const isRemovingVote = hasVoted && selectedOption === optionIndex;
+
     setLoading(true);
-    setSelectedOption(optionIndex);
 
     // Optimistic update
     const newVoteCounts = [...voteCounts];
-    if (hasVoted && selectedOption !== null) {
+    if (isRemovingVote) {
+      newVoteCounts[optionIndex] = Math.max(0, newVoteCounts[optionIndex] - 1);
+      setTotalVotes((prev) => Math.max(0, prev - 1));
+      setSelectedOption(null);
+      setHasVoted(false);
+    } else if (hasVoted && selectedOption !== null) {
       newVoteCounts[selectedOption] = Math.max(0, newVoteCounts[selectedOption] - 1);
+      newVoteCounts[optionIndex]++;
+      setSelectedOption(optionIndex);
+      setHasVoted(true);
     } else {
       setTotalVotes((prev) => prev + 1);
+      newVoteCounts[optionIndex]++;
+      setSelectedOption(optionIndex);
+      setHasVoted(true);
     }
-    newVoteCounts[optionIndex]++;
     setVoteCounts(newVoteCounts);
-    setHasVoted(true);
 
     const result = await votePoll(poll.id, optionIndex, eventSlug);
 
     if (result.error) {
       // Revert optimistic update
-      setVoteCounts(poll.vote_counts);
-      setTotalVotes(poll.total_votes);
-      setSelectedOption(poll.user_vote?.option_index ?? null);
-      setHasVoted(!!poll.user_vote);
+      setVoteCounts(previousVoteCounts);
+      setTotalVotes(previousTotalVotes);
+      setSelectedOption(previousSelectedOption);
+      setHasVoted(previousHasVoted);
     } else {
       // Refresh to get updated vote counts
       router.refresh();
@@ -173,16 +187,16 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
                 />
               )}
 
-              <div className="relative flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
                   {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center flex-shrink-0">
+                    <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Check className="w-3 h-3 text-black" />
                     </div>
                   )}
                   <span
                     className={cn(
-                      "text-sm font-light truncate",
+                      "text-sm font-light leading-relaxed whitespace-normal break-words",
                       isSelected ? "text-white" : "text-gray-300"
                     )}
                   >
@@ -191,7 +205,7 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
                 </div>
 
                 {showResults && (
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-3 flex-shrink-0 pt-0.5">
                     <span className="text-xs text-gray-500 tabular-nums">
                       {voteCounts[index]}
                     </span>
