@@ -8,10 +8,10 @@ import {
   deleteCreditCode,
   fetchCursorCredits,
 } from "@/lib/actions/cursor-credits";
-import { resetEasterEggs, fetchEasterEggs, saveEggRewardCode } from "@/lib/actions/easter-eggs";
+import { fetchEasterEggs, saveEggRewardCode } from "@/lib/actions/easter-eggs";
 import type { EggRow } from "@/lib/actions/easter-eggs";
 import { cn } from "@/lib/utils";
-import { Gift, ChevronDown, ChevronUp, Trash2, UserX, RotateCcw, Check, Pencil } from "lucide-react";
+import { Gift, ChevronDown, ChevronUp, Trash2, UserX, Check, Pencil } from "lucide-react";
 import type { CursorCredit } from "@/types";
 
 interface CreditsAdminTabProps {
@@ -44,8 +44,6 @@ export function CreditsAdminTab({
   const [autoMsg, setAutoMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [rowLoading, setRowLoading] = useState<string | null>(null);
-  const [eggResetMsg, setEggResetMsg] = useState<string | null>(null);
-  const [eggResetting, setEggResetting] = useState(false);
   const [eggs, setEggs] = useState<EggRow[]>([]);
   const [eggInputs, setEggInputs] = useState<Record<string, string>>({});
   const [eggEditing, setEggEditing] = useState<string | null>(null);
@@ -138,22 +136,7 @@ export function CreditsAdminTab({
     }
   };
 
-  const handleEggReset = async () => {
-    if (!confirm("Reset all Cursor eggs? This unclaims all eggs and deletes the placeholder credits so the hunt can be re-run.")) return;
-    setEggResetting(true);
-    setEggResetMsg(null);
-    const result = await resetEasterEggs(eventId, adminCode);
-    setEggResetting(false);
-    if (result.success) {
-      setEggResetMsg("Cursor eggs reset — all unclaimed, $50 credits removed. Reward codes preserved.");
-      const fresh = await fetchCursorCredits(eventId);
-      setCredits(fresh);
-      const freshEggs = await fetchEasterEggs(eventId, adminCode);
-      setEggs(freshEggs);
-    } else {
-      setEggResetMsg(`Error: ${result.error}`);
-    }
-  };
+
 
   const handleDelete = async (creditId: string) => {
     setRowLoading(creditId);
@@ -286,25 +269,6 @@ export function CreditsAdminTab({
           </div>
         )}
 
-        {/* Reset */}
-        <div className="pt-2 border-t border-white/[0.04] space-y-2">
-          <p className="text-xs text-gray-600">
-            Reset unclaims all eggs and removes $50 credits. Pre-loaded codes are preserved.
-          </p>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleEggReset}
-              disabled={eggResetting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-400 hover:text-white hover:border-white/20 transition-all disabled:opacity-40"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              {eggResetting ? "Resetting…" : "Reset Eggs"}
-            </button>
-            {eggResetMsg && (
-              <p className="text-xs text-gray-500">{eggResetMsg}</p>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Auto-assign */}
