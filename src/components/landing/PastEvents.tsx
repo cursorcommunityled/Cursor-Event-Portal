@@ -221,18 +221,20 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
         allPhotos: ev.photos.map((p) => p.file_url),
       }));
 
-    const enhanced = staticRecaps.map((se) => {
-      const dbMatch = eventsWithPhotos.find((ev) => ev.slug === se.id);
-      if (!dbMatch || dbMatch.photos.length === 0) return se;
-      return {
-        ...se,
-        thumbnail: dbMatch.photos[0]?.file_url ?? se.thumbnail,
-        galleryImages: dbMatch.photos.length > 1
-          ? dbMatch.photos.slice(1, 3).map((p) => p.file_url)
-          : se.galleryImages,
-        allPhotos: dbMatch.photos.map((p) => p.file_url),
-      };
-    });
+    const enhanced = staticRecaps
+      .map((se) => {
+        const dbMatch = eventsWithPhotos.find((ev) => ev.slug === se.id);
+        if (!dbMatch || dbMatch.photos.length === 0) return se;
+        return {
+          ...se,
+          thumbnail: dbMatch.photos[0]?.file_url ?? se.thumbnail,
+          galleryImages: dbMatch.photos.length > 1
+            ? dbMatch.photos.slice(1, 3).map((p) => p.file_url)
+            : se.galleryImages,
+          allPhotos: dbMatch.photos.map((p) => p.file_url),
+        };
+      })
+      .filter((event) => event.allPhotos.length > 0);
 
     return [...dbRecaps, ...enhanced].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

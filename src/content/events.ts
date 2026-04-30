@@ -8,7 +8,7 @@ export const events: CursorEvent[] = [
     displayDate: 'April 29, 2026',
     location: 'Calgary, Canada',
     lumaUrl: 'https://lu.ma/onlcm9o9',
-    status: 'upcoming',
+    status: 'past',
   },
   {
     id: 'calgary-hackathon-sait-may-2026',
@@ -17,6 +17,15 @@ export const events: CursorEvent[] = [
     displayDate: 'May 23–24, 2026',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/e4l2gbj2',
+    status: 'upcoming',
+  },
+  {
+    id: 'calgary-may-2026',
+    title: 'Cursor Calgary Meetup - May',
+    date: '2026-05-27',
+    displayDate: 'May 27, 2026 - 5:30-8:30 PM CST',
+    location: 'Calgary, Canada',
+    lumaUrl: 'https://luma.com/kjchw3e3',
     status: 'upcoming',
   },
   {
@@ -55,3 +64,6 @@ export const events: CursorEvent[] = [
 
 export const upcomingEvents = events.filter((e) => e.status === 'upcoming');
 export const pastEvents = events.filter((e) => e.status === 'past');
+export const lumaEvents = events
+  .filter((e) => e.lumaUrl)
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
