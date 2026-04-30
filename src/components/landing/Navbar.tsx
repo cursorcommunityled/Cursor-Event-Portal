@@ -8,7 +8,7 @@ import LanguageToggle from '@/components/landing/LanguageToggle';
 import { siteConfig } from '@/content/site.config';
 
 const NAV_LINKS = [
-  { href: '#upcoming', key: 'home.upcomingEvents' },
+  { href: '#upcoming', key: 'home.eventLinks' },
   { href: '#recaps', key: 'home.pastEvents' },
 ] as const;
 
