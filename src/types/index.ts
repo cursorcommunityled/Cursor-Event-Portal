@@ -50,6 +50,7 @@ export interface Event {
   timer_end_time: string | null;
   timer_active: boolean;
   series_id: string | null;
+  is_hackathon: boolean;
   created_at: string;
 }
 
@@ -724,6 +725,95 @@ export interface CursorCredit {
 // ─── Event Photos ─────────────────────────────────────────────────────────────
 
 export type PhotoStatus = "pending" | "approved" | "rejected";
+
+// ─── Hackathon ────────────────────────────────────────────────────────────────
+
+export interface HackathonSettings {
+  id: string;
+  event_id: string;
+  team_formation_enabled: boolean;
+  team_formation_opens_at: string | null;
+  team_formation_closes_at: string | null;
+  submission_deadline: string | null;
+  judging_starts_at: string | null;
+  min_team_size: number;
+  max_team_size: number;
+  leaderboard_visible: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type HackathonTeamRole = 'leader' | 'member';
+export type HackathonInviteStatus = 'pending' | 'accepted' | 'declined';
+
+export interface HackathonTeam {
+  id: string;
+  event_id: string;
+  name: string;
+  created_by: string;
+  locked_at: string | null;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HackathonTeamMember {
+  id: string;
+  team_id: string;
+  user_id: string;
+  role: HackathonTeamRole;
+  joined_at: string;
+  user?: Pick<User, 'id' | 'name'>;
+}
+
+export interface HackathonTeamInvite {
+  id: string;
+  team_id: string;
+  event_id: string;
+  invited_by: string;
+  invited_user_id: string;
+  status: HackathonInviteStatus;
+  created_at: string;
+  updated_at: string;
+  team?: HackathonTeam;
+  inviter?: Pick<User, 'id' | 'name'>;
+}
+
+export interface HackathonProject {
+  id: string;
+  team_id: string;
+  event_id: string;
+  name: string;
+  description: string | null;
+  repo_url: string | null;
+  demo_url: string | null;
+  video_url: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HackathonScore {
+  id: string;
+  team_id: string;
+  event_id: string;
+  judge_id: string;
+  innovation: number | null;
+  execution: number | null;
+  presentation: number | null;
+  ux_polish: number | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  judge?: Pick<User, 'id' | 'name'>;
+}
+
+export interface HackathonTeamWithMembers extends HackathonTeam {
+  members: HackathonTeamMember[];
+  project: HackathonProject | null;
+}
+
+// ─── Event Photos ─────────────────────────────────────────────────────────────
 
 export interface EventPhoto {
   id: string;

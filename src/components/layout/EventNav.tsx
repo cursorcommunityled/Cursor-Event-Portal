@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Calendar, MessageCircle, FolderOpen, BarChart3, Lock, FileText, Menu, X, Trophy, MonitorPlay, Lightbulb, Camera } from "lucide-react";
+import { Calendar, MessageCircle, FolderOpen, BarChart3, Lock, FileText, Menu, X, Trophy, MonitorPlay, Lightbulb, Camera, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSeenItemIds, markMultipleItemsAsSeen } from "@/lib/supabase/seenItems";
 import { LiveSlidePopup } from "@/components/slides/LiveSlidePopup";
@@ -21,6 +21,7 @@ interface EventNavProps {
 const navItems = [
   { href: "agenda", label: "Event", icon: Calendar },
   { href: "demos", label: "Demos", icon: MonitorPlay },
+  { href: "hackathon", label: "Hackathon", icon: Swords, hackathonOnly: true },
   { href: "socials", label: "Socials", icon: MessageCircle },
   { href: "slides", label: "Slides", icon: FileText },
   { href: "polls", label: "Polls", icon: BarChart3, hasAlert: true },
@@ -328,6 +329,8 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
     navItems.map((item) => {
       // Hide Demos entirely when disabled (null = loading, treat as hidden)
       if (item.href === "demos" && !demosEnabled) return null;
+      // Hide Hackathon when not in hackathon mode
+      if ((item as { hackathonOnly?: boolean }).hackathonOnly && !event?.is_hackathon) return null;
 
       const isActive = pathname.includes(`/${eventSlug}/${item.href}`);
       const Icon = item.icon;
