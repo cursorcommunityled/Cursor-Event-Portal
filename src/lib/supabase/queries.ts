@@ -1326,12 +1326,6 @@ export async function getAllCompetitions(eventId: string): Promise<CompetitionWi
       .select("*")
       .eq("event_id", eventId);
     
-    console.log("[getAllCompetitions] Simple query result:", { 
-      count: simpleData?.length || 0, 
-      error: simpleError?.message || null,
-      data: simpleData 
-    });
-    
     if (simpleError) {
       console.error("[getAllCompetitions] Simple query error:", simpleError);
       return [];
@@ -1339,7 +1333,6 @@ export async function getAllCompetitions(eventId: string): Promise<CompetitionWi
     
     // If no competitions, return empty
     if (!simpleData || simpleData.length === 0) {
-      console.log("[getAllCompetitions] No competitions found for this event");
       return [];
     }
     
@@ -1761,6 +1754,7 @@ export interface EventWithPhotos {
   start_time: string | null;
   status: string;
   venue: string | null;
+  checked_in_count: number;
   photos: EventPhoto[];
 }
 
@@ -1791,6 +1785,20 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
     return [];
   }
 
+  const { data: checkedInRegistrations } = await supabase
+    .from("registrations")
+    .select("event_id")
+    .in("event_id", eventIds)
+    .not("checked_in_at", "is", null);
+
+  const checkedInCounts = new Map<string, number>();
+  for (const registration of checkedInRegistrations ?? []) {
+    checkedInCounts.set(
+      registration.event_id,
+      (checkedInCounts.get(registration.event_id) ?? 0) + 1
+    );
+  }
+
   return events.map((ev: any) => ({
     id: ev.id,
     slug: ev.slug,
@@ -1798,8 +1806,178 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
     start_time: ev.start_time,
     status: ev.status,
     venue: ev.venue,
+    checked_in_count: checkedInCounts.get(ev.id) ?? 0,
     photos: photos.filter((p) => p.event_id === ev.id) as EventPhoto[],
   }));
+}
+
+// ─── Hackathon ────────────────────────────────────────────────────────────────
+
+import type {
+  HackathonSettings,
+  HackathonTeamWithMembers,
+  HackathonTeamInvite,
+  HackathonScore,
+} from "@/types";
+
+export async function getHackathonSettings(eventId: string): Promise<HackathonSettings | null> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("hackathon_settings")
+    .select("*")
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error) return null;
+  return data as HackathonSettings | null;
+}
+
+export async function getHackathonTeamsWithMembers(eventId: string): Promise<HackathonTeamWithMembers[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("hackathon_teams")
+    .select(`
+      *,
+      members:hackathon_team_members(*, user:users(id, name)),
+      project:hackathon_projects(*)
+    `)
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("[getHackathonTeamsWithMembers] Error:", error);
+    return [];
+  }
+  return (data ?? []) as unknown as HackathonTeamWithMembers[];
+}
+
+export async function getMyHackathonTeam(eventId: string, userId: string): Promise<HackathonTeamWithMembers | null> {
+  noStore();
+  const supabase = await createServiceClient();
+
+  // Get all team IDs for this event first
+  const { data: eventTeams } = await supabase
+    .from("hackathon_teams")
+    .select("id")
+    .eq("event_id", eventId);
+
+  const teamIds = (eventTeams ?? []).map((t: { id: string }) => t.id);
+  if (!teamIds.length) return null;
+
+  // Find this user's membership in one of those teams
+  const { data: membership } = await supabase
+    .from("hackathon_team_members")
+    .select("team_id")
+    .eq("user_id", userId)
+    .in("team_id", teamIds)
+    .maybeSingle();
+
+  if (!membership) return null;
+
+  const { data, error } = await supabase
+    .from("hackathon_teams")
+    .select(`
+      *,
+      members:hackathon_team_members(*, user:users(id, name)),
+      project:hackathon_projects(*)
+    `)
+    .eq("id", membership.team_id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as unknown as HackathonTeamWithMembers;
+}
+
+export async function getMyReceivedHackathonInvites(
+  eventId: string,
+  userId: string
+): Promise<HackathonTeamInvite[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("hackathon_team_invites")
+    .select("*, team:hackathon_teams(id, name), inviter:users!hackathon_team_invites_invited_by_fkey(id, name)")
+    .eq("event_id", eventId)
+    .eq("invited_user_id", userId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[getMyReceivedHackathonInvites] Error:", error);
+    return [];
+  }
+  return (data ?? []) as unknown as HackathonTeamInvite[];
+}
+
+export async function getMySentHackathonInviteUserIds(
+  teamId: string
+): Promise<string[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data } = await supabase
+    .from("hackathon_team_invites")
+    .select("invited_user_id")
+    .eq("team_id", teamId)
+    .eq("status", "pending");
+  return (data ?? []).map((r: { invited_user_id: string }) => r.invited_user_id);
+}
+
+export async function getCheckedInAttendeesWithoutTeams(
+  eventId: string,
+  excludeUserId: string
+): Promise<{ id: string; name: string }[]> {
+  noStore();
+  const supabase = await createServiceClient();
+
+  // Step 1: Get all team IDs for this event
+  const { data: eventTeams } = await supabase
+    .from("hackathon_teams")
+    .select("id")
+    .eq("event_id", eventId);
+
+  const teamIds = (eventTeams ?? []).map((t: { id: string }) => t.id);
+
+  // Step 2: Get all user_ids who are on a team for this event
+  const teamUserIds = new Set<string>();
+  teamUserIds.add(excludeUserId);
+
+  if (teamIds.length) {
+    const { data: members } = await supabase
+      .from("hackathon_team_members")
+      .select("user_id")
+      .in("team_id", teamIds);
+    for (const m of members ?? []) teamUserIds.add(m.user_id);
+  }
+
+  // Step 3: Get all checked-in registrations with user names
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("user_id, user:users(id, name)")
+    .eq("event_id", eventId)
+    .not("checked_in_at", "is", null);
+
+  const result: { id: string; name: string }[] = [];
+  const seen = new Set<string>();
+  for (const reg of regs ?? []) {
+    if (!reg.user_id || teamUserIds.has(reg.user_id) || seen.has(reg.user_id)) continue;
+    seen.add(reg.user_id);
+    const u = Array.isArray(reg.user) ? reg.user[0] : reg.user;
+    if (u && typeof u === "object") {
+      result.push({ id: String(u.id), name: String(u.name) });
+    }
+  }
+  return result;
+}
+
+export async function getHackathonScores(eventId: string): Promise<HackathonScore[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("hackathon_scores")
+    .select("*, judge:users!hackathon_scores_judge_id_fkey(id, name)")
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+  if (error) return [];
+  return (data ?? []) as unknown as HackathonScore[];
 }
 
 export async function getHeroFeaturedPhotoIds(): Promise<string[]> {

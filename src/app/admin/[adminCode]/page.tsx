@@ -11,6 +11,7 @@ import {
   BarChart3,
   Layers,
   Zap,
+  Swords,
 } from "lucide-react";
 import { SimulateStartButton } from "@/components/admin/SimulateStartButton";
 import { EventSocialCard } from "@/components/admin/EventSocialCard";
@@ -216,6 +217,32 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                       <span className="text-[10px] text-gray-700 select-none">·</span>
                       <Link href={`/admin/${adminCode}/data`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Data</Link>
                     </div>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+            </div>
+          </div>
+
+          {/* Hackathon */}
+          <div className="animate-slide-up" style={{ animationDelay: "240ms" }}>
+            <div className={`glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm ${event.is_hackathon ? "border-purple-500/20 bg-purple-500/5" : ""}`}>
+              <Link href={`/admin/${adminCode}/hackathon`} prefetch={false} className="absolute inset-0 z-10" aria-label="Hackathon" />
+              <div className="flex items-center justify-between relative z-20 pointer-events-none">
+                <div className="flex items-center gap-6">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow ${event.is_hackathon ? "bg-purple-500/20 border border-purple-500/20" : "bg-white/10 border border-white/[0.05]"}`}>
+                    <Swords className={`w-6 h-6 transition-colors ${event.is_hackathon ? "text-purple-400" : "text-gray-600 group-hover:text-white"}`} />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-light tracking-tight text-white/90">Hackathon</h3>
+                      {event.is_hackathon && (
+                        <span className="text-[8px] uppercase tracking-[0.2em] text-purple-400 bg-purple-400/10 border border-purple-400/20 rounded-full px-2 py-0.5">Active</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+                      Teams · Scoring · Leaderboard
+                    </p>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
