@@ -19,7 +19,7 @@ export async function exportCompetitionToHackathonJudge(
     return { error: "Hackathon Judge integration not configured on this server." };
   }
 
-  const supabase = createServiceClient();
+  const supabase = await createServiceClient();
 
   const { data: comp, error: compError } = await supabase
     .from("competitions")
