@@ -134,38 +134,12 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
         <AdminEventControls events={allEvents} currentAdminCode={adminCode} activeSlug={activeSlug} />
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Hackathon */}
-          <div className="animate-slide-up" style={{ animationDelay: "150ms" }}>
-            <div className={`glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm ${event.is_hackathon ? "border-purple-500/20 bg-purple-500/5" : ""}`}>
-              <Link href={`/admin/${adminCode}/hackathon`} prefetch={false} className="absolute inset-0 z-10" aria-label="Hackathon" />
-              <div className="flex items-center justify-between relative z-20 pointer-events-none">
-                <div className="flex items-center gap-6">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow ${event.is_hackathon ? "bg-purple-500/20 border border-purple-500/20" : "bg-white/10 border border-white/[0.05]"}`}>
-                    <Swords className={`w-6 h-6 transition-colors ${event.is_hackathon ? "text-purple-400" : "text-gray-600 group-hover:text-white"}`} />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-xl font-light tracking-tight text-white/90">Hackathon</h3>
-                      {event.is_hackathon && (
-                        <span className="text-[8px] uppercase tracking-[0.2em] text-purple-400 bg-purple-400/10 border border-purple-400/20 rounded-full px-2 py-0.5">Active</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-                      Teams · Scoring · Leaderboard
-                    </p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-          </div>
-
+        <div className="grid auto-rows-fr md:grid-cols-2 gap-6">
           {/* Program */}
-          <div className="animate-slide-up" style={{ animationDelay: "180ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
+          <div className="animate-slide-up h-full" style={{ animationDelay: "150ms" }}>
+            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full">
               <Link href={`/admin/${adminCode}/event-dashboard`} prefetch={false} className="absolute inset-0 z-10" aria-label="Program" />
-              <div className="flex items-center justify-between relative z-20 pointer-events-none">
+              <div className="flex h-full items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
                     <Layers className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
@@ -209,10 +183,10 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
           />
 
           {/* Attendance */}
-          <div className="animate-slide-up" style={{ animationDelay: "240ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
+          <div className="animate-slide-up h-full" style={{ animationDelay: "240ms" }}>
+            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full">
               <Link href={`/admin/${adminCode}/checkin`} prefetch={false} className="absolute inset-0 z-10" aria-label="Attendance" />
-              <div className="flex items-center justify-between relative z-20 pointer-events-none">
+              <div className="flex h-full items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
                     <UserCheck className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
@@ -232,10 +206,10 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
           </div>
 
           {/* Intelligence */}
-          <div className="animate-slide-up" style={{ animationDelay: "270ms" }}>
-            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm">
+          <div className="animate-slide-up h-full" style={{ animationDelay: "270ms" }}>
+            <div className="glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full">
               <Link href={`/admin/${adminCode}/analytics`} prefetch={false} className="absolute inset-0 z-10" aria-label="Intelligence" />
-              <div className="flex items-center justify-between relative z-20 pointer-events-none">
+              <div className="flex h-full items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/[0.05] flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow">
                     <BarChart3 className="w-6 h-6 text-gray-600 group-hover:text-white transition-colors" />
@@ -254,10 +228,36 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </div>
 
-          {/* Enter Portal — full width */}
-          <Link href={portalPath} prefetch={false} className="md:col-span-2 animate-slide-up" style={{ animationDelay: "300ms" }}>
-            <div className="glass rounded-[40px] p-8 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-400/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all group cursor-pointer relative overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between">
+          {/* Hackathon */}
+          <div className="animate-slide-up h-full" style={{ animationDelay: "300ms" }}>
+            <div className={`glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full ${event.is_hackathon ? "border-purple-500/20 bg-purple-500/5" : ""}`}>
+              <Link href={`/admin/${adminCode}/hackathon`} prefetch={false} className="absolute inset-0 z-10" aria-label="Hackathon" />
+              <div className="flex h-full items-center justify-between relative z-20 pointer-events-none">
+                <div className="flex items-center gap-6">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow ${event.is_hackathon ? "bg-purple-500/20 border border-purple-500/20" : "bg-white/10 border border-white/[0.05]"}`}>
+                    <Swords className={`w-6 h-6 transition-colors ${event.is_hackathon ? "text-purple-400" : "text-gray-600 group-hover:text-white"}`} />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-light tracking-tight text-white/90">Hackathon</h3>
+                      {event.is_hackathon && (
+                        <span className="text-[8px] uppercase tracking-[0.2em] text-purple-400 bg-purple-400/10 border border-purple-400/20 rounded-full px-2 py-0.5">Active</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+                      Teams · Scoring · Leaderboard
+                    </p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+            </div>
+          </div>
+
+          {/* Enter Portal */}
+          <Link href={portalPath} prefetch={false} className="animate-slide-up h-full" style={{ animationDelay: "330ms" }}>
+            <div className="glass rounded-[40px] p-8 border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-400/30 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full">
+              <div className="flex h-full items-center justify-between">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-all">
                     <Zap className="w-6 h-6 text-blue-400 group-hover:text-blue-300 transition-colors" />
