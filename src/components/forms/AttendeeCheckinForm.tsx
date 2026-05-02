@@ -33,6 +33,7 @@ interface AttendeeCheckinFormProps {
   eventId: string;
   eventSlug: string;
   seatingEnabled?: boolean;
+  isHackathon?: boolean;
 }
 
 type Step =
@@ -107,6 +108,7 @@ export function AttendeeCheckinForm({
   eventId,
   eventSlug,
   seatingEnabled = false,
+  isHackathon = false,
 }: AttendeeCheckinFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -405,7 +407,7 @@ export function AttendeeCheckinForm({
   };
 
   const handleGoToAgenda = () => {
-    router.push(`/${eventSlug}/agenda`);
+    router.push(isHackathon ? `/${eventSlug}/hackathon` : `/${eventSlug}/agenda`);
     router.refresh();
   };
 

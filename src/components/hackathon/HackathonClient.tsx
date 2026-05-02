@@ -92,6 +92,23 @@ export function HackathonClient({
     router.refresh();
   }, [router]);
 
+  // Keep local interactive state aligned with refreshed server props.
+  useEffect(() => {
+    setMyTeam(initialMyTeam);
+    setReceivedInvites(initialInvites);
+    setSentIds(new Set(initialSent));
+    setAllTeams(initialAllTeams);
+    setPool(initialPool);
+  }, [initialMyTeam, initialInvites, initialSent, initialAllTeams, initialPool]);
+
+  useEffect(() => {
+    if (showProjectForm) return;
+    setProjectName(myTeam?.project?.name ?? "");
+    setProjectDesc(myTeam?.project?.description ?? "");
+    setProjectRepo(myTeam?.project?.repo_url ?? "");
+    setProjectDemo(myTeam?.project?.demo_url ?? "");
+  }, [myTeam, showProjectForm]);
+
   // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
@@ -100,9 +117,13 @@ export function HackathonClient({
         .channel(`hackathon-teams-${event.id}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_teams", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_members" }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_settings", filter: `event_id=eq.${event.id}` }, refresh)
         .subscribe(),
       supabase
-        .channel(`hackathon-invites-${userId}`)
+        .channel(`hackathon-invites-${event.id}-${userId}`)
+        .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `invited_user_id=eq.${userId}` }, refresh)
         .subscribe(),
     ];

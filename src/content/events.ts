@@ -14,7 +14,7 @@ export const events: CursorEvent[] = [
     id: 'calgary-may-2026',
     title: 'Cursor Calgary Meetup - May',
     date: '2026-05-27',
-    displayDate: 'May 27, 2026 - 5:30-8:30 PM CST',
+    displayDate: 'May 27, 2026 - 5:30-8:30 PM MDT',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/kjchw3e3',
     status: 'upcoming',
