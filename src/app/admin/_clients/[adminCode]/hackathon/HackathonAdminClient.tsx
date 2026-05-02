@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import {
   toggleHackathonMode,
@@ -97,7 +97,7 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
 
   const rankedTeams = [...teams].sort((a, b) => totalScore(b.id) - totalScore(a.id));
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
     { id: "scoring", label: "Scoring", icon: <BarChart3 className="w-4 h-4" /> },
@@ -168,7 +168,7 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
               )}
             >
               {t.icon}
-              <span className="hidden sm:inline">{t.label}</span>
+              <span>{t.label}</span>
             </button>
           ))}
         </div>
