@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { setActiveEventSlug } from "@/lib/actions/settings";
 import { cn } from "@/lib/utils";
 import type { EventSummary } from "@/lib/supabase/queries";
@@ -27,6 +27,11 @@ function eventLabel(ev: EventSummary) {
 export function AdminEventControls({ events, currentAdminCode, activeSlug }: AdminEventControlsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [optimisticActiveSlug, setOptimisticActiveSlug] = useState(activeSlug);
+
+  useEffect(() => {
+    setOptimisticActiveSlug(activeSlug);
+  }, [activeSlug]);
 
   if (events.length <= 1) return null;
 
@@ -64,16 +69,24 @@ export function AdminEventControls({ events, currentAdminCode, activeSlug }: Adm
           <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap sm:w-28 sm:shrink-0">Live Event</span>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 p-0.5 rounded-2xl bg-white/[0.04] border border-white/[0.06]">
             {events.map((ev) => {
-              const isLive = ev.slug === activeSlug;
+              const isLive = ev.slug === optimisticActiveSlug;
               return (
                 <button
                   key={ev.id}
                   title={ev.name}
-                  disabled={isPending || isLive}
+                  type="button"
+                  disabled={isLive}
                   onClick={() => {
                     if (!isLive) {
+                      setOptimisticActiveSlug(ev.slug);
                       startTransition(async () => {
-                        await setActiveEventSlug(ev.slug);
+                        const result = await setActiveEventSlug(ev.slug);
+                        if (result.error) {
+                          setOptimisticActiveSlug(activeSlug);
+                          console.error("[AdminEventControls] Failed to set active event:", result.error);
+                          return;
+                        }
+                        router.refresh();
                       });
                     }
                   }}
