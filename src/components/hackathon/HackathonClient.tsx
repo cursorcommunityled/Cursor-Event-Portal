@@ -8,6 +8,7 @@ import {
   acceptTeamInvite,
   declineTeamInvite,
   leaveTeam,
+  dissolveTeam,
   submitHackathonProject,
 } from "@/lib/actions/hackathon";
 import { useRouter } from "next/navigation";
@@ -182,6 +183,19 @@ export function HackathonClient({
     startTransition(async () => {
       const res = await leaveTeam(myTeam.id);
       if (res.error) { showMsg(res.error, true); return; }
+      setMyTeam(null);
+      setTab("open-pool");
+      refresh();
+    });
+  };
+
+  const handleDissolve = () => {
+    if (!myTeam) return;
+    if (!confirm(`Dissolve ${myTeam.name}? This removes the team and returns every member to the open pool.`)) return;
+    startTransition(async () => {
+      const res = await dissolveTeam(myTeam.id);
+      if (res.error) { showMsg(res.error, true); return; }
+      showMsg("Team dissolved");
       setMyTeam(null);
       setTab("open-pool");
       refresh();
@@ -419,6 +433,13 @@ export function HackathonClient({
                         <LogOut className="w-3 h-3" /> Leave
                       </button>
                     )}
+                    <button
+                      disabled={isPending}
+                      onClick={handleDissolve}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-500 hover:text-red-400 border border-white/5 hover:border-red-400/30 transition-all"
+                    >
+                      <X className="w-3 h-3" /> Dissolve
+                    </button>
                   </div>
                 </div>
 

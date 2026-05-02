@@ -282,6 +282,38 @@ export async function adminRemoveTeamMember(
   return { success: true };
 }
 
+// ─── Admin: dissolve a team back into the open pool ───────────────────────────
+
+export async function adminDissolveTeam(
+  adminCode: string,
+  teamId: string
+): Promise<{ success?: true; error?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const supabase = await createServiceClient();
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("id")
+    .eq("id", teamId)
+    .eq("event_id", auth.eventId)
+    .maybeSingle();
+
+  if (!team) return { error: "Team not found" };
+
+  const { error } = await supabase
+    .from("hackathon_teams")
+    .delete()
+    .eq("id", teamId)
+    .eq("event_id", auth.eventId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  return { success: true };
+}
+
 // ─── Attendee: send team invite ────────────────────────────────────────────────
 // If teamName is provided and user has no team, creates the team first.
 
@@ -595,6 +627,47 @@ export async function leaveTeam(
   if ((count ?? 0) === 0) {
     await supabase.from("hackathon_teams").delete().eq("id", teamId);
   }
+
+  const eventSlug = (await supabase.from("events").select("slug").eq("id", team.event_id).single()).data?.slug;
+  revalidatePath(`/${eventSlug}/hackathon`);
+  return { success: true };
+}
+
+// ─── Attendee: dissolve their whole team back into the open pool ──────────────
+
+export async function dissolveTeam(
+  teamId: string
+): Promise<{ success?: true; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("event_id")
+    .eq("id", teamId)
+    .maybeSingle();
+
+  if (!team) return { error: "Team not found" };
+  if (session.eventId !== team.event_id) return { error: "Not authorized for this event" };
+
+  const { data: membership } = await supabase
+    .from("hackathon_team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (!membership) return { error: "You are not on this team" };
+
+  const { error } = await supabase
+    .from("hackathon_teams")
+    .delete()
+    .eq("id", teamId)
+    .eq("event_id", team.event_id);
+
+  if (error) return { error: error.message };
 
   const eventSlug = (await supabase.from("events").select("slug").eq("id", team.event_id).single()).data?.slug;
   revalidatePath(`/${eventSlug}/hackathon`);

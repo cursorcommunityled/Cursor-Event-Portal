@@ -11,6 +11,9 @@ interface DemoSlotPreview {
   starts_at: string;
   ends_at: string;
   capacity: number;
+  title?: string | null;
+  host_name?: string | null;
+  location?: string | null;
   signup_count: number;
   spots_left: number;
   is_full: boolean;
@@ -39,7 +42,7 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
   useEffect(() => {
     async function loadStatus() {
       try {
-        const res = await fetch(`/api/demo-status?eventId=${eventId}`);
+        const res = await fetch(`/api/session-status?eventId=${eventId}`);
         if (res.ok) setStatus(await res.json());
       } catch {
         // silently ignore — badge just won't show
@@ -98,7 +101,7 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
             isAvailable ? "text-blue-300" : "text-gray-500"
           )}
         >
-          {isAvailable ? "Demo Slots Available Now!" : "Demos"}
+          {isAvailable ? "Sessions Available Now!" : "Sessions"}
         </span>
       </button>
 
@@ -111,7 +114,7 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
               <div className="flex items-center gap-2">
                 <MonitorPlay className="w-3.5 h-3.5 text-gray-500" />
                 <p className="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-bold">
-                  Live Demos
+                  Sessions
                 </p>
               </div>
               {speakerName && (
@@ -135,6 +138,10 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
                 </p>
                 <div className="rounded-[14px] bg-green-500/10 border border-green-500/20 px-4 py-3 space-y-1.5">
                   <p className="text-xs text-white font-medium">
+                    {currentSlot.title || "Session"}
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    {currentSlot.host_name || speakerName || "Host TBD"} ·{" "}
                     {formatTime(currentSlot.starts_at, timezone)} –{" "}
                     {formatTime(currentSlot.ends_at, timezone)}
                   </p>
@@ -162,7 +169,10 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
                       className="flex items-center justify-between"
                     >
                       <span className="text-xs text-gray-400">
-                        {formatTime(slot.starts_at, timezone)}
+                        {slot.title || formatTime(slot.starts_at, timezone)}
+                        <span className="block text-[10px] text-gray-600">
+                          {slot.host_name || speakerName || "Host TBD"} · {formatTime(slot.starts_at, timezone)}
+                        </span>
                       </span>
                       <span
                         className={cn(
@@ -195,12 +205,12 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
 
             {/* CTA */}
             <Link
-              href={`/${eventSlug}/demos`}
+              href={`/${eventSlug}/sessions`}
               onClick={() => setOpen(false)}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-[14px] bg-white text-black text-xs font-semibold tracking-tight hover:bg-gray-100 transition-colors"
             >
               <MonitorPlay className="w-3.5 h-3.5" />
-              Go to Demos
+              Go to Sessions
             </Link>
           </div>
         </div>

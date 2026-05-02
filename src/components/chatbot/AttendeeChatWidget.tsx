@@ -13,7 +13,7 @@ interface AttendeeChatWidgetProps {
 
 const SUGGESTED_QUESTIONS = [
   "What's on the schedule tonight?",
-  "How do I book a demo slot?",
+  "How do I book a session?",
   "What's the discussion theme?",
   "How does speed networking work?",
 ];

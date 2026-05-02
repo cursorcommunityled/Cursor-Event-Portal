@@ -14,12 +14,12 @@ import { cn } from "@/lib/utils";
 import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit } from "@/types";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
-type TabType = "agenda" | "venue" | "demos" | "slides" | "competitions" | "themes" | "calendar" | "credits";
+type TabType = "agenda" | "venue" | "sessions" | "slides" | "competitions" | "themes" | "calendar" | "credits";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "agenda",       label: "Agenda",       description: "Event schedule" },
   { id: "venue",        label: "Venue",        description: "Venue & active event" },
-  { id: "demos",        label: "Demos",        description: "Signup management" },
+  { id: "sessions",     label: "Sessions",     description: "Mentor booking" },
   { id: "slides",       label: "Slides",       description: "Presentation deck" },
   { id: "competitions", label: "Competitions", description: "Project showcase" },
   { id: "themes",       label: "Themes",       description: "Conversation themes" },
@@ -43,7 +43,7 @@ interface EventDashboardClientProps {
   // Venue selector
   allEvents: Pick<Event, "id" | "name" | "slug" | "status" | "start_time" | "venue">[];
   activeSlug: string;
-  // Demos
+  // Sessions
   demoSettings: DemoSignupSettings | null;
   demoSlots: DemoSlotWithCounts[];
   // Slides
@@ -152,7 +152,7 @@ export function EventDashboardClient({
               activeSlug={activeSlug}
             />
           )}
-          {activeTab === "demos" && demoSettings && (
+          {activeTab === "sessions" && demoSettings && (
             <DemosAdminClient
               event={event}
               adminCode={adminCode}
@@ -161,8 +161,8 @@ export function EventDashboardClient({
               embedded
             />
           )}
-          {activeTab === "demos" && !demoSettings && (
-            <p className="text-gray-500 text-sm">Demo settings not configured.</p>
+          {activeTab === "sessions" && !demoSettings && (
+            <p className="text-gray-500 text-sm">Session settings not configured.</p>
           )}
           {activeTab === "slides" && (
             <SlideDeckAdminClient
@@ -195,6 +195,7 @@ export function EventDashboardClient({
           {activeTab === "credits" && (
             <CreditsAdminTab
               eventId={event.id}
+              eventSlug={eventSlug}
               adminCode={adminCode}
               initialCredits={cursorCredits}
               creditAmount={event.is_hackathon ? 50 : 20}

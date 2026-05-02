@@ -7,7 +7,6 @@ import { getEventBySlug } from "@/lib/supabase/queries";
 import {
   getOrCreateDemoSettings,
   getDemoAvailability,
-  syncDemoSlotsForWindow,
 } from "@/lib/demo/service";
 
 function getUtcOffsetMs(timezone: string, date: Date): number {
@@ -98,7 +97,7 @@ export async function updateDemoSignupSettings(
     opensAt = toUtcIso(data.opensAtLocal, timezone);
     closesAt = toUtcIso(data.closesAtLocal, timezone);
   } catch {
-    return { error: "Invalid open or close time" };
+    return { error: "Invalid booking open or close time" };
   }
 
   if (new Date(closesAt) <= new Date(opensAt)) {
@@ -120,19 +119,152 @@ export async function updateDemoSignupSettings(
     );
 
   if (upsertError) {
-    return { error: upsertError.message || "Failed to update demo settings" };
+    return { error: upsertError.message || "Failed to update session settings" };
   }
 
-  try {
-    await syncDemoSlotsForWindow(eventId, opensAt, closesAt);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to sync demo slots";
-    return { error: message };
-  }
-
+  revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/${eventSlug}/demos`);
+  revalidatePath(`/admin/${adminCode}/sessions`);
   revalidatePath(`/admin/${adminCode}/demos`);
   revalidatePath(`/admin/${adminCode}`);
+  return { success: true };
+}
+
+export async function createSessionSlot(
+  eventId: string,
+  eventSlug: string,
+  adminCode: string,
+  data: {
+    title: string;
+    hostName: string;
+    description?: string;
+    location?: string;
+    sessionType?: string;
+    startsAtLocal: string;
+    endsAtLocal: string;
+    capacity: number;
+    timezone: string;
+  }
+) {
+  const auth = await validateAdminAccess(eventId, adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const timezone = data.timezone || "America/Edmonton";
+  let startsAt: string;
+  let endsAt: string;
+  try {
+    startsAt = toUtcIso(data.startsAtLocal, timezone);
+    endsAt = toUtcIso(data.endsAtLocal, timezone);
+  } catch {
+    return { error: "Invalid session start or end time" };
+  }
+
+  if (new Date(endsAt) <= new Date(startsAt)) return { error: "Session end must be after start" };
+  if (!data.title.trim()) return { error: "Session title is required" };
+  if (!data.hostName.trim()) return { error: "Host name is required" };
+  if (!Number.isFinite(data.capacity) || data.capacity < 1) return { error: "Capacity must be at least 1" };
+
+  const supabase = await createServiceClient();
+  const { error } = await supabase.from("demo_slots").insert({
+    event_id: eventId,
+    starts_at: startsAt,
+    ends_at: endsAt,
+    capacity: data.capacity,
+    title: data.title.trim(),
+    host_name: data.hostName.trim(),
+    description: data.description?.trim() || null,
+    location: data.location?.trim() || null,
+    session_type: data.sessionType?.trim() || "mentor",
+  });
+
+  if (error) return { error: error.message || "Failed to create session" };
+
+  revalidatePath(`/${eventSlug}/sessions`);
+  revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/event-dashboard`);
+  return { success: true };
+}
+
+export async function updateSessionSlot(
+  eventId: string,
+  eventSlug: string,
+  adminCode: string,
+  slotId: string,
+  data: {
+    title: string;
+    hostName: string;
+    description?: string;
+    location?: string;
+    sessionType?: string;
+    startsAtLocal: string;
+    endsAtLocal: string;
+    capacity: number;
+    timezone: string;
+  }
+) {
+  const auth = await validateAdminAccess(eventId, adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const timezone = data.timezone || "America/Edmonton";
+  let startsAt: string;
+  let endsAt: string;
+  try {
+    startsAt = toUtcIso(data.startsAtLocal, timezone);
+    endsAt = toUtcIso(data.endsAtLocal, timezone);
+  } catch {
+    return { error: "Invalid session start or end time" };
+  }
+
+  if (new Date(endsAt) <= new Date(startsAt)) return { error: "Session end must be after start" };
+  if (!data.title.trim()) return { error: "Session title is required" };
+  if (!data.hostName.trim()) return { error: "Host name is required" };
+  if (!Number.isFinite(data.capacity) || data.capacity < 1) return { error: "Capacity must be at least 1" };
+
+  const supabase = await createServiceClient();
+  const { error } = await supabase
+    .from("demo_slots")
+    .update({
+      starts_at: startsAt,
+      ends_at: endsAt,
+      capacity: data.capacity,
+      title: data.title.trim(),
+      host_name: data.hostName.trim(),
+      description: data.description?.trim() || null,
+      location: data.location?.trim() || null,
+      session_type: data.sessionType?.trim() || "mentor",
+    })
+    .eq("id", slotId)
+    .eq("event_id", eventId);
+
+  if (error) return { error: error.message || "Failed to update session" };
+
+  revalidatePath(`/${eventSlug}/sessions`);
+  revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/event-dashboard`);
+  return { success: true };
+}
+
+export async function deleteSessionSlot(
+  eventId: string,
+  eventSlug: string,
+  adminCode: string,
+  slotId: string
+) {
+  const auth = await validateAdminAccess(eventId, adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const supabase = await createServiceClient();
+  const { error } = await supabase
+    .from("demo_slots")
+    .delete()
+    .eq("id", slotId)
+    .eq("event_id", eventId);
+
+  if (error) return { error: error.message || "Failed to delete session" };
+
+  revalidatePath(`/${eventSlug}/sessions`);
+  revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/event-dashboard`);
   return { success: true };
 }
 
@@ -156,11 +288,10 @@ export async function bookDemoSlot(eventSlug: string, slotId: string) {
     .maybeSingle();
 
   if (!registration?.checked_in_at) {
-    return { error: "You must be checked in before booking a demo slot." };
+    return { error: "You must be checked in before booking a session." };
   }
 
   const settings = await getOrCreateDemoSettings(event);
-  await syncDemoSlotsForWindow(event.id, settings.opens_at, settings.closes_at);
 
   const availability = getDemoAvailability(settings, event.timezone || "America/Edmonton");
   if (!availability.is_open) {
@@ -175,7 +306,7 @@ export async function bookDemoSlot(eventSlug: string, slotId: string) {
     .maybeSingle();
 
   if (!slot) {
-    return { error: "Demo slot not found for this event." };
+    return { error: "Session not found for this event." };
   }
 
   const { error } = await supabase.from("demo_slot_signups").insert({
@@ -187,20 +318,21 @@ export async function bookDemoSlot(eventSlug: string, slotId: string) {
   if (error) {
     if (error.code === "23505") {
       if (error.message.includes("demo_slot_signups_event_id_user_id_key")) {
-        return { error: "You already booked a demo slot." };
+        return { error: "You already booked a session." };
       }
       if (error.message.includes("demo_slot_signups_slot_id_user_id_key")) {
-        return { error: "You already booked this slot." };
+        return { error: "You already booked this session." };
       }
     }
 
     if (error.message.includes("Demo slot is full")) {
-      return { error: "This slot is full." };
+      return { error: "This session is full." };
     }
 
-    return { error: error.message || "Failed to book demo slot." };
+    return { error: error.message || "Failed to book session." };
   }
 
+  revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/${eventSlug}/demos`);
   return { success: true };
 }
@@ -224,9 +356,10 @@ export async function cancelMyDemoSlot(eventSlug: string) {
     .eq("user_id", session.userId);
 
   if (error) {
-    return { error: error.message || "Failed to cancel slot booking." };
+    return { error: error.message || "Failed to cancel session booking." };
   }
 
+  revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/${eventSlug}/demos`);
   return { success: true };
 }

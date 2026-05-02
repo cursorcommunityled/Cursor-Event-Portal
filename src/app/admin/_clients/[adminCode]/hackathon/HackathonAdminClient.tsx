@@ -13,6 +13,7 @@ import {
   adminSetTeamLock,
   saveHackathonScore,
   adminRemoveTeamMember,
+  adminDissolveTeam,
 } from "@/lib/actions/hackathon";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
@@ -424,27 +425,42 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
                     </p>
                     </div>
                   </div>
-                  <button
-                    disabled={isPending}
-                    onClick={() => startTransition(async () => {
-                      const res = await adminSetTeamLock(adminCode, team.id, !team.locked_at);
-                      if (res.success) {
-                        setTeams((prev) => prev.map((t) =>
-                          t.id === team.id
-                            ? { ...t, locked_at: t.locked_at ? null : new Date().toISOString() }
-                            : t
-                        ));
-                      } else setError(res.error ?? "Failed");
-                    })}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-xl text-xs border transition-all",
-                      team.locked_at
-                        ? "border-amber-400/30 text-amber-400 hover:bg-amber-400/10"
-                        : "border-white/10 text-gray-400 hover:text-white hover:border-white/30"
-                    )}
-                  >
-                    {team.locked_at ? <><Unlock className="w-3 h-3" /> Unlock</> : <><Lock className="w-3 h-3" /> Lock</>}
-                  </button>
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <button
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        const res = await adminSetTeamLock(adminCode, team.id, !team.locked_at);
+                        if (res.success) {
+                          setTeams((prev) => prev.map((t) =>
+                            t.id === team.id
+                              ? { ...t, locked_at: t.locked_at ? null : new Date().toISOString() }
+                              : t
+                          ));
+                        } else setError(res.error ?? "Failed");
+                      })}
+                      className={cn(
+                        "flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs border transition-all",
+                        team.locked_at
+                          ? "border-amber-400/30 text-amber-400 hover:bg-amber-400/10"
+                          : "border-white/10 text-gray-400 hover:text-white hover:border-white/30"
+                      )}
+                    >
+                      {team.locked_at ? <><Unlock className="w-3 h-3" /> Unlock</> : <><Lock className="w-3 h-3" /> Lock</>}
+                    </button>
+                    <button
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        if (!confirm(`Dissolve ${team.name}? This removes the team and returns all members to the open pool.`)) return;
+                        const res = await adminDissolveTeam(adminCode, team.id);
+                        if (res.success) {
+                          setTeams((prev) => prev.filter((t) => t.id !== team.id));
+                        } else setError(res.error ?? "Failed");
+                      })}
+                      className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs border border-red-400/20 text-red-400/80 hover:bg-red-400/10 transition-all"
+                    >
+                      <X className="w-3 h-3" /> Dissolve
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">

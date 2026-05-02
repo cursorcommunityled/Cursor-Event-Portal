@@ -98,7 +98,7 @@ Exchange board: ${exchangePosts.length} active need/offer posts.
 App features you can mention:
 - Socials → Q&A: ask questions to the group
 - Socials → Connect: Exchange board (post needs/offers) and Speed Networking
-- Demos: book a demo slot
+- Sessions: book a mentor or builder support session
 - Polls: vote on live polls
 - Compete: submit competition entries
 - Slides: follow along with presentations
