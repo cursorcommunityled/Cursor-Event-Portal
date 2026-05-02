@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
 
+export const dynamic = "force-dynamic";
+
 const ASSIGNMENT_CACHE_HEADERS = {
   "Cache-Control": "private, max-age=5, stale-while-revalidate=15",
 };
