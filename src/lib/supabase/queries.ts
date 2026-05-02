@@ -114,20 +114,40 @@ export async function getEventByAdminCode(adminCode: string): Promise<Event | nu
   return null;
 }
 
-/** Slug of the event currently shown to attendees (homepage link, etc.). Defaults to calgary-feb-2026 if unset. */
+/** Slug of the event currently shown to attendees. Falls back to the most recent event if unset. */
 export async function getActiveEventSlug(): Promise<string> {
+  noStore();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-  try {
-    const directSupabase = createDirectClient(url, anonKey);
-    const { data } = await directSupabase
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  const fetchActiveSlug = async (
+    client: ReturnType<typeof createDirectClient>
+  ): Promise<string | null> => {
+    const { data } = await client
       .from("app_settings")
       .select("value")
       .eq("key", "active_event_slug")
-      .single();
-    if (data?.value) return data.value;
-  } catch {
-    // ignore
+      .maybeSingle();
+    return (data as { value?: string } | null)?.value ?? null;
+  };
+
+  if (url && serviceKey) {
+    try {
+      const slug = await fetchActiveSlug(createDirectClient(url, serviceKey));
+      if (slug) return slug;
+    } catch {
+      // fall through
+    }
+  }
+
+  if (url && anonKey) {
+    try {
+      const slug = await fetchActiveSlug(createDirectClient(url, anonKey));
+      if (slug) return slug;
+    } catch {
+      // ignore
+    }
   }
   try {
     const supabase = await createClient();
