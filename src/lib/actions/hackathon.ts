@@ -65,18 +65,36 @@ export async function saveHackathonSettings(
   if (!auth.valid) return { error: auth.error };
 
   const supabase = await createServiceClient();
-  const { error } = await supabase
+  const payload = {
+    event_id: auth.eventId,
+    ...data,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingSettings } = await supabase
     .from("hackathon_settings")
-    .upsert(
-      {
-        event_id: auth.eventId,
-        ...data,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "event_id" }
-    );
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .limit(1);
+
+  const { error } = existingSettings?.[0]
+    ? await supabase
+        .from("hackathon_settings")
+        .update(payload)
+        .eq("id", existingSettings[0].id)
+    : await supabase
+        .from("hackathon_settings")
+        .insert(payload);
 
   if (error) return { error: error.message };
+
+  if (data.team_formation_enabled !== false) {
+    await supabase
+      .from("hackathon_teams")
+      .update({ locked_at: null, updated_at: new Date().toISOString() })
+      .eq("event_id", auth.eventId);
+  }
+
   revalidatePath(`/admin/${adminCode}/hackathon`);
   return { success: true };
 }
@@ -91,14 +109,36 @@ export async function toggleTeamFormation(
   if (!auth.valid) return { error: auth.error };
 
   const supabase = await createServiceClient();
-  const { error } = await supabase
+  const payload = {
+    event_id: auth.eventId,
+    team_formation_enabled: enabled,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingSettings } = await supabase
     .from("hackathon_settings")
-    .upsert(
-      { event_id: auth.eventId, team_formation_enabled: enabled, updated_at: new Date().toISOString() },
-      { onConflict: "event_id" }
-    );
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .limit(1);
+
+  const { error } = existingSettings?.[0]
+    ? await supabase
+        .from("hackathon_settings")
+        .update(payload)
+        .eq("id", existingSettings[0].id)
+    : await supabase
+        .from("hackathon_settings")
+        .insert(payload);
 
   if (error) return { error: error.message };
+
+  if (enabled) {
+    await supabase
+      .from("hackathon_teams")
+      .update({ locked_at: null, updated_at: new Date().toISOString() })
+      .eq("event_id", auth.eventId);
+  }
+
   revalidatePath(`/admin/${adminCode}/hackathon`);
   return { success: true };
 }
@@ -113,12 +153,26 @@ export async function toggleLeaderboard(
   if (!auth.valid) return { error: auth.error };
 
   const supabase = await createServiceClient();
-  const { error } = await supabase
+  const payload = {
+    event_id: auth.eventId,
+    leaderboard_visible: visible,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingSettings } = await supabase
     .from("hackathon_settings")
-    .upsert(
-      { event_id: auth.eventId, leaderboard_visible: visible, updated_at: new Date().toISOString() },
-      { onConflict: "event_id" }
-    );
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .limit(1);
+
+  const { error } = existingSettings?.[0]
+    ? await supabase
+        .from("hackathon_settings")
+        .update(payload)
+        .eq("id", existingSettings[0].id)
+    : await supabase
+        .from("hackathon_settings")
+        .insert(payload);
 
   if (error) return { error: error.message };
   revalidatePath(`/admin/${adminCode}/hackathon`);
@@ -268,9 +322,15 @@ export async function sendTeamInvite(
     .select("id")
     .eq("event_id", eventId);
   const existingTeamIds = (existingEventTeams ?? []).map((t: { id: string }) => t.id);
-  const existingMembership = existingTeamIds.length
-    ? (await supabase.from("hackathon_team_members").select("team_id").eq("user_id", invitedUserId).in("team_id", existingTeamIds).maybeSingle()).data
-    : null;
+  const { data: existingMembershipRows } = existingTeamIds.length
+    ? await supabase
+        .from("hackathon_team_members")
+        .select("team_id")
+        .eq("user_id", invitedUserId)
+        .in("team_id", existingTeamIds)
+        .limit(1)
+    : { data: [] };
+  const existingMembership = existingMembershipRows?.[0] ?? null;
 
   if (existingMembership) return { error: "That person is already on a team" };
 
@@ -287,16 +347,15 @@ export async function sendTeamInvite(
     (eventTeamRows ?? []).map((t: { id: string; locked_at: string | null }) => [t.id, t])
   );
 
-  const { data: myMembership } = await supabase
+  const { data: myMembershipRows } = await supabase
     .from("hackathon_team_members")
     .select("team_id")
     .eq("user_id", userId)
     .in("team_id", [...eventTeamMap.keys()])
-    .maybeSingle();
+    .limit(1);
+  const myMembership = myMembershipRows?.[0] ?? null;
 
   if (myMembership) {
-    const team = eventTeamMap.get(myMembership.team_id);
-    if (team?.locked_at) return { error: "Your team is locked" };
     teamId = myMembership.team_id;
   } else {
     // Need to create a team
@@ -404,7 +463,6 @@ export async function acceptTeamInvite(
 
   const team = invite.hackathon_teams as { event_id: string; locked_at: string | null; name: string } | null;
   if (!team) return { error: "Team not found" };
-  if (team.locked_at) return { error: "Team is locked" };
 
   const eventId = team.event_id;
 
@@ -424,9 +482,15 @@ export async function acceptTeamInvite(
     .select("id")
     .eq("event_id", eventId);
   const eventTeamCheckIds = (eventTeamCheck ?? []).map((t: { id: string }) => t.id);
-  const { data: existing } = eventTeamCheckIds.length
-    ? await supabase.from("hackathon_team_members").select("team_id").eq("user_id", userId).in("team_id", eventTeamCheckIds).maybeSingle()
-    : { data: null };
+  const { data: existingRows } = eventTeamCheckIds.length
+    ? await supabase
+        .from("hackathon_team_members")
+        .select("team_id")
+        .eq("user_id", userId)
+        .in("team_id", eventTeamCheckIds)
+        .limit(1)
+    : { data: [] };
+  const existing = existingRows?.[0] ?? null;
 
   if (existing) return { error: "You are already on a team" };
 
@@ -503,7 +567,6 @@ export async function leaveTeam(
     .single();
 
   if (!team) return { error: "Team not found" };
-  if (team.locked_at) return { error: "Team is locked" };
 
   const { data: settings } = await supabase
     .from("hackathon_settings")

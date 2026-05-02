@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback } from "react";
+import { useState, useTransition, useEffect, useCallback, useRef } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendTeamInvite,
@@ -14,10 +15,11 @@ import { cn } from "@/lib/utils";
 import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
+  Camera, ImageIcon, Loader2,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
-  HackathonTeamInvite, HackathonScore,
+  HackathonTeamInvite, HackathonScore, EventPhoto,
 } from "@/types";
 
 interface Props {
@@ -80,12 +82,14 @@ export function HackathonClient({
   const [projectDesc, setProjectDesc] = useState(myTeam?.project?.description ?? "");
   const [projectRepo, setProjectRepo] = useState(myTeam?.project?.repo_url ?? "");
   const [projectDemo, setProjectDemo] = useState(myTeam?.project?.demo_url ?? "");
+  const [uploadingIcon, setUploadingIcon] = useState(false);
+  const teamIconInputRef = useRef<HTMLInputElement>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const formationOpen = isFormationOpen(settings);
-  const teamLocked = !!myTeam?.locked_at || !formationOpen;
+  const teamLocked = !formationOpen;
   const leaderboardVisible = settings?.leaderboard_visible ?? false;
 
   const refresh = useCallback(() => {
@@ -120,6 +124,7 @@ export function HackathonClient({
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_settings", filter: `event_id=eq.${event.id}` }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "event_photos", filter: `event_id=eq.${event.id}` }, refresh)
         .subscribe(),
       supabase
         .channel(`hackathon-invites-${event.id}-${userId}`)
@@ -197,6 +202,52 @@ export function HackathonClient({
       setShowProjectForm(false);
       refresh();
     });
+  };
+
+  const handleTeamIconUpload = async (file: File | undefined) => {
+    if (!file || !myTeam) return;
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      showMsg("Only image files are supported (PNG, JPEG, WebP, GIF)", true);
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showMsg("File size exceeds 10MB limit", true);
+      return;
+    }
+
+    setUploadingIcon(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("eventId", event.id);
+      formData.append("teamId", myTeam.id);
+
+      const res = await fetch("/api/hackathon/team-icon", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        showMsg(data.error || "Upload failed", true);
+        return;
+      }
+
+      const photo = data.photo as EventPhoto;
+      setMyTeam((prev) => prev ? { ...prev, icon_photo_id: photo.id, icon_photo: photo } : prev);
+      setAllTeams((prev) => prev.map((team) =>
+        team.id === myTeam.id ? { ...team, icon_photo_id: photo.id, icon_photo: photo } : team
+      ));
+      showMsg("Team icon submitted for approval");
+      refresh();
+    } catch {
+      showMsg("Upload failed. Please try again.", true);
+    } finally {
+      setUploadingIcon(false);
+    }
   };
 
   const tabs: { id: Tab; label: string; count?: number }[] = [
@@ -306,26 +357,69 @@ export function HackathonClient({
             <>
               <div className="glass rounded-[32px] p-8 border-white/20 space-y-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-2xl font-light">{myTeam.name}</h2>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">
-                      {myTeam.members.length} member{myTeam.members.length !== 1 ? "s" : ""}
-                      {teamLocked && (
-                        <span className="ml-3 text-amber-400 flex items-center gap-1 inline-flex">
-                          <Lock className="w-2.5 h-2.5" /> Locked
-                        </span>
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="relative w-16 h-16 rounded-2xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                      {myTeam.icon_photo?.status === "approved" ? (
+                        <Image
+                          src={myTeam.icon_photo.file_url}
+                          alt={`${myTeam.name} icon`}
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                        />
+                      ) : (
+                        <ImageIcon className="w-6 h-6 text-gray-600" />
                       )}
-                    </p>
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-2xl font-light truncate">{myTeam.name}</h2>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">
+                        {myTeam.members.length} member{myTeam.members.length !== 1 ? "s" : ""}
+                        {teamLocked && (
+                          <span className="ml-3 text-amber-400 flex items-center gap-1 inline-flex">
+                            <Lock className="w-2.5 h-2.5" /> Locked
+                          </span>
+                        )}
+                      </p>
+                      {myTeam.icon_photo && myTeam.icon_photo.status !== "approved" && (
+                        <p className={cn(
+                          "text-[10px] uppercase tracking-[0.18em] mt-2",
+                          myTeam.icon_photo.status === "pending" ? "text-amber-400" : "text-red-400"
+                        )}>
+                          Team icon {myTeam.icon_photo.status === "pending" ? "pending approval" : "not approved"}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  {!teamLocked && (
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <input
+                      ref={teamIconInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleTeamIconUpload(e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
                     <button
-                      disabled={isPending}
-                      onClick={handleLeave}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-500 hover:text-red-400 border border-white/5 hover:border-red-400/30 transition-all"
+                      disabled={uploadingIcon}
+                      onClick={() => teamIconInputRef.current?.click()}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-500 hover:text-white border border-white/5 hover:border-white/20 transition-all disabled:opacity-50"
                     >
-                      <LogOut className="w-3 h-3" /> Leave
+                      {uploadingIcon ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />}
+                      {myTeam.icon_photo ? "Replace Icon" : "Upload Icon"}
                     </button>
-                  )}
+                    {!teamLocked && (
+                      <button
+                        disabled={isPending}
+                        onClick={handleLeave}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-500 hover:text-red-400 border border-white/5 hover:border-red-400/30 transition-all"
+                      >
+                        <LogOut className="w-3 h-3" /> Leave
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -447,10 +541,10 @@ export function HackathonClient({
           )}
           {leaderboardVisible
             ? [...allTeams].sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)).map((team, i) => (
-              <TeamCard key={team.id} team={team} rank={i + 1} score={leaderboardVisible ? totalScore(team.id, scores) : null} />
+              <TeamCard key={team.id} team={team} rank={i + 1} score={leaderboardVisible ? totalScore(team.id, scores) : null} formationOpen={formationOpen} />
             ))
             : allTeams.map((team) => (
-              <TeamCard key={team.id} team={team} rank={null} score={null} />
+              <TeamCard key={team.id} team={team} rank={null} score={null} formationOpen={formationOpen} />
             ))
           }
         </div>
@@ -552,10 +646,11 @@ export function HackathonClient({
   );
 }
 
-function TeamCard({ team, rank, score }: {
+function TeamCard({ team, rank, score, formationOpen }: {
   team: HackathonTeamWithMembers;
   rank: number | null;
   score: number | null;
+  formationOpen: boolean;
 }) {
   return (
     <div className={cn(
@@ -575,11 +670,24 @@ function TeamCard({ team, rank, score }: {
               {rank}
             </div>
           )}
+          <div className="relative w-10 h-10 rounded-xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+            {team.icon_photo?.status === "approved" ? (
+              <Image
+                src={team.icon_photo.file_url}
+                alt={`${team.name} icon`}
+                fill
+                className="object-cover"
+                sizes="40px"
+              />
+            ) : (
+              <ImageIcon className="w-4 h-4 text-gray-600" />
+            )}
+          </div>
           <div>
             <h3 className="text-sm font-medium">{team.name}</h3>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-0.5">
               {team.members.length} member{team.members.length !== 1 ? "s" : ""}
-              {team.locked_at && <span className="ml-2 text-amber-400">· Locked</span>}
+              {!formationOpen && <span className="ml-2 text-amber-400">· Locked</span>}
             </p>
           </div>
         </div>

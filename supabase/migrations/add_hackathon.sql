@@ -28,11 +28,18 @@ CREATE TABLE IF NOT EXISTS hackathon_teams (
   event_id    uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   name        text        NOT NULL,
   created_by  uuid        NOT NULL REFERENCES users(id),
+  icon_photo_id uuid,
   locked_at   timestamptz,
   category    text,
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE hackathon_teams
+  ADD COLUMN IF NOT EXISTS icon_photo_id uuid;
+
+CREATE INDEX IF NOT EXISTS idx_hackathon_teams_icon_photo_id
+  ON hackathon_teams(icon_photo_id);
 
 -- ── 4. Team Members ───────────────────────────────────────────────────────────
 -- One-team-per-event is enforced at the application level (server actions check
@@ -117,3 +124,4 @@ ALTER PUBLICATION supabase_realtime ADD TABLE hackathon_team_members;
 ALTER PUBLICATION supabase_realtime ADD TABLE hackathon_team_invites;
 ALTER PUBLICATION supabase_realtime ADD TABLE hackathon_projects;
 ALTER PUBLICATION supabase_realtime ADD TABLE hackathon_scores;
+ALTER PUBLICATION supabase_realtime ADD TABLE event_photos;

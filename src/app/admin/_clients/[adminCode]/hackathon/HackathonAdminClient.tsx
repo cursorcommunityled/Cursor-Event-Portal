@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useEffect, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import {
@@ -16,6 +17,7 @@ import {
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
+  ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -134,6 +136,7 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_photos", filter: `event_id=eq.${event.id}` }, refresh)
       .subscribe();
 
     return () => {
@@ -386,7 +389,21 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
             {teams.map((team) => (
               <div key={team.id} className="glass rounded-[28px] p-6 border-white/20 space-y-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="relative w-12 h-12 rounded-2xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                      {team.icon_photo?.status === "approved" ? (
+                        <Image
+                          src={team.icon_photo.file_url}
+                          alt={`${team.name} icon`}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                        />
+                      ) : (
+                        <ImageIcon className="w-5 h-5 text-gray-600" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
                     <div className="flex items-center gap-3">
                       <h3 className="text-lg font-light">{team.name}</h3>
                       {team.locked_at && (
@@ -402,7 +419,10 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
                     </div>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">
                       {team.members.length} member{team.members.length !== 1 ? "s" : ""}
+                      {team.icon_photo?.status === "pending" && <span className="ml-2 text-amber-400">Icon pending</span>}
+                      {team.icon_photo?.status === "rejected" && <span className="ml-2 text-red-400">Icon rejected</span>}
                     </p>
+                    </div>
                   </div>
                   <button
                     disabled={isPending}
