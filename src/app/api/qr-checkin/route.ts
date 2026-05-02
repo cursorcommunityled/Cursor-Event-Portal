@@ -26,6 +26,20 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServiceClient();
 
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("seating_enabled")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (eventError || !event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    if (!event.seating_enabled) {
+      return NextResponse.json({ success: true, skipped: true });
+    }
+
     const { data: registration } = await supabase
       .from("registrations")
       .select("id")

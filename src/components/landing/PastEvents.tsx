@@ -216,6 +216,7 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
         id: ev.slug || ev.id,
         title: ev.name,
         date: ev.start_time ? ev.start_time.split('T')[0] : '',
+        attendees: ev.checked_in_count,
         thumbnail: ev.photos[0]?.file_url,
         galleryImages: ev.photos.slice(1, 3).map((p) => p.file_url),
         allPhotos: ev.photos.map((p) => p.file_url),
@@ -232,6 +233,7 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
             ? dbMatch.photos.slice(1, 3).map((p) => p.file_url)
             : se.galleryImages,
           allPhotos: dbMatch.photos.map((p) => p.file_url),
+          attendees: dbMatch.checked_in_count ?? se.attendees,
         };
       })
       .filter((event) => event.allPhotos.length > 0);
@@ -290,7 +292,7 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
                         <span>{displayDate}</span>
                       </div>
                     )}
-                    {event.attendees ? (
+                    {typeof event.attendees === 'number' ? (
                       <div className="flex items-center gap-1.5">
                         <Users className="w-4 h-4" />
                         <span>{t('home.attendees', { count: String(event.attendees) })}</span>

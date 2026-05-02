@@ -9,7 +9,6 @@ import {
   Loader2,
   ChevronRight,
   AlertCircle,
-  Sparkles,
   Clock,
   Phone,
 } from "lucide-react";
@@ -107,7 +106,7 @@ const CURSOR_EXPERIENCE_OPTIONS: { value: CursorExperience; label: string }[] = 
 export function AttendeeCheckinForm({
   eventId,
   eventSlug,
-  seatingEnabled = true,
+  seatingEnabled = false,
 }: AttendeeCheckinFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -146,13 +145,18 @@ export function AttendeeCheckinForm({
   const [consentLoading, setConsentLoading] = useState(false);
 
   useEffect(() => {
+    if (!seatingEnabled) {
+      setPendingTableNumber(null);
+      return;
+    }
+
     const tableParam = searchParams.get("table");
     if (!tableParam) return;
     const parsed = Number.parseInt(tableParam, 10);
     if (Number.isFinite(parsed) && parsed > 0) {
       setPendingTableNumber(parsed);
     }
-  }, [searchParams]);
+  }, [searchParams, seatingEnabled]);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -228,7 +232,7 @@ export function AttendeeCheckinForm({
   };
 
   const registerTableFromQr = async () => {
-    if (!pendingTableNumber) return;
+    if (!seatingEnabled || !pendingTableNumber) return;
     try {
       const response = await fetch("/api/qr-checkin", {
         method: "POST",
