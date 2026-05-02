@@ -19,9 +19,9 @@ interface EventNavProps {
 }
 
 const navItems = [
+  { href: "hackathon", label: "Hackathon", icon: Swords, hackathonOnly: true },
   { href: "agenda", label: "Event", icon: Calendar },
   { href: "demos", label: "Demos", icon: MonitorPlay },
-  { href: "hackathon", label: "Hackathon", icon: Swords, hackathonOnly: true },
   { href: "socials", label: "Socials", icon: MessageCircle },
   { href: "slides", label: "Slides", icon: FileText },
   { href: "polls", label: "Polls", icon: BarChart3, hasAlert: true },

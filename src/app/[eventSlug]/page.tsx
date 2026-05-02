@@ -21,7 +21,7 @@ export default async function EventPage({ params }: EventPageProps) {
   // Check if already registered and checked in
   const session = await getSession();
   if (session && session.eventId === event.id) {
-    // Check if checked in - if yes, go to agenda
+    // Check if checked in - if yes, go to the primary event surface
     const { createServiceClient } = await import("@/lib/supabase/server");
     const supabase = await createServiceClient();
     const { data: registration } = await supabase
@@ -32,7 +32,7 @@ export default async function EventPage({ params }: EventPageProps) {
       .single();
     
     if (registration?.checked_in_at) {
-      redirect(`/${eventSlug}/agenda`);
+      redirect(event.is_hackathon ? `/${eventSlug}/hackathon` : `/${eventSlug}/agenda`);
     }
   }
 
@@ -85,6 +85,7 @@ export default async function EventPage({ params }: EventPageProps) {
             eventId={event.id}
             eventSlug={eventSlug}
             seatingEnabled={event.seating_enabled}
+            isHackathon={event.is_hackathon}
           />
         </div>
 

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, useEffect, useCallback, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import {
   toggleHackathonMode,
@@ -41,7 +43,32 @@ function fmt(iso: string | null | undefined): string {
   return iso.slice(0, 16); // YYYY-MM-DDTHH:MM
 }
 
+function buildScoreInputs(
+  teams: HackathonTeamWithMembers[],
+  scores: HackathonScore[]
+): Record<string, Record<string, number | null>> {
+  const init: Record<string, Record<string, number | null>> = {};
+  for (const team of teams) {
+    const teamScores = scores.filter((s) => s.team_id === team.id);
+    const merged: Record<string, number | null> = {};
+    for (const s of teamScores) {
+      for (const cat of SCORE_CATEGORIES) {
+        if (s[cat.key] != null) merged[cat.key] = s[cat.key];
+      }
+    }
+    init[team.id] = merged;
+  }
+  return init;
+}
+
+function buildScoreNotes(scores: HackathonScore[]): Record<string, string> {
+  const init: Record<string, string> = {};
+  for (const s of scores) init[s.team_id] = s.notes ?? "";
+  return init;
+}
+
 export function HackathonAdminClient({ event, adminCode, initialSettings, initialTeams, initialScores }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
   const [isPending, startTransition] = useTransition();
   const [isHackathon, setIsHackathon] = useState(event.is_hackathon);
@@ -63,25 +90,56 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
   const [formMaxSize, setFormMaxSize] = useState(initialSettings?.max_team_size ?? 4);
 
   // Scoring state: { [teamId]: { [category]: score } }
-  const [scoreInputs, setScoreInputs] = useState<Record<string, Record<string, number | null>>>(() => {
-    const init: Record<string, Record<string, number | null>> = {};
-    for (const team of initialTeams) {
-      const teamScores = initialScores.filter((s) => s.team_id === team.id);
-      const merged: Record<string, number | null> = {};
-      for (const s of teamScores) {
-        for (const cat of SCORE_CATEGORIES) {
-          if (s[cat.key] != null) merged[cat.key] = s[cat.key];
-        }
-      }
-      init[team.id] = merged;
-    }
-    return init;
-  });
-  const [scoreNotes, setScoreNotes] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    for (const s of initialScores) init[s.team_id] = s.notes ?? "";
-    return init;
-  });
+  const [scoreInputs, setScoreInputs] = useState<Record<string, Record<string, number | null>>>(() =>
+    buildScoreInputs(initialTeams, initialScores)
+  );
+  const [scoreNotes, setScoreNotes] = useState<Record<string, string>>(() =>
+    buildScoreNotes(initialScores)
+  );
+
+  const refresh = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  useEffect(() => {
+    setIsHackathon(event.is_hackathon);
+  }, [event.is_hackathon]);
+
+  useEffect(() => {
+    setSettings(initialSettings);
+    setTeamFormationEnabled(initialSettings?.team_formation_enabled ?? true);
+    setFormOpens(fmt(initialSettings?.team_formation_opens_at));
+    setFormCloses(fmt(initialSettings?.team_formation_closes_at));
+    setFormSubmission(fmt(initialSettings?.submission_deadline));
+    setFormJudging(fmt(initialSettings?.judging_starts_at));
+    setFormMinSize(initialSettings?.min_team_size ?? 2);
+    setFormMaxSize(initialSettings?.max_team_size ?? 4);
+  }, [initialSettings]);
+
+  useEffect(() => {
+    setTeams(initialTeams);
+    setScores(initialScores);
+    setScoreInputs(buildScoreInputs(initialTeams, initialScores));
+    setScoreNotes(buildScoreNotes(initialScores));
+  }, [initialTeams, initialScores]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`hackathon-admin-${event.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "events", filter: `id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_settings", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_teams", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_members" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [event.id, refresh]);
 
   const showFeedback = (err?: string) => {
     if (err) { setError(err); return; }
