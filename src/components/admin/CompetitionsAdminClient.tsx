@@ -105,7 +105,7 @@ export function CompetitionsAdminClient({
 
   // hackathon judge export
   const [exportingId, setExportingId] = useState<string | null>(null);
-  const [exportResults, setExportResults] = useState<Record<string, { eventSlug?: string; created?: number; error?: string }>>({});
+  const [exportResults, setExportResults] = useState<Record<string, { eventSlug?: string; created?: number; error?: string; errors?: string[] }>>({});
 
   // top3: track which entries the admin has checked as finalists
   const [top3Selections, setTop3Selections] = useState<Record<string, Set<string>>>({});
