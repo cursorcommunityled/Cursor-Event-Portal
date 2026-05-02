@@ -55,6 +55,7 @@ export const MOCK_EVENT: Event = {
   timer_end_time: "2026-02-18T21:00:00-07:00",
   timer_active: true,
   series_id: "series-001",
+  is_hackathon: false,
   created_at: "2026-01-15T10:00:00Z",
 };
 
