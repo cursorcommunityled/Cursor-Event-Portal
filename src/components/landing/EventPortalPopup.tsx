@@ -9,10 +9,9 @@ import { X } from 'lucide-react';
 interface EventPortalPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  activeEventSlug: string;
 }
 
-export default function EventPortalPopup({ isOpen, onClose, activeEventSlug }: EventPortalPopupProps) {
+export default function EventPortalPopup({ isOpen, onClose }: EventPortalPopupProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -86,7 +85,7 @@ export default function EventPortalPopup({ isOpen, onClose, activeEventSlug }: E
 
             <div className="glass rounded-[40px] p-8 space-y-4" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
               <Link
-                href={`/${activeEventSlug}`}
+                href="/event-dashboard"
                 className="block w-full h-16 rounded-[24px] bg-white text-black flex items-center justify-center font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-gray-200 transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)] active:scale-[0.98]"
               >
                 Event Dashboard

@@ -45,12 +45,11 @@ function buildHomeJsonLd() {
 }
 
 interface LandingPageProps {
-  activeEventSlug: string;
   eventsWithPhotos?: EventWithPhotos[];
   heroFeaturedIds?: string[];
 }
 
-export default function LandingPage({ activeEventSlug, eventsWithPhotos = [], heroFeaturedIds = [] }: LandingPageProps) {
+export default function LandingPage({ eventsWithPhotos = [], heroFeaturedIds = [] }: LandingPageProps) {
   const [showPortal, setShowPortal] = useState(false);
 
   return (
@@ -76,7 +75,6 @@ export default function LandingPage({ activeEventSlug, eventsWithPhotos = [], he
         <EventPortalPopup
           isOpen={showPortal}
           onClose={() => setShowPortal(false)}
-          activeEventSlug={activeEventSlug}
         />
       </main>
     </I18nProvider>
