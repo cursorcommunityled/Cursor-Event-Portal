@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useTransition, useRef, useCallback } from "react";
+import { useState, useTransition, useRef, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive, Star } from "lucide-react";
 import JSZip from "jszip";
 import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos, toggleHeroFeatured } from "@/lib/actions/photos";
@@ -23,6 +25,7 @@ export function PhotosAdminTab({
   initialPhotos,
   initialHeroFeaturedIds = [],
 }: PhotosAdminTabProps) {
+  const router = useRouter();
   const [photos, setPhotos] = useState(initialPhotos);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -39,6 +42,28 @@ export function PhotosAdminTab({
 
   const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
   const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+
+  useEffect(() => {
+    setPhotos(initialPhotos);
+  }, [initialPhotos]);
+
+  useEffect(() => {
+    setHeroFeaturedIds(new Set(initialHeroFeaturedIds));
+  }, [initialHeroFeaturedIds]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`admin-event-photos-${event.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "event_photos", filter: `event_id=eq.${event.id}` }, () => {
+        router.refresh();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [event.id, router]);
 
   const isImageFile = (name: string, type?: string) => {
     if (type && IMAGE_TYPES.includes(type)) return true;

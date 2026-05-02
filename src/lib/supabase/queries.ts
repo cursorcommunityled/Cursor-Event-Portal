@@ -1816,10 +1816,51 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
 
 import type {
   HackathonSettings,
+  HackathonTeamMember,
   HackathonTeamWithMembers,
   HackathonTeamInvite,
   HackathonScore,
 } from "@/types";
+
+function dedupeHackathonMembers(members: HackathonTeamMember[] = []): HackathonTeamMember[] {
+  const byUser = new Map<string, HackathonTeamMember>();
+  for (const member of members) {
+    const existing = byUser.get(member.user_id);
+    if (!existing || member.role === "leader") {
+      byUser.set(member.user_id, member);
+    }
+  }
+  return Array.from(byUser.values());
+}
+
+function normalizeHackathonTeam(team: HackathonTeamWithMembers): HackathonTeamWithMembers {
+  return {
+    ...team,
+    members: dedupeHackathonMembers(team.members ?? []),
+  };
+}
+
+async function attachHackathonTeamIconPhotos(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  teams: HackathonTeamWithMembers[]
+): Promise<HackathonTeamWithMembers[]> {
+  const iconPhotoIds = teams
+    .map((team) => team.icon_photo_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (!iconPhotoIds.length) return teams;
+
+  const { data: photos } = await supabase
+    .from("event_photos")
+    .select("*")
+    .in("id", iconPhotoIds);
+
+  const photosById = new Map((photos ?? []).map((photo) => [photo.id, photo as EventPhoto]));
+  return teams.map((team) => ({
+    ...team,
+    icon_photo: team.icon_photo_id ? photosById.get(team.icon_photo_id) ?? null : null,
+  }));
+}
 
 export async function getHackathonSettings(eventId: string): Promise<HackathonSettings | null> {
   noStore();
@@ -1828,9 +1869,9 @@ export async function getHackathonSettings(eventId: string): Promise<HackathonSe
     .from("hackathon_settings")
     .select("*")
     .eq("event_id", eventId)
-    .maybeSingle();
+    .limit(1);
   if (error) return null;
-  return data as HackathonSettings | null;
+  return (data?.[0] ?? null) as HackathonSettings | null;
 }
 
 export async function getHackathonTeamsWithMembers(eventId: string): Promise<HackathonTeamWithMembers[]> {
@@ -1849,7 +1890,8 @@ export async function getHackathonTeamsWithMembers(eventId: string): Promise<Hac
     console.error("[getHackathonTeamsWithMembers] Error:", error);
     return [];
   }
-  return (data ?? []) as unknown as HackathonTeamWithMembers[];
+  const teams = ((data ?? []) as unknown as HackathonTeamWithMembers[]).map(normalizeHackathonTeam);
+  return attachHackathonTeamIconPhotos(supabase, teams);
 }
 
 export async function getMyHackathonTeam(eventId: string, userId: string): Promise<HackathonTeamWithMembers | null> {
@@ -1886,7 +1928,10 @@ export async function getMyHackathonTeam(eventId: string, userId: string): Promi
     .maybeSingle();
 
   if (error || !data) return null;
-  return data as unknown as HackathonTeamWithMembers;
+  const [team] = await attachHackathonTeamIconPhotos(supabase, [
+    normalizeHackathonTeam(data as unknown as HackathonTeamWithMembers),
+  ]);
+  return team ?? null;
 }
 
 export async function getMyReceivedHackathonInvites(

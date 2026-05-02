@@ -70,11 +70,29 @@ ALTER TABLE public.hackathon_settings
   ADD COLUMN IF NOT EXISTS leaderboard_visible BOOLEAN NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+WITH ranked_settings AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY event_id
+      ORDER BY updated_at DESC, created_at DESC, id DESC
+    ) AS row_num
+  FROM public.hackathon_settings
+)
+DELETE FROM public.hackathon_settings hs
+USING ranked_settings r
+WHERE hs.id = r.id
+  AND r.row_num > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS hackathon_settings_event_id_unique
+  ON public.hackathon_settings(event_id);
+
 CREATE TABLE IF NOT EXISTS public.hackathon_teams (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id    UUID        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
   name        TEXT        NOT NULL,
   created_by  UUID        NOT NULL REFERENCES public.users(id),
+  icon_photo_id UUID,
   locked_at   TIMESTAMPTZ,
   category    TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -82,9 +100,13 @@ CREATE TABLE IF NOT EXISTS public.hackathon_teams (
 );
 
 ALTER TABLE public.hackathon_teams
+  ADD COLUMN IF NOT EXISTS icon_photo_id UUID,
   ADD COLUMN IF NOT EXISTS locked_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS category TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+CREATE INDEX IF NOT EXISTS idx_hackathon_teams_icon_photo_id
+  ON public.hackathon_teams(icon_photo_id);
 
 CREATE TABLE IF NOT EXISTS public.hackathon_team_members (
   id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -204,6 +226,27 @@ CREATE TABLE IF NOT EXISTS public.competition_votes (
   UNIQUE(competition_id, user_id, entry_id)
 );
 
+-- Clean up older partial hackathon schemas that allowed duplicate membership rows.
+WITH ranked_members AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (
+      PARTITION BY team_id, user_id
+      ORDER BY
+        CASE WHEN role = 'leader' THEN 0 ELSE 1 END,
+        joined_at ASC,
+        id ASC
+    ) AS row_num
+  FROM public.hackathon_team_members
+)
+DELETE FROM public.hackathon_team_members m
+USING ranked_members r
+WHERE m.id = r.id
+  AND r.row_num > 1;
+
+CREATE UNIQUE INDEX IF NOT EXISTS hackathon_team_members_team_user_unique
+  ON public.hackathon_team_members(team_id, user_id);
+
 -- Realtime powers immediate team/invite/project updates in the hackathon UI.
 DO $$
 BEGIN
@@ -248,6 +291,14 @@ END $$;
 DO $$
 BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE public.hackathon_scores;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.event_photos;
 EXCEPTION
   WHEN duplicate_object THEN NULL;
   WHEN undefined_object THEN NULL;
@@ -372,6 +423,16 @@ SET
 FROM public.events e
 WHERE e.slug = 'calgary-hackathon-sait-may-2026'
   AND hs.event_id = e.id;
+
+-- Clear stale per-team locks for SAIT while formation is intentionally open.
+UPDATE public.hackathon_teams ht
+SET
+  locked_at = NULL,
+  updated_at = NOW()
+FROM public.events e
+WHERE e.slug = 'calgary-hackathon-sait-may-2026'
+  AND ht.event_id = e.id
+  AND ht.locked_at IS NOT NULL;
 
 -- 4. Replace the default meetup-style agenda with the hackathon agenda
 DELETE FROM public.agenda_items

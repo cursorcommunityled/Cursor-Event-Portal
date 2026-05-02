@@ -751,6 +751,7 @@ export interface HackathonTeam {
   event_id: string;
   name: string;
   created_by: string;
+  icon_photo_id: string | null;
   locked_at: string | null;
   category: string | null;
   created_at: string;
@@ -811,6 +812,7 @@ export interface HackathonScore {
 export interface HackathonTeamWithMembers extends HackathonTeam {
   members: HackathonTeamMember[];
   project: HackathonProject | null;
+  icon_photo?: EventPhoto | null;
 }
 
 // ─── Event Photos ─────────────────────────────────────────────────────────────
