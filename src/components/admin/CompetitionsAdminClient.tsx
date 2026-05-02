@@ -19,6 +19,7 @@ import {
   Undo2,
   Copy,
   Check,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +33,7 @@ import {
   finalizeGroupWinner,
   castVote,
 } from "@/lib/actions/competitions";
+import { exportCompetitionToHackathonJudge } from "@/lib/actions/hackathon-export";
 import type { CompetitionWithEntries, CompetitionStatus } from "@/types";
 
 interface CompetitionsAdminClientProps {
@@ -100,6 +102,10 @@ export function CompetitionsAdminClient({
   const [newVotingMode, setNewVotingMode] = useState("group");
   const [newMaxEntries, setNewMaxEntries] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // hackathon judge export
+  const [exportingId, setExportingId] = useState<string | null>(null);
+  const [exportResults, setExportResults] = useState<Record<string, { eventSlug?: string; created?: number; error?: string }>>({});
 
   // top3: track which entries the admin has checked as finalists
   const [top3Selections, setTop3Selections] = useState<Record<string, Set<string>>>({});
@@ -276,6 +282,19 @@ export function CompetitionsAdminClient({
       setVoteErrors((prev) => ({ ...prev, [entryId]: result.error! }));
     } else {
       router.refresh();
+    }
+  };
+
+  const handleExport = async (compId: string) => {
+    setExportingId(compId);
+    setExportResults((prev) => ({ ...prev, [compId]: {} }));
+    try {
+      const result = await exportCompetitionToHackathonJudge(compId);
+      setExportResults((prev) => ({ ...prev, [compId]: result }));
+    } catch (err) {
+      setExportResults((prev) => ({ ...prev, [compId]: { error: err instanceof Error ? err.message : "Export failed." } }));
+    } finally {
+      setExportingId(null);
     }
   };
 
@@ -486,6 +505,15 @@ export function CompetitionsAdminClient({
                   </button>
                 )}
                 <button
+                  onClick={() => handleExport(comp.id)}
+                  disabled={exportingId === comp.id}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/10 text-indigo-400 text-xs font-medium hover:bg-indigo-500/20 transition-all disabled:opacity-50"
+                  title="Export to Hackathon Judge"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {exportingId === comp.id ? "Exporting…" : "Export to HJ"}
+                </button>
+                <button
                   onClick={() => handleDelete(comp.id)}
                   disabled={loading === comp.id}
                   className="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all disabled:opacity-50"
@@ -494,6 +522,40 @@ export function CompetitionsAdminClient({
                 </button>
               </div>
             </div>
+
+            {/* Export result banner */}
+            {exportResults[comp.id] && Object.keys(exportResults[comp.id]).length > 0 && (
+              <div className={cn(
+                "mx-6 mb-4 px-4 py-3 rounded-2xl text-xs flex items-center justify-between gap-3",
+                exportResults[comp.id].error
+                  ? "bg-red-500/10 border border-red-500/20 text-red-400"
+                  : "bg-indigo-500/10 border border-indigo-500/20 text-indigo-300"
+              )}>
+                {exportResults[comp.id].error ? (
+                  <span>Export failed: {exportResults[comp.id].error}</span>
+                ) : (
+                  <>
+                    <span>
+                      Exported {exportResults[comp.id].created} project{exportResults[comp.id].created !== 1 ? "s" : ""} to Hackathon Judge
+                      {exportResults[comp.id].errors && exportResults[comp.id].errors!.length > 0 && (
+                        <> ({exportResults[comp.id].errors!.length} skipped)</>
+                      )}
+                    </span>
+                    {exportResults[comp.id].eventSlug && (
+                      <a
+                        href={`https://hackathon-judge-7emn.onrender.com/events/${exportResults[comp.id].eventSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 transition-all shrink-0"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Open in HJ
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Expanded content */}
             {isExpanded && (

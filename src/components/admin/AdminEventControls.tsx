@@ -32,11 +32,11 @@ export function AdminEventControls({ events, currentAdminCode, activeSlug }: Adm
 
   return (
     <div className="glass rounded-[32px] px-6 py-5 border-white/[0.08] animate-slide-up" style={{ animationDelay: "100ms" }}>
-      <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3">
         {/* Admin view switcher */}
-        <div className="flex items-center gap-3">
-          <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap">Admin View</span>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] overflow-x-auto max-w-full">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap sm:w-28 sm:shrink-0">Admin View</span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 p-0.5 rounded-2xl bg-white/[0.04] border border-white/[0.06]">
             {events.map((ev) => {
               if (!ev.admin_code) return null;
               const isCurrent = ev.admin_code === currentAdminCode;
@@ -60,9 +60,9 @@ export function AdminEventControls({ events, currentAdminCode, activeSlug }: Adm
         </div>
 
         {/* Live event switcher */}
-        <div className="flex items-center gap-3">
-          <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap">Live Event</span>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] overflow-x-auto max-w-full">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap sm:w-28 sm:shrink-0">Live Event</span>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 p-0.5 rounded-2xl bg-white/[0.04] border border-white/[0.06]">
             {events.map((ev) => {
               const isLive = ev.slug === activeSlug;
               return (
