@@ -123,7 +123,13 @@ export function EventPageClient({
         )}
 
         {activeTab === "credits" && (
-          <AttendeeCreditsView credits={credits} userId={userId} eventSlug={event.slug} eventId={event.id} />
+          <AttendeeCreditsView
+            credits={credits}
+            userId={userId}
+            eventSlug={event.slug}
+            eventId={event.id}
+            creditAmount={event.is_hackathon ? 50 : 20}
+          />
         )}
       </div>
     </main>

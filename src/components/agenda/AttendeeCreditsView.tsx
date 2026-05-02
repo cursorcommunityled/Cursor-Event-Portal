@@ -14,8 +14,8 @@ const REDEMPTION_URL = (code: string) => `https://cursor.com/referral?code=${cod
 const EASTER_EVENT_SLUG = "calgary-march-2026";
 const TOTAL_EGGS = 3;
 
-function isEasterCredit(credit: CursorCredit) {
-  return credit.amount_usd === 50;
+function isEasterCredit(credit: CursorCredit, eventSlug: string) {
+  return eventSlug === EASTER_EVENT_SLUG && credit.amount_usd === 50;
 }
 
 // ── Egg tally ──────────────────────────────────────────────────────────────────
@@ -216,7 +216,7 @@ function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: st
   );
 }
 
-// ── Sponsor credit card ($20) ──────────────────────────────────────────────────
+// ── Participant credit card ────────────────────────────────────────────────────
 
 function SponsorCreditCard({ credit, userId }: { credit: CursorCredit; userId: string }) {
   const [copied, setCopied] = useState(false);
@@ -248,9 +248,9 @@ function SponsorCreditCard({ credit, userId }: { credit: CursorCredit; userId: s
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[10px] uppercase tracking-[0.4em] text-gray-500 font-medium">
-            Sponsor Credit
+            Cursor Credit
           </p>
-          <h2 className="text-2xl font-light text-white mt-0.5">$20 Cursor Credit</h2>
+          <h2 className="text-2xl font-light text-white mt-0.5">${credit.amount_usd} Cursor Credit</h2>
         </div>
         <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-sm text-white font-medium">
           ${credit.amount_usd} USD
@@ -349,11 +349,12 @@ interface AttendeeCreditsViewProps {
   userId: string;
   eventSlug: string;
   eventId: string;
+  creditAmount: number;
 }
 
-export function AttendeeCreditsView({ credits, userId, eventSlug, eventId }: AttendeeCreditsViewProps) {
-  const easterCredits = credits.filter(isEasterCredit);
-  const sponsorCredits = credits.filter((c) => !isEasterCredit(c));
+export function AttendeeCreditsView({ credits, userId, eventSlug, eventId, creditAmount }: AttendeeCreditsViewProps) {
+  const easterCredits = credits.filter((c) => isEasterCredit(c, eventSlug));
+  const sponsorCredits = credits.filter((c) => !isEasterCredit(c, eventSlug));
   const sponsorCredit = sponsorCredits[0] ?? null;
   const isEasterEvent = eventSlug === EASTER_EVENT_SLUG;
 
@@ -376,7 +377,7 @@ export function AttendeeCreditsView({ credits, userId, eventSlug, eventId }: Att
             <Lock className="w-6 h-6 text-gray-600" />
           </div>
           <div>
-            <p className="text-white font-light text-lg">$20 Cursor Credit</p>
+            <p className="text-white font-light text-lg">${creditAmount} Cursor Credit</p>
             <p className="text-sm text-gray-500 mt-1 max-w-xs">
               Your credit will appear here once you&apos;re checked in at the event.
             </p>

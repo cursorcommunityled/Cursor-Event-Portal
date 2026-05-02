@@ -164,7 +164,7 @@ export async function getActiveEventAdminCode(): Promise<string | null> {
 }
 
 /** All events (for admin venue/event selector), including active theme title and admin_code. */
-export type EventSummary = Pick<Event, "id" | "slug" | "name" | "venue" | "start_time" | "status"> & {
+export type EventSummary = Pick<Event, "id" | "slug" | "name" | "venue" | "start_time" | "status" | "is_hackathon"> & {
   themeTitle?: string | null;
   admin_code?: string | null;
 };
@@ -173,7 +173,7 @@ export async function getAllEvents(): Promise<EventSummary[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("events")
-    .select("id, slug, name, venue, start_time, status, admin_code")
+    .select("id, slug, name, venue, start_time, status, admin_code, is_hackathon")
     .neq("status", "archived")
     .order("start_time", { ascending: false });
   if (error) return [];
@@ -185,6 +185,7 @@ export async function getAllEvents(): Promise<EventSummary[]> {
     venue: ev.venue,
     start_time: ev.start_time,
     status: ev.status,
+    is_hackathon: Boolean(ev.is_hackathon),
     admin_code: ev.admin_code,
     themeTitle: null as string | null,
   }));

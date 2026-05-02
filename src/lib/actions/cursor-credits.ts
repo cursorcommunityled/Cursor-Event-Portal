@@ -38,6 +38,13 @@ export async function importCreditCodes(
 ): Promise<{ inserted: number; duplicates: number; error?: string }> {
   const supabase = await createServiceClient();
 
+  const { data: event } = await supabase
+    .from("events")
+    .select("is_hackathon")
+    .eq("id", eventId)
+    .maybeSingle();
+  const creditAmount = event?.is_hackathon ? 50 : 20;
+
   // Normalise: strip the referral URL prefix if present, keep only alphanumeric
   const PREFIX = "https://cursor.com/referral?code=";
   const codes = rawCodes
@@ -49,7 +56,7 @@ export async function importCreditCodes(
 
   if (codes.length === 0) return { inserted: 0, duplicates: 0, error: "No valid codes found" };
 
-  const rows = codes.map((code) => ({ event_id: eventId, credit_code: code }));
+  const rows = codes.map((code) => ({ event_id: eventId, credit_code: code, amount_usd: creditAmount }));
 
   const { data, error } = await supabase
     .from("cursor_credits")
@@ -89,7 +96,14 @@ export async function autoAssignCredits(
 ): Promise<{ assigned: number; noCodesLeft: boolean; error?: string }> {
   const supabase = await createServiceClient();
 
-  // Get checked-in registrations (max 1 sponsor/$20 credit per user per event)
+  const { data: event } = await supabase
+    .from("events")
+    .select("is_hackathon")
+    .eq("id", eventId)
+    .maybeSingle();
+  const creditAmount = event?.is_hackathon ? 50 : 20;
+
+  // Get checked-in registrations (max 1 participant credit per user per event)
   const { data: regs, error: regsError } = await supabase
     .from("registrations")
     .select("id, user_id")
@@ -100,12 +114,12 @@ export async function autoAssignCredits(
 
   if (!regs || regs.length === 0) return { assigned: 0, noCodesLeft: false };
 
-  // Users who already have a $20 sponsor credit for this event (limit: 1 per user)
+  // Users who already have the participant credit for this event (limit: 1 per user)
   const { data: existing } = await supabase
     .from("cursor_credits")
     .select("assigned_to")
     .eq("event_id", eventId)
-    .neq("amount_usd", 50)
+    .eq("amount_usd", creditAmount)
     .not("assigned_to", "is", null);
 
   const assignedUserIds = new Set((existing ?? []).map((c: any) => c.assigned_to));
@@ -113,12 +127,12 @@ export async function autoAssignCredits(
 
   if (unassignedRegs.length === 0) return { assigned: 0, noCodesLeft: false };
 
-  // Get available (unassigned) sponsor codes only (exclude $50 egg credits)
+  // Get available participant codes only. For regular meetups this excludes $50 egg rewards.
   const { data: available, error: availErr } = await supabase
     .from("cursor_credits")
     .select("id")
     .eq("event_id", eventId)
-    .neq("amount_usd", 50)
+    .eq("amount_usd", creditAmount)
     .is("assigned_to", null)
     .order("created_at", { ascending: true })
     .limit(unassignedRegs.length);

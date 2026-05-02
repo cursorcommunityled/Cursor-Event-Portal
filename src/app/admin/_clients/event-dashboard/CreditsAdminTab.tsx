@@ -18,6 +18,7 @@ interface CreditsAdminTabProps {
   eventId: string;
   adminCode: string;
   initialCredits: CursorCredit[];
+  creditAmount: number;
 }
 
 function statusLabel(c: CursorCredit) {
@@ -36,6 +37,7 @@ export function CreditsAdminTab({
   eventId,
   adminCode,
   initialCredits,
+  creditAmount,
 }: CreditsAdminTabProps) {
   const [credits, setCredits] = useState<CursorCredit[]>(initialCredits);
   const [importOpen, setImportOpen] = useState(false);
@@ -93,7 +95,7 @@ export function CreditsAdminTab({
       if (result.error) {
         setImportMsg(`Error: ${result.error}`);
       } else {
-        setImportMsg(`Inserted ${result.inserted} code${result.inserted !== 1 ? "s" : ""}${result.duplicates ? `, ${result.duplicates} duplicate${result.duplicates !== 1 ? "s" : ""} skipped` : ""}.`);
+        setImportMsg(`Inserted ${result.inserted} $${creditAmount} code${result.inserted !== 1 ? "s" : ""}${result.duplicates ? `, ${result.duplicates} duplicate${result.duplicates !== 1 ? "s" : ""} skipped` : ""}.`);
         setRawInput("");
         const fresh = await fetchCursorCredits(eventId);
         setCredits(fresh);
@@ -277,7 +279,7 @@ export function CreditsAdminTab({
           Auto-Assign
         </p>
         <p className="text-sm text-gray-400">
-          Assigns one code to every checked-in attendee that doesn&apos;t yet have a credit.
+          Assigns one {`$${creditAmount}`} code to every checked-in attendee that doesn&apos;t yet have a participant credit.
         </p>
         <button
           onClick={handleAutoAssign}
@@ -309,7 +311,7 @@ export function CreditsAdminTab({
         {importOpen && (
           <div className="space-y-3 pt-1">
             <p className="text-xs text-gray-500">
-              One code per line. Accepts plain codes or full{" "}
+              One code per line. Imported codes are stored as {`$${creditAmount}`} credits for this event. Accepts plain codes or full{" "}
               <code className="text-gray-400">https://cursor.com/referral?code=</code> URLs.
             </p>
             <textarea
