@@ -28,6 +28,7 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
   const hasMarkedQrAsSeen = useRef(false);
   const hasMarkedSmartAsSeen = useRef(false);
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSmartActiveRef = useRef(event.smart_seating_active);
 
   // Auto-dismiss entire banner after 30 seconds; reset when assignment changes
   useEffect(() => {
@@ -44,11 +45,19 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
   }, [loading, qrAssignment?.id, smartAssignment?.groupId]);
 
   useEffect(() => {
+    isSmartActiveRef.current = isSmartActive;
+  }, [isSmartActive]);
+
+  useEffect(() => {
+    let mounted = true;
+    let pendingRefresh: ReturnType<typeof setTimeout> | null = null;
+
     async function fetchAssignment() {
       try {
         const response = await fetch(`/api/table-assignment?eventId=${event.id}`);
         if (!response.ok) return;
         const data = await response.json();
+        if (!mounted) return;
 
         const newQrAssignment = data.qrAssignment || null;
         const newSmartAssignment = data.smartAssignment || null;
@@ -78,7 +87,7 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
           }
         }
 
-        if (newSmartAssignment && isSmartActive) {
+        if (newSmartAssignment && isSmartActiveRef.current) {
           try {
             const hasSeen = await hasUserSeenItem(userId, "table_assignment", newSmartAssignment.groupId);
             
@@ -101,8 +110,17 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
         }
       } catch (err) {
         console.error("[SeatAssignmentBanner] Table assignment fetch error:", err);
+      } finally {
+        if (mounted) setLoading(false);
       }
-      setLoading(false);
+    }
+
+    function scheduleFetchAssignment() {
+      if (pendingRefresh) return;
+      pendingRefresh = setTimeout(() => {
+        pendingRefresh = null;
+        void fetchAssignment();
+      }, 500);
     }
 
     fetchAssignment();
@@ -121,7 +139,10 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
         },
         (payload) => {
           const newEvent = payload.new as Event;
-          setIsSmartActive(newEvent.smart_seating_active);
+          const nextSmartActive = newEvent.smart_seating_active;
+          isSmartActiveRef.current = nextSmartActive;
+          setIsSmartActive(nextSmartActive);
+          scheduleFetchAssignment();
         }
       )
       .subscribe();
@@ -138,7 +159,23 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
           filter: `event_id=eq.${event.id}`,
         },
         () => {
-          fetchAssignment();
+          scheduleFetchAssignment();
+        }
+      )
+      .subscribe();
+
+    const membershipChannel = supabase
+      .channel(`group-membership-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "suggested_group_members",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          scheduleFetchAssignment();
         }
       )
       .subscribe();
@@ -152,23 +189,26 @@ export function SeatAssignmentBanner({ event, userId }: SeatAssignmentBannerProp
           event: "*",
           schema: "public",
           table: "table_registrations",
-          filter: `event_id=eq.${event.id}`,
+          filter: `user_id=eq.${userId}`,
         },
         () => {
-          fetchAssignment();
+          scheduleFetchAssignment();
         }
       )
       .subscribe();
 
-    const interval = setInterval(fetchAssignment, 10000);
+    const fallbackInterval = setInterval(fetchAssignment, 60_000);
 
     return () => {
+      mounted = false;
+      if (pendingRefresh) clearTimeout(pendingRefresh);
       supabase.removeChannel(eventChannel);
       supabase.removeChannel(groupChannel);
+      supabase.removeChannel(membershipChannel);
       supabase.removeChannel(qrChannel);
-      clearInterval(interval);
+      clearInterval(fallbackInterval);
     };
-  }, [event.id, userId, isSmartActive]);
+  }, [event.id, userId]);
 
   const shouldShowQr = !!qrAssignment;
   const shouldShowSmart =

@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
 
+const ASSIGNMENT_CACHE_HEADERS = {
+  "Cache-Control": "private, max-age=5, stale-while-revalidate=15",
+};
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -17,6 +21,23 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createServiceClient();
+
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("seating_enabled")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (eventError || !event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    if (!event.seating_enabled) {
+      return NextResponse.json(
+        { qrAssignment: null, smartAssignment: null },
+        { headers: ASSIGNMENT_CACHE_HEADERS }
+      );
+    }
 
     // QR-based table registration (default seat)
     const { data: qrRegistration, error: qrError } = await supabase
@@ -54,7 +75,10 @@ export async function GET(request: NextRequest) {
       .eq("user_id", session.userId);
 
     if (error || !memberships || memberships.length === 0) {
-      return NextResponse.json({ qrAssignment, smartAssignment: null });
+      return NextResponse.json(
+        { qrAssignment, smartAssignment: null },
+        { headers: ASSIGNMENT_CACHE_HEADERS }
+      );
     }
 
     // Find the group that matches the event and is approved with a table number
@@ -80,19 +104,25 @@ export async function GET(request: NextRequest) {
     }
 
     if (!matchingGroup) {
-      return NextResponse.json({ qrAssignment, smartAssignment: null });
+      return NextResponse.json(
+        { qrAssignment, smartAssignment: null },
+        { headers: ASSIGNMENT_CACHE_HEADERS }
+      );
     }
 
     const group = matchingGroup;
 
-    return NextResponse.json({
-      qrAssignment,
-      smartAssignment: {
-        tableNumber: group.table_number,
-        groupName: group.name,
-        groupId: group.id,
+    return NextResponse.json(
+      {
+        qrAssignment,
+        smartAssignment: {
+          tableNumber: group.table_number,
+          groupName: group.name,
+          groupId: group.id,
+        },
       },
-    });
+      { headers: ASSIGNMENT_CACHE_HEADERS }
+    );
   } catch (error) {
     console.error("Table assignment lookup error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

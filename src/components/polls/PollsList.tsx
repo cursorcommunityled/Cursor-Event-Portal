@@ -21,10 +21,21 @@ export function PollsList({
 }: PollsListProps) {
   const router = useRouter();
   const [polls, setPolls] = useState<PollWithVotes[]>(initialPolls);
+  const pollIdsKey = polls.map((poll) => poll.id).sort().join(",");
 
   // Subscribe to real-time poll updates
   useEffect(() => {
     const supabase = createClient();
+    const activePollIds = new Set(pollIdsKey.split(",").filter(Boolean));
+    let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    function scheduleRefresh() {
+      if (refreshTimeout) return;
+      refreshTimeout = setTimeout(() => {
+        refreshTimeout = null;
+        router.refresh();
+      }, 750);
+    }
 
     const channel = supabase
       .channel(`polls-${eventId}`)
@@ -38,7 +49,7 @@ export function PollsList({
         },
         async () => {
           // Refresh page to get new poll with vote counts
-          router.refresh();
+          scheduleRefresh();
         }
       )
       .on(
@@ -57,7 +68,7 @@ export function PollsList({
             setPolls((prev) => prev.filter((p) => p.id !== updatedPoll.id));
           } else {
             // Refresh to get updated poll data
-            router.refresh();
+            scheduleRefresh();
           }
         }
       )
@@ -85,18 +96,22 @@ export function PollsList({
           schema: "public",
           table: "poll_votes",
         },
-        () => {
+        (payload) => {
+          const changedVote = (payload.new ?? payload.old) as { poll_id?: string } | null;
+          if (!changedVote?.poll_id || !activePollIds.has(changedVote.poll_id)) return;
+
           // Refresh to get updated vote counts
-          router.refresh();
+          scheduleRefresh();
         }
       )
       .subscribe();
 
     return () => {
+      if (refreshTimeout) clearTimeout(refreshTimeout);
       supabase.removeChannel(channel);
       supabase.removeChannel(votesChannel);
     };
-  }, [eventId, router]);
+  }, [eventId, pollIdsKey, router]);
 
   // Update polls when initialPolls changes (from server refresh)
   useEffect(() => {

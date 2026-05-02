@@ -5,9 +5,15 @@ import type { DemoSignupSettings } from "@/types";
 
 export const dynamic = "force-dynamic";
 
+const DEMO_STATUS_CACHE_HEADERS = {
+  "Cache-Control": "public, max-age=10, stale-while-revalidate=20",
+};
+
 export async function GET(request: NextRequest) {
   const eventId = request.nextUrl.searchParams.get("eventId");
-  if (!eventId) return NextResponse.json({ enabled: false });
+  if (!eventId) {
+    return NextResponse.json({ enabled: false }, { headers: DEMO_STATUS_CACHE_HEADERS });
+  }
 
   try {
     const supabase = await createServiceClient();
@@ -18,7 +24,9 @@ export async function GET(request: NextRequest) {
       .eq("event_id", eventId)
       .maybeSingle();
 
-    if (!settings || !settings.is_enabled) return NextResponse.json({ enabled: false });
+    if (!settings || !settings.is_enabled) {
+      return NextResponse.json({ enabled: false }, { headers: DEMO_STATUS_CACHE_HEADERS });
+    }
 
     const availability = getDemoAvailability(settings as DemoSignupSettings);
     const now = new Date().toISOString();
@@ -61,14 +69,17 @@ export async function GET(request: NextRequest) {
       };
     };
 
-    return NextResponse.json({
-      enabled: true,
-      availability,
-      speakerName: settings.speaker_name ?? null,
-      currentSlot: currentRaw ? processSlot(currentRaw) : null,
-      upcomingSlots: (upcomingRaw || []).map(processSlot),
-    });
+    return NextResponse.json(
+      {
+        enabled: true,
+        availability,
+        speakerName: settings.speaker_name ?? null,
+        currentSlot: currentRaw ? processSlot(currentRaw) : null,
+        upcomingSlots: (upcomingRaw || []).map(processSlot),
+      },
+      { headers: DEMO_STATUS_CACHE_HEADERS }
+    );
   } catch {
-    return NextResponse.json({ enabled: false });
+    return NextResponse.json({ enabled: false }, { headers: DEMO_STATUS_CACHE_HEADERS });
   }
 }

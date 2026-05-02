@@ -703,14 +703,14 @@ export async function autoAssignLateArrival(
 ): Promise<{ groupId: string; groupName: string; tableNumber: number | null } | null> {
   const supabase = await createServiceClient();
 
-  // Check if seat lockout is active and approved groups exist
+  // Check if seating is enabled and seat lockout is active
   const { data: event } = await supabase
     .from("events")
-    .select("seat_lockout_active")
+    .select("seating_enabled, seat_lockout_active")
     .eq("id", eventId)
     .single();
 
-  if (!event?.seat_lockout_active) return null;
+  if (!event?.seating_enabled || !event.seat_lockout_active) return null;
 
   // Check if user is already assigned
   const { data: existingMembership } = await supabase
