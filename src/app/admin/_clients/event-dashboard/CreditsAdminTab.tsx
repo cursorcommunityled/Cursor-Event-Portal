@@ -16,10 +16,13 @@ import type { CursorCredit } from "@/types";
 
 interface CreditsAdminTabProps {
   eventId: string;
+  eventSlug: string;
   adminCode: string;
   initialCredits: CursorCredit[];
   creditAmount: number;
 }
+
+const EASTER_EVENT_SLUG = "calgary-march-2026";
 
 function statusLabel(c: CursorCredit) {
   if (c.redeemed_at) return "Redeemed";
@@ -35,6 +38,7 @@ function statusColor(c: CursorCredit) {
 
 export function CreditsAdminTab({
   eventId,
+  eventSlug,
   adminCode,
   initialCredits,
   creditAmount,
@@ -51,17 +55,29 @@ export function CreditsAdminTab({
   const [eggEditing, setEggEditing] = useState<string | null>(null);
   const [eggSaving, setEggSaving] = useState<string | null>(null);
   const [eggSaveMsg, setEggSaveMsg] = useState<Record<string, string>>({});
+  const isEasterEvent = eventSlug === EASTER_EVENT_SLUG;
 
   useEffect(() => {
+    if (!isEasterEvent) {
+      setEggs([]);
+      setEggInputs({});
+      setEggEditing(null);
+      setEggSaving(null);
+      setEggSaveMsg({});
+      return;
+    }
+
     fetchEasterEggs(eventId, adminCode).then((rows) => {
       setEggs(rows);
       const inputs: Record<string, string> = {};
       rows.forEach((r) => { inputs[r.egg_id] = r.credit_code || ""; });
       setEggInputs(inputs);
     });
-  }, [eventId, adminCode]);
+  }, [eventId, adminCode, isEasterEvent]);
 
   const handleSaveEggCode = async (eggId: string) => {
+    if (!isEasterEvent) return;
+
     const code = eggInputs[eggId]?.trim();
     if (!code) return;
     setEggSaving(eggId);
@@ -173,105 +189,105 @@ export function CreditsAdminTab({
         ))}
       </div>
 
-      {/* Cursor Egg Hunt */}
-      <div className="glass rounded-3xl p-6 border border-white/[0.06] space-y-5">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🥚</span>
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">
-            Cursor Egg Hunt
-          </p>
-        </div>
-
-        {/* Reward codes per egg */}
-        {eggs.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-xs text-gray-500">
-              Pre-load $50 reward codes. When someone claims an egg they get the code instantly.
+      {isEasterEvent && (
+        <div className="glass rounded-3xl p-6 border border-white/[0.06] space-y-5">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🥚</span>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">
+              Cursor Egg Hunt
             </p>
-            <div className="space-y-2">
-              {eggs.map((egg) => {
-                const isEditing = eggEditing === egg.egg_id;
-                const isSaving = eggSaving === egg.egg_id;
-                const msg = eggSaveMsg[egg.egg_id];
-                return (
-                  <div key={egg.egg_id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium w-10">
-                          {egg.egg_id.replace("_", " ")}
-                        </span>
-                        <span className="text-xs text-gray-500">{egg.label}</span>
+          </div>
+
+          {/* Reward codes per egg */}
+          {eggs.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500">
+                Pre-load $50 reward codes. When someone claims an egg they get the code instantly.
+              </p>
+              <div className="space-y-2">
+                {eggs.map((egg) => {
+                  const isEditing = eggEditing === egg.egg_id;
+                  const isSaving = eggSaving === egg.egg_id;
+                  const msg = eggSaveMsg[egg.egg_id];
+                  return (
+                    <div key={egg.egg_id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium w-10">
+                            {egg.egg_id.replace("_", " ")}
+                          </span>
+                          <span className="text-xs text-gray-500">{egg.label}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {egg.claimed_by ? (
+                            <span className="text-[10px] uppercase tracking-widest font-medium px-2.5 py-1 rounded-full text-blue-400 bg-blue-400/10">
+                              Claimed
+                            </span>
+                          ) : (
+                            <span className="text-[10px] uppercase tracking-widest font-medium px-2.5 py-1 rounded-full text-gray-500 bg-white/5">
+                              Unclaimed
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {egg.claimed_by ? (
-                          <span className="text-[10px] uppercase tracking-widest font-medium px-2.5 py-1 rounded-full text-blue-400 bg-blue-400/10">
-                            Claimed
-                          </span>
+                        {isEditing || !egg.credit_code ? (
+                          <>
+                            <input
+                              type="text"
+                              value={eggInputs[egg.egg_id] || ""}
+                              onChange={(e) => setEggInputs((prev) => ({ ...prev, [egg.egg_id]: e.target.value }))}
+                              placeholder="Paste referral code or URL…"
+                              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 font-mono"
+                            />
+                            <button
+                              onClick={() => handleSaveEggCode(egg.egg_id)}
+                              disabled={isSaving || !eggInputs[egg.egg_id]?.trim()}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-40"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              {isSaving ? "Saving…" : "Save"}
+                            </button>
+                            {isEditing && (
+                              <button
+                                onClick={() => {
+                                  setEggEditing(null);
+                                  setEggInputs((prev) => ({ ...prev, [egg.egg_id]: egg.credit_code || "" }));
+                                }}
+                                className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </>
                         ) : (
-                          <span className="text-[10px] uppercase tracking-widest font-medium px-2.5 py-1 rounded-full text-gray-500 bg-white/5">
-                            Unclaimed
-                          </span>
+                          <>
+                            <code className="flex-1 font-mono text-sm text-white/70 truncate">
+                              {egg.credit_code}
+                            </code>
+                            <button
+                              onClick={() => setEggEditing(egg.egg_id)}
+                              className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+                              title="Edit code"
+                            >
+                              <Pencil className="w-3 h-3 text-gray-500" />
+                            </button>
+                          </>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isEditing || !egg.credit_code ? (
-                        <>
-                          <input
-                            type="text"
-                            value={eggInputs[egg.egg_id] || ""}
-                            onChange={(e) => setEggInputs((prev) => ({ ...prev, [egg.egg_id]: e.target.value }))}
-                            placeholder="Paste referral code or URL…"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 font-mono"
-                          />
-                          <button
-                            onClick={() => handleSaveEggCode(egg.egg_id)}
-                            disabled={isSaving || !eggInputs[egg.egg_id]?.trim()}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-40"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            {isSaving ? "Saving…" : "Save"}
-                          </button>
-                          {isEditing && (
-                            <button
-                              onClick={() => {
-                                setEggEditing(null);
-                                setEggInputs((prev) => ({ ...prev, [egg.egg_id]: egg.credit_code || "" }));
-                              }}
-                              className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <code className="flex-1 font-mono text-sm text-white/70 truncate">
-                            {egg.credit_code}
-                          </code>
-                          <button
-                            onClick={() => setEggEditing(egg.egg_id)}
-                            className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
-                            title="Edit code"
-                          >
-                            <Pencil className="w-3 h-3 text-gray-500" />
-                          </button>
-                        </>
+                      {msg && (
+                        <p className={cn("text-xs", msg.startsWith("Error") ? "text-red-400" : "text-green-400")}>
+                          {msg}
+                        </p>
                       )}
                     </div>
-                    {msg && (
-                      <p className={cn("text-xs", msg.startsWith("Error") ? "text-red-400" : "text-green-400")}>
-                        {msg}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
-
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Auto-assign */}
       <div className="glass rounded-3xl p-6 border border-white/10 space-y-3">

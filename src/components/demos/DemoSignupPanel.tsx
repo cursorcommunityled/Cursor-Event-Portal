@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, UserCheck } from "lucide-react";
+import { Clock, MapPin, UserCheck } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { bookDemoSlot, cancelMyDemoSlot } from "@/lib/actions/demo";
 import type { DemoAvailability, DemoSlotWithCounts } from "@/lib/demo/service";
@@ -33,7 +33,7 @@ export function DemoSignupPanel({
     startTransition(async () => {
       const result = await bookDemoSlot(eventSlug, slotId);
       if (!result.success) {
-        setError(result.error || "Failed to book demo slot.");
+        setError(result.error || "Failed to book session.");
         return;
       }
       router.refresh();
@@ -45,7 +45,7 @@ export function DemoSignupPanel({
     startTransition(async () => {
       const result = await cancelMyDemoSlot(eventSlug);
       if (!result.success) {
-        setError(result.error || "Failed to cancel demo slot.");
+        setError(result.error || "Failed to cancel session.");
         return;
       }
       router.refresh();
@@ -61,11 +61,11 @@ export function DemoSignupPanel({
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-              Demo Signup Window
+              Session Booking
             </p>
             <p className="text-sm text-gray-300 mt-1">{availability.message}</p>
             {speakerName && (
-              <p className="text-xs text-gray-500 mt-2">Speaker: {speakerName}</p>
+              <p className="text-xs text-gray-500 mt-2">Default host: {speakerName}</p>
             )}
           </div>
           {mySlot && (
@@ -83,6 +83,8 @@ export function DemoSignupPanel({
             <UserCheck className="w-4 h-4 text-green-400" />
             <p className="text-sm text-white">
               You booked{" "}
+              <span className="font-medium">{mySlot.title || "a session"}</span>{" "}
+              with {mySlot.host_name || speakerName || "the host"} at{" "}
               {formatTime(mySlot.starts_at, timezone)} - {formatTime(mySlot.ends_at, timezone)}
             </p>
           </div>
@@ -96,6 +98,11 @@ export function DemoSignupPanel({
       )}
 
       <div className="space-y-3">
+        {slots.length === 0 && (
+          <div className="glass rounded-[24px] p-6 border-white/10 text-sm text-gray-500 text-center">
+            No sessions are available yet. Check back during the event.
+          </div>
+        )}
         {slots.map((slot) => {
           const isMine = mySlotId === slot.id;
           const isBlockedByExisting = !!mySlotId && !isMine;
@@ -103,13 +110,26 @@ export function DemoSignupPanel({
           return (
             <div key={slot.id} className="glass rounded-[24px] p-5 border-white/10 flex items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 text-white">
-                  <Clock className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm font-medium">
+                <p className="text-sm font-medium text-white">{slot.title || "Mentor Session"}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {slot.host_name || speakerName || "Host TBD"}
+                </p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 mt-2">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-gray-600" />
                     {formatTime(slot.starts_at, timezone)} - {formatTime(slot.ends_at, timezone)}
                   </span>
+                  {slot.location && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-gray-600" />
+                      {slot.location}
+                    </span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                {slot.description && (
+                  <p className="text-xs text-gray-500 mt-2 max-w-md">{slot.description}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-2">
                   {slot.signup_count}/{slot.capacity} booked
                   {slot.is_full ? " (full)" : ` (${slot.spots_left} left)`}
                 </p>

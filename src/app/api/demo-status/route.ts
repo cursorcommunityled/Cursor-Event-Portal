@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Slot that is happening right now
     const { data: currentRaw } = await supabase
       .from("demo_slots")
-      .select("id, starts_at, ends_at, capacity, signups:demo_slot_signups(user:users(id, name))")
+      .select("id, starts_at, ends_at, capacity, title, host_name, location, signups:demo_slot_signups(user:users(id, name))")
       .eq("event_id", eventId)
       .lte("starts_at", now)
       .gt("ends_at", now)
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     // Next 4 upcoming slots
     const { data: upcomingRaw } = await supabase
       .from("demo_slots")
-      .select("id, starts_at, ends_at, capacity, signups:demo_slot_signups(user:users(id, name))")
+      .select("id, starts_at, ends_at, capacity, title, host_name, location, signups:demo_slot_signups(user:users(id, name))")
       .eq("event_id", eventId)
       .gt("starts_at", now)
       .order("starts_at", { ascending: true })
@@ -62,6 +62,9 @@ export async function GET(request: NextRequest) {
         starts_at: slot.starts_at as string,
         ends_at: slot.ends_at as string,
         capacity: cap,
+        title: slot.title ?? "Mentor Session",
+        host_name: slot.host_name ?? null,
+        location: slot.location ?? null,
         signup_count: count,
         spots_left: Math.max(0, cap - count),
         is_full: count >= cap,

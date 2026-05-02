@@ -21,7 +21,7 @@ interface EventNavProps {
 const navItems = [
   { href: "hackathon", label: "Hackathon", icon: Swords, hackathonOnly: true },
   { href: "agenda", label: "Event", icon: Calendar },
-  { href: "demos", label: "Demos", icon: MonitorPlay },
+  { href: "sessions", label: "Sessions", icon: MonitorPlay },
   { href: "socials", label: "Socials", icon: MessageCircle },
   { href: "slides", label: "Slides", icon: FileText },
   { href: "polls", label: "Polls", icon: BarChart3, hasAlert: true },
@@ -43,7 +43,7 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
   const [seenPollIds, setSeenPollIds] = useState<Set<string>>(new Set());
   const [publishedSurvey, setPublishedSurvey] = useState<Survey | null>(null);
   const [helpWaitingCount, setHelpWaitingCount] = useState(0);
-  const [demosEnabled, setDemosEnabled] = useState<boolean | null>(null);
+  const [sessionsEnabled, setSessionsEnabled] = useState<boolean | null>(null);
 
   // Load seen poll IDs from Supabase
   const loadSeenPollIds = useCallback(async () => {
@@ -290,30 +290,30 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
     };
   }, [event]);
 
-  // Check demo_signup_settings.is_enabled and subscribe to changes
+  // Check session booking settings and subscribe to changes
   useEffect(() => {
     if (!event) return;
 
     const supabase = createClient();
 
-    const checkDemosEnabled = async () => {
+    const checkSessionsEnabled = async () => {
       const { data } = await supabase
         .from("demo_signup_settings")
         .select("is_enabled")
         .eq("event_id", event.id)
         .maybeSingle();
       // No settings row = feature not configured = hide
-      setDemosEnabled(data?.is_enabled ?? false);
+      setSessionsEnabled(data?.is_enabled ?? false);
     };
 
-    checkDemosEnabled();
+    checkSessionsEnabled();
 
     const channel = supabase
       .channel(`demo-settings-nav-${event.id}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "demo_signup_settings", filter: `event_id=eq.${event.id}` },
-        () => { checkDemosEnabled(); }
+        () => { checkSessionsEnabled(); }
       )
       .subscribe();
 
@@ -327,8 +327,8 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
 
   const renderNavItems = () => (
     navItems.map((item) => {
-      // Hide Demos entirely when disabled (null = loading, treat as hidden)
-      if (item.href === "demos" && !demosEnabled) return null;
+      // Hide Sessions entirely when disabled (null = loading, treat as hidden)
+      if (item.href === "sessions" && !sessionsEnabled) return null;
       // Hide Hackathon when not in hackathon mode
       if ((item as { hackathonOnly?: boolean }).hackathonOnly && !event?.is_hackathon) return null;
 

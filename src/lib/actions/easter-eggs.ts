@@ -7,6 +7,19 @@ import { getEventBySlug } from "@/lib/supabase/queries";
 
 const EASTER_EVENT_SLUG = "calgary-march-2026";
 
+async function isEasterEventId(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  eventId: string
+) {
+  const { data } = await supabase
+    .from("events")
+    .select("slug")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  return data?.slug === EASTER_EVENT_SLUG;
+}
+
 export interface EggRow {
   egg_id: string;
   label: string;
@@ -23,6 +36,8 @@ export async function fetchEasterEggs(
   if (authError) return [];
 
   const supabase = await createServiceClient();
+  if (!(await isEasterEventId(supabase, eventId))) return [];
+
   const { data } = await supabase
     .from("easter_egg_hunts")
     .select("egg_id, label, credit_code, claimed_by, claimed_at")
@@ -41,6 +56,10 @@ export async function saveEggRewardCode(
   if (authError) return { success: false, error: authError.error };
 
   const supabase = await createServiceClient();
+  if (!(await isEasterEventId(supabase, eventId))) {
+    return { success: false, error: "Cursor eggs are only available for the March event." };
+  }
+
   const trimmed = creditCode.trim()
     .replace(/^https:\/\/cursor\.com\/referral\?code=/, "")
     .replace(/[^a-zA-Z0-9]/g, "");
@@ -156,6 +175,9 @@ export async function resetEasterEggs(
   if (authError) return { success: false, error: authError.error };
 
   const supabase = await createServiceClient();
+  if (!(await isEasterEventId(supabase, eventId))) {
+    return { success: false, error: "Cursor eggs are only available for the March event." };
+  }
 
   // Unclaim all eggs but preserve the pre-loaded credit codes
   const { error: eggErr } = await supabase

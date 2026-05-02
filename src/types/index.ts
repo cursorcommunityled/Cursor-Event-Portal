@@ -96,6 +96,11 @@ export interface DemoSlot {
   starts_at: string;
   ends_at: string;
   capacity: number;
+  title: string | null;
+  host_name: string | null;
+  description: string | null;
+  location: string | null;
+  session_type: string;
   created_at: string;
 }
 

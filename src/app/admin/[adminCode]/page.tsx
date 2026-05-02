@@ -150,7 +150,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                       {[
                         { id: "agenda", label: "Agenda" },
                         { id: "venue", label: "Venue" },
-                        { id: "demos", label: "Demos" },
+                        { id: "sessions", label: "Sessions" },
                         { id: "slides", label: "Slides" },
                         { id: "competitions", label: "Competitions" },
                         { id: "themes", label: "Themes" },

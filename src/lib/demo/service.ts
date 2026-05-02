@@ -111,7 +111,7 @@ export async function syncDemoSlotsForWindow(
     throw new Error("Invalid demo signup window");
   }
 
-  const slots: Array<{ event_id: string; starts_at: string; ends_at: string; capacity: number }> = [];
+  const slots: Array<{ event_id: string; starts_at: string; ends_at: string; capacity: number; title: string; session_type: string }> = [];
   const cursor = new Date(open);
   while (cursor < close) {
     const end = new Date(cursor.getTime() + 5 * 60 * 1000);
@@ -120,17 +120,30 @@ export async function syncDemoSlotsForWindow(
       starts_at: cursor.toISOString(),
       ends_at: end.toISOString(),
       capacity: 2,
+      title: "Mentor Session",
+      session_type: "mentor",
     });
     cursor.setMinutes(cursor.getMinutes() + 5);
   }
 
   if (slots.length > 0) {
-    const { error: upsertError } = await supabase
+    const { data: existingRows } = await supabase
       .from("demo_slots")
-      .upsert(slots, { onConflict: "event_id,starts_at" });
+      .select("starts_at")
+      .eq("event_id", eventId)
+      .gte("starts_at", opensAt)
+      .lt("starts_at", closesAt);
 
-    if (upsertError) {
-      throw new Error(upsertError.message || "Failed to sync demo slots");
+    const existingStarts = new Set((existingRows ?? []).map((row: { starts_at: string }) => row.starts_at));
+    const missingSlots = slots.filter((slot) => !existingStarts.has(slot.starts_at));
+    if (missingSlots.length) {
+      const { error: insertError } = await supabase
+        .from("demo_slots")
+        .insert(missingSlots);
+
+      if (insertError) {
+        throw new Error(insertError.message || "Failed to sync session slots");
+      }
     }
   }
 
@@ -154,7 +167,7 @@ export function getDemoAvailability(
     return {
       state: "disabled",
       is_open: false,
-      message: "Demo signup is currently disabled.",
+      message: "Session booking is currently disabled.",
     };
   }
 
@@ -166,7 +179,7 @@ export function getDemoAvailability(
     return {
       state: "disabled",
       is_open: false,
-      message: "Demo signup window is misconfigured.",
+      message: "Session booking window is misconfigured.",
     };
   }
 
@@ -175,7 +188,7 @@ export function getDemoAvailability(
     return {
       state: "upcoming",
       is_open: false,
-      message: `Demo signup has not opened yet. It opens at ${opensLocal}.`,
+      message: `Session booking has not opened yet. It opens at ${opensLocal}.`,
     };
   }
 
@@ -183,14 +196,14 @@ export function getDemoAvailability(
     return {
       state: "closed",
       is_open: false,
-      message: "Demo signup has closed for today.",
+      message: "Session booking has closed for today.",
     };
   }
 
   return {
     state: "open",
     is_open: true,
-    message: "Demo signup is open.",
+    message: "Session booking is open.",
   };
 }
 
@@ -198,7 +211,7 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
   const supabase = await createServiceClient();
   const { data, error } = await supabase
     .from("demo_slots")
-    .select("id, event_id, starts_at, ends_at, capacity, created_at, signups:demo_slot_signups(id, user:users(id, name, email))")
+    .select("id, event_id, starts_at, ends_at, capacity, title, host_name, description, location, session_type, created_at, signups:demo_slot_signups(id, user:users(id, name, email))")
     .eq("event_id", eventId)
     .order("starts_at", { ascending: true });
 
@@ -219,6 +232,11 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
       starts_at: slot.starts_at,
       ends_at: slot.ends_at,
       capacity,
+      title: slot.title ?? "Mentor Session",
+      host_name: slot.host_name ?? null,
+      description: slot.description ?? null,
+      location: slot.location ?? null,
+      session_type: slot.session_type ?? "mentor",
       created_at: slot.created_at,
       signup_count: signupCount,
       spots_left: Math.max(0, capacity - signupCount),

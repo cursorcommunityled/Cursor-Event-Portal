@@ -265,9 +265,9 @@ const MEETUP_TEMPLATE: Array<{
     endMinute: 30,
   },
   {
-    title: "Build & Egg Hunt (Credits)",
+    title: "Build & Collaborate",
     description:
-      "Build your best idea with Cursor — and hunt for hidden $50 credit Cursor eggs scattered across the venue and this app. First to find wins!",
+      "Build your best idea with Cursor, get help from facilitators, and connect with other builders.",
     startHour: 18,
     startMinute: 30,
     endHour: 20,
