@@ -197,6 +197,7 @@ export function EventDashboardClient({
               eventId={event.id}
               adminCode={adminCode}
               initialCredits={cursorCredits}
+              creditAmount={event.is_hackathon ? 50 : 20}
             />
           )}
         </div>

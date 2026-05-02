@@ -13,6 +13,9 @@ interface AdminEventControlsProps {
 }
 
 function eventLabel(ev: EventSummary) {
+  const labelSource = `${ev.name} ${ev.venue ?? ""} ${ev.slug}`.toLowerCase();
+  if (ev.is_hackathon && labelSource.includes("sait")) return "SAIT";
+
   if (!ev.start_time) return ev.name;
   return new Date(ev.start_time).toLocaleDateString("en-CA", {
     timeZone: "America/Edmonton",
@@ -33,16 +36,17 @@ export function AdminEventControls({ events, currentAdminCode, activeSlug }: Adm
         {/* Admin view switcher */}
         <div className="flex items-center gap-3">
           <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap">Admin View</span>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] overflow-x-auto max-w-full">
             {events.map((ev) => {
               if (!ev.admin_code) return null;
               const isCurrent = ev.admin_code === currentAdminCode;
               return (
                 <button
                   key={ev.id}
+                  title={ev.name}
                   onClick={() => { if (!isCurrent) router.push(`/admin/${ev.admin_code}`); }}
                   className={cn(
-                    "px-4 py-1.5 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200",
+                    "px-4 py-1.5 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200 whitespace-nowrap",
                     isCurrent
                       ? "bg-white text-black shadow-[0_1px_8px_rgba(255,255,255,0.15)]"
                       : "text-gray-500 hover:text-white/70 cursor-pointer"
@@ -58,12 +62,13 @@ export function AdminEventControls({ events, currentAdminCode, activeSlug }: Adm
         {/* Live event switcher */}
         <div className="flex items-center gap-3">
           <span className="text-[9px] uppercase tracking-[0.3em] text-gray-600 font-medium whitespace-nowrap">Live Event</span>
-          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] overflow-x-auto max-w-full">
             {events.map((ev) => {
               const isLive = ev.slug === activeSlug;
               return (
                 <button
                   key={ev.id}
+                  title={ev.name}
                   disabled={isPending || isLive}
                   onClick={() => {
                     if (!isLive) {
@@ -73,7 +78,7 @@ export function AdminEventControls({ events, currentAdminCode, activeSlug }: Adm
                     }
                   }}
                   className={cn(
-                    "px-4 py-1.5 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200 disabled:opacity-60",
+                    "px-4 py-1.5 rounded-full text-[10px] font-medium tracking-wide transition-all duration-200 disabled:opacity-60 whitespace-nowrap",
                     isLive
                       ? "bg-white text-black shadow-[0_1px_8px_rgba(255,255,255,0.15)]"
                       : "text-gray-500 hover:text-white/70 cursor-pointer"

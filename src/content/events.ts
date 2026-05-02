@@ -3,9 +3,9 @@ import { CursorEvent } from '@/lib/landing-types';
 export const events: CursorEvent[] = [
   {
     id: 'calgary-hackathon-sait-may-2026',
-    title: 'Cursor Hackathon — SAIT',
+    title: 'Cursor Calgary Hackathon - SAIT',
     date: '2026-05-23',
-    displayDate: 'May 23–24, 2026',
+    displayDate: 'May 23–24, 2026 · 9:00 AM–2:00 PM',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/e4l2gbj2',
     status: 'upcoming',
