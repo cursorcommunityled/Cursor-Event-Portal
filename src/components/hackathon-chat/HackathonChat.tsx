@@ -389,8 +389,10 @@ export function HackathonChat({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const currentChannel = channels.find((c) => c.id === activeChannelId);
-  const messages = messageMap[activeChannelId] ?? [];
+  // If active channel is missing (e.g. empty initialChannelId), fall back to first channel
+  const resolvedChannelId = activeChannelId || channels[0]?.id || "";
+  const currentChannel = channels.find((c) => c.id === resolvedChannelId);
+  const messages = messageMap[resolvedChannelId] ?? [];
 
   // Build member lookup map
   const memberMap = useMemo(() => {
@@ -423,14 +425,16 @@ export function HackathonChat({
 
   // Check if user can post in this channel
   const canPost = useMemo(() => {
-    if (!currentChannel) return false;
+    // No channel loaded yet — don't block, channels may still be initialising
+    if (!currentChannel) return channels.length === 0 ? false : true;
     if (currentChannel.channel_type === "announcements") return isAdmin;
     if (currentChannel.team_id) {
       const myMember = memberMap.get(userId);
       return isAdmin || myMember?.team?.id === currentChannel.team_id;
     }
+    // general / resources — all signed-in attendees can post
     return true;
-  }, [currentChannel, isAdmin, memberMap, userId]);
+  }, [currentChannel, channels.length, isAdmin, memberMap, userId]);
 
   const scrollToBottom = useCallback((smooth = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
@@ -511,11 +515,11 @@ export function HackathonChat({
 
   // Mark channel as read when switching to it
   useEffect(() => {
-    markChannelRead(activeChannelId).catch(() => {});
-  }, [activeChannelId]);
+    if (resolvedChannelId) markChannelRead(resolvedChannelId).catch(() => {});
+  }, [resolvedChannelId]);
 
   const switchChannel = async (channelId: string) => {
-    if (channelId === activeChannelId) return;
+    if (channelId === resolvedChannelId) return;
     setActiveChannelId(channelId);
     if (!messageMap[channelId]) {
       setLoadingChannel(true);
@@ -530,10 +534,10 @@ export function HackathonChat({
     const oldest = messages[0];
     if (!oldest || loadingMore) return;
     setLoadingMore(true);
-    const older = await loadMoreMessages(activeChannelId, oldest.id);
+    const older = await loadMoreMessages(resolvedChannelId, oldest.id);
     setMessageMap((prev) => ({
       ...prev,
-      [activeChannelId]: [...older, ...(prev[activeChannelId] ?? [])],
+      [resolvedChannelId]: [...older, ...(prev[resolvedChannelId] ?? [])],
     }));
     setHasMore(older.length >= 40);
     setLoadingMore(false);
@@ -554,7 +558,7 @@ export function HackathonChat({
     const optimisticId = `opt-${Date.now()}`;
     const optimistic: HackathonChatMessage = {
       id: optimisticId,
-      channel_id: activeChannelId,
+      channel_id: resolvedChannelId,
       event_id: event.id,
       user_id: userId,
       content: text,
@@ -570,25 +574,23 @@ export function HackathonChat({
 
     setMessageMap((prev) => ({
       ...prev,
-      [activeChannelId]: [...(prev[activeChannelId] ?? []), optimistic],
+      [resolvedChannelId]: [...(prev[resolvedChannelId] ?? []), optimistic],
     }));
     setDraft("");
     requestAnimationFrame(() => scrollToBottom(true));
 
     startTransition(async () => {
-      const res = await sendChatMessage(activeChannelId, event.id, text, mentioned);
+      const res = await sendChatMessage(resolvedChannelId, event.id, text, mentioned);
       if (res.error) {
-        // Roll back optimistic
         setMessageMap((prev) => ({
           ...prev,
-          [activeChannelId]: (prev[activeChannelId] ?? []).filter((m) => m.id !== optimisticId),
+          [resolvedChannelId]: (prev[resolvedChannelId] ?? []).filter((m) => m.id !== optimisticId),
         }));
         setDraft(text);
       } else if (res.message) {
-        // Replace optimistic with real
         setMessageMap((prev) => ({
           ...prev,
-          [activeChannelId]: (prev[activeChannelId] ?? []).map((m) =>
+          [resolvedChannelId]: (prev[resolvedChannelId] ?? []).map((m) =>
             m.id === optimisticId ? { ...res.message!, reactions: [] } : m
           ),
         }));
@@ -602,14 +604,14 @@ export function HackathonChat({
       const fd = new FormData();
       fd.append("file", file);
       fd.append("eventId", event.id);
-      fd.append("channelId", activeChannelId);
+      fd.append("channelId", resolvedChannelId);
       const res = await fetch("/api/hackathon/chat-upload", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) return;
 
       startTransition(async () => {
         await sendChatMessage(
-          activeChannelId, event.id,
+          resolvedChannelId, event.id,
           draft.trim() || null, [],
           data.file_url, data.file_type, data.file_name, data.file_size_bytes
         );
@@ -621,12 +623,11 @@ export function HackathonChat({
   };
 
   const handleReact = (msgId: string, emoji: string) => {
-    // Optimistic reaction toggle
     setMessageMap((prev) => {
-      const msgs = prev[activeChannelId] ?? [];
+      const msgs = prev[resolvedChannelId] ?? [];
       return {
         ...prev,
-        [activeChannelId]: msgs.map((m) => {
+        [resolvedChannelId]: msgs.map((m) => {
           if (m.id !== msgId) return m;
           const reactions = m.reactions ?? [];
           const existing = reactions.find((r) => r.emoji === emoji && r.user_id === userId);
@@ -643,7 +644,7 @@ export function HackathonChat({
   const handleDelete = (msgId: string) => {
     setMessageMap((prev) => ({
       ...prev,
-      [activeChannelId]: (prev[activeChannelId] ?? []).filter((m) => m.id !== msgId),
+      [resolvedChannelId]: (prev[resolvedChannelId] ?? []).filter((m) => m.id !== msgId),
     }));
     startTransition(async () => { await deleteChatMessage(msgId); });
   };
@@ -651,7 +652,7 @@ export function HackathonChat({
   const handlePin = (msgId: string, pinned: boolean) => {
     setMessageMap((prev) => ({
       ...prev,
-      [activeChannelId]: (prev[activeChannelId] ?? []).map((m) =>
+      [resolvedChannelId]: (prev[resolvedChannelId] ?? []).map((m) =>
         m.id === msgId ? { ...m, is_pinned: pinned } : m
       ),
     }));
@@ -711,12 +712,12 @@ export function HackathonChat({
               onClick={() => switchChannel(ch.id)}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200",
-                ch.id === activeChannelId
+                ch.id === resolvedChannelId
                   ? "bg-white text-black shadow-glow"
                   : "text-gray-500 hover:text-white hover:bg-white/5"
               )}
             >
-              <ChannelIcon type={ch.channel_type} className={ch.id === activeChannelId ? "text-black" : undefined} />
+              <ChannelIcon type={ch.channel_type} className={ch.id === resolvedChannelId ? "text-black" : undefined} />
               {ch.name}
             </button>
           ))}
@@ -810,7 +811,9 @@ export function HackathonChat({
                 <AlertCircle className="w-3.5 h-3.5" />
                 {currentChannel?.channel_type === "announcements"
                   ? "Only admins can post in announcements"
-                  : "You don't have access to post here"}
+                  : channels.length === 0
+                    ? "Chat channels not set up — run the SQL migration in Supabase"
+                    : "Only team members can post in this channel"}
               </div>
             ) : (
               <div className="relative">
