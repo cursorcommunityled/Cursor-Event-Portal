@@ -31,14 +31,15 @@ export function SlideDeckPopup({ eventId, eventSlug }: SlideDeckPopupProps) {
         .from("slide_decks")
         .select("*")
         .eq("event_id", eventId)
-        .single();
+        .limit(1);
+      const deck = data?.[0] ?? null;
 
-      if (data && data.popup_visible) {
-        setSlideDeck(data);
+      if (deck && deck.popup_visible) {
+        setSlideDeck(deck);
         setIsDismissed(false); // Show popup when enabled
-      } else if (data && !data.popup_visible) {
+      } else if (deck && !deck.popup_visible) {
         // If slide deck exists but popup_visible is false, still store it but don't show
-        setSlideDeck(data);
+        setSlideDeck(deck);
       } else {
         setSlideDeck(null);
       }

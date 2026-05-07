@@ -2087,9 +2087,7 @@ export async function getHackathonChatMessages(
 
   let query = supabase
     .from("hackathon_chat_messages")
-    .select(
-      "*, user:users!hackathon_chat_messages_user_id_fkey(id, name), reactions:hackathon_chat_reactions(id, message_id, user_id, emoji, created_at)"
-    )
+    .select("*")
     .eq("channel_id", channelId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -2100,17 +2098,50 @@ export async function getHackathonChatMessages(
       .from("hackathon_chat_messages")
       .select("created_at")
       .eq("id", beforeId)
-      .single();
+      .maybeSingle();
     if (pivot) {
       query = query.lt("created_at", pivot.created_at);
     }
   }
 
   const { data, error } = await query;
-  if (error) return [];
+  if (error) {
+    console.error("[getHackathonChatMessages] error:", error);
+    return [];
+  }
+
+  const messages = (data ?? []) as unknown as HackathonChatMessage[];
+  if (messages.length === 0) return [];
+
+  const messageIds = messages.map((msg) => msg.id);
+  const userIds = [...new Set(messages.map((msg) => msg.user_id))];
+
+  const [{ data: users }, { data: reactions }] = await Promise.all([
+    supabase.from("users").select("id, name").in("id", userIds),
+    supabase
+      .from("hackathon_chat_reactions")
+      .select("id, message_id, user_id, emoji, created_at")
+      .in("message_id", messageIds),
+  ]);
+
+  const userMap = new Map(
+    ((users ?? []) as Pick<User, "id" | "name">[]).map((user) => [user.id, user])
+  );
+  const reactionsByMessage = new Map<string, NonNullable<HackathonChatMessage["reactions"]>>();
+  for (const reaction of reactions ?? []) {
+    const existing = reactionsByMessage.get(reaction.message_id) ?? [];
+    existing.push(reaction as NonNullable<HackathonChatMessage["reactions"]>[number]);
+    reactionsByMessage.set(reaction.message_id, existing);
+  }
 
   // Return in ascending order for display
-  return ((data ?? []) as unknown as HackathonChatMessage[]).reverse();
+  return messages
+    .map((msg) => ({
+      ...msg,
+      user: userMap.get(msg.user_id),
+      reactions: reactionsByMessage.get(msg.id) ?? [],
+    }))
+    .reverse();
 }
 
 export async function getEventChatMembers(eventId: string): Promise<ChatMember[]> {

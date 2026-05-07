@@ -389,6 +389,8 @@ export function HackathonChat({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const hasRestoredChannelRef = useRef(false);
+  const storageKey = `hackathon-chat:${event.id}:active-channel`;
 
   // If active channel is missing (e.g. empty initialChannelId), fall back to first channel
   const resolvedChannelId = activeChannelId || channels[0]?.id || "";
@@ -440,6 +442,39 @@ export function HackathonChat({
   const scrollToBottom = useCallback((smooth = false) => {
     messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
   }, []);
+
+  // Keep the selected channel stable across refreshes so non-default channel messages
+  // don't appear to disappear when the page reloads back to #general.
+  useEffect(() => {
+    const storedChannelId = window.localStorage.getItem(storageKey);
+    hasRestoredChannelRef.current = true;
+
+    if (
+      !storedChannelId ||
+      storedChannelId === resolvedChannelId ||
+      !channels.some((channel) => channel.id === storedChannelId)
+    ) {
+      return;
+    }
+
+    setActiveChannelId(storedChannelId);
+    if (!messageMap[storedChannelId]) {
+      setLoadingChannel(true);
+      fetchChannelMessages(storedChannelId)
+        .then((msgs) => {
+          setMessageMap((prev) => ({ ...prev, [storedChannelId]: msgs }));
+          setHasMore(msgs.length >= 60);
+        })
+        .finally(() => setLoadingChannel(false));
+    }
+    // Run once after channels are available; messageMap is intentionally not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channels, resolvedChannelId, storageKey]);
+
+  useEffect(() => {
+    if (!hasRestoredChannelRef.current || !resolvedChannelId) return;
+    window.localStorage.setItem(storageKey, resolvedChannelId);
+  }, [resolvedChannelId, storageKey]);
 
   // Auto-scroll on new messages only if near bottom
   const isNearBottom = useCallback(() => {
@@ -546,7 +581,7 @@ export function HackathonChat({
 
   const handleSend = () => {
     const text = draft.trim();
-    if (!text && !isPending) return;
+    if (!text || isPending) return;
 
     // Parse mentions from text
     const mentioned: string[] = [];
@@ -581,21 +616,30 @@ export function HackathonChat({
     requestAnimationFrame(() => scrollToBottom(true));
 
     startTransition(async () => {
-      const res = await sendChatMessage(resolvedChannelId, event.id, text, mentioned);
-      if (res.error) {
+      try {
+        const res = await sendChatMessage(resolvedChannelId, event.id, text, mentioned);
+        if (res.error) {
+          setMessageMap((prev) => ({
+            ...prev,
+            [resolvedChannelId]: (prev[resolvedChannelId] ?? []).filter((m) => m.id !== optimisticId),
+          }));
+          setDraft(text);
+          toast.error(res.error);
+        } else if (res.message) {
+          setMessageMap((prev) => ({
+            ...prev,
+            [resolvedChannelId]: (prev[resolvedChannelId] ?? []).map((m) =>
+              m.id === optimisticId ? { ...res.message!, reactions: [] } : m
+            ),
+          }));
+        }
+      } catch (err) {
         setMessageMap((prev) => ({
           ...prev,
           [resolvedChannelId]: (prev[resolvedChannelId] ?? []).filter((m) => m.id !== optimisticId),
         }));
         setDraft(text);
-        toast.error(res.error);
-      } else if (res.message) {
-        setMessageMap((prev) => ({
-          ...prev,
-          [resolvedChannelId]: (prev[resolvedChannelId] ?? []).map((m) =>
-            m.id === optimisticId ? { ...res.message!, reactions: [] } : m
-          ),
-        }));
+        toast.error(err instanceof Error ? err.message : "Message failed to send");
       }
     });
   };
@@ -623,6 +667,17 @@ export function HackathonChat({
         if (result.error) {
           toast.error(result.error);
           return;
+        }
+        if (result.message) {
+          setMessageMap((prev) => {
+            const existing = prev[resolvedChannelId] ?? [];
+            if (existing.some((m) => m.id === result.message!.id)) return prev;
+            return {
+              ...prev,
+              [resolvedChannelId]: [...existing, { ...result.message!, reactions: result.message!.reactions ?? [] }],
+            };
+          });
+          requestAnimationFrame(() => scrollToBottom(true));
         }
         setDraft("");
       });

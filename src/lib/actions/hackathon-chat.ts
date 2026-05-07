@@ -146,11 +146,27 @@ export async function sendChatMessage(
       file_size_bytes: fileSizeBytes ?? null,
       mentioned_user_ids: mentionedUserIds,
     })
-    .select("*, user:users!hackathon_chat_messages_user_id_fkey(id, name)")
+    .select("*")
     .single();
 
-  if (error) return { error: error.message };
-  return { message: msg as unknown as HackathonChatMessage };
+  if (error) {
+    console.error("[sendChatMessage] insert failed:", error);
+    return { error: error.message };
+  }
+
+  const { data: user } = await supabase
+    .from("users")
+    .select("id, name")
+    .eq("id", session.userId)
+    .maybeSingle();
+
+  return {
+    message: {
+      ...(msg as unknown as HackathonChatMessage),
+      user: user ? { id: user.id, name: user.name } : undefined,
+      reactions: [],
+    },
+  };
 }
 
 export async function deleteChatMessage(
