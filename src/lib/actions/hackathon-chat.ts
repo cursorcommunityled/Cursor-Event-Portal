@@ -256,3 +256,9 @@ export async function loadMoreMessages(
 ): Promise<HackathonChatMessage[]> {
   return getHackathonChatMessages(channelId, 40, beforeId);
 }
+
+export async function fetchChannelMessages(
+  channelId: string
+): Promise<HackathonChatMessage[]> {
+  return getHackathonChatMessages(channelId, 60);
+}

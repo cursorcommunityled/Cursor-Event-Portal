@@ -7,9 +7,8 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendChatMessage, deleteChatMessage, pinChatMessage,
-  toggleChatReaction, markChannelRead, loadMoreMessages,
+  toggleChatReaction, markChannelRead, loadMoreMessages, fetchChannelMessages,
 } from "@/lib/actions/hackathon-chat";
-import { getHackathonChatMessages } from "@/lib/supabase/queries";
 import { cn } from "@/lib/utils";
 import {
   Hash, Lock, Megaphone, BookOpen, Users, X, Send,
@@ -520,7 +519,7 @@ export function HackathonChat({
     setActiveChannelId(channelId);
     if (!messageMap[channelId]) {
       setLoadingChannel(true);
-      const msgs = await getHackathonChatMessages(channelId, 60);
+      const msgs = await fetchChannelMessages(channelId);
       setMessageMap((prev) => ({ ...prev, [channelId]: msgs }));
       setHasMore(msgs.length >= 60);
       setLoadingChannel(false);
