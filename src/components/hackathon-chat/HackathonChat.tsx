@@ -9,12 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 import {
   sendChatMessage, deleteChatMessage, pinChatMessage,
   toggleChatReaction, markChannelRead, loadMoreMessages, fetchChannelMessages,
+  ensureDirectChannel,
 } from "@/lib/actions/hackathon-chat";
 import { cn } from "@/lib/utils";
 import {
   Hash, Lock, Megaphone, BookOpen, Users, X, Send,
   Paperclip, Smile, Pin, Trash2, ChevronUp, Shield,
-  Star, ImageIcon, FileText, Download, AlertCircle,
+  Star, ImageIcon, FileText, Download, AlertCircle, MessageCircle,
 } from "lucide-react";
 import type {
   HackathonChatChannel, HackathonChatMessage, HackathonChatReaction,
@@ -22,6 +23,12 @@ import type {
 } from "@/types";
 
 const QUICK_EMOJIS = ["👍", "🔥", "🚀", "💡", "❤️", "😂", "🎉", "⚡"];
+const DIRECT_CHANNEL_PREFIX = "dm:";
+
+function getDirectChannelUserIds(name: string) {
+  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
+  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
+}
 
 interface Props {
   event: Event;
@@ -117,6 +124,7 @@ function ChannelIcon({ type, className }: { type: string; className?: string }) 
   if (type === "announcements") return <Megaphone className={cls} />;
   if (type === "team") return <Lock className={cls} />;
   if (type === "resources") return <BookOpen className={cls} />;
+  if (type === "dm") return <MessageCircle className={cls} />;
   return <Hash className={cls} />;
 }
 
@@ -389,7 +397,8 @@ export function HackathonChat({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const hasRestoredChannelRef = useRef(false);
+  const hasAttemptedChannelRestoreRef = useRef(false);
+  const [hasRestoredChannel, setHasRestoredChannel] = useState(false);
   const storageKey = `hackathon-chat:${event.id}:active-channel`;
 
   // If active channel is missing (e.g. empty initialChannelId), fall back to first channel
@@ -403,6 +412,21 @@ export function HackathonChat({
     for (const member of members) m.set(member.id, member);
     return m;
   }, [members]);
+
+  const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
+    if (channel.channel_type === "dm") {
+      return getDirectChannelUserIds(channel.name).includes(userId);
+    }
+    return !channel.team_id || channel.team_id === myTeamId || isAdmin;
+  }, [isAdmin, myTeamId, userId]);
+
+  const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
+    if (!channel) return "";
+    if (channel.channel_type !== "dm") return channel.name;
+
+    const otherUserId = getDirectChannelUserIds(channel.name).find((id) => id !== userId);
+    return otherUserId ? memberMap.get(otherUserId)?.name ?? "Direct message" : "Direct message";
+  }, [memberMap, userId]);
 
   // Group members by team for the sidebar
   const membersByTeam = useMemo(() => {
@@ -430,6 +454,9 @@ export function HackathonChat({
   const canPost = useMemo(() => {
     // No channel loaded yet — don't block, channels may still be initialising
     if (!currentChannel) return channels.length === 0 ? false : true;
+    if (currentChannel.channel_type === "dm") {
+      return getDirectChannelUserIds(currentChannel.name).includes(userId);
+    }
     if (currentChannel.channel_type === "announcements") return isAdmin;
     if (currentChannel.team_id) {
       const myMember = memberMap.get(userId);
@@ -440,20 +467,32 @@ export function HackathonChat({
   }, [currentChannel, channels.length, isAdmin, memberMap, userId]);
 
   const scrollToBottom = useCallback((smooth = false) => {
-    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "instant" });
+    if (!listRef.current) return;
+    listRef.current.scrollTo({
+      top: listRef.current.scrollHeight,
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }, []);
+
+  // Keep page-level navigation at the top; chat auto-scroll should only affect the message pane.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
   }, []);
 
   // Keep the selected channel stable across refreshes so non-default channel messages
   // don't appear to disappear when the page reloads back to #general.
   useEffect(() => {
+    if (hasAttemptedChannelRestoreRef.current || channels.length === 0) return;
+    hasAttemptedChannelRestoreRef.current = true;
+
     const storedChannelId = window.localStorage.getItem(storageKey);
-    hasRestoredChannelRef.current = true;
 
     if (
       !storedChannelId ||
       storedChannelId === resolvedChannelId ||
       !channels.some((channel) => channel.id === storedChannelId)
     ) {
+      setHasRestoredChannel(true);
       return;
     }
 
@@ -467,14 +506,15 @@ export function HackathonChat({
         })
         .finally(() => setLoadingChannel(false));
     }
+    setHasRestoredChannel(true);
     // Run once after channels are available; messageMap is intentionally not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [channels, resolvedChannelId, storageKey]);
 
   useEffect(() => {
-    if (!hasRestoredChannelRef.current || !resolvedChannelId) return;
+    if (!hasRestoredChannel || !resolvedChannelId) return;
     window.localStorage.setItem(storageKey, resolvedChannelId);
-  }, [resolvedChannelId, storageKey]);
+  }, [hasRestoredChannel, resolvedChannelId, storageKey]);
 
   // Auto-scroll on new messages only if near bottom
   const isNearBottom = useCallback(() => {
@@ -533,8 +573,8 @@ export function HackathonChat({
         { event: "INSERT", schema: "public", table: "hackathon_chat_channels", filter: `event_id=eq.${event.id}` },
         (payload) => {
           const ch = payload.new as HackathonChatChannel;
-          // Only add if user should see it (non-team or their team)
-          if (!ch.team_id || ch.team_id === myTeamId) {
+          // Only add if user should see it (public, their team, or their DM)
+          if (canSeeChannel(ch)) {
             setChannels((prev) => [...prev, ch]);
           }
         }
@@ -542,7 +582,7 @@ export function HackathonChat({
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [event.id, activeChannelId, myTeamId, isNearBottom, scrollToBottom]);
+  }, [event.id, activeChannelId, canSeeChannel, isNearBottom, scrollToBottom]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
@@ -564,6 +604,23 @@ export function HackathonChat({
       setHasMore(msgs.length >= 60);
       setLoadingChannel(false);
     }
+  };
+
+  const openDirectMessage = async (targetUserId: string) => {
+    if (targetUserId === userId) return;
+
+    const result = await ensureDirectChannel(event.id, targetUserId);
+    if (result.error || !result.channel) {
+      toast.error(result.error ?? "Could not open DM");
+      return;
+    }
+
+    setChannels((prev) =>
+      prev.some((channel) => channel.id === result.channel!.id)
+        ? prev
+        : [...prev, result.channel!]
+    );
+    await switchChannel(result.channel.id);
   };
 
   const handleLoadMore = async () => {
@@ -784,7 +841,7 @@ export function HackathonChat({
               )}
             >
               <ChannelIcon type={ch.channel_type} className={ch.id === resolvedChannelId ? "text-black" : undefined} />
-              {ch.name}
+              {getChannelLabel(ch)}
             </button>
           ))}
         </div>
@@ -811,12 +868,15 @@ export function HackathonChat({
           {/* Channel header */}
           <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 shrink-0">
             <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="text-gray-500" />
-            <span className="text-sm font-medium text-white/80">{currentChannel?.name}</span>
+            <span className="text-sm font-medium text-white/80">{getChannelLabel(currentChannel)}</span>
             {currentChannel?.channel_type === "announcements" && (
               <span className="text-[9px] uppercase tracking-[0.15em] text-gray-600">· admin only</span>
             )}
             {currentChannel?.channel_type === "team" && (
               <span className="text-[9px] uppercase tracking-[0.15em] text-gray-600">· private</span>
+            )}
+            {currentChannel?.channel_type === "dm" && (
+              <span className="text-[9px] uppercase tracking-[0.15em] text-gray-600">· direct</span>
             )}
           </div>
 
@@ -872,6 +932,28 @@ export function HackathonChat({
 
           {/* Input area */}
           <div className="px-3 pb-3 shrink-0">
+            {channels.length > 1 && (
+              <div className="mb-2 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                <span className="shrink-0 text-[9px] uppercase tracking-[0.16em] text-gray-700 px-1">
+                  Channels
+                </span>
+                {channels.map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => switchChannel(ch.id)}
+                    className={cn(
+                      "shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all",
+                      ch.id === resolvedChannelId
+                        ? "bg-white text-black"
+                        : "bg-white/5 text-gray-500 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <ChannelIcon type={ch.channel_type} className={ch.id === resolvedChannelId ? "text-black" : undefined} />
+                    {getChannelLabel(ch)}
+                  </button>
+                ))}
+              </div>
+            )}
             {!canPost ? (
               <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/3 border border-white/10 text-xs text-gray-600">
                 <AlertCircle className="w-3.5 h-3.5" />
@@ -920,7 +1002,9 @@ export function HackathonChat({
                     placeholder={
                       currentChannel?.channel_type === "team"
                         ? `Message your team…`
-                        : `Message #${currentChannel?.name ?? "…"}`
+                        : currentChannel?.channel_type === "dm"
+                          ? `Message ${getChannelLabel(currentChannel)}…`
+                          : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
                     }
                     rows={1}
                     className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 focus:outline-none resize-none max-h-32 leading-relaxed"
@@ -987,7 +1071,14 @@ export function HackathonChat({
                   <p className="text-[9px] uppercase tracking-[0.2em] text-purple-400/70 px-3 mb-1">Organizers</p>
                   {members
                     .filter((m) => ["admin", "staff", "facilitator"].includes(m.role))
-                    .map((m) => <MemberRow key={m.id} member={m} />)}
+                    .map((m) => (
+                      <MemberRow
+                        key={m.id}
+                        member={m}
+                        canMessage={m.id !== userId}
+                        onDirectMessage={() => openDirectMessage(m.id)}
+                      />
+                    ))}
                 </div>
               )}
 
@@ -1007,7 +1098,14 @@ export function HackathonChat({
                         {team?.name ?? "Team"}
                       </p>
                     </div>
-                    {teamMembers.map((m) => <MemberRow key={m.id} member={m} />)}
+                    {teamMembers.map((m) => (
+                      <MemberRow
+                        key={m.id}
+                        member={m}
+                        canMessage={m.id !== userId}
+                        onDirectMessage={() => openDirectMessage(m.id)}
+                      />
+                    ))}
                   </div>
                 );
               })}
@@ -1018,7 +1116,14 @@ export function HackathonChat({
                   <p className="text-[9px] uppercase tracking-[0.2em] text-gray-700 px-3 mb-1">No Team</p>
                   {membersByTeam.noTeam
                     .filter((m) => !["admin", "staff", "facilitator"].includes(m.role))
-                    .map((m) => <MemberRow key={m.id} member={m} />)}
+                    .map((m) => (
+                      <MemberRow
+                        key={m.id}
+                        member={m}
+                        canMessage={m.id !== userId}
+                        onDirectMessage={() => openDirectMessage(m.id)}
+                      />
+                    ))}
                 </div>
               )}
             </div>
@@ -1031,7 +1136,13 @@ export function HackathonChat({
 
 // ─── Member row in sidebar ────────────────────────────────────────────────────
 
-function MemberRow({ member }: { member: ChatMember }) {
+function MemberRow({
+  member, canMessage, onDirectMessage,
+}: {
+  member: ChatMember;
+  canMessage: boolean;
+  onDirectMessage: () => void;
+}) {
   const [showCard, setShowCard] = useState(false);
 
   return (
@@ -1049,6 +1160,18 @@ function MemberRow({ member }: { member: ChatMember }) {
       </div>
       {(member.role === "admin" || member.role === "staff" || member.role === "facilitator") && (
         <Shield className="w-3 h-3 text-purple-400 shrink-0" />
+      )}
+      {canMessage && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDirectMessage();
+          }}
+          className="p-1 rounded-md text-gray-600 hover:text-white hover:bg-white/10 transition-colors"
+          title={`DM ${member.name}`}
+        >
+          <MessageCircle className="w-3 h-3" />
+        </button>
       )}
       {showCard && (
         <div className="absolute left-full top-0 ml-2 z-50 pointer-events-none">

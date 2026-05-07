@@ -37,6 +37,13 @@ import type {
   ChatMember,
 } from "@/types";
 
+const DIRECT_CHANNEL_PREFIX = "dm:";
+
+function getDirectChannelUserIds(name: string) {
+  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
+  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
+}
+
 // Event queries
 // Use limit(1) + take first row so we don't get PGRST116 when there are 0 or 2+ rows for a slug
 export async function getEventBySlug(slug: string): Promise<Event | null> {
@@ -2053,7 +2060,8 @@ export async function getHackathonScores(eventId: string): Promise<HackathonScor
 
 export async function getHackathonChatChannels(
   eventId: string,
-  teamId?: string | null
+  teamId?: string | null,
+  userId?: string | null
 ): Promise<HackathonChatChannel[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -2070,10 +2078,19 @@ export async function getHackathonChatChannels(
   }
 
   const rows = (data ?? []) as HackathonChatChannel[];
+  if (teamId === undefined) {
+    return rows.filter(
+      (ch) =>
+        ch.channel_type !== "dm" ||
+        (userId != null && getDirectChannelUserIds(ch.name).includes(userId))
+    );
+  }
+
   return rows.filter(
     (ch) =>
-      ch.team_id === null ||
-      (teamId != null && ch.team_id === teamId)
+      (ch.team_id === null && ch.channel_type !== "dm") ||
+      (teamId != null && ch.team_id === teamId) ||
+      (ch.channel_type === "dm" && userId != null && getDirectChannelUserIds(ch.name).includes(userId))
   );
 }
 

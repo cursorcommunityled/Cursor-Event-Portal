@@ -57,7 +57,7 @@ export default async function HackathonPage({ params }: Props) {
     : [];
 
   // Chat: get channels visible to this user (general + their team channel)
-  const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null);
+  const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null, session.userId);
   const defaultChannel = chatChannels[0] ?? null;
   const initialMessages = defaultChannel
     ? await getHackathonChatMessages(defaultChannel.id, 60)
