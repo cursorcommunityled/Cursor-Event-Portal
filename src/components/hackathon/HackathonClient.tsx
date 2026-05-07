@@ -282,7 +282,7 @@ export function HackathonClient({
   // Chat tab: full-width layout, skip the narrow container
   if (tab === "chat") {
     return (
-      <main className="px-2 py-4 w-full animate-fade-in">
+      <main className="px-2 py-4 w-full animate-fade-in md:pl-40 md:pr-6">
         {/* Tab bar — stays above chat */}
         <div className="glass rounded-[24px] p-1.5 flex gap-1.5 mb-4 max-w-2xl mx-auto">
           {tabs.map((t) => (

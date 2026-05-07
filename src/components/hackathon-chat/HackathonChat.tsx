@@ -4,6 +4,7 @@ import {
   useState, useEffect, useRef, useCallback, useTransition, useMemo,
 } from "react";
 import Image from "next/image";
+import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendChatMessage, deleteChatMessage, pinChatMessage,
@@ -587,6 +588,7 @@ export function HackathonChat({
           [resolvedChannelId]: (prev[resolvedChannelId] ?? []).filter((m) => m.id !== optimisticId),
         }));
         setDraft(text);
+        toast.error(res.error);
       } else if (res.message) {
         setMessageMap((prev) => ({
           ...prev,
@@ -607,16 +609,25 @@ export function HackathonChat({
       fd.append("channelId", resolvedChannelId);
       const res = await fetch("/api/hackathon/chat-upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) return;
+      if (!res.ok) {
+        toast.error(data.error ?? "Upload failed");
+        return;
+      }
 
       startTransition(async () => {
-        await sendChatMessage(
+        const result = await sendChatMessage(
           resolvedChannelId, event.id,
           draft.trim() || null, [],
           data.file_url, data.file_type, data.file_name, data.file_size_bytes
         );
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
         setDraft("");
       });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploadingFile(false);
     }
