@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
 import type { HackathonChatMessage } from "@/types";
 import { getHackathonChatMessages } from "@/lib/supabase/queries";
@@ -49,7 +49,7 @@ export async function ensureTeamChannel(eventId: string, teamId: string, teamNam
     .select("id")
     .eq("event_id", eventId)
     .eq("team_id", teamId)
-    .single();
+    .maybeSingle();
 
   if (existing) return existing.id;
 
@@ -83,7 +83,7 @@ export async function sendChatMessage(
 
   if (!content?.trim() && !fileUrl) return { error: "Message cannot be empty" };
 
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
   // Verify the user can access this channel
   const { data: channel } = await supabase
@@ -110,7 +110,7 @@ export async function sendChatMessage(
         .from("users")
         .select("role")
         .eq("id", session.userId)
-        .single();
+        .maybeSingle();
 
       const adminRoles = ["admin", "staff", "facilitator"];
       if (!user || !adminRoles.includes(user.role)) {
@@ -125,7 +125,7 @@ export async function sendChatMessage(
       .from("users")
       .select("role")
       .eq("id", session.userId)
-      .single();
+      .maybeSingle();
 
     const adminRoles = ["admin", "staff", "facilitator"];
     if (!user || !adminRoles.includes(user.role)) {
@@ -159,13 +159,13 @@ export async function deleteChatMessage(
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
   const { data: msg } = await supabase
     .from("hackathon_chat_messages")
     .select("user_id, event_id")
     .eq("id", messageId)
-    .single();
+    .maybeSingle();
 
   if (!msg) return { error: "Message not found" };
 
@@ -175,7 +175,7 @@ export async function deleteChatMessage(
       .from("users")
       .select("role")
       .eq("id", session.userId)
-      .single();
+      .maybeSingle();
 
     const adminRoles = ["admin", "staff", "facilitator"];
     if (!user || !adminRoles.includes(user.role)) {
@@ -199,13 +199,13 @@ export async function pinChatMessage(
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
   const { data: user } = await supabase
     .from("users")
     .select("role")
     .eq("id", session.userId)
-    .single();
+    .maybeSingle();
 
   const adminRoles = ["admin", "staff", "facilitator"];
   if (!user || !adminRoles.includes(user.role)) {
@@ -228,7 +228,7 @@ export async function toggleChatReaction(
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
   const { data: existing } = await supabase
     .from("hackathon_chat_reactions")
@@ -236,7 +236,7 @@ export async function toggleChatReaction(
     .eq("message_id", messageId)
     .eq("user_id", session.userId)
     .eq("emoji", emoji)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     await supabase
@@ -258,7 +258,7 @@ export async function markChannelRead(
   const session = await getSession();
   if (!session) return;
 
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
   await supabase
     .from("hackathon_chat_reads")
     .upsert(

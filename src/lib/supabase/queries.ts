@@ -846,7 +846,7 @@ export async function getSlideDeck(eventId: string): Promise<SlideDeck | null> {
     .from("slide_decks")
     .select("*")
     .eq("event_id", eventId)
-    .single();
+    .maybeSingle();
 
   if (error) return null;
   return data;
@@ -880,7 +880,7 @@ export async function getDisplayPageData(eventId: string): Promise<DisplayPageDa
       .select("*")
       .eq("event_id", eventId)
       .eq("is_live", true)
-      .single(),
+      .maybeSingle(),
   ]);
 
   if (eventResult.error || !eventResult.data) return null;
