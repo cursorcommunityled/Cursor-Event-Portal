@@ -18,11 +18,15 @@ import {
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
-  ImageIcon,
+  ImageIcon, MessageSquare,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore } from "@/types";
+import type {
+  Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore,
+  HackathonChatChannel, HackathonChatMessage, ChatMember,
+} from "@/types";
+import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 
 interface Props {
   event: Event;
@@ -30,9 +34,14 @@ interface Props {
   initialSettings: HackathonSettings | null;
   initialTeams: HackathonTeamWithMembers[];
   initialScores: HackathonScore[];
+  chatChannels: HackathonChatChannel[];
+  initialMessages: HackathonChatMessage[];
+  initialChannelId: string;
+  chatMembers: ChatMember[];
+  adminUserId: string | null;
 }
 
-type Tab = "settings" | "teams" | "scoring" | "leaderboard";
+type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "chat";
 
 const SCORE_CATEGORIES = [
   { key: "innovation" as const, label: "Innovation" },
@@ -70,7 +79,10 @@ function buildScoreNotes(scores: HackathonScore[]): Record<string, string> {
   return init;
 }
 
-export function HackathonAdminClient({ event, adminCode, initialSettings, initialTeams, initialScores }: Props) {
+export function HackathonAdminClient({
+  event, adminCode, initialSettings, initialTeams, initialScores,
+  chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
+}: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
   const [isPending, startTransition] = useTransition();
@@ -164,6 +176,7 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
     { id: "scoring", label: "Scoring", icon: <BarChart3 className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
+    { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
   return (
@@ -658,6 +671,27 @@ export function HackathonAdminClient({ event, adminCode, initialSettings, initia
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Chat tab */}
+        {tab === "chat" && adminUserId && (
+          <div className="animate-slide-up" style={{ height: "calc(100vh - 22rem)" }}>
+            <HackathonChat
+              event={event}
+              userId={adminUserId}
+              isAdmin={true}
+              channels={chatChannels}
+              initialMessages={initialMessages}
+              initialChannelId={initialChannelId}
+              members={chatMembers}
+              myTeamId={null}
+            />
+          </div>
+        )}
+        {tab === "chat" && !adminUserId && (
+          <div className="glass rounded-[28px] p-10 border-white/20 text-center text-gray-500 text-sm animate-slide-up">
+            Sign in as a registered attendee to access chat
           </div>
         )}
       </main>

@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
 import type { HackathonSettings, HackathonTeamWithMembers, HackathonTeamInvite, HackathonScore } from "@/types";
+import { ensureTeamChannel } from "./hackathon-chat";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -408,6 +409,9 @@ export async function sendTeamInvite(
       user_id: userId,
       role: "leader",
     });
+
+    // Auto-create private team chat channel
+    await ensureTeamChannel(eventId, teamId, teamName.trim());
   }
 
   // Check team size limit
