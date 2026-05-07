@@ -279,10 +279,30 @@ export function HackathonClient({
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3 h-3" /> },
   ];
 
+  const header = (
+    <div className="flex items-center gap-3">
+      <Swords className="w-6 h-6 text-purple-400" />
+      <div>
+        <h1 className="text-2xl font-light tracking-tight">Hackathon</h1>
+        {settings?.team_formation_closes_at && (
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 flex items-center gap-1.5 mt-0.5">
+            <Clock className="w-3 h-3" />
+            {formationOpen
+              ? `Teams lock ${new Date(settings.team_formation_closes_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : "Team formation closed"}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
   // Chat tab: full-width layout, skip the narrow container
   if (tab === "chat") {
     return (
       <main className="px-2 py-4 w-full animate-fade-in md:pl-40 md:pr-6">
+        <div className="mb-5 max-w-2xl mx-auto">
+          {header}
+        </div>
         {/* Tab bar — stays above chat */}
         <div className="glass rounded-[24px] p-1.5 flex gap-1.5 mb-4 max-w-2xl mx-auto">
           {tabs.map((t) => (
@@ -327,20 +347,7 @@ export function HackathonClient({
     <main className="max-w-2xl mx-auto px-4 py-8 space-y-6 w-full animate-fade-in">
 
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Swords className="w-6 h-6 text-purple-400" />
-        <div>
-          <h1 className="text-2xl font-light tracking-tight">Hackathon</h1>
-          {settings?.team_formation_closes_at && (
-            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 flex items-center gap-1.5 mt-0.5">
-              <Clock className="w-3 h-3" />
-              {formationOpen
-                ? `Teams lock ${new Date(settings.team_formation_closes_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : "Team formation closed"}
-            </p>
-          )}
-        </div>
-      </div>
+      {header}
 
       {/* Pending invite banners */}
       {receivedInvites.length > 0 && (

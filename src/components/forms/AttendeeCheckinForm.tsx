@@ -145,6 +145,7 @@ export function AttendeeCheckinForm({
   // Consent state
   const [consentChecked, setConsentChecked] = useState(false);
   const [consentLoading, setConsentLoading] = useState(false);
+  const showSeatAssignmentNotice = seatingEnabled === true && pendingTableNumber != null;
 
   useEffect(() => {
     if (!seatingEnabled) {
@@ -1178,8 +1179,8 @@ export function AttendeeCheckinForm({
             </div>
           </div>
 
-          {/* Seat Assignment Notice - only shown when seating is enabled */}
-          {seatingEnabled && (
+          {/* Seat Assignment Notice - only shown after scanning a table QR while seating is enabled */}
+          {showSeatAssignmentNotice && (
             <div className="glass rounded-3xl p-6 bg-white/[0.02] border-white/5 space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
@@ -1187,7 +1188,7 @@ export function AttendeeCheckinForm({
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-light text-white tracking-tight">
-                    Your Table Is Registered
+                    Table {pendingTableNumber} Is Registered
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
                     <Clock className="w-3.5 h-3.5 text-gray-500" />
