@@ -820,6 +820,59 @@ export interface HackathonTeamWithMembers extends HackathonTeam {
   icon_photo?: EventPhoto | null;
 }
 
+// ─── Hackathon Chat ───────────────────────────────────────────────────────────
+
+export type ChatChannelType = 'general' | 'announcements' | 'team' | 'resources';
+
+export interface HackathonChatChannel {
+  id: string;
+  event_id: string;
+  team_id: string | null;
+  name: string;
+  channel_type: ChatChannelType;
+  position: number;
+  created_at: string;
+  unread_count?: number;
+}
+
+export interface HackathonChatMessage {
+  id: string;
+  channel_id: string;
+  event_id: string;
+  user_id: string;
+  content: string | null;
+  file_url: string | null;
+  file_type: 'image' | 'file' | null;
+  file_name: string | null;
+  file_size_bytes: number | null;
+  is_pinned: boolean;
+  mentioned_user_ids: string[];
+  deleted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<User, 'id' | 'name'>;
+  reactions?: HackathonChatReaction[];
+  sender_team?: { id: string; name: string; icon_photo?: EventPhoto | null } | null;
+  sender_role?: UserRole | null;
+}
+
+export interface HackathonChatReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+  user?: Pick<User, 'id' | 'name'>;
+}
+
+export interface ChatMember {
+  id: string;
+  name: string;
+  role: UserRole;
+  team?: { id: string; name: string; icon_photo?: EventPhoto | null } | null;
+  team_role?: HackathonTeamRole | null;
+}
+
 // ─── Event Photos ─────────────────────────────────────────────────────────────
 
 export interface EventPhoto {

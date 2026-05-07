@@ -32,6 +32,9 @@ import type {
   Venue,
   EventPhoto,
   PhotoStatus,
+  HackathonChatChannel,
+  HackathonChatMessage,
+  ChatMember,
 } from "@/types";
 
 // Event queries
@@ -2044,6 +2047,135 @@ export async function getHackathonScores(eventId: string): Promise<HackathonScor
     .order("created_at", { ascending: true });
   if (error) return [];
   return (data ?? []) as unknown as HackathonScore[];
+}
+
+// ─── Hackathon Chat ───────────────────────────────────────────────────────────
+
+export async function getHackathonChatChannels(
+  eventId: string,
+  teamId?: string | null
+): Promise<HackathonChatChannel[]> {
+  noStore();
+  const supabase = await createClient();
+
+  // Fetch general/announcements/resources channels + this user's team channel
+  const { data, error } = await supabase
+    .from("hackathon_chat_channels")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("position", { ascending: true });
+
+  if (error) return [];
+
+  const rows = (data ?? []) as HackathonChatChannel[];
+  // Filter: non-team channels + team channel belonging to the user's team
+  return rows.filter(
+    (ch) =>
+      ch.team_id === null ||
+      (teamId != null && ch.team_id === teamId)
+  );
+}
+
+export async function getHackathonChatMessages(
+  channelId: string,
+  limit = 60,
+  beforeId?: string
+): Promise<HackathonChatMessage[]> {
+  noStore();
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("hackathon_chat_messages")
+    .select(
+      "*, user:users!hackathon_chat_messages_user_id_fkey(id, name), reactions:hackathon_chat_reactions(id, message_id, user_id, emoji, created_at)"
+    )
+    .eq("channel_id", channelId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (beforeId) {
+    const { data: pivot } = await supabase
+      .from("hackathon_chat_messages")
+      .select("created_at")
+      .eq("id", beforeId)
+      .single();
+    if (pivot) {
+      query = query.lt("created_at", pivot.created_at);
+    }
+  }
+
+  const { data, error } = await query;
+  if (error) return [];
+
+  // Return in ascending order for display
+  return ((data ?? []) as unknown as HackathonChatMessage[]).reverse();
+}
+
+export async function getEventChatMembers(eventId: string): Promise<ChatMember[]> {
+  noStore();
+  const supabase = await createClient();
+
+  // Get all registrations with user info
+  const { data: regs, error } = await supabase
+    .from("registrations")
+    .select("user_id, user:users!registrations_user_id_fkey(id, name, role)")
+    .eq("event_id", eventId);
+
+  if (error || !regs) return [];
+
+  // Get all team memberships for this event
+  const { data: teamMembers } = await supabase
+    .from("hackathon_team_members")
+    .select(
+      "user_id, role, team:hackathon_teams!hackathon_team_members_team_id_fkey(id, name, icon_photo_id, event_id)"
+    )
+    .eq("hackathon_teams.event_id", eventId);
+
+  // Get approved team icons
+  const teamPhotoIds = (teamMembers ?? [])
+    .map((tm) => (tm.team as { icon_photo_id?: string } | null)?.icon_photo_id)
+    .filter((id): id is string => !!id);
+
+  let photoMap: Record<string, EventPhoto> = {};
+  if (teamPhotoIds.length > 0) {
+    const { data: photos } = await supabase
+      .from("event_photos")
+      .select("*")
+      .in("id", teamPhotoIds)
+      .eq("status", "approved");
+    photoMap = Object.fromEntries((photos ?? []).map((p) => [p.id, p]));
+  }
+
+  interface RawTeam { id: string; name: string; icon_photo_id: string | null; event_id: string; }
+
+  const membershipMap: Record<string, { team_role: string; team: { id: string; name: string; icon_photo: EventPhoto | null } | null }> = {};
+  for (const tm of teamMembers ?? []) {
+    const team = (Array.isArray(tm.team) ? tm.team[0] : tm.team) as RawTeam | null;
+    membershipMap[tm.user_id as string] = {
+      team_role: tm.role as string,
+      team: team
+        ? { id: team.id, name: team.name, icon_photo: team.icon_photo_id ? (photoMap[team.icon_photo_id] ?? null) : null }
+        : null,
+    };
+  }
+
+  interface RawUser { id: string; name: string; role: string; }
+
+  const result: ChatMember[] = [];
+  for (const r of regs) {
+    const u = (Array.isArray(r.user) ? r.user[0] : r.user) as RawUser | null;
+    if (!u) continue;
+    const membership = membershipMap[u.id];
+    result.push({
+      id: u.id,
+      name: u.name,
+      role: u.role as UserRole,
+      team: membership?.team ?? null,
+      team_role: (membership?.team_role ?? null) as import("@/types").HackathonTeamRole | null,
+    });
+  }
+  return result;
 }
 
 export async function getHeroFeaturedPhotoIds(): Promise<string[]> {

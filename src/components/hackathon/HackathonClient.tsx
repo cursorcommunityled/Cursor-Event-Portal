@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback, useRef } from "react";
+import React, { useState, useTransition, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -16,16 +16,19 @@ import { cn } from "@/lib/utils";
 import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
-  Camera, ImageIcon, Loader2,
+  Camera, ImageIcon, Loader2, MessageSquare,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
   HackathonTeamInvite, HackathonScore, EventPhoto,
+  HackathonChatChannel, HackathonChatMessage, ChatMember,
 } from "@/types";
+import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 
 interface Props {
   event: Event;
   userId: string;
+  isAdmin: boolean;
   settings: HackathonSettings | null;
   myTeam: HackathonTeamWithMembers | null;
   receivedInvites: HackathonTeamInvite[];
@@ -33,9 +36,13 @@ interface Props {
   allTeams: HackathonTeamWithMembers[];
   openPool: { id: string; name: string }[];
   scores: HackathonScore[];
+  chatChannels: HackathonChatChannel[];
+  initialMessages: HackathonChatMessage[];
+  initialChannelId: string;
+  chatMembers: ChatMember[];
 }
 
-type Tab = "my-team" | "all-teams" | "open-pool";
+type Tab = "my-team" | "all-teams" | "open-pool" | "chat";
 
 function isFormationOpen(settings: HackathonSettings | null): boolean {
   if (!settings) return true;
@@ -58,9 +65,10 @@ function totalScore(teamId: string, scores: HackathonScore[]): number {
 }
 
 export function HackathonClient({
-  event, userId, settings, myTeam: initialMyTeam,
+  event, userId, isAdmin, settings, myTeam: initialMyTeam,
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
   allTeams: initialAllTeams, openPool: initialPool, scores,
+  chatChannels, initialMessages, initialChannelId, chatMembers,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -264,11 +272,56 @@ export function HackathonClient({
     }
   };
 
-  const tabs: { id: Tab; label: string; count?: number }[] = [
+  const tabs: { id: Tab; label: string; count?: number; icon?: React.ReactNode }[] = [
     { id: "my-team", label: "My Team" },
     { id: "all-teams", label: "All Teams", count: allTeams.length },
-    { id: "open-pool", label: "Open Pool", count: pool.length },
+    { id: "open-pool", label: "Pool", count: pool.length },
+    { id: "chat", label: "Chat", icon: <MessageSquare className="w-3 h-3" /> },
   ];
+
+  // Chat tab: full-width layout, skip the narrow container
+  if (tab === "chat") {
+    return (
+      <main className="px-2 py-4 w-full animate-fade-in">
+        {/* Tab bar — stays above chat */}
+        <div className="glass rounded-[24px] p-1.5 flex gap-1.5 mb-4 max-w-2xl mx-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "flex-1 py-2.5 px-2 rounded-[18px] text-xs font-medium uppercase tracking-[0.12em] transition-all duration-200 flex items-center justify-center gap-1.5",
+                t.id === tab
+                  ? "bg-white text-black shadow-glow scale-105"
+                  : "text-gray-500 hover:text-white bg-white/5"
+              )}
+            >
+              {t.icon}
+              {t.label}
+              {t.count != null && (
+                <span className={cn(
+                  "text-[9px] rounded-full px-1.5 py-0.5",
+                  t.id === tab ? "bg-black/10 text-black" : "bg-white/10 text-gray-400"
+                )}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <HackathonChat
+          event={event}
+          userId={userId}
+          isAdmin={isAdmin}
+          channels={chatChannels}
+          initialMessages={initialMessages}
+          initialChannelId={initialChannelId}
+          members={chatMembers}
+          myTeamId={myTeam?.id ?? null}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8 space-y-6 w-full animate-fade-in">
@@ -331,12 +384,13 @@ export function HackathonClient({
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "flex-1 py-2.5 px-3 rounded-[18px] text-xs font-medium uppercase tracking-[0.15em] transition-all duration-200 flex items-center justify-center gap-2",
+              "flex-1 py-2.5 px-2 rounded-[18px] text-xs font-medium uppercase tracking-[0.12em] transition-all duration-200 flex items-center justify-center gap-1.5",
               tab === t.id
                 ? "bg-white text-black shadow-glow scale-105"
                 : "text-gray-500 hover:text-white bg-white/5"
             )}
           >
+            {t.icon}
             {t.label}
             {t.count != null && (
               <span className={cn(
