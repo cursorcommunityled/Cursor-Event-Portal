@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       .select("id, team_id, channel_type, event_id")
       .eq("id", channelId)
       .eq("event_id", eventId)
-      .single();
+      .maybeSingle();
 
     if (!channel) {
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
@@ -55,7 +55,16 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (!membership?.length) {
-        return NextResponse.json({ error: "Not a team member" }, { status: 403 });
+        const { data: user } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", session.userId)
+          .maybeSingle();
+
+        const adminRoles = ["admin", "staff", "facilitator"];
+        if (!user || !adminRoles.includes(user.role)) {
+          return NextResponse.json({ error: "Not a team member" }, { status: 403 });
+        }
       }
     }
 
