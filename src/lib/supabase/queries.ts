@@ -2056,19 +2056,20 @@ export async function getHackathonChatChannels(
   teamId?: string | null
 ): Promise<HackathonChatChannel[]> {
   noStore();
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
-  // Fetch general/announcements/resources channels + this user's team channel
   const { data, error } = await supabase
     .from("hackathon_chat_channels")
     .select("*")
     .eq("event_id", eventId)
     .order("position", { ascending: true });
 
-  if (error) return [];
+  if (error) {
+    console.error("[getHackathonChatChannels] error:", error);
+    return [];
+  }
 
   const rows = (data ?? []) as HackathonChatChannel[];
-  // Filter: non-team channels + team channel belonging to the user's team
   return rows.filter(
     (ch) =>
       ch.team_id === null ||
@@ -2082,7 +2083,7 @@ export async function getHackathonChatMessages(
   beforeId?: string
 ): Promise<HackathonChatMessage[]> {
   noStore();
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
   let query = supabase
     .from("hackathon_chat_messages")

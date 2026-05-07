@@ -15,10 +15,27 @@ export async function ensureDefaultChannels(eventId: string) {
     { name: "resources", channel_type: "resources", position: 2 },
   ];
 
+  // Check which channels already exist first
+  const { data: existing, error: fetchErr } = await supabase
+    .from("hackathon_chat_channels")
+    .select("name")
+    .eq("event_id", eventId);
+
+  if (fetchErr) {
+    console.error("[ensureDefaultChannels] Failed to fetch existing channels:", fetchErr);
+    return;
+  }
+
+  const existingNames = new Set((existing ?? []).map((c: { name: string }) => c.name));
+
   for (const ch of defaults) {
-    await supabase
+    if (existingNames.has(ch.name)) continue;
+    const { error } = await supabase
       .from("hackathon_chat_channels")
-      .upsert({ event_id: eventId, ...ch }, { onConflict: "event_id,name", ignoreDuplicates: true });
+      .insert({ event_id: eventId, ...ch });
+    if (error) {
+      console.error(`[ensureDefaultChannels] Failed to insert #${ch.name}:`, error);
+    }
   }
 }
 
