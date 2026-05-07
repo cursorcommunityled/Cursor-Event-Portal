@@ -822,7 +822,7 @@ export interface HackathonTeamWithMembers extends HackathonTeam {
 
 // ─── Hackathon Chat ───────────────────────────────────────────────────────────
 
-export type ChatChannelType = 'general' | 'announcements' | 'team' | 'resources';
+export type ChatChannelType = 'general' | 'announcements' | 'team' | 'resources' | 'dm';
 
 export interface HackathonChatChannel {
   id: string;

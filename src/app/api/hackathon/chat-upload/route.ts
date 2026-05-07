@@ -8,6 +8,13 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
 ]);
 
+const DIRECT_CHANNEL_PREFIX = "dm:";
+
+function getDirectChannelUserIds(name: string) {
+  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
+  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
@@ -37,7 +44,7 @@ export async function POST(request: NextRequest) {
     // Verify user can access this channel
     const { data: channel } = await supabase
       .from("hackathon_chat_channels")
-      .select("id, team_id, channel_type, event_id")
+      .select("id, name, team_id, channel_type, event_id")
       .eq("id", channelId)
       .eq("event_id", eventId)
       .maybeSingle();
@@ -65,6 +72,13 @@ export async function POST(request: NextRequest) {
         if (!user || !adminRoles.includes(user.role)) {
           return NextResponse.json({ error: "Not a team member" }, { status: 403 });
         }
+      }
+    }
+
+    if (channel.channel_type === "dm") {
+      const participantIds = getDirectChannelUserIds(channel.name);
+      if (!participantIds.includes(session.userId)) {
+        return NextResponse.json({ error: "Not a DM participant" }, { status: 403 });
       }
     }
 

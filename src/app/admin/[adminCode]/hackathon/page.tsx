@@ -27,7 +27,7 @@ export default async function HackathonAdminPage({ params }: Props) {
     getHackathonTeamsWithMembers(event.id),
     getHackathonScores(event.id),
     // Admins see ALL channels (no teamId filter)
-    getHackathonChatChannels(event.id, undefined),
+    getHackathonChatChannels(event.id, undefined, session?.userId ?? null),
     getEventChatMembers(event.id),
   ]);
 
