@@ -167,7 +167,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     </div>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
           </div>
@@ -200,7 +200,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     </div>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     </div>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
           </div>
@@ -249,7 +249,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     </p>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
               </div>
             </div>
           </div>
@@ -267,7 +267,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                     <p className="text-[10px] uppercase tracking-[0.2em] text-blue-400/60 font-medium">Attendee View</p>
                   </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-blue-400/50 group-hover:text-blue-300 group-hover:translate-x-1 transition-all" />
+                <ArrowRight className="w-5 h-5 shrink-0 text-blue-400/50 group-hover:text-blue-300 group-hover:translate-x-1 transition-all" />
               </div>
             </div>
           </Link>

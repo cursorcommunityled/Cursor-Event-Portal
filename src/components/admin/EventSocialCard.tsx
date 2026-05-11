@@ -162,7 +162,7 @@ export function EventSocialCard({
               </div>
             </div>
           </div>
-          <ArrowRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+          <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
         </div>
       </div>
     </div>
