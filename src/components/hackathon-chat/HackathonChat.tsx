@@ -255,7 +255,7 @@ function ChatMsg({
 
         {/* Text */}
         {msg.content && (
-          <p className="text-sm text-gray-100 leading-relaxed break-words">
+          <p className="whitespace-pre-wrap text-sm text-gray-100 leading-relaxed break-words">
             {renderContent(msg.content)}
           </p>
         )}
