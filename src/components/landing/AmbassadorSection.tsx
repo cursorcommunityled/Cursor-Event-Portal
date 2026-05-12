@@ -52,10 +52,10 @@ const AmbassadorSection: React.FC = () => {
           <Image
             src="/GIF image.gif"
             alt="Cursor Ambassador Logo"
-            width={240}
-            height={60}
+            width={400}
+            height={100}
             unoptimized
-            className="h-12 w-auto sm:h-14 object-contain object-left"
+            className="h-20 w-auto sm:h-24 object-contain object-left"
           />
         </div>
         <p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
