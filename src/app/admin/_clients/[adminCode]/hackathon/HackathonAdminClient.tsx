@@ -11,6 +11,7 @@ import {
   saveHackathonSettings,
   toggleLeaderboard,
   adminSetTeamLock,
+  adminReviewTeamIcon,
   saveHackathonScore,
   adminRemoveTeamMember,
   adminDissolveTeam,
@@ -447,6 +448,42 @@ export function HackathonAdminClient({
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
+                    {team.icon_photo?.status === "pending" && (
+                      <div className="flex gap-2">
+                        <button
+                          disabled={isPending}
+                          onClick={() => startTransition(async () => {
+                            const res = await adminReviewTeamIcon(adminCode, team.id, "approved");
+                            if (res.success) {
+                              setTeams((prev) => prev.map((t) =>
+                                t.id === team.id && t.icon_photo
+                                  ? { ...t, icon_photo: { ...t.icon_photo, status: "approved" as const, reviewed_at: new Date().toISOString() } }
+                                  : t
+                              ));
+                            } else setError(res.error ?? "Failed");
+                          })}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs border border-green-400/30 text-green-400 hover:bg-green-400/10 transition-all disabled:opacity-50"
+                        >
+                          <Check className="w-3 h-3" /> Icon
+                        </button>
+                        <button
+                          disabled={isPending}
+                          onClick={() => startTransition(async () => {
+                            const res = await adminReviewTeamIcon(adminCode, team.id, "rejected");
+                            if (res.success) {
+                              setTeams((prev) => prev.map((t) =>
+                                t.id === team.id && t.icon_photo
+                                  ? { ...t, icon_photo: { ...t.icon_photo, status: "rejected" as const, reviewed_at: new Date().toISOString() } }
+                                  : t
+                              ));
+                            } else setError(res.error ?? "Failed");
+                          })}
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
+                        >
+                          <X className="w-3 h-3" /> Icon
+                        </button>
+                      </div>
+                    )}
                     <button
                       disabled={isPending}
                       onClick={() => startTransition(async () => {

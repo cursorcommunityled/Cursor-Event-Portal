@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
         file_url: urlData.publicUrl,
         storage_path: filePath,
         caption: caption?.trim() || null,
+        photo_usage: "event_gallery",
         status: autoApprove ? "approved" : "pending",
       })
       .select()

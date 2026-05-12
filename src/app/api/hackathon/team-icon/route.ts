@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
         file_url: urlData.publicUrl,
         storage_path: filePath,
         caption: `Team icon: ${team.name}`,
+        photo_usage: "hackathon_team_icon",
         status: "pending",
       })
       .select()

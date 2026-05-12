@@ -202,6 +202,41 @@ export async function adminSetTeamLock(
   return { success: true };
 }
 
+export async function adminReviewTeamIcon(
+  adminCode: string,
+  teamId: string,
+  status: "approved" | "rejected"
+): Promise<{ success?: true; error?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const supabase = await createServiceClient();
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("icon_photo_id")
+    .eq("id", teamId)
+    .eq("event_id", auth.eventId)
+    .maybeSingle();
+
+  if (!team?.icon_photo_id) return { error: "Team does not have an icon to review." };
+
+  const { error } = await supabase
+    .from("event_photos")
+    .update({
+      status,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", team.icon_photo_id)
+    .eq("event_id", auth.eventId)
+    .eq("photo_usage", "hackathon_team_icon");
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  return { success: true };
+}
+
 // ─── Admin: save score for a team ─────────────────────────────────────────────
 
 export async function saveHackathonScore(

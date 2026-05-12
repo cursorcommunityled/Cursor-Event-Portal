@@ -816,6 +816,7 @@ export interface CursorCredit {
 // ─── Event Photos ─────────────────────────────────────────────────────────────
 
 export type PhotoStatus = "pending" | "approved" | "rejected";
+export type PhotoUsage = "event_gallery" | "hackathon_team_icon";
 
 // ─── Hackathon ────────────────────────────────────────────────────────────────
 
@@ -968,6 +969,7 @@ export interface EventPhoto {
   file_url: string;
   storage_path: string;
   caption: string | null;
+  photo_usage: PhotoUsage;
   status: PhotoStatus;
   reviewed_by: string | null;
   created_at: string;
