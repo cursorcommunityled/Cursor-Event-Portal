@@ -90,7 +90,7 @@ const AmbassadorSection: React.FC = () => {
                     src={ambassador.photo}
                     alt={ambassador.name}
                     fill
-                    className="object-cover transition duration-500 grayscale group-hover:grayscale-0"
+                    className="object-cover transition duration-500 group-hover:grayscale"
                     sizes="80px"
                   />
                 </div>
