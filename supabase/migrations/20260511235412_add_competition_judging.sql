@@ -1,20 +1,31 @@
 -- Flexible final-round judging for competition-backed hackathon projects.
 
+DO $$
+BEGIN
+  IF to_regclass('public.events') IS NULL
+     OR to_regclass('public.users') IS NULL
+     OR to_regclass('public.competitions') IS NULL
+     OR to_regclass('public.competition_entries') IS NULL THEN
+    RAISE EXCEPTION
+      'competition judging requires the base event, user, competition, and competition_entries tables. Apply earlier portal migrations, especially 20260201_competitions.sql, before this migration.';
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS competition_finalist_entries (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id       uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  competition_id uuid        NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
-  entry_id       uuid        NOT NULL REFERENCES competition_entries(id) ON DELETE CASCADE,
+  event_id       uuid        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  competition_id uuid        NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  entry_id       uuid        NOT NULL REFERENCES public.competition_entries(id) ON DELETE CASCADE,
   position       int         NOT NULL DEFAULT 0 CHECK (position >= 0),
-  selected_by    uuid        REFERENCES users(id) ON DELETE SET NULL,
+  selected_by    uuid        REFERENCES public.users(id) ON DELETE SET NULL,
   selected_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (competition_id, entry_id)
 );
 
 CREATE TABLE IF NOT EXISTS competition_judging_criteria (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id       uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  competition_id uuid        NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+  event_id       uuid        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  competition_id uuid        NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
   slug           text        NOT NULL,
   label          text        NOT NULL,
   description    text,
@@ -29,10 +40,10 @@ CREATE TABLE IF NOT EXISTS competition_judging_criteria (
 
 CREATE TABLE IF NOT EXISTS competition_judging_scorecards (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id       uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  competition_id uuid        NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
-  entry_id       uuid        NOT NULL REFERENCES competition_entries(id) ON DELETE CASCADE,
-  judge_id       uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  event_id       uuid        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  competition_id uuid        NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  entry_id       uuid        NOT NULL REFERENCES public.competition_entries(id) ON DELETE CASCADE,
+  judge_id       uuid        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   notes          text,
   submitted_at   timestamptz,
   created_at     timestamptz NOT NULL DEFAULT now(),
@@ -52,9 +63,9 @@ CREATE TABLE IF NOT EXISTS competition_judging_score_items (
 
 CREATE TABLE IF NOT EXISTS competition_judging_results (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id       uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  competition_id uuid        NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
-  entry_id       uuid        NOT NULL REFERENCES competition_entries(id) ON DELETE CASCADE,
+  event_id       uuid        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  competition_id uuid        NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  entry_id       uuid        NOT NULL REFERENCES public.competition_entries(id) ON DELETE CASCADE,
   placement      int         NOT NULL CHECK (placement > 0),
   final_score    numeric(8,2) NOT NULL DEFAULT 0 CHECK (final_score >= 0),
   max_score      numeric(8,2) NOT NULL DEFAULT 100 CHECK (max_score > 0),
