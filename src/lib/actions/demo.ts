@@ -37,6 +37,19 @@ function toUtcIso(localDateTime: string, timezone: string): string {
   return new Date(approxMs + offset).toISOString();
 }
 
+function normalizeBannerImageUrl(value?: string): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+
+  const url = new URL(trimmed);
+  if (url.protocol !== "https:") {
+    throw new Error("Session banner image must be a valid HTTPS URL or local image path");
+  }
+
+  return url.toString();
+}
+
 async function validateAdminAccess(
   eventId: string,
   adminCode?: string
@@ -80,6 +93,7 @@ export async function updateDemoSignupSettings(
   data: {
     isEnabled: boolean;
     speakerName?: string;
+    bannerImageUrl?: string;
     opensAtLocal: string;
     closesAtLocal: string;
     timezone: string;
@@ -104,6 +118,13 @@ export async function updateDemoSignupSettings(
     return { error: "Close time must be after open time" };
   }
 
+  let bannerImageUrl: string | null;
+  try {
+    bannerImageUrl = normalizeBannerImageUrl(data.bannerImageUrl);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Invalid session banner image URL" };
+  }
+
   const supabase = await createServiceClient();
   const { error: upsertError } = await supabase
     .from("demo_signup_settings")
@@ -112,6 +133,7 @@ export async function updateDemoSignupSettings(
         event_id: eventId,
         is_enabled: data.isEnabled,
         speaker_name: data.speakerName?.trim() || null,
+        banner_image_url: bannerImageUrl,
         opens_at: opensAt,
         closes_at: closesAt,
       },
@@ -126,6 +148,7 @@ export async function updateDemoSignupSettings(
   revalidatePath(`/${eventSlug}/demos`);
   revalidatePath(`/admin/${adminCode}/sessions`);
   revalidatePath(`/admin/${adminCode}/demos`);
+  revalidatePath(`/admin/${adminCode}/event-dashboard`);
   revalidatePath(`/admin/${adminCode}`);
   return { success: true };
 }

@@ -84,6 +84,7 @@ export interface DemoSignupSettings {
   event_id: string;
   is_enabled: boolean;
   speaker_name: string | null;
+  banner_image_url: string | null;
   opens_at: string;
   closes_at: string;
   created_at: string;

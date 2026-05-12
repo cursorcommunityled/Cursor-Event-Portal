@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Image from "next/image";
 import { DemoSignupPanel } from "@/components/demos/DemoSignupPanel";
 import { getEventBySlug } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
@@ -78,16 +77,14 @@ export default async function SessionsPage({ params }: SessionsPageProps) {
             Choose a mentor or builder session during the event.
           </p>
         </div>
-        <div className="relative w-full sm:w-64 sm:flex-shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02]">
-          <Image
-            src="/Adventure.png"
-            alt="Mentor sessions and builder support"
-            width={256}
-            height={160}
-            className="w-full h-auto object-cover"
-            priority
+        {settings.banner_image_url && (
+          <div
+            role="img"
+            aria-label={`${event.name} session banner`}
+            className="w-full h-20 sm:w-64 sm:h-20 sm:flex-shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] bg-cover bg-center"
+            style={{ backgroundImage: `url(${JSON.stringify(settings.banner_image_url)})` }}
           />
-        </div>
+        )}
       </div>
 
       <DemoSignupPanel
