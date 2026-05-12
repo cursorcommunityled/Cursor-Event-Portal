@@ -2,6 +2,7 @@ import { getEventForAdmin } from "@/lib/utils/admin";
 import {
   getHackathonSettings, getHackathonTeamsWithMembers, getHackathonScores,
   getHackathonChatChannels, getHackathonChatMessages, getEventChatMembers,
+  getCompetitionJudgingData,
 } from "@/lib/supabase/queries";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { getSession } from "@/lib/actions/registration";
@@ -22,13 +23,14 @@ export default async function HackathonAdminPage({ params }: Props) {
 
   const session = await getSession();
 
-  const [settings, teams, scores, chatChannels, chatMembers] = await Promise.all([
+  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions] = await Promise.all([
     getHackathonSettings(event.id),
     getHackathonTeamsWithMembers(event.id),
     getHackathonScores(event.id),
     // Admins see ALL channels (no teamId filter)
     getHackathonChatChannels(event.id, undefined, session?.userId ?? null),
     getEventChatMembers(event.id),
+    getCompetitionJudgingData(event.id),
   ]);
 
   const defaultChannel = chatChannels[0] ?? null;
@@ -48,6 +50,7 @@ export default async function HackathonAdminPage({ params }: Props) {
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
       adminUserId={session?.userId ?? null}
+      judgingCompetitions={judgingCompetitions}
     />
   );
 }

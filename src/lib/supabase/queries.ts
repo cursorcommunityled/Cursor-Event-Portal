@@ -25,6 +25,12 @@ import type {
   Competition,
   CompetitionEntry,
   CompetitionWithEntries,
+  CompetitionFinalistEntry,
+  CompetitionJudgingCompetition,
+  CompetitionJudgingCriterion,
+  CompetitionJudgingResult,
+  CompetitionJudgingScorecard,
+  CompetitionJudgingStanding,
   ConversationTheme,
   EventThemeSelection,
   PlannedEvent,
@@ -1380,9 +1386,25 @@ export async function getAllCompetitions(eventId: string): Promise<CompetitionWi
       return simpleData.map(c => ({ ...c, entries: [] })) as CompetitionWithEntries[];
     }
     
+    const competitionIds = (data ?? []).map((competition) => competition.id);
+    const { data: finalistRows } = competitionIds.length
+      ? await supabase
+          .from("competition_finalist_entries")
+          .select("*")
+          .in("competition_id", competitionIds)
+          .order("position", { ascending: true })
+      : { data: [] };
+    const finalistsByCompetition = new Map<string, CompetitionFinalistEntry[]>();
+    for (const finalist of (finalistRows ?? []) as CompetitionFinalistEntry[]) {
+      const existing = finalistsByCompetition.get(finalist.competition_id) ?? [];
+      existing.push(finalist);
+      finalistsByCompetition.set(finalist.competition_id, existing);
+    }
+
     // Load vote counts for each entry
     if (data?.length) {
       for (const comp of data) {
+        comp.finalists = finalistsByCompetition.get(comp.id) ?? [];
         if (comp.entries?.length) {
           const { data: votes } = await supabase
             .from("competition_votes")
@@ -1458,6 +1480,128 @@ export async function getCompetitionWithEntries(
   }
 
   return data;
+}
+
+function buildJudgingStandings(
+  competition: CompetitionWithEntries,
+  finalists: CompetitionFinalistEntry[],
+  criteria: CompetitionJudgingCriterion[],
+  scorecards: CompetitionJudgingScorecard[]
+): CompetitionJudgingStanding[] {
+  const entryById = new Map(competition.entries.map((entry) => [entry.id, entry]));
+  const maxScore = criteria
+    .filter((criterion) => criterion.is_active)
+    .reduce((sum, criterion) => sum + Number(criterion.max_points), 0) || 100;
+
+  return finalists
+    .map((finalist) => {
+      const cards = scorecards.filter((scorecard) => scorecard.entry_id === finalist.entry_id);
+      const total = cards.reduce((sum, scorecard) => {
+        const cardTotal = (scorecard.items ?? []).reduce(
+          (itemSum, item) => itemSum + Number(item.points ?? 0),
+          0
+        );
+        return sum + cardTotal;
+      }, 0);
+
+      const entry = finalist.entry ?? entryById.get(finalist.entry_id);
+      if (!entry) return null;
+
+      return {
+        competition_id: competition.id,
+        entry_id: finalist.entry_id,
+        placement: 0,
+        final_score: cards.length ? Math.round((total / cards.length) * 100) / 100 : 0,
+        max_score: maxScore,
+        judge_count: cards.length,
+        entry,
+      };
+    })
+    .filter((standing): standing is Omit<CompetitionJudgingStanding, "placement"> & { placement: number } => standing !== null)
+    .sort((a, b) => b.final_score - a.final_score || b.judge_count - a.judge_count)
+    .map((standing, index) => ({ ...standing, placement: index + 1 }));
+}
+
+export async function getCompetitionJudgingData(
+  eventId: string
+): Promise<CompetitionJudgingCompetition[]> {
+  noStore();
+  const competitions = await getAllCompetitions(eventId);
+  if (competitions.length === 0) return [];
+
+  const supabase = await createServiceClient();
+  const competitionIds = competitions.map((competition) => competition.id);
+
+  const [finalistsResult, criteriaResult, scorecardsResult, resultsResult] = await Promise.all([
+    supabase
+      .from("competition_finalist_entries")
+      .select("*, entry:competition_entries!competition_finalist_entries_entry_id_fkey(*, user:users(id, name, email))")
+      .eq("event_id", eventId)
+      .in("competition_id", competitionIds)
+      .order("position", { ascending: true }),
+    supabase
+      .from("competition_judging_criteria")
+      .select("*")
+      .eq("event_id", eventId)
+      .in("competition_id", competitionIds)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("competition_judging_scorecards")
+      .select("*, judge:users!competition_judging_scorecards_judge_id_fkey(id, name), items:competition_judging_score_items(*)")
+      .eq("event_id", eventId)
+      .in("competition_id", competitionIds),
+    supabase
+      .from("competition_judging_results")
+      .select("*, entry:competition_entries!competition_judging_results_entry_id_fkey(*, user:users(id, name, email))")
+      .eq("event_id", eventId)
+      .in("competition_id", competitionIds)
+      .order("placement", { ascending: true }),
+  ]);
+
+  const finalists = (finalistsResult.data ?? []) as unknown as CompetitionFinalistEntry[];
+  const criteria = (criteriaResult.data ?? []) as CompetitionJudgingCriterion[];
+  const scorecards = (scorecardsResult.data ?? []) as unknown as CompetitionJudgingScorecard[];
+  const results = (resultsResult.data ?? []) as unknown as CompetitionJudgingResult[];
+
+  return competitions.map((competition) => {
+    const compFinalists = finalists.filter((finalist) => finalist.competition_id === competition.id);
+    const compCriteria = criteria.filter((criterion) => criterion.competition_id === competition.id);
+    const compScorecards = scorecards.filter((scorecard) => scorecard.competition_id === competition.id);
+    const compResults = results.filter((result) => result.competition_id === competition.id);
+
+    return {
+      ...competition,
+      finalists: compFinalists,
+      criteria: compCriteria,
+      scorecards: compScorecards,
+      results: compResults,
+      standings: buildJudgingStandings(competition, compFinalists, compCriteria, compScorecards),
+    };
+  });
+}
+
+export async function getPublishedCompetitionJudgingResults(
+  eventId: string
+): Promise<CompetitionJudgingResult[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("competition_judging_results")
+    .select(`
+      *,
+      entry:competition_entries!competition_judging_results_entry_id_fkey(*, user:users(id, name, email)),
+      competition:competitions!competition_judging_results_competition_id_fkey(id, title)
+    `)
+    .eq("event_id", eventId)
+    .eq("is_published", true)
+    .order("published_at", { ascending: false })
+    .order("placement", { ascending: true });
+
+  if (error) {
+    console.error("[getPublishedCompetitionJudgingResults] Error:", error);
+    return [];
+  }
+  return (data ?? []) as unknown as CompetitionJudgingResult[];
 }
 
 // ─── Conversation Themes ──────────────────────────────────────────────────────
