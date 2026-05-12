@@ -109,6 +109,24 @@ const AmbassadorSection: React.FC = () => {
             </motion.article>
           );
         })}
+        <motion.article
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.3, delay: ambassadors.length * 0.07 }}
+          className="relative min-h-[220px] overflow-hidden rounded-md border border-cursor-border bg-cursor-bg-dark p-5 group hover:border-cursor-accent-purple/30 hover:shadow-[0_0_15px_rgba(184,168,200,0.08)] transition-all duration-300"
+        >
+          <div className="relative h-full min-h-[180px] rounded border border-white/10 bg-black/20">
+            <Image
+              src="/GIF image.gif"
+              alt="Spinning Cursor ambassador animation"
+              fill
+              unoptimized
+              className="object-contain p-3 transition duration-500 group-hover:scale-105"
+              sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+            />
+          </div>
+        </motion.article>
       </div>
     </motion.section>
   );
