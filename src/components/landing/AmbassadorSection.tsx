@@ -47,12 +47,26 @@ const AmbassadorSection: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="mb-16"
     >
-      <p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
-        {t('ambassadors.title', { communityName: siteConfig.communityName })}
-      </p>
-      <h2 className="text-2xl md:text-3xl font-bold text-cursor-text mb-6">
-        {t('ambassadors.heading')}
-      </h2>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
+            {t('ambassadors.title', { communityName: siteConfig.communityName })}
+          </p>
+          <h2 className="text-2xl md:text-3xl font-bold text-cursor-text">
+            {t('ambassadors.heading')}
+          </h2>
+        </div>
+        <div className="relative h-16 w-full max-w-[260px] overflow-hidden rounded border border-white/10 bg-black/20 sm:h-20 sm:w-[280px]">
+          <Image
+            src="/GIF image.gif"
+            alt="Spinning Cursor ambassador animation"
+            fill
+            unoptimized
+            className="object-contain p-2"
+            sizes="(min-width: 640px) 280px, 260px"
+          />
+        </div>
+      </div>
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {ambassadors.map((ambassador, index) => {
@@ -109,24 +123,6 @@ const AmbassadorSection: React.FC = () => {
             </motion.article>
           );
         })}
-        <motion.article
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ duration: 0.3, delay: ambassadors.length * 0.07 }}
-          className="relative min-h-[220px] overflow-hidden rounded-md border border-cursor-border bg-cursor-bg-dark p-5 group hover:border-cursor-accent-purple/30 hover:shadow-[0_0_15px_rgba(184,168,200,0.08)] transition-all duration-300"
-        >
-          <div className="relative h-full min-h-[180px] rounded border border-white/10 bg-black/20">
-            <Image
-              src="/GIF image.gif"
-              alt="Spinning Cursor ambassador animation"
-              fill
-              unoptimized
-              className="object-contain p-3 transition duration-500 group-hover:scale-105"
-              sizes="(min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
-            />
-          </div>
-        </motion.article>
       </div>
     </motion.section>
   );
