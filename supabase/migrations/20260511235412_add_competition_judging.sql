@@ -1,14 +1,155 @@
 -- Flexible final-round judging for competition-backed hackathon projects.
+-- This migration can be applied on databases that have not yet run the older
+-- competition migrations by first ensuring the base competition tables exist.
 
 DO $$
 BEGIN
-  IF to_regclass('public.events') IS NULL
-     OR to_regclass('public.users') IS NULL
-     OR to_regclass('public.competitions') IS NULL
-     OR to_regclass('public.competition_entries') IS NULL THEN
+  IF to_regclass('public.events') IS NULL OR to_regclass('public.users') IS NULL THEN
     RAISE EXCEPTION
-      'competition judging requires the base event, user, competition, and competition_entries tables. Apply earlier portal migrations, especially 20260201_competitions.sql, before this migration.';
+      'competition judging requires the base events and users tables before competition tables can be created.';
   END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.competitions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  rules TEXT,
+  status TEXT NOT NULL DEFAULT 'draft',
+  voting_mode TEXT NOT NULL DEFAULT 'group',
+  winner_entry_id UUID,
+  winner_method TEXT CHECK (winner_method IN ('auto', 'manual')),
+  top3_entry_ids UUID[] DEFAULT '{}',
+  group_winner_entry_id UUID,
+  admin_winner_entry_id UUID,
+  starts_at TIMESTAMPTZ,
+  ends_at TIMESTAMPTZ,
+  max_entries INT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.competition_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  competition_id UUID NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  repo_url TEXT NOT NULL,
+  project_url TEXT,
+  preview_image_url TEXT,
+  video_url TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(competition_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.competition_votes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  competition_id UUID NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  entry_id UUID NOT NULL REFERENCES public.competition_entries(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  score INT NOT NULL DEFAULT 1 CHECK (score >= 1 AND score <= 5),
+  is_judge BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(competition_id, user_id, entry_id)
+);
+
+ALTER TABLE public.competitions
+  ADD COLUMN IF NOT EXISTS top3_entry_ids UUID[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS group_winner_entry_id UUID,
+  ADD COLUMN IF NOT EXISTS admin_winner_entry_id UUID;
+
+ALTER TABLE public.competition_entries
+  ADD COLUMN IF NOT EXISTS preview_image_url TEXT,
+  ADD COLUMN IF NOT EXISTS video_url TEXT;
+
+COMMENT ON COLUMN public.competition_entries.preview_image_url IS 'URL to screenshot/image for voting display and big-screen showcase';
+COMMENT ON COLUMN public.competition_entries.video_url IS 'Optional demo video URL (e.g. YouTube, Vimeo)';
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'competitions_voting_mode_check'
+      AND conrelid = 'public.competitions'::regclass
+  ) THEN
+    ALTER TABLE public.competitions DROP CONSTRAINT competitions_voting_mode_check;
+  END IF;
+
+  ALTER TABLE public.competitions
+    ADD CONSTRAINT competitions_voting_mode_check
+    CHECK (voting_mode IN ('group', 'judges', 'both', 'top3'));
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'competitions_winner_entry_id_fkey'
+      AND conrelid = 'public.competitions'::regclass
+  ) THEN
+    ALTER TABLE public.competitions
+      ADD CONSTRAINT competitions_winner_entry_id_fkey
+      FOREIGN KEY (winner_entry_id) REFERENCES public.competition_entries(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'competitions_group_winner_entry_id_fkey'
+      AND conrelid = 'public.competitions'::regclass
+  ) THEN
+    ALTER TABLE public.competitions
+      ADD CONSTRAINT competitions_group_winner_entry_id_fkey
+      FOREIGN KEY (group_winner_entry_id) REFERENCES public.competition_entries(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'competitions_admin_winner_entry_id_fkey'
+      AND conrelid = 'public.competitions'::regclass
+  ) THEN
+    ALTER TABLE public.competitions
+      ADD CONSTRAINT competitions_admin_winner_entry_id_fkey
+      FOREIGN KEY (admin_winner_entry_id) REFERENCES public.competition_entries(id) ON DELETE SET NULL;
+  END IF;
+END $$;
+
+ALTER TABLE public.competitions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.competition_votes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read competitions" ON public.competitions;
+CREATE POLICY "Public read competitions" ON public.competitions FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Service write competitions" ON public.competitions;
+CREATE POLICY "Service write competitions" ON public.competitions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public read competition_entries" ON public.competition_entries;
+CREATE POLICY "Public read competition_entries" ON public.competition_entries FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Service write competition_entries" ON public.competition_entries;
+CREATE POLICY "Service write competition_entries" ON public.competition_entries FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public read competition_votes" ON public.competition_votes;
+CREATE POLICY "Public read competition_votes" ON public.competition_votes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Service write competition_votes" ON public.competition_votes;
+CREATE POLICY "Service write competition_votes" ON public.competition_votes FOR ALL USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.competitions;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.competition_entries;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.competition_votes;
+EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 CREATE TABLE IF NOT EXISTS competition_finalist_entries (
