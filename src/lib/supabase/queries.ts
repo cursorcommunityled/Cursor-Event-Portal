@@ -1851,6 +1851,11 @@ export async function getOpenExchangePosts(eventId: string): Promise<ExchangePos
 
 const EVENT_GALLERY_PHOTO_USAGE = "event_gallery";
 
+function isEventGalleryPhoto(photo: Pick<EventPhoto, "storage_path" | "caption"> & { photo_usage?: string | null }): boolean {
+  if (photo.photo_usage) return photo.photo_usage === EVENT_GALLERY_PHOTO_USAGE;
+  return !photo.storage_path.includes("/hackathon-team-icons/") && !photo.caption?.startsWith("Team icon:");
+}
+
 export async function getEventPhotosForAdmin(eventId: string, status?: PhotoStatus): Promise<EventPhoto[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -1943,12 +1948,25 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
   noStore();
   const supabase = await createServiceClient();
 
-  const { data: photos, error: photosError } = await supabase
+  let { data: photos, error: photosError } = await supabase
     .from("event_photos")
     .select("*")
     .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .eq("status", "approved")
     .order("created_at", { ascending: false });
+
+  // If the app deploys before the DB migration, keep recap photos visible while
+  // still excluding hackathon team icons by their legacy storage/caption shape.
+  if (photosError?.code === "42703") {
+    const fallback = await supabase
+      .from("event_photos")
+      .select("*")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+
+    photos = fallback.data?.filter(isEventGalleryPhoto) ?? null;
+    photosError = fallback.error;
+  }
 
   if (photosError || !photos || photos.length === 0) {
     return [];
