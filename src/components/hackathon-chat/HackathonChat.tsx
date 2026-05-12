@@ -191,7 +191,7 @@ function ChatMsg({
     <div
       className={cn(
         "group flex gap-3 px-4 rounded-xl transition-colors duration-150",
-        isGrouped ? "py-0.5" : "pt-3 pb-0.5",
+        isGrouped ? "py-1.5" : "pt-4 pb-1.5",
         showActions && "bg-white/5",
         msg.is_pinned && "bg-yellow-400/5 border-l-2 border-yellow-400/40 pl-3",
         "hover:bg-white/[0.03]"
