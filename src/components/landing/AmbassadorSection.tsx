@@ -47,25 +47,23 @@ const AmbassadorSection: React.FC = () => {
       transition={{ duration: 0.5 }}
       className="mb-16"
     >
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
-            {t('ambassadors.title', { communityName: siteConfig.communityName })}
-          </p>
-          <h2 className="text-2xl md:text-3xl font-bold text-cursor-text">
-            {t('ambassadors.heading')}
-          </h2>
-        </div>
-        <div className="relative h-16 w-full max-w-[260px] overflow-hidden rounded border border-white/10 bg-black/20 sm:h-20 sm:w-[280px]">
+      <div className="mb-10">
+        <div className="mb-6">
           <Image
             src="/GIF image.gif"
-            alt="Spinning Cursor ambassador animation"
-            fill
+            alt="Cursor Ambassador Logo"
+            width={240}
+            height={60}
             unoptimized
-            className="object-contain p-2"
-            sizes="(min-width: 640px) 280px, 260px"
+            className="h-12 w-auto sm:h-14 object-contain object-left"
           />
         </div>
+        <p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
+          {t('ambassadors.title', { communityName: siteConfig.communityName })}
+        </p>
+        <h2 className="text-2xl md:text-3xl font-bold text-cursor-text">
+          {t('ambassadors.heading')}
+        </h2>
       </div>
 
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -87,12 +85,12 @@ const AmbassadorSection: React.FC = () => {
               className="bg-cursor-bg-dark border border-cursor-border rounded-md p-5 group hover:border-cursor-accent-purple/30 hover:shadow-[0_0_15px_rgba(184,168,200,0.08)] transition-all duration-300"
             >
               <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white/15 group-hover:scale-125 group-hover:border-white/40 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] transition-all duration-500 ease-out">
+                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-cursor-border-emphasis">
                   <Image
                     src={ambassador.photo}
                     alt={ambassador.name}
                     fill
-                    className="object-cover saturate-[1.15] brightness-105 transition duration-500 group-hover:saturate-[1.3] group-hover:brightness-110"
+                    className="object-cover transition duration-500 grayscale group-hover:grayscale-0"
                     sizes="80px"
                   />
                 </div>
