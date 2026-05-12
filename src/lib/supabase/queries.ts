@@ -1849,6 +1849,8 @@ export async function getOpenExchangePosts(eventId: string): Promise<ExchangePos
 
 // ─── Event Photos ─────────────────────────────────────────────────────────────
 
+const EVENT_GALLERY_PHOTO_USAGE = "event_gallery";
+
 export async function getEventPhotosForAdmin(eventId: string, status?: PhotoStatus): Promise<EventPhoto[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -1857,6 +1859,7 @@ export async function getEventPhotosForAdmin(eventId: string, status?: PhotoStat
     .from("event_photos")
     .select("*, uploader:users!event_photos_uploaded_by_fkey(id, name, email)")
     .eq("event_id", eventId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .order("created_at", { ascending: false });
 
   if (status) {
@@ -1879,6 +1882,7 @@ export async function getApprovedEventPhotos(eventId: string): Promise<EventPhot
     .from("event_photos")
     .select("*")
     .eq("event_id", eventId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .eq("status", "approved")
     .order("created_at", { ascending: false });
 
@@ -1896,6 +1900,7 @@ export async function getPendingPhotoCount(eventId: string): Promise<number> {
     .from("event_photos")
     .select("id", { count: "exact", head: true })
     .eq("event_id", eventId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .eq("status", "pending");
 
   if (error) {
@@ -1913,6 +1918,7 @@ export async function getUserEventPhotos(eventId: string, userId: string): Promi
     .select("*")
     .eq("event_id", eventId)
     .eq("uploaded_by", userId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -1940,6 +1946,7 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
   const { data: photos, error: photosError } = await supabase
     .from("event_photos")
     .select("*")
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .eq("status", "approved")
     .order("created_at", { ascending: false });
 

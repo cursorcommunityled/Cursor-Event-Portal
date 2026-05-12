@@ -6,6 +6,7 @@ create table if not exists public.event_photos (
   file_url text not null,
   storage_path text not null,
   caption text,
+  photo_usage text not null default 'event_gallery' check (photo_usage in ('event_gallery', 'hackathon_team_icon')),
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   reviewed_by uuid references public.users(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -15,6 +16,7 @@ create table if not exists public.event_photos (
 create index if not exists idx_event_photos_event_id on public.event_photos(event_id);
 create index if not exists idx_event_photos_status on public.event_photos(event_id, status);
 create index if not exists idx_event_photos_uploaded_by on public.event_photos(uploaded_by);
+create index if not exists idx_event_photos_event_usage_status on public.event_photos(event_id, photo_usage, status);
 
 -- Storage bucket for event photos
 insert into storage.buckets (id, name, public)

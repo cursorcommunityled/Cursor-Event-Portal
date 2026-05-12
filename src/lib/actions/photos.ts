@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { PhotoStatus } from "@/types";
 
+const EVENT_GALLERY_PHOTO_USAGE = "event_gallery";
+
 async function validateAdminAccess(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
   eventId: string,
@@ -28,6 +30,7 @@ export async function getEventPhotos(eventId: string, status?: PhotoStatus) {
     .from("event_photos")
     .select("*, uploader:uploaded_by(id, name, email)")
     .eq("event_id", eventId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .order("created_at", { ascending: false });
 
   if (status) {
@@ -51,6 +54,7 @@ export async function getPendingPhotoCount(eventId: string) {
     .from("event_photos")
     .select("id", { count: "exact", head: true })
     .eq("event_id", eventId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .eq("status", "pending");
 
   if (error) {
@@ -213,6 +217,21 @@ export async function toggleHeroFeatured(
   const updated = isCurrentlyFeatured
     ? current.filter((id) => id !== photoId)
     : [...current, photoId];
+
+  if (!isCurrentlyFeatured) {
+    const { data: photo } = await supabase
+      .from("event_photos")
+      .select("id")
+      .eq("id", photoId)
+      .eq("event_id", eventId)
+      .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
+      .eq("status", "approved")
+      .maybeSingle();
+
+    if (!photo) {
+      return { error: "Only approved event gallery photos can be featured." };
+    }
+  }
 
   const { error } = await supabase
     .from("app_settings")
