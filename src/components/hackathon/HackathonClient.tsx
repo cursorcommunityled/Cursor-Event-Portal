@@ -21,9 +21,10 @@ import {
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
   HackathonTeamInvite, HackathonScore, EventPhoto,
-  HackathonChatChannel, HackathonChatMessage, ChatMember,
+  HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingResult,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
+import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 
 interface Props {
   event: Event;
@@ -40,6 +41,7 @@ interface Props {
   initialMessages: HackathonChatMessage[];
   initialChannelId: string;
   chatMembers: ChatMember[];
+  publishedJudgingResults: CompetitionJudgingResult[];
 }
 
 type Tab = "my-team" | "all-teams" | "open-pool" | "chat";
@@ -69,6 +71,7 @@ export function HackathonClient({
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
+  publishedJudgingResults,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -348,6 +351,8 @@ export function HackathonClient({
 
       {/* Header */}
       {header}
+
+      <JudgingWinnersPodium results={publishedJudgingResults} />
 
       {/* Pending invite banners */}
       {receivedInvites.length > 0 && (

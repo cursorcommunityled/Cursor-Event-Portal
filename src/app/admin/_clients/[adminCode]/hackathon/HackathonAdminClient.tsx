@@ -18,15 +18,16 @@ import {
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
-  ImageIcon, MessageSquare,
+  ImageIcon, MessageSquare, Star,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore,
-  HackathonChatChannel, HackathonChatMessage, ChatMember,
+  HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingCompetition,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
+import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
 
 interface Props {
   event: Event;
@@ -39,9 +40,10 @@ interface Props {
   initialChannelId: string;
   chatMembers: ChatMember[];
   adminUserId: string | null;
+  judgingCompetitions: CompetitionJudgingCompetition[];
 }
 
-type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "chat";
+type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
 
 const SCORE_CATEGORIES = [
   { key: "innovation" as const, label: "Innovation" },
@@ -82,6 +84,7 @@ function buildScoreNotes(scores: HackathonScore[]): Record<string, string> {
 export function HackathonAdminClient({
   event, adminCode, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
+  judgingCompetitions,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
@@ -149,6 +152,10 @@ export function HackathonAdminClient({
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "competition_finalist_entries", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "competition_judging_scorecards", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "competition_judging_score_items" }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "competition_judging_results", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "event_photos", filter: `event_id=eq.${event.id}` }, refresh)
       .subscribe();
 
@@ -176,6 +183,7 @@ export function HackathonAdminClient({
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
     { id: "scoring", label: "Scoring", icon: <BarChart3 className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
+    { id: "judging", label: "Judging", icon: <Star className="w-4 h-4" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
@@ -672,6 +680,16 @@ export function HackathonAdminClient({
               </div>
             ))}
           </div>
+        )}
+
+        {/* Judging tab */}
+        {tab === "judging" && (
+          <HackathonJudgingAdminPanel
+            adminCode={adminCode}
+            eventSlug={event.slug}
+            adminUserId={adminUserId}
+            competitions={judgingCompetitions}
+          />
         )}
 
         {/* Chat tab */}

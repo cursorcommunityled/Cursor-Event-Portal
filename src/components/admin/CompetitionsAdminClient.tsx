@@ -33,6 +33,7 @@ import {
   finalizeGroupWinner,
   castVote,
 } from "@/lib/actions/competitions";
+import { setCompetitionFinalists } from "@/lib/actions/competition-judging";
 import { exportCompetitionToHackathonJudge } from "@/lib/actions/hackathon-export";
 import type { CompetitionWithEntries, CompetitionStatus } from "@/types";
 
@@ -86,6 +87,14 @@ export function CompetitionsAdminClient({
 
   useEffect(() => {
     setCompetitions(initialCompetitions);
+    setFinalistSelections(
+      Object.fromEntries(
+        initialCompetitions.map((comp) => [
+          comp.id,
+          new Set((comp.finalists ?? []).map((finalist) => finalist.entry_id)),
+        ])
+      )
+    );
   }, [initialCompetitions]);
 
   useEffect(() => {
@@ -109,6 +118,14 @@ export function CompetitionsAdminClient({
 
   // top3: track which entries the admin has checked as finalists
   const [top3Selections, setTop3Selections] = useState<Record<string, Set<string>>>({});
+  const [finalistSelections, setFinalistSelections] = useState<Record<string, Set<string>>>(() =>
+    Object.fromEntries(
+      initialCompetitions.map((comp) => [
+        comp.id,
+        new Set((comp.finalists ?? []).map((finalist) => finalist.entry_id)),
+      ])
+    )
+  );
   // admin voting state
   const [votingEntryId, setVotingEntryId] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
@@ -122,6 +139,15 @@ export function CompetitionsAdminClient({
       } else if (current.size < 3) {
         current.add(entryId);
       }
+      return { ...prev, [compId]: current };
+    });
+  };
+
+  const toggleFinalistSelection = (compId: string, entryId: string) => {
+    setFinalistSelections((prev) => {
+      const current = new Set(prev[compId] || []);
+      if (current.has(entryId)) current.delete(entryId);
+      else current.add(entryId);
       return { ...prev, [compId]: current };
     });
   };
@@ -241,6 +267,19 @@ export function CompetitionsAdminClient({
     setLoading(compId);
     setError(null);
     const result = await selectTop3Entries(compId, eventSlug, Array.from(selected), adminCode);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      router.refresh();
+    }
+    setLoading(null);
+  };
+
+  const handleSaveFinalists = async (compId: string) => {
+    const selected = Array.from(finalistSelections[compId] || []);
+    setLoading(compId);
+    setError(null);
+    const result = await setCompetitionFinalists(compId, eventSlug, selected, adminCode);
     if (result.error) {
       setError(result.error);
     } else {
@@ -443,6 +482,8 @@ export function CompetitionsAdminClient({
         const isTop3 = comp.voting_mode === "top3";
         const top3Ids = comp.top3_entry_ids || [];
         const pendingTop3 = top3Selections[comp.id] || new Set<string>();
+        const flexibleFinalists = comp.finalists ?? [];
+        const pendingFinalists = finalistSelections[comp.id] || new Set<string>();
 
         return (
           <div key={comp.id} className="glass rounded-[32px] border-white/10 overflow-hidden">
@@ -466,6 +507,7 @@ export function CompetitionsAdminClient({
                   </div>
                   <p className="text-xs text-gray-500">
                     {comp.entries?.length || 0} entries
+                    {flexibleFinalists.length > 0 && ` - ${flexibleFinalists.length} judging finalist${flexibleFinalists.length !== 1 ? "s" : ""}`}
                     {isTop3 && top3Ids.length === 3 && " - 3 finalists selected"}
                     {isTop3 && comp.group_winner_entry_id && " - People's Choice set"}
                     {isTop3 && comp.admin_winner_entry_id && " - Admin Pick set"}
@@ -563,6 +605,32 @@ export function CompetitionsAdminClient({
                 {comp.description && (
                   <p className="text-sm text-gray-400">{comp.description}</p>
                 )}
+
+                <div className="bg-cyan-500/10 rounded-2xl p-4 space-y-3 border border-cyan-500/20">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-300 font-medium">
+                        Final-Round Judging
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Select any number of entries to send to the Hackathon admin judging module.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleSaveFinalists(comp.id)}
+                      disabled={loading === comp.id}
+                      className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-200 text-xs font-medium hover:bg-cyan-500/30 transition-all disabled:opacity-50"
+                    >
+                      <Star className="w-3.5 h-3.5" />
+                      Save Finalists ({pendingFinalists.size})
+                    </button>
+                  </div>
+                  {flexibleFinalists.length > 0 && (
+                    <p className="text-xs text-cyan-200">
+                      Current judging finalists: {flexibleFinalists.length}
+                    </p>
+                  )}
+                </div>
 
                 {/* ── TOP 3 MODE ── */}
                 {isTop3 && (
@@ -668,6 +736,8 @@ export function CompetitionsAdminClient({
                     comp.entries.map((entry) => {
                       const isFinalist = top3Ids.includes(entry.id);
                       const isPendingSelected = pendingTop3.has(entry.id);
+                      const isJudgingFinalist = flexibleFinalists.some((finalist) => finalist.entry_id === entry.id);
+                      const isPendingJudgingFinalist = pendingFinalists.has(entry.id);
                       const isAdminWinner = entry.id === comp.admin_winner_entry_id;
                       const isGroupWinner = entry.id === comp.group_winner_entry_id;
                       const isWinner = entry.id === comp.winner_entry_id;
@@ -686,6 +756,8 @@ export function CompetitionsAdminClient({
                               ? "border-blue-500/40 bg-blue-500/10"
                               : isWinner
                               ? "border-yellow-500/30 bg-yellow-500/5"
+                              : isPendingJudgingFinalist
+                              ? "border-cyan-500/50 bg-cyan-500/10"
                               : isFinalist
                               ? "border-purple-500/30 bg-purple-500/5"
                               : isPendingSelected
@@ -749,6 +821,9 @@ export function CompetitionsAdminClient({
                                 {isFinalist && !isAdminWinner && !isGroupWinner && (
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Finalist</span>
                                 )}
+                                {isJudgingFinalist && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-200">Judging</span>
+                                )}
                                 {isAdminWinner && (
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Admin Pick</span>
                                 )}
@@ -787,6 +862,18 @@ export function CompetitionsAdminClient({
                           </div>
 
                           <div className="flex items-center gap-2 ml-3 shrink-0">
+                            <button
+                              onClick={() => toggleFinalistSelection(comp.id, entry.id)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                isPendingJudgingFinalist
+                                  ? "bg-cyan-500/30 text-cyan-100 hover:bg-cyan-500/40"
+                                  : "bg-white/5 text-gray-400 hover:bg-white/10"
+                              )}
+                            >
+                              {isPendingJudgingFinalist ? "Judging Finalist" : "Send to Judging"}
+                            </button>
+
                             {/* StackBlitz preview */}
                             {(() => {
                               const ghRepo = parseGitHubRepo(entry.repo_url);

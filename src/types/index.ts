@@ -509,6 +509,92 @@ export interface CompetitionWithEntries extends Competition {
   // top3 mode resolved entries
   group_winner_entry?: CompetitionEntry | null;
   admin_winner_entry?: CompetitionEntry | null;
+  finalists?: CompetitionFinalistEntry[];
+}
+
+export interface CompetitionFinalistEntry {
+  id: string;
+  event_id: string;
+  competition_id: string;
+  entry_id: string;
+  position: number;
+  selected_by: string | null;
+  selected_at: string;
+  entry?: CompetitionEntry;
+}
+
+export interface CompetitionJudgingCriterion {
+  id: string;
+  event_id: string;
+  competition_id: string;
+  slug: string;
+  label: string;
+  description: string | null;
+  max_points: number;
+  weight: number;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompetitionJudgingScoreItem {
+  id: string;
+  scorecard_id: string;
+  criterion_id: string;
+  points: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompetitionJudgingScorecard {
+  id: string;
+  event_id: string;
+  competition_id: string;
+  entry_id: string;
+  judge_id: string;
+  notes: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+  items: CompetitionJudgingScoreItem[];
+  judge?: Pick<User, "id" | "name">;
+  entry?: CompetitionEntry;
+}
+
+export interface CompetitionJudgingResult {
+  id: string;
+  event_id: string;
+  competition_id: string;
+  entry_id: string;
+  placement: number;
+  final_score: number;
+  max_score: number;
+  judge_count: number;
+  is_published: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  entry?: CompetitionEntry;
+  competition?: Pick<Competition, "id" | "title">;
+}
+
+export interface CompetitionJudgingStanding {
+  competition_id: string;
+  entry_id: string;
+  placement: number;
+  final_score: number;
+  max_score: number;
+  judge_count: number;
+  entry: CompetitionEntry;
+}
+
+export interface CompetitionJudgingCompetition extends CompetitionWithEntries {
+  finalists: CompetitionFinalistEntry[];
+  criteria: CompetitionJudgingCriterion[];
+  scorecards: CompetitionJudgingScorecard[];
+  results: CompetitionJudgingResult[];
+  standings: CompetitionJudgingStanding[];
 }
 
 // ─── Conversation Themes ─────────────────────────────────────────────────────

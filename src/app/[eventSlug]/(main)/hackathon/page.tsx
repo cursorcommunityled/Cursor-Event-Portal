@@ -11,6 +11,7 @@ import {
   getHackathonChatChannels,
   getHackathonChatMessages,
   getEventChatMembers,
+  getPublishedCompetitionJudgingResults,
 } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { getIntakeStatus } from "@/lib/actions/intake";
@@ -41,7 +42,7 @@ export default async function HackathonPage({ params }: Props) {
   // Ensure default channels exist (idempotent)
   await ensureDefaultChannels(event.id);
 
-  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers] =
+  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults] =
     await Promise.all([
       getHackathonSettings(event.id),
       getMyHackathonTeam(event.id, session.userId),
@@ -50,6 +51,7 @@ export default async function HackathonPage({ params }: Props) {
       getCheckedInAttendeesWithoutTeams(event.id, session.userId),
       getHackathonScores(event.id),
       getEventChatMembers(event.id),
+      getPublishedCompetitionJudgingResults(event.id),
     ]);
 
   const sentInviteUserIds = myTeam
@@ -86,6 +88,7 @@ export default async function HackathonPage({ params }: Props) {
       initialMessages={initialMessages}
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
+      publishedJudgingResults={judgingResults}
     />
   );
 }
