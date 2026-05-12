@@ -85,6 +85,7 @@ export async function getOrCreateDemoSettings(event: Event): Promise<DemoSignupS
       event_id: event.id,
       is_enabled: true,
       speaker_name: null,
+      banner_image_url: null,
       opens_at: opensAt,
       closes_at: closesAt,
     })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { formatTime } from "@/lib/utils";
@@ -60,11 +60,14 @@ export function DemosAdminClient({ event, adminCode, settings, slots, embedded }
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const timezone = event.timezone || "America/Edmonton";
   const defaultStart = utcToLocalDateTime(settings.opens_at, timezone);
   const [isEnabled, setIsEnabled] = useState(settings.is_enabled);
   const [speakerName, setSpeakerName] = useState(settings.speaker_name || "");
+  const [bannerImageUrl, setBannerImageUrl] = useState(settings.banner_image_url || "");
+  const [bannerUploading, setBannerUploading] = useState(false);
   const [opensAtLocal, setOpensAtLocal] = useState(defaultStart);
   const [closesAtLocal, setClosesAtLocal] = useState(utcToLocalDateTime(settings.closes_at, timezone));
   const [form, setForm] = useState<SessionFormState>({
@@ -94,12 +97,47 @@ export function DemosAdminClient({ event, adminCode, settings, slots, embedded }
     });
   };
 
+  const handleBannerUpload = async (file: File | undefined) => {
+    if (!file) return;
+
+    setError(null);
+    setBannerUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("eventId", event.id);
+
+      const response = await fetch("/api/admin/upload-session-banner", {
+        method: "POST",
+        headers: {
+          "x-admin-code": adminCode,
+          "x-event-id": event.id,
+        },
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.url) {
+        setError(data.error || "Failed to upload session banner");
+        return;
+      }
+
+      setBannerImageUrl(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload session banner");
+    } finally {
+      setBannerUploading(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = "";
+    }
+  };
+
   const handleSaveSettings = () => {
     setError(null);
     startTransition(async () => {
       const result = await updateDemoSignupSettings(event.id, event.slug, adminCode, {
         isEnabled,
         speakerName,
+        bannerImageUrl,
         opensAtLocal,
         closesAtLocal,
         timezone,
@@ -208,6 +246,53 @@ export function DemosAdminClient({ event, adminCode, settings, slots, embedded }
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white focus:outline-none focus:border-white/20"
             />
           </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="block">
+            <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Session Banner</span>
+            <input
+              type="text"
+              value={bannerImageUrl}
+              onChange={(e) => setBannerImageUrl(e.target.value)}
+              placeholder="Leave blank to hide the banner"
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20"
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => handleBannerUpload(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              onClick={() => bannerInputRef.current?.click()}
+              disabled={bannerUploading || isPending}
+              className="h-10 px-4 rounded-2xl border border-white/10 text-gray-300 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-white hover:border-white/20 disabled:opacity-40"
+            >
+              {bannerUploading ? "Uploading..." : "Upload Banner"}
+            </button>
+            {bannerImageUrl && (
+              <button
+                type="button"
+                onClick={() => setBannerImageUrl("")}
+                disabled={bannerUploading || isPending}
+                className="h-10 px-4 rounded-2xl border border-white/10 text-gray-500 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-white disabled:opacity-40"
+              >
+                Clear Banner
+              </button>
+            )}
+            <p className="text-xs text-gray-600">Upload fills the URL; click Save Settings to publish it.</p>
+          </div>
+          {bannerImageUrl && (
+            <div
+              className="h-24 rounded-2xl border border-white/10 bg-white/[0.02] bg-cover bg-center"
+              style={{ backgroundImage: `url(${JSON.stringify(bannerImageUrl)})` }}
+            />
+          )}
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

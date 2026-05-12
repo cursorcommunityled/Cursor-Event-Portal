@@ -9,12 +9,16 @@ CREATE TABLE IF NOT EXISTS demo_signup_settings (
   event_id UUID NOT NULL UNIQUE REFERENCES events(id) ON DELETE CASCADE,
   is_enabled BOOLEAN NOT NULL DEFAULT FALSE,
   speaker_name TEXT,
+  banner_image_url TEXT,
   opens_at TIMESTAMPTZ NOT NULL,
   closes_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (closes_at > opens_at)
 );
+
+ALTER TABLE demo_signup_settings
+  ADD COLUMN IF NOT EXISTS banner_image_url TEXT;
 
 CREATE TABLE IF NOT EXISTS demo_slots (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -97,27 +101,38 @@ ALTER TABLE demo_signup_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE demo_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE demo_slot_signups ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Demo settings are viewable by everyone" ON demo_signup_settings;
 CREATE POLICY "Demo settings are viewable by everyone"
   ON demo_signup_settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Demo settings can be inserted by service role" ON demo_signup_settings;
 CREATE POLICY "Demo settings can be inserted by service role"
   ON demo_signup_settings FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Demo settings can be updated by service role" ON demo_signup_settings;
 CREATE POLICY "Demo settings can be updated by service role"
   ON demo_signup_settings FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Demo settings can be deleted by service role" ON demo_signup_settings;
 CREATE POLICY "Demo settings can be deleted by service role"
   ON demo_signup_settings FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Demo slots are viewable by everyone" ON demo_slots;
 CREATE POLICY "Demo slots are viewable by everyone"
   ON demo_slots FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Demo slots can be inserted by service role" ON demo_slots;
 CREATE POLICY "Demo slots can be inserted by service role"
   ON demo_slots FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Demo slots can be updated by service role" ON demo_slots;
 CREATE POLICY "Demo slots can be updated by service role"
   ON demo_slots FOR UPDATE USING (true);
+DROP POLICY IF EXISTS "Demo slots can be deleted by service role" ON demo_slots;
 CREATE POLICY "Demo slots can be deleted by service role"
   ON demo_slots FOR DELETE USING (true);
 
+DROP POLICY IF EXISTS "Demo signups are viewable by everyone" ON demo_slot_signups;
 CREATE POLICY "Demo signups are viewable by everyone"
   ON demo_slot_signups FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Demo signups can be inserted by service role" ON demo_slot_signups;
 CREATE POLICY "Demo signups can be inserted by service role"
   ON demo_slot_signups FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Demo signups can be deleted by service role" ON demo_slot_signups;
 CREATE POLICY "Demo signups can be deleted by service role"
   ON demo_slot_signups FOR DELETE USING (true);
