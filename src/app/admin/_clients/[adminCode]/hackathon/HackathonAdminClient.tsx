@@ -53,6 +53,28 @@ const SCORE_CATEGORIES = [
   { key: "ux_polish" as const, label: "UX / Polish" },
 ];
 
+const SIMON_TODO_ITEMS = [
+  {
+    id: "spawn-point-channel",
+    text: 'Create a "Spawn Point" channel for all undrafted members; remove members once assigned to a team.',
+  },
+  { id: "qa-fix-reply", text: 'For Q&A, reply with "fix".' },
+  { id: "booking-barrier", text: "Booking might be a barrier." },
+  {
+    id: "team-profile-review",
+    text: "For forming teams, add a way to check profiles before assigning teams; use an LLM layer for suggestions.",
+  },
+  { id: "add-admin-mxistix", text: "Add mxistix@gmail.com to Admin on Cursor Admin." },
+  { id: "confirm-photographer", text: "Confirm with Damian for photographer." },
+  { id: "rubric-clarity", text: "Clarify rubric and judging criteria." },
+  { id: "audience-favorite-vote", text: "Add audience favorite project vote; consider noise/cheer voting." },
+  { id: "presentation-engagement", text: "Keep audience engaged during presentations." },
+  { id: "cursor-pro-prize", text: "Confirm Cursor Pro $20 prize for winners." },
+  { id: "printed-glasses-trophy", text: "Prep 3D printed glasses and trophy." },
+  { id: "progressive-house", text: "Play progressive house during build." },
+  { id: "demo-av-check", text: "Demo AV setup and check." },
+];
+
 function fmt(iso: string | null | undefined): string {
   if (!iso) return "";
   return iso.slice(0, 16); // YYYY-MM-DDTHH:MM
@@ -96,6 +118,7 @@ export function HackathonAdminClient({
   const [scores, setScores] = useState(initialScores);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [checkedTodoIds, setCheckedTodoIds] = useState<Set<string>>(new Set());
 
   // Settings form state
   const [teamFormationEnabled, setTeamFormationEnabled] = useState(
@@ -143,6 +166,21 @@ export function HackathonAdminClient({
   }, [initialTeams, initialScores]);
 
   useEffect(() => {
+    const stored = window.localStorage.getItem(`hackathon-admin:${event.id}:simon-todo`);
+    if (!stored) {
+      setCheckedTodoIds(new Set());
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      setCheckedTodoIds(Array.isArray(parsed) ? new Set(parsed) : new Set());
+    } catch {
+      setCheckedTodoIds(new Set());
+    }
+  }, [event.id]);
+
+  useEffect(() => {
     const supabase = createClient();
     const channel = supabase
       .channel(`hackathon-admin-${event.id}`)
@@ -170,6 +208,16 @@ export function HackathonAdminClient({
     setError(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const togglePlanningTodo = (itemId: string) => {
+    setCheckedTodoIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      window.localStorage.setItem(`hackathon-admin:${event.id}:simon-todo`, JSON.stringify([...next]));
+      return next;
+    });
   };
 
   function totalScore(teamId: string): number {
@@ -398,6 +446,41 @@ export function HackathonAdminClient({
             >
               Save Settings
             </button>
+
+            <details className="group border-t border-white/5 pt-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Pre-Hackathon Planning</p>
+                  <h3 className="mt-1 text-sm font-light text-white/70">Simon&apos;s Todo</h3>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-gray-600">
+                  <span>{checkedTodoIds.size}/{SIMON_TODO_ITEMS.length}</span>
+                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                </div>
+              </summary>
+
+              <div className="mt-4 space-y-2">
+                {SIMON_TODO_ITEMS.map((item) => {
+                  const checked = checkedTodoIds.has(item.id);
+                  return (
+                    <label
+                      key={item.id}
+                      className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 text-sm text-white/60 transition-colors hover:border-white/10 hover:bg-white/[0.04]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => togglePlanningTodo(item.id)}
+                        className="mt-0.5 h-4 w-4 rounded border-white/10 bg-white/5 accent-purple-400"
+                      />
+                      <span className={cn("leading-relaxed", checked && "text-gray-600 line-through")}>
+                        {item.text}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </details>
           </div>
         )}
 
