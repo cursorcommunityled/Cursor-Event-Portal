@@ -244,9 +244,15 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                         <span className="text-[8px] uppercase tracking-[0.2em] text-purple-400 bg-purple-400/10 border border-purple-400/20 rounded-full px-2 py-0.5">Active</span>
                       )}
                     </div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-                      Teams · Scoring · Leaderboard
-                    </p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-gray-500 font-medium">
+                      <span>Teams</span>
+                      <span className="text-gray-700">·</span>
+                      <span className="text-purple-300/80">Chat</span>
+                      <span className="text-gray-700">·</span>
+                      <span>Scoring</span>
+                      <span className="text-gray-700">·</span>
+                      <span>Leaderboard</span>
+                    </div>
                   </div>
                 </div>
                 <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />

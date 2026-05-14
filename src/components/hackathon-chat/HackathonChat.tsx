@@ -50,15 +50,15 @@ function Avatar({
   member: Pick<ChatMember, "id" | "name" | "team"> | null;
   size?: "sm" | "md";
 }) {
-  const dim = size === "sm" ? "w-9 h-9" : "w-11 h-11";
-  const font = size === "sm" ? "text-[13px]" : "text-[15px]";
-  const iconDim = size === "sm" ? "w-3.5 h-3.5" : "w-4.5 h-4.5";
+  const dim = size === "sm" ? "w-10 h-10" : "w-12 h-12";
+  const font = size === "sm" ? "text-[14px]" : "text-[16px]";
+  const iconDim = size === "sm" ? "w-4 h-4" : "w-5 h-5";
 
   const photo = member?.team?.icon_photo;
   if (photo?.status === "approved" && photo.file_url) {
     return (
-      <div className={cn(dim, "rounded-xl overflow-hidden shrink-0 relative bg-white/5")}>
-        <Image src={photo.file_url} alt={member!.team!.name} fill className="object-cover" sizes="44px" />
+      <div className={cn(dim, "rounded-2xl overflow-hidden shrink-0 relative bg-white/5 ring-1 ring-white/10")}>
+        <Image src={photo.file_url} alt={member!.team!.name} fill className="object-cover" sizes="48px" />
       </div>
     );
   }
@@ -73,7 +73,7 @@ function Avatar({
 
   return (
     <div
-      className={cn(dim, "rounded-xl shrink-0 flex items-center justify-center text-white/90 font-semibold shadow-inner", font)}
+      className={cn(dim, "rounded-2xl shrink-0 flex items-center justify-center text-white font-semibold shadow-inner", font)}
       style={{ 
         background: `linear-gradient(135deg, hsl(${hue}, 60%, 40%), hsl(${hue}, 70%, 20%))`,
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.2)`
@@ -92,32 +92,32 @@ function Avatar({
 
 function MemberCard({ member }: { member: ChatMember }) {
   return (
-    <div className="glass rounded-2xl p-4 border border-white/10 w-56 space-y-3 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] z-50 bg-black/80 backdrop-blur-3xl">
+    <div className="glass rounded-3xl p-4 border border-white/15 w-64 space-y-3 shadow-[0_24px_50px_-18px_rgba(0,0,0,0.85)] z-50 bg-black/85 backdrop-blur-3xl">
       <div className="flex items-center gap-3">
-        <div className="ring-1 ring-white/10 rounded-xl shadow-md">
+        <div className="ring-1 ring-white/15 rounded-2xl shadow-md">
           <Avatar member={member} size="md" />
         </div>
         <div className="min-w-0">
-          <p className="text-[15px] font-semibold truncate text-white/95 tracking-tight">{member.name}</p>
+          <p className="text-[16px] font-semibold truncate text-white tracking-tight">{member.name}</p>
           {member.role === "admin" || member.role === "staff" || member.role === "facilitator" ? (
-            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400 flex items-center gap-1 drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-200 flex items-center gap-1 drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
               <Shield className="w-2.5 h-2.5" /> Admin
             </span>
           ) : member.team_role === "leader" ? (
-            <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-yellow-500 flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-300 flex items-center gap-1">
               <Star className="w-2.5 h-2.5" /> Team Lead
             </span>
           ) : null}
         </div>
       </div>
       {member.team && (
-        <div className="border-t border-white/[0.08] pt-3 flex items-center gap-2.5">
-          <div className="ring-1 ring-white/10 rounded-xl shadow-sm">
+        <div className="border-t border-white/[0.1] pt-3 flex items-center gap-2.5">
+          <div className="ring-1 ring-white/15 rounded-2xl shadow-sm">
             <Avatar member={member} size="sm" />
           </div>
           <div className="min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500">Team</p>
-            <p className="text-[13px] font-medium text-gray-200 truncate">{member.team.name}</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Team</p>
+            <p className="text-[14px] font-medium text-gray-100 truncate">{member.team.name}</p>
           </div>
         </div>
       )}
@@ -161,32 +161,32 @@ function SuggestionCard({
   };
 
   return (
-    <div className="mx-3 my-3 sm:mx-5">
-      <div className="rounded-2xl border border-purple-500/30 bg-purple-500/[0.07] px-4 py-3.5 shadow-[0_0_20px_rgba(168,85,247,0.08)]">
+    <div className="mx-3 my-4 sm:mx-6">
+      <div className="rounded-3xl border border-purple-300/30 bg-purple-500/[0.1] px-4 py-4 shadow-[0_0_26px_rgba(168,85,247,0.12)]">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-500/20">
-            <Zap className="w-3.5 h-3.5 text-purple-400" />
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-purple-500/25 border border-purple-400/25">
+            <Zap className="w-4 h-4 text-purple-200" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-400 mb-1">Match Suggestion</p>
-            <p className="text-[14px] text-gray-200 leading-relaxed">{msg.content}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-purple-200 mb-1">Match Suggestion</p>
+            <p className="text-[15px] text-gray-100 leading-relaxed">{msg.content}</p>
 
             {status === "sent" ? (
-              <p className="mt-2.5 text-[12px] text-green-400 font-medium">Invite sent to {suggestedName}!</p>
+              <p className="mt-2.5 text-[13px] text-green-300 font-medium">Invite sent to {suggestedName}!</p>
             ) : status === "error" ? (
-              <p className="mt-2.5 text-[12px] text-red-400">Could not send invite — they may already be on a team.</p>
+              <p className="mt-2.5 text-[13px] text-red-300">Could not send invite — they may already be on a team.</p>
             ) : showNameInput && !myTeamId ? (
               <div className="mt-3 flex items-center gap-2">
                 <input
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="Team name…"
-                  className="flex-1 bg-white/5 border border-white/15 rounded-xl px-3 py-2 text-[13px] text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-400/60"
+                  className="flex-1 bg-white/[0.07] border border-white/15 rounded-xl px-3 py-2.5 text-[14px] text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-300/60"
                 />
                 <button
                   disabled={!teamName.trim() || status === "pending"}
                   onClick={() => handleInvite(teamName.trim())}
-                  className="px-3 py-2 rounded-xl text-[12px] font-medium bg-purple-500/30 border border-purple-400/40 text-purple-300 hover:bg-purple-500/50 transition-all disabled:opacity-40"
+                  className="px-3 py-2.5 rounded-xl text-[13px] font-semibold bg-purple-500/30 border border-purple-300/40 text-purple-100 hover:bg-purple-500/50 transition-all disabled:opacity-40"
                 >
                   Send
                 </button>
@@ -196,7 +196,7 @@ function SuggestionCard({
                 <button
                   disabled={status === "pending"}
                   onClick={handleYes}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold bg-purple-500/25 border border-purple-400/40 text-purple-300 hover:bg-purple-500/40 transition-all disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-purple-500/25 border border-purple-300/40 text-purple-100 hover:bg-purple-500/40 transition-all disabled:opacity-40"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   {status === "pending" ? "Sending…" : `Yes, invite ${suggestedName}`}
@@ -284,24 +284,24 @@ function ChatMsg({
   return (
     <div
       className={cn(
-        "group relative flex gap-3 px-3 rounded-2xl transition-all duration-200 sm:gap-4 sm:px-5 mx-2",
-        isGrouped ? "py-1.5" : "pt-5 pb-1.5 mt-2",
-        showActions && "bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
-        msg.is_pinned && "bg-yellow-400/[0.03] border border-yellow-400/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
-        !showActions && !msg.is_pinned && "hover:bg-white/[0.02]"
+        "group relative flex gap-3 px-3 rounded-3xl transition-all duration-200 sm:gap-4 sm:px-6 mx-2",
+        isGrouped ? "py-1.5" : "pt-5 pb-2 mt-2",
+        showActions && "bg-white/[0.055] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+        msg.is_pinned && "bg-yellow-400/[0.045] border border-yellow-300/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+        !showActions && !msg.is_pinned && "hover:bg-white/[0.035]"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => { setShowActions(false); setShowEmoji(false); }}
     >
       {/* Avatar column */}
-      <div className="w-9 shrink-0 flex flex-col items-center">
+      <div className="w-10 shrink-0 flex flex-col items-center">
         {!isGrouped ? (
           <div
             className="relative cursor-pointer mt-0.5"
             onMouseEnter={() => setShowCard(true)}
             onMouseLeave={() => setShowCard(false)}
           >
-            <div className="ring-1 ring-white/10 rounded-xl shadow-lg">
+            <div className="ring-1 ring-white/15 rounded-2xl shadow-lg">
               <Avatar member={sender ?? null} size="sm" />
             </div>
             {showCard && sender && (
@@ -311,7 +311,7 @@ function ChatMsg({
             )}
           </div>
         ) : (
-          <span className="text-[10px] font-medium text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity mt-1 w-full text-center leading-none select-none">
+          <span className="text-[11px] font-medium text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1 w-full text-center leading-none select-none">
             {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </span>
         )}
@@ -322,27 +322,27 @@ function ChatMsg({
         {!isGrouped && (
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 mb-1.5 pr-10 sm:pr-0">
             <span
-              className="max-w-[11rem] truncate text-[15px] font-semibold text-white/95 cursor-pointer hover:underline sm:max-w-none tracking-tight"
+              className="max-w-[12rem] truncate text-[16px] font-semibold text-white cursor-pointer hover:underline sm:max-w-none tracking-tight"
               onMouseEnter={() => setShowCard(true)}
               onMouseLeave={() => setShowCard(false)}
             >
               {sender?.name ?? "Unknown"}
             </span>
             {senderIsAdmin && (
-              <span className="text-[9px] font-bold uppercase tracking-[0.2em] bg-purple-500/20 text-purple-300 rounded-md px-1.5 py-0.5 border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] bg-purple-500/20 text-purple-200 rounded-md px-1.5 py-0.5 border border-purple-400/25 shadow-[0_0_10px_rgba(168,85,247,0.15)]">
                 Admin
               </span>
             )}
             {!senderIsAdmin && sender?.team_role === "leader" && (
-              <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-yellow-400/90 flex items-center gap-0.5 bg-yellow-500/10 px-1.5 py-0.5 rounded-md border border-yellow-500/20">
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-300 flex items-center gap-0.5 bg-yellow-500/10 px-1.5 py-0.5 rounded-md border border-yellow-400/20">
                 <Star className="w-2.5 h-2.5" />Lead
               </span>
             )}
-            <span className="text-[11px] font-medium text-gray-500 ml-1">
+            <span className="text-[12px] font-medium text-gray-400 ml-1">
               {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
             {msg.is_pinned && (
-              <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-yellow-500 flex items-center gap-1 ml-auto sm:ml-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-yellow-300 flex items-center gap-1 ml-auto sm:ml-2">
                 <Pin className="w-2.5 h-2.5" /> Pinned
               </span>
             )}
@@ -351,7 +351,7 @@ function ChatMsg({
 
         {/* Text */}
         {msg.content && (
-          <p className="whitespace-pre-wrap text-[15px] text-gray-200/95 leading-[1.6] break-words">
+          <p className="whitespace-pre-wrap text-[16px] text-gray-100 leading-[1.65] break-words">
             {renderContent(msg.content)}
           </p>
         )}
@@ -360,7 +360,7 @@ function ChatMsg({
         {msg.file_url && msg.file_type === "image" && (
           <div className="mt-2.5 max-w-full sm:max-w-sm">
             <a href={msg.file_url} target="_blank" rel="noopener noreferrer">
-              <div className="relative rounded-xl overflow-hidden bg-black/40 border border-white/10 shadow-md hover:border-white/20 transition-colors" style={{ maxHeight: 320 }}>
+              <div className="relative rounded-2xl overflow-hidden bg-black/40 border border-white/15 shadow-md hover:border-white/25 transition-colors" style={{ maxHeight: 320 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={msg.file_url}
@@ -378,18 +378,18 @@ function ChatMsg({
             href={msg.file_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2.5 inline-flex max-w-full items-center gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-200 hover:text-white hover:bg-white/5 hover:border-white/20 transition-all duration-200 shadow-sm group"
+            className="mt-2.5 inline-flex max-w-full items-center gap-3 bg-black/45 border border-white/15 rounded-2xl px-4 py-3 text-[15px] text-gray-100 hover:text-white hover:bg-white/[0.07] hover:border-white/25 transition-all duration-200 shadow-sm group"
           >
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
               <FileText className="w-4 h-4 shrink-0" />
             </div>
             <span className="min-w-0 truncate max-w-[200px] font-medium">{msg.file_name ?? "File"}</span>
             {msg.file_size_bytes && (
-              <span className="text-[11px] font-medium text-gray-500 shrink-0">
+              <span className="text-[12px] font-medium text-gray-400 shrink-0">
                 {(msg.file_size_bytes / 1024).toFixed(0)}KB
               </span>
             )}
-            <Download className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors shrink-0 ml-1" />
+            <Download className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors shrink-0 ml-1" />
           </a>
         )}
 
@@ -401,10 +401,10 @@ function ChatMsg({
                 key={r.emoji}
                 onClick={() => onReact(msg.id, r.emoji)}
                 className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 border",
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-200 border",
                   r.mine
                     ? "bg-purple-500/20 border-purple-500/30 text-purple-100 shadow-[0_0_10px_rgba(168,85,247,0.1)]"
-                    : "bg-white/[0.03] border-white/[0.08] text-gray-400 hover:bg-white/[0.08] hover:text-gray-200"
+                    : "bg-white/[0.05] border-white/[0.1] text-gray-300 hover:bg-white/[0.1] hover:text-white"
                 )}
               >
                 <span>{r.emoji}</span>
@@ -417,22 +417,22 @@ function ChatMsg({
 
       {/* Action toolbar (appears on hover) */}
       {showActions && (
-        <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-xl bg-black/80 p-1 opacity-100 backdrop-blur-xl border border-white/10 shadow-xl transition-all duration-200 sm:static sm:shrink-0 sm:bg-transparent sm:p-0 sm:opacity-0 sm:backdrop-blur-none sm:border-none sm:shadow-none sm:group-hover:opacity-100">
+        <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-2xl bg-black/85 p-1 opacity-100 backdrop-blur-xl border border-white/15 shadow-xl transition-all duration-200 sm:static sm:shrink-0 sm:bg-transparent sm:p-0 sm:opacity-0 sm:backdrop-blur-none sm:border-none sm:shadow-none sm:group-hover:opacity-100">
           <div className="relative">
             <button
               onClick={() => setShowEmoji(!showEmoji)}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-500 hover:text-white transition-colors"
+              className="p-2 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white transition-colors"
               title="React"
             >
               <Smile className="w-4 h-4" />
             </button>
             {showEmoji && (
-              <div className="absolute right-0 bottom-full mb-2 glass rounded-2xl p-2 border border-white/20 flex gap-1 z-50 shadow-2xl bg-black/80 backdrop-blur-3xl">
+              <div className="absolute right-0 bottom-full mb-2 glass rounded-2xl p-2 border border-white/20 flex gap-1 z-50 shadow-2xl bg-black/85 backdrop-blur-3xl">
                 {QUICK_EMOJIS.map((e) => (
                   <button
                     key={e}
                     onClick={() => { onReact(msg.id, e); setShowEmoji(false); }}
-                    className="text-xl hover:scale-125 transition-transform w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-xl"
+                    className="text-xl hover:scale-125 transition-transform w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-xl"
                   >
                     {e}
                   </button>
@@ -444,8 +444,8 @@ function ChatMsg({
             <button
               onClick={() => onPin(msg.id, !msg.is_pinned)}
               className={cn(
-                "p-1.5 rounded-lg hover:bg-white/10 transition-colors",
-                msg.is_pinned ? "text-yellow-500" : "text-gray-500 hover:text-white"
+                "p-2 rounded-xl hover:bg-white/10 transition-colors",
+                msg.is_pinned ? "text-yellow-300" : "text-gray-300 hover:text-white"
               )}
               title={msg.is_pinned ? "Unpin" : "Pin"}
             >
@@ -455,7 +455,7 @@ function ChatMsg({
           {canDelete && (
             <button
               onClick={() => onDelete(msg.id)}
-              className="p-1.5 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
+              className="p-2 rounded-xl hover:bg-red-500/10 text-gray-300 hover:text-red-300 transition-colors"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />
@@ -927,31 +927,32 @@ export function HackathonChat({
   }, [messages]);
 
   return (
-    <div className="relative flex h-[calc(100dvh-11rem)] min-h-[28rem] flex-col overflow-hidden rounded-[22px] bg-black/40 backdrop-blur-3xl border border-white/10 animate-fade-in sm:h-[calc(100vh-12rem)] sm:rounded-[28px] shadow-[0_0_40px_-15px_rgba(0,0,0,0.5)]">
+    <div className="relative flex h-[calc(100dvh-11rem)] min-h-[30rem] flex-col overflow-hidden rounded-[26px] bg-black/50 backdrop-blur-3xl border border-white/15 animate-fade-in sm:h-[calc(100vh-12rem)] sm:rounded-[34px] shadow-[0_30px_90px_-40px_rgba(0,0,0,0.95)]">
       {/* Subtle noise texture overlay */}
       <div className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-screen" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
       
       {/* Subtle top gradient light */}
-      <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-white/[0.03] to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/[0.055] to-transparent pointer-events-none" />
+      <div className="absolute -top-20 right-10 h-52 w-52 rounded-full bg-purple-500/[0.08] blur-3xl pointer-events-none" />
 
       {/* Channel nav */}
-      <div className="relative flex items-center gap-2 border-b border-white/[0.08] bg-white/[0.02] px-2.5 pt-2.5 pb-2 shrink-0 sm:px-3 z-10">
+      <div className="relative flex items-center gap-2 border-b border-white/[0.1] bg-white/[0.035] px-3 pt-3 pb-2.5 shrink-0 sm:px-4 z-10">
         <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
-          <div className="flex w-max flex-nowrap gap-1.5 pr-1">
+          <div className="flex w-max flex-nowrap gap-2 pr-1">
             {channels.map((ch) => (
               <button
                 key={ch.id}
                 onClick={() => switchChannel(ch.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-300 border",
+                  "flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap transition-all duration-300 border",
                   ch.id === resolvedChannelId
-                    ? "bg-white/10 text-white border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)]"
-                    : "bg-transparent text-gray-400 border-transparent hover:text-gray-200 hover:bg-white/5 hover:border-white/10"
+                    ? "bg-white/[0.14] text-white border-white/25 shadow-[0_0_18px_rgba(255,255,255,0.08)]"
+                    : "bg-transparent text-gray-300 border-transparent hover:text-white hover:bg-white/[0.07] hover:border-white/15"
                 )}
               >
                 <ChannelIcon type={ch.channel_type} className={cn(
                   "transition-colors duration-300",
-                  ch.id === resolvedChannelId ? "text-white" : "text-gray-500"
+                  ch.id === resolvedChannelId ? "text-white" : "text-gray-400"
                 )} />
                 {getChannelLabel(ch)}
               </button>
@@ -962,10 +963,10 @@ export function HackathonChat({
           <button
             onClick={() => setShowMembers(!showMembers)}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
+              "flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-semibold transition-all duration-300 border",
               showMembers
-                ? "bg-white/10 text-white border-white/20"
-                : "bg-transparent text-gray-400 border-transparent hover:text-gray-200 hover:bg-white/5 hover:border-white/10"
+                ? "bg-white/[0.14] text-white border-white/25"
+                : "bg-transparent text-gray-300 border-transparent hover:text-white hover:bg-white/[0.07] hover:border-white/15"
             )}
           >
             <Users className="w-3.5 h-3.5" />
@@ -979,29 +980,32 @@ export function HackathonChat({
         {/* Messages */}
         <div className="flex flex-col flex-1 min-w-0">
           {/* Channel header */}
-          <div className="relative flex items-center gap-2.5 border-b border-white/[0.05] bg-gradient-to-r from-white/[0.02] to-transparent px-4 py-3 shrink-0 z-10">
-            <div className="flex items-center justify-center w-6 h-6 rounded-md bg-white/5 border border-white/10">
-              <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="text-gray-400 w-3 h-3" />
+          <div className="relative flex items-center gap-3 border-b border-white/[0.08] bg-gradient-to-r from-white/[0.035] to-transparent px-4 py-4 shrink-0 z-10">
+            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/[0.07] border border-white/15">
+              <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="text-gray-200 w-3.5 h-3.5" />
             </div>
-            <span className="min-w-0 truncate text-[15px] font-semibold text-white/90 tracking-tight">{getChannelLabel(currentChannel)}</span>
+            <span className="min-w-0 truncate text-[17px] font-semibold text-white tracking-tight">{getChannelLabel(currentChannel)}</span>
             {currentChannel?.channel_type === "spawn_point" && (
-              <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.2em] text-yellow-400/80 bg-yellow-500/10 px-2 py-0.5 rounded-full ml-1">Unassigned</span>
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-yellow-200 bg-yellow-500/[0.12] px-2 py-1 rounded-full ml-1">Unassigned</span>
             )}
             {currentChannel?.channel_type === "announcements" && (
-              <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.2em] text-purple-400/80 bg-purple-500/10 px-2 py-0.5 rounded-full ml-1">Admin Only</span>
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-200 bg-purple-500/[0.12] px-2 py-1 rounded-full ml-1">Admin Only</span>
             )}
             {currentChannel?.channel_type === "team" && (
-              <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.2em] text-blue-400/80 bg-blue-500/10 px-2 py-0.5 rounded-full ml-1">Private Team</span>
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-blue-200 bg-blue-500/[0.12] px-2 py-1 rounded-full ml-1">Private Team</span>
             )}
             {currentChannel?.channel_type === "dm" && (
-              <span className="shrink-0 text-[9px] font-medium uppercase tracking-[0.2em] text-green-400/80 bg-green-500/10 px-2 py-0.5 rounded-full ml-1">Direct</span>
+              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-green-200 bg-green-500/[0.12] px-2 py-1 rounded-full ml-1">Direct</span>
             )}
+            <span className="ml-auto hidden text-[12px] font-medium text-gray-400 sm:inline">
+              {messages.length} message{messages.length === 1 ? "" : "s"}
+            </span>
           </div>
 
           {/* Message list */}
           <div
             ref={listRef}
-            className="flex-1 overflow-y-auto py-2 pb-4 space-y-0 scrollbar-hide"
+            className="flex-1 overflow-y-auto py-3 pb-5 space-y-0 scrollbar-hide"
           >
             {/* Load more */}
             {hasMore && (
@@ -1009,7 +1013,7 @@ export function HackathonChat({
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] text-[11px] font-medium uppercase tracking-[0.1em] text-gray-400 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300 disabled:opacity-40 shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/[0.045] border border-white/[0.1] text-[12px] font-semibold uppercase tracking-[0.1em] text-gray-300 hover:text-white hover:bg-white/[0.08] hover:border-white/25 transition-all duration-300 disabled:opacity-40 shadow-sm"
                 >
                   <ChevronUp className="w-3.5 h-3.5" />
                   {loadingMore ? "Loading…" : "Load older messages"}
@@ -1025,18 +1029,18 @@ export function HackathonChat({
 
             {!loadingChannel && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center mb-4 shadow-inner">
-                  <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="w-8 h-8 text-gray-500" />
+                <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-3xl bg-white/[0.04] border border-white/10 mb-4 shadow-inner">
+                  <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="w-8 h-8 text-gray-300" />
                 </div>
                 {currentChannel?.channel_type === "spawn_point" ? (
                   <>
-                    <p className="text-[15px] font-semibold text-gray-300">Welcome to Spawn Point</p>
-                    <p className="text-[13px] text-gray-500 mt-1.5 max-w-[220px] leading-relaxed">Introduce yourself while you wait to be assigned to a team.</p>
+                    <p className="text-[17px] font-semibold text-gray-100">Welcome to Spawn Point</p>
+                    <p className="text-[14px] text-gray-400 mt-1.5 max-w-[260px] leading-relaxed">Introduce yourself while you wait to be assigned to a team.</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-[15px] font-semibold text-gray-300">No messages yet</p>
-                    <p className="text-[13px] text-gray-500 mt-1">Be the first to say something!</p>
+                    <p className="text-[17px] font-semibold text-gray-100">No messages yet</p>
+                    <p className="text-[14px] text-gray-400 mt-1">Be the first to say something!</p>
                   </>
                 )}
               </div>
@@ -1069,38 +1073,12 @@ export function HackathonChat({
           </div>
 
           {/* Input area */}
-          <div className="px-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shrink-0 sm:px-4 sm:pb-5 relative z-10">
+          <div className="px-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shrink-0 sm:px-5 sm:pb-5 relative z-10">
             {/* Input top gradient fade */}
-            <div className="absolute bottom-full left-0 right-0 h-8 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-            
-            {channels.length > 1 && (
-              <div className="mb-3 hidden items-center gap-2 overflow-x-auto scrollbar-hide sm:flex">
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-600 px-1">
-                  Channels
-                </span>
-                {channels.map((ch) => (
-                  <button
-                    key={ch.id}
-                    onClick={() => switchChannel(ch.id)}
-                    className={cn(
-                      "shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-300 border",
-                      ch.id === resolvedChannelId
-                        ? "bg-white/10 text-white border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.05)]"
-                        : "bg-transparent text-gray-500 border-transparent hover:text-gray-300 hover:bg-white/5 hover:border-white/10"
-                    )}
-                  >
-                    <ChannelIcon type={ch.channel_type} className={cn(
-                      "w-3 h-3 transition-colors",
-                      ch.id === resolvedChannelId ? "text-white" : "text-gray-500"
-                    )} />
-                    {getChannelLabel(ch)}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="absolute bottom-full left-0 right-0 h-10 bg-gradient-to-t from-black/55 to-transparent pointer-events-none" />
             {!canPost ? (
-              <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/[0.05] text-sm text-gray-400 shadow-inner">
-                <AlertCircle className="w-4 h-4 text-gray-500" />
+              <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] text-[15px] text-gray-300 shadow-inner">
+                <AlertCircle className="w-4 h-4 text-gray-400" />
                 {currentChannel?.channel_type === "announcements"
                   ? "Only admins can post in announcements"
                   : currentChannel?.channel_type === "spawn_point"
@@ -1112,20 +1090,20 @@ export function HackathonChat({
             ) : (
               <div className="relative">
                 {showMentionPicker && filteredMentions.length > 0 && (
-                  <div className="absolute bottom-full mb-3 left-0 right-0 glass rounded-2xl border border-white/10 overflow-hidden z-50 shadow-[0_0_30px_rgba(0,0,0,0.5)] backdrop-blur-3xl bg-black/80">
+                  <div className="absolute bottom-full mb-3 left-0 right-0 glass rounded-3xl border border-white/15 overflow-hidden z-50 shadow-[0_0_34px_rgba(0,0,0,0.65)] backdrop-blur-3xl bg-black/85">
                     {filteredMentions.map((m) => (
                       <button
                         key={m.id}
                         onClick={() => insertMention(m)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors text-left border-b border-white/[0.05] last:border-0 group"
+                        className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-white/10 transition-colors text-left border-b border-white/[0.07] last:border-0 group"
                       >
-                        <div className="ring-1 ring-white/10 rounded-xl shadow-sm">
+                        <div className="ring-1 ring-white/15 rounded-2xl shadow-sm">
                           <Avatar member={m} size="sm" />
                         </div>
                         <div>
-                          <p className="text-[14px] font-medium text-gray-300 group-hover:text-white transition-colors">{m.name}</p>
+                          <p className="text-[15px] font-medium text-gray-100 group-hover:text-white transition-colors">{m.name}</p>
                           {m.team && (
-                            <p className="text-[11px] font-medium text-gray-500">{m.team.name}</p>
+                            <p className="text-[12px] font-medium text-gray-400">{m.team.name}</p>
                           )}
                         </div>
                       </button>
@@ -1133,7 +1111,7 @@ export function HackathonChat({
                   </div>
                 )}
 
-                <div className="flex items-end gap-2 rounded-2xl border border-white/[0.15] bg-black/40 backdrop-blur-xl px-3 py-3 transition-all duration-300 focus-within:border-white/30 focus-within:bg-black/60 focus-within:shadow-[0_0_20px_rgba(255,255,255,0.05)] sm:gap-3 sm:px-4 shadow-inner">
+                <div className="flex items-end gap-2 rounded-[26px] border border-white/[0.18] bg-black/50 backdrop-blur-xl px-3 py-3.5 transition-all duration-300 focus-within:border-white/35 focus-within:bg-black/65 focus-within:shadow-[0_0_24px_rgba(255,255,255,0.08)] sm:gap-3 sm:px-4 shadow-inner">
                   <textarea
                     ref={inputRef}
                     value={draft}
@@ -1157,7 +1135,7 @@ export function HackathonChat({
                             : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
                     }
                     rows={1}
-                    className="min-w-0 flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-white placeholder-gray-500 focus:outline-none max-h-32 py-1"
+                    className="min-w-0 flex-1 resize-none bg-transparent text-[16px] leading-relaxed text-white placeholder-gray-400 focus:outline-none max-h-32 py-1"
                     style={{ fieldSizing: "content" } as React.CSSProperties}
                   />
                   <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
@@ -1174,11 +1152,11 @@ export function HackathonChat({
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingFile}
-                      className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200 disabled:opacity-40"
+                      className="p-2.5 rounded-2xl text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200 disabled:opacity-40"
                       title="Attach file"
                     >
                       {uploadingFile ? (
-                        <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white/80 animate-spin" />
+                        <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white/90 animate-spin" />
                       ) : (
                         <Paperclip className="w-4 h-4" />
                       )}
@@ -1186,14 +1164,14 @@ export function HackathonChat({
                     <button
                       onClick={handleSend}
                       disabled={!draft.trim() || isPending}
-                      className="p-2 rounded-xl bg-white text-black hover:bg-gray-200 hover:scale-105 transition-all duration-200 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                      className="p-2.5 rounded-2xl bg-white text-black hover:bg-gray-200 hover:scale-105 transition-all duration-200 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_18px_rgba(255,255,255,0.22)]"
                     >
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 ml-3 hidden text-[10px] font-medium text-gray-600 sm:block">
-                  <span className="text-gray-500">Enter</span> to send · <span className="text-gray-500">Shift+Enter</span> for new line · <span className="text-gray-500">@name</span> to mention
+                <p className="mt-2 ml-3 hidden text-[11px] font-medium text-gray-400 sm:block">
+                  <span className="text-gray-300">Enter</span> to send · <span className="text-gray-300">Shift+Enter</span> for new line · <span className="text-gray-300">@name</span> to mention
                 </p>
               </div>
             )}
@@ -1210,23 +1188,23 @@ export function HackathonChat({
           />
         )}
         {showMembers && (
-          <div className="absolute inset-y-0 right-0 z-30 flex w-[min(18rem,86vw)] shrink-0 flex-col overflow-hidden border-l border-white/[0.08] bg-black/60 backdrop-blur-3xl shadow-[-20px_0_40px_rgba(0,0,0,0.5)] sm:relative sm:z-auto sm:w-60 sm:shadow-none">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.05] bg-white/[0.02] shrink-0">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+          <div className="absolute inset-y-0 right-0 z-30 flex w-[min(19.5rem,88vw)] shrink-0 flex-col overflow-hidden border-l border-white/[0.1] bg-black/70 backdrop-blur-3xl shadow-[-24px_0_50px_rgba(0,0,0,0.65)] sm:relative sm:z-auto sm:w-72 sm:shadow-none">
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.08] bg-white/[0.035] shrink-0">
+              <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">
                 Members — {members.length}
               </span>
               <button
                 onClick={() => setShowMembers(false)}
-                className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-200"
+                className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto py-3 scrollbar-hide px-2">
+            <div className="flex-1 overflow-y-auto py-4 scrollbar-hide px-2.5">
               {/* Admin / staff first */}
               {members.filter((m) => ["admin", "staff", "facilitator"].includes(m.role)).length > 0 && (
                 <div className="mb-4">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-purple-400/80 px-3 mb-2">Organizers</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-200 px-3 mb-2">Organizers</p>
                   {members
                     .filter((m) => ["admin", "staff", "facilitator"].includes(m.role))
                     .map((m) => (
@@ -1248,11 +1226,11 @@ export function HackathonChat({
                   <div key={teamId} className="mb-4">
                     <div className="flex items-center gap-2 px-3 mb-2">
                       {team?.icon_photo?.status === "approved" ? (
-                        <div className="w-4 h-4 rounded-md overflow-hidden relative shrink-0 ring-1 ring-white/10 shadow-sm">
-                          <Image src={team.icon_photo.file_url} alt={team.name} fill className="object-cover" sizes="16px" />
+                        <div className="w-5 h-5 rounded-lg overflow-hidden relative shrink-0 ring-1 ring-white/15 shadow-sm">
+                          <Image src={team.icon_photo.file_url} alt={team.name} fill className="object-cover" sizes="20px" />
                         </div>
                       ) : null}
-                      <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 truncate">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 truncate">
                         {team?.name ?? "Team"}
                       </p>
                     </div>
@@ -1271,7 +1249,7 @@ export function HackathonChat({
               {/* No team */}
               {membersByTeam.noTeam.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-600 px-3 mb-2">No Team</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 px-3 mb-2">No Team</p>
                   {membersByTeam.noTeam
                     .filter((m) => !["admin", "staff", "facilitator"].includes(m.role))
                     .map((m) => (
@@ -1305,21 +1283,21 @@ function MemberRow({
 
   return (
     <div
-      className="relative flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-white/[0.04] transition-all duration-200 cursor-default group"
+      className="relative flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/[0.06] transition-all duration-200 cursor-default group"
       onMouseEnter={() => setShowCard(true)}
       onMouseLeave={() => setShowCard(false)}
     >
-      <div className="ring-1 ring-white/10 rounded-xl shadow-sm">
+      <div className="ring-1 ring-white/15 rounded-2xl shadow-sm">
         <Avatar member={member} size="sm" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] font-medium text-gray-200 truncate group-hover:text-white transition-colors">{member.name}</p>
+        <p className="text-[15px] font-medium text-gray-100 truncate group-hover:text-white transition-colors">{member.name}</p>
         {member.team_role === "leader" && (
-          <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-yellow-500">Lead</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-yellow-300">Lead</span>
         )}
       </div>
       {(member.role === "admin" || member.role === "staff" || member.role === "facilitator") && (
-        <Shield className="w-3.5 h-3.5 text-purple-400 shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+        <Shield className="w-4 h-4 text-purple-200 shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
       )}
       {canMessage && (
         <button
@@ -1327,10 +1305,10 @@ function MemberRow({
             e.stopPropagation();
             onDirectMessage();
           }}
-          className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
           title={`DM ${member.name}`}
         >
-          <MessageCircle className="w-3.5 h-3.5" />
+          <MessageCircle className="w-4 h-4" />
         </button>
       )}
       {showCard && (
