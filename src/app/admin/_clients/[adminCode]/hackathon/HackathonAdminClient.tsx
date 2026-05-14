@@ -17,6 +17,7 @@ import {
   adminDissolveTeam,
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
+import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
@@ -149,6 +150,10 @@ export function HackathonAdminClient({
 
   // AI analysis state (keyed by teamId)
   const [aiAnalyses, setAiAnalyses] = useState<Record<string, HackathonAIAnalysis[]>>(initialAiAnalyses);
+
+  // Push top AI to final round
+  const [pushStatus, setPushStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
+  const [pushResult, setPushResult] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -688,15 +693,56 @@ export function HackathonAdminClient({
         {/* AI Screening tab */}
         {tab === "scoring" && (
           <div className="space-y-4 animate-slide-up">
-            {/* Flow explanation */}
-            <div className="glass rounded-[28px] p-5 border-white/20">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-1">How AI Screening Works</p>
-              <p className="text-[13px] text-gray-400 leading-relaxed">
-                Step 1: Teams submit their project + repo URL + screenshots.<br/>
-                Step 2: Run AI analysis below — Claude reviews each repo across 7 criteria (takes ~3 min per team).<br/>
-                Step 3: Review AI scores → decide who advances to Final Round judging.<br/>
-                Step 4: Go to <strong className="text-white">Final Round</strong> tab to score finalists yourself.
-              </p>
+            {/* Flow explanation + push button */}
+            <div className="glass rounded-[28px] p-5 border-white/20 space-y-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-1">How AI Screening Works</p>
+                <p className="text-[13px] text-gray-400 leading-relaxed">
+                  Step 1: Teams submit project + repo URL + screenshots.<br/>
+                  Step 2: Run AI analysis per team below — Claude scores across 7 criteria (~3 min each).<br/>
+                  Step 3: Push the top scored projects to Final Round, or hand-pick them.<br/>
+                  Step 4: Go to <strong className="text-white">Final Round</strong> tab to add your own judge scores.
+                </p>
+              </div>
+
+              {judgingCompetitions.length > 0 && (
+                <div className="flex items-center justify-between gap-4 border-t border-white/[0.06] pt-4">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-white/80">Push Top 8 to Final Round</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Takes the 8 highest AI-scored projects and sends them to <strong className="text-gray-400">{judgingCompetitions[0]?.title}</strong> as finalists.
+                    </p>
+                    {pushStatus === "done" && pushResult && (
+                      <p className="text-[11px] text-green-400 mt-1">{pushResult}</p>
+                    )}
+                    {pushStatus === "error" && pushResult && (
+                      <p className="text-[11px] text-red-400 mt-1">{pushResult}</p>
+                    )}
+                  </div>
+                  <button
+                    disabled={pushStatus === "pending" || !judgingCompetitions[0]}
+                    onClick={async () => {
+                      if (!judgingCompetitions[0]) return;
+                      if (!confirm("This will replace the current Final Round finalists with the top 8 AI-scored projects. Continue?")) return;
+                      setPushStatus("pending");
+                      setPushResult(null);
+                      const res = await pushTopAIToFinalRound(adminCode, event.id, judgingCompetitions[0].id, 8);
+                      if (res.error) {
+                        setPushStatus("error");
+                        setPushResult(res.error);
+                      } else {
+                        setPushStatus("done");
+                        setPushResult(`${res.pushed} project${res.pushed !== 1 ? "s" : ""} added to Final Round.`);
+                        refresh();
+                      }
+                    }}
+                    className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-semibold border border-yellow-400/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    {pushStatus === "pending" ? "Pushing…" : "Push Top 8"}
+                  </button>
+                </div>
+              )}
             </div>
             {teams.length === 0 && (
               <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
