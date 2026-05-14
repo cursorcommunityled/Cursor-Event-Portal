@@ -610,10 +610,10 @@ export function CompetitionsAdminClient({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-300 font-medium">
-                        Final-Round Judging
+                        Add to Final Round
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        Select any number of entries to send to the Hackathon admin judging module.
+                        Pick entries to advance. They&apos;ll appear in the <strong className="text-gray-300">Final Round</strong> tab of the Hackathon admin for human judge scoring.
                       </p>
                     </div>
                     <button
@@ -871,7 +871,7 @@ export function CompetitionsAdminClient({
                                   : "bg-white/5 text-gray-400 hover:bg-white/10"
                               )}
                             >
-                              {isPendingJudgingFinalist ? "Judging Finalist" : "Send to Judging"}
+                              {isPendingJudgingFinalist ? "✓ Added to Final Round" : "Add to Final Round"}
                             </button>
 
                             {/* StackBlitz preview */}

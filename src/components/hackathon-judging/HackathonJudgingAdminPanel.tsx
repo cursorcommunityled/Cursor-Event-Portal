@@ -7,6 +7,11 @@ import {
   Save,
   Trophy,
   Users,
+  Cpu,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  AlertCircle,
 } from "lucide-react";
 import {
   publishCompetitionJudgingResults,
@@ -14,13 +19,133 @@ import {
   unpublishCompetitionJudgingResults,
 } from "@/lib/actions/competition-judging";
 import { cn } from "@/lib/utils";
-import type { CompetitionJudgingCompetition } from "@/types";
+import type { CompetitionJudgingCompetition, HackathonTeamWithMembers } from "@/types";
+import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
 
 interface Props {
   adminCode: string;
   eventSlug: string;
   adminUserId: string | null;
   competitions: CompetitionJudgingCompetition[];
+  teams?: HackathonTeamWithMembers[];
+  aiAnalyses?: Record<string, HackathonAIAnalysis[]>;
+}
+
+// ─── Inline AI summary for a single finalist entry ───────────────────────────
+
+function EntryAISummary({ repoUrl, teams, aiAnalyses }: {
+  repoUrl: string | null;
+  teams: HackathonTeamWithMembers[];
+  aiAnalyses: Record<string, HackathonAIAnalysis[]>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Match entry to a team by repo_url
+  const team = repoUrl
+    ? teams.find((t) => t.project?.repo_url && t.project.repo_url.trim().replace(/\/$/, '') === repoUrl.trim().replace(/\/$/, ''))
+    : null;
+
+  if (!team) return null;
+
+  const analyses = aiAnalyses[team.id] ?? [];
+  const pass6Row = analyses.find((a) => a.pass_name === 'pass6_synthesis' && a.status === 'complete');
+  const isRunning = analyses.some((a) => a.status === 'running');
+  const completedPasses = analyses.filter((a) => a.status === 'complete').length;
+
+  if (!pass6Row && !isRunning && analyses.length === 0) return null;
+
+  const pass6 = pass6Row?.result as Pass6Result | undefined;
+
+  const KEY_CRITERIA = ['innovation', 'technical_execution', 'functional_completeness', 'ux_design'];
+
+  return (
+    <div className="rounded-2xl border border-purple-500/25 bg-purple-500/[0.06] overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-500/10 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <Cpu className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-purple-400">AI Pre-Screen</span>
+          {isRunning && (
+            <span className="text-[10px] text-gray-500">{completedPasses}/6 passes…</span>
+          )}
+          {pass6 && (
+            <span className="text-[14px] font-semibold text-white ml-1">
+              {pass6.overall_score.toFixed(1)}<span className="text-[10px] text-gray-500">/10</span>
+            </span>
+          )}
+          {!pass6 && !isRunning && analyses.length > 0 && (
+            <span className="text-[10px] text-red-400">Analysis incomplete</span>
+          )}
+        </div>
+        {pass6 && (expanded ? <ChevronUp className="w-3.5 h-3.5 text-gray-500" /> : <ChevronDown className="w-3.5 h-3.5 text-gray-500" />)}
+      </button>
+
+      {pass6 && expanded && (
+        <div className="px-4 pb-4 space-y-3 border-t border-purple-500/15">
+          {/* Score bars for key criteria */}
+          <div className="grid grid-cols-2 gap-2 pt-3">
+            {pass6.criteria_scores
+              .filter((c) => KEY_CRITERIA.includes(c.criteria_key))
+              .map((c) => (
+                <div key={c.criteria_key} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] uppercase tracking-[0.15em] text-gray-500 capitalize">
+                      {c.criteria_key.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[11px] text-white tabular-nums">{c.score.toFixed(1)}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full",
+                        c.score >= 8 ? "bg-green-400" : c.score >= 6 ? "bg-blue-400" : c.score >= 4 ? "bg-yellow-400" : "bg-red-400"
+                      )}
+                      style={{ width: `${(c.score / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          {/* Most impressive */}
+          {pass6.most_impressive_aspect && (
+            <div className="flex gap-2 items-start">
+              <Lightbulb className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
+              <p className="text-[12px] text-gray-300 leading-relaxed">{pass6.most_impressive_aspect}</p>
+            </div>
+          )}
+
+          {/* Judge briefing */}
+          {pass6.judge_briefing_points.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-gray-600 flex items-center gap-1.5">
+                <Users className="w-2.5 h-2.5" /> For Human Judges
+              </p>
+              <ul className="space-y-0.5">
+                {pass6.judge_briefing_points.map((pt, i) => (
+                  <li key={i} className="text-[11px] text-gray-400 flex gap-2">
+                    <span className="text-gray-600 shrink-0">·</span>{pt}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Concerns */}
+          {pass6.concerns_and_limitations.length > 0 && (
+            <div className="flex gap-2 items-start">
+              <AlertCircle className="w-3 h-3 text-orange-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                {pass6.concerns_and_limitations[0]}
+                {pass6.concerns_and_limitations.length > 1 && ` (+${pass6.concerns_and_limitations.length - 1} more)`}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 type ScoreDraft = Record<string, Record<string, number>>;
@@ -34,6 +159,8 @@ export function HackathonJudgingAdminPanel({
   eventSlug,
   adminUserId,
   competitions,
+  teams = [],
+  aiAnalyses = {},
 }: Props) {
   const [selectedCompetitionId, setSelectedCompetitionId] = useState(competitions[0]?.id ?? "");
   const [scoreDrafts, setScoreDrafts] = useState<ScoreDraft>({});
@@ -133,8 +260,9 @@ export function HackathonJudgingAdminPanel({
       <div className="glass rounded-[28px] p-5 border-white/20 space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400">Final Round Judging</p>
-            <h3 className="text-lg font-light mt-1">Competition Finalists</h3>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400">Final Round — Human Judging</p>
+            <h3 className="text-lg font-light mt-1">Score Finalists</h3>
+            <p className="text-[11px] text-gray-500 mt-1">AI pre-screen scores shown above each entry for reference. Add your own scores below.</p>
           </div>
           <select
             value={competition.id}
@@ -179,7 +307,7 @@ export function HackathonJudgingAdminPanel({
         <div className="glass rounded-[32px] p-10 border-white/20 text-center space-y-2">
           <p className="text-sm text-white/80">No finalists selected yet.</p>
           <p className="text-xs text-gray-500">
-            Go to the Competitions admin page and mark any number of entries as final-round projects.
+            Go to the <strong className="text-gray-400">Competitions</strong> admin page → select entries → click <strong className="text-gray-400">&ldquo;Add to Final Round&rdquo;</strong> to bring them here for judging.
           </p>
         </div>
       )}
@@ -229,6 +357,13 @@ export function HackathonJudgingAdminPanel({
               </div>
             </div>
 
+            {/* AI pre-screen summary */}
+            <EntryAISummary repoUrl={entry.repo_url} teams={teams} aiAnalyses={aiAnalyses} />
+
+            {/* Human judge scoring */}
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-3">Your Judge Score</p>
+            </div>
             <div className="space-y-3">
               {competition.criteria.map((criterion) => (
                 <div key={criterion.id} className="space-y-1.5">
