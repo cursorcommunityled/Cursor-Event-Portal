@@ -257,9 +257,9 @@ export function HackathonAdminClient({
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
-    { id: "scoring", label: "Scoring", icon: <BarChart3 className="w-4 h-4" /> },
+    { id: "scoring", label: "AI Screen", icon: <Sparkles className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
-    { id: "judging", label: "Judging", icon: <Star className="w-4 h-4" /> },
+    { id: "judging", label: "Final Round", icon: <Star className="w-4 h-4" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
@@ -685,9 +685,19 @@ export function HackathonAdminClient({
           </div>
         )}
 
-        {/* Scoring tab */}
+        {/* AI Screening tab */}
         {tab === "scoring" && (
           <div className="space-y-4 animate-slide-up">
+            {/* Flow explanation */}
+            <div className="glass rounded-[28px] p-5 border-white/20">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-1">How AI Screening Works</p>
+              <p className="text-[13px] text-gray-400 leading-relaxed">
+                Step 1: Teams submit their project + repo URL + screenshots.<br/>
+                Step 2: Run AI analysis below — Claude reviews each repo across 7 criteria (takes ~3 min per team).<br/>
+                Step 3: Review AI scores → decide who advances to Final Round judging.<br/>
+                Step 4: Go to <strong className="text-white">Final Round</strong> tab to score finalists yourself.
+              </p>
+            </div>
             {teams.length === 0 && (
               <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
                 No teams to score yet
@@ -838,13 +848,15 @@ export function HackathonAdminClient({
           </div>
         )}
 
-        {/* Judging tab */}
+        {/* Final Round judging tab */}
         {tab === "judging" && (
           <HackathonJudgingAdminPanel
             adminCode={adminCode}
             eventSlug={event.slug}
             adminUserId={adminUserId}
             competitions={judgingCompetitions}
+            teams={teams}
+            aiAnalyses={aiAnalyses}
           />
         )}
 
