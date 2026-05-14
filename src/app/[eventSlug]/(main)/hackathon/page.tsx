@@ -58,6 +58,18 @@ export default async function HackathonPage({ params }: Props) {
     ? await getMySentHackathonInviteUserIds(myTeam.id)
     : [];
 
+  // Load team's existing screenshots
+  const { createServiceClient } = await import("@/lib/supabase/server");
+  const _supa = await createServiceClient();
+  const { data: screenshotRows } = myTeam
+    ? await _supa
+        .from("hackathon_project_screenshots")
+        .select("id, file_url")
+        .eq("team_id", myTeam.id)
+        .order("sort_order")
+    : { data: [] };
+  const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
+
   // Chat: get channels visible to this user (general + their team channel)
   const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null, session.userId);
   const defaultChannel = chatChannels[0] ?? null;
@@ -89,6 +101,7 @@ export default async function HackathonPage({ params }: Props) {
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
       publishedJudgingResults={judgingResults}
+      initialScreenshots={initialScreenshots}
     />
   );
 }

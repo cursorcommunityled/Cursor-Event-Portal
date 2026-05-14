@@ -6,6 +6,7 @@ import {
 } from "@/lib/supabase/queries";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { getSession } from "@/lib/actions/registration";
+import { getTeamAnalyses } from "@/lib/actions/hackathon-analysis";
 import { HackathonAdminClient } from "@/app/admin/_clients/[adminCode]/hackathon/HackathonAdminClient";
 
 interface Props {
@@ -33,6 +34,9 @@ export default async function HackathonAdminPage({ params }: Props) {
     getCompetitionJudgingData(event.id),
   ]);
 
+  const teamIds = teams.map((t) => t.id);
+  const aiAnalyses = teamIds.length > 0 ? await getTeamAnalyses(event.id, teamIds) : {};
+
   const defaultChannel = chatChannels[0] ?? null;
   const initialMessages = defaultChannel
     ? await getHackathonChatMessages(defaultChannel.id, 60)
@@ -51,6 +55,7 @@ export default async function HackathonAdminPage({ params }: Props) {
       chatMembers={chatMembers}
       adminUserId={session?.userId ?? null}
       judgingCompetitions={judgingCompetitions}
+      initialAiAnalyses={aiAnalyses}
     />
   );
 }

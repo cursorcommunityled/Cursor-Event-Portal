@@ -30,6 +30,8 @@ import type {
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
+import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
+import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 
 interface Props {
   event: Event;
@@ -43,6 +45,7 @@ interface Props {
   chatMembers: ChatMember[];
   adminUserId: string | null;
   judgingCompetitions: CompetitionJudgingCompetition[];
+  initialAiAnalyses: Record<string, HackathonAIAnalysis[]>;
 }
 
 type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
@@ -108,7 +111,7 @@ function buildScoreNotes(scores: HackathonScore[]): Record<string, string> {
 export function HackathonAdminClient({
   event, adminCode, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
-  judgingCompetitions,
+  judgingCompetitions, initialAiAnalyses,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
@@ -143,6 +146,9 @@ export function HackathonAdminClient({
   // Team match suggestions state
   const [suggestStatus, setSuggestStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [suggestCount, setSuggestCount] = useState<number | null>(null);
+
+  // AI analysis state (keyed by teamId)
+  const [aiAnalyses, setAiAnalyses] = useState<Record<string, HackathonAIAnalysis[]>>(initialAiAnalyses);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -196,6 +202,22 @@ export function HackathonAdminClient({
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hackathon_ai_analyses", filter: `event_id=eq.${event.id}` },
+        (payload) => {
+          const row = payload.new as HackathonAIAnalysis;
+          if (!row?.team_id) { refresh(); return; }
+          setAiAnalyses((prev) => {
+            const existing = prev[row.team_id] ?? [];
+            const idx = existing.findIndex((a) => a.pass_name === row.pass_name);
+            const updated = idx >= 0
+              ? existing.map((a, i) => (i === idx ? row : a))
+              : [...existing, row];
+            return { ...prev, [row.team_id]: updated };
+          });
+        }
+      )
       .on("postgres_changes", { event: "*", schema: "public", table: "competition_finalist_entries", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "competition_judging_scorecards", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "competition_judging_score_items" }, refresh)
@@ -735,6 +757,15 @@ export function HackathonAdminClient({
                 >
                   Save Score
                 </button>
+
+                <AIAnalysisPanel
+                  teamId={team.id}
+                  teamName={team.name}
+                  eventId={event.id}
+                  adminCode={adminCode}
+                  analyses={aiAnalyses[team.id] ?? []}
+                  hasRepo={!!team.project?.repo_url}
+                />
               </div>
             ))}
           </div>
