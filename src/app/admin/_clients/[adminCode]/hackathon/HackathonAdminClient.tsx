@@ -16,10 +16,11 @@ import {
   adminRemoveTeamMember,
   adminDissolveTeam,
 } from "@/lib/actions/hackathon";
+import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
-  ImageIcon, MessageSquare, Star,
+  ImageIcon, MessageSquare, Star, Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -138,6 +139,10 @@ export function HackathonAdminClient({
   const [scoreNotes, setScoreNotes] = useState<Record<string, string>>(() =>
     buildScoreNotes(initialScores)
   );
+
+  // Team match suggestions state
+  const [suggestStatus, setSuggestStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
+  const [suggestCount, setSuggestCount] = useState<number | null>(null);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -814,17 +819,52 @@ export function HackathonAdminClient({
 
         {/* Chat tab */}
         {tab === "chat" && adminUserId && (
-          <div className="animate-slide-up" style={{ height: "calc(100vh - 22rem)" }}>
-            <HackathonChat
-              event={event}
-              userId={adminUserId}
-              isAdmin={true}
-              channels={chatChannels}
-              initialMessages={initialMessages}
-              initialChannelId={initialChannelId}
-              members={chatMembers}
-              myTeamId={null}
-            />
+          <div className="animate-slide-up space-y-4">
+            {/* Team match suggestions trigger */}
+            <div className="glass rounded-[28px] p-5 border-white/20 flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-[13px] font-medium text-white/80">AI Team Match Suggestions</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Analyse unassigned attendee profiles and send each one a DM suggesting who to invite.
+                </p>
+                {suggestStatus === "done" && suggestCount !== null && (
+                  <p className="text-[11px] text-green-400 mt-1">{suggestCount} suggestion{suggestCount !== 1 ? "s" : ""} sent.</p>
+                )}
+                {suggestStatus === "error" && (
+                  <p className="text-[11px] text-red-400 mt-1">Failed — check that ANTHROPIC_API_KEY is set and attendees have intake data.</p>
+                )}
+              </div>
+              <button
+                disabled={suggestStatus === "pending"}
+                onClick={async () => {
+                  setSuggestStatus("pending");
+                  const res = await triggerTeamMatchSuggestions(event.id);
+                  if (res.error) {
+                    setSuggestStatus("error");
+                  } else {
+                    setSuggestStatus("done");
+                    setSuggestCount(res.count ?? 0);
+                  }
+                }}
+                className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-semibold border border-purple-400/40 bg-purple-500/15 text-purple-300 hover:bg-purple-500/30 transition-all disabled:opacity-50"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {suggestStatus === "pending" ? "Generating…" : "Suggest Teams"}
+              </button>
+            </div>
+
+            <div style={{ height: "calc(100vh - 28rem)" }}>
+              <HackathonChat
+                event={event}
+                userId={adminUserId}
+                isAdmin={true}
+                channels={chatChannels}
+                initialMessages={initialMessages}
+                initialChannelId={initialChannelId}
+                members={chatMembers}
+                myTeamId={null}
+              />
+            </div>
           </div>
         )}
         {tab === "chat" && !adminUserId && (

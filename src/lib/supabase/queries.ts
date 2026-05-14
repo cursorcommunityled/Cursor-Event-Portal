@@ -2247,6 +2247,8 @@ export async function getHackathonChatChannels(
   }
 
   const rows = (data ?? []) as HackathonChatChannel[];
+
+  // Admin/fallback: return all non-dm channels + user's DMs
   if (teamId === undefined) {
     return rows.filter(
       (ch) =>
@@ -2255,10 +2257,24 @@ export async function getHackathonChatChannels(
     );
   }
 
+  // No team: Spawn Point + announcements + resources + user's DMs (NOT general)
+  if (teamId === null) {
+    return rows.filter(
+      (ch) =>
+        ch.channel_type === "spawn_point" ||
+        ch.channel_type === "announcements" ||
+        ch.channel_type === "resources" ||
+        (ch.channel_type === "dm" && userId != null && getDirectChannelUserIds(ch.name).includes(userId))
+    );
+  }
+
+  // Has team: general + announcements + resources + their team channel + DMs (NOT spawn_point)
   return rows.filter(
     (ch) =>
-      (ch.team_id === null && ch.channel_type !== "dm") ||
-      (teamId != null && ch.team_id === teamId) ||
+      ch.channel_type === "general" ||
+      ch.channel_type === "announcements" ||
+      ch.channel_type === "resources" ||
+      ch.team_id === teamId ||
       (ch.channel_type === "dm" && userId != null && getDirectChannelUserIds(ch.name).includes(userId))
   );
 }
@@ -2301,9 +2317,16 @@ export async function getHackathonChatMessages(
 
   const messageIds = messages.map((msg) => msg.id);
   const userIds = [...new Set(messages.map((msg) => msg.user_id))];
+  const suggestionUserIds = [
+    ...new Set(
+      messages.map((msg) => msg.suggestion_user_id).filter((id): id is string => !!id)
+    ),
+  ];
+
+  const allUserIds = [...new Set([...userIds, ...suggestionUserIds])];
 
   const [{ data: users }, { data: reactions }] = await Promise.all([
-    supabase.from("users").select("id, name").in("id", userIds),
+    supabase.from("users").select("id, name").in("id", allUserIds),
     supabase
       .from("hackathon_chat_reactions")
       .select("id, message_id, user_id, emoji, created_at")
@@ -2326,6 +2349,7 @@ export async function getHackathonChatMessages(
       ...msg,
       user: userMap.get(msg.user_id),
       reactions: reactionsByMessage.get(msg.id) ?? [],
+      suggestion_user: msg.suggestion_user_id ? (userMap.get(msg.suggestion_user_id) ?? null) : null,
     }))
     .reverse();
 }
