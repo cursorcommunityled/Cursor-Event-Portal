@@ -108,3 +108,85 @@ export async function applyAIScores(
 
   return { success: true };
 }
+
+// Push top N AI-scored teams to Final Round as competition finalists
+export async function pushTopAIToFinalRound(
+  adminCode: string,
+  eventId: string,
+  competitionId: string,
+  count = 8
+): Promise<{ success?: true; error?: string; pushed?: number }> {
+  const session = await getSession();
+  if (!session) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+
+  // Verify admin
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id, slug")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return { error: "Not authorized" };
+
+  // Get all completed Pass 6 results for this event
+  const { data: syntheses } = await supabase
+    .from("hackathon_ai_analyses")
+    .select("team_id, result")
+    .eq("event_id", eventId)
+    .eq("pass_name", "pass6_synthesis")
+    .eq("status", "complete");
+
+  if (!syntheses?.length) return { error: "No completed AI analyses found. Run AI screening first." };
+
+  // Sort by overall_score descending, take top N
+  const sorted = (syntheses as { team_id: string; result: Pass6Result }[])
+    .map((row) => ({ teamId: row.team_id, score: (row.result as Pass6Result).overall_score ?? 0 }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count);
+
+  const topTeamIds = sorted.map((s) => s.teamId);
+
+  // Fetch repo_urls for those teams
+  const { data: projects } = await supabase
+    .from("hackathon_projects")
+    .select("team_id, repo_url")
+    .in("team_id", topTeamIds)
+    .not("repo_url", "is", null);
+
+  const repoByTeam = new Map(
+    (projects ?? []).map((p: { team_id: string; repo_url: string }) => [p.team_id, p.repo_url.trim().replace(/\/$/, "")])
+  );
+
+  // Match to competition entries by repo_url
+  const { data: entries } = await supabase
+    .from("competition_entries")
+    .select("id, repo_url")
+    .eq("competition_id", competitionId);
+
+  const entryByRepo = new Map(
+    (entries ?? []).map((e: { id: string; repo_url: string }) => [e.repo_url.trim().replace(/\/$/, ""), e.id])
+  );
+
+  // Build ordered list of entry IDs for the top teams
+  const entryIds: string[] = [];
+  for (const { teamId } of sorted) {
+    const repo = repoByTeam.get(teamId);
+    if (!repo) continue;
+    const entryId = entryByRepo.get(repo);
+    if (entryId && !entryIds.includes(entryId)) entryIds.push(entryId);
+  }
+
+  if (!entryIds.length) {
+    return { error: "Could not match AI-scored teams to competition entries. Make sure repo URLs match between project submissions and competition entries." };
+  }
+
+  // Delegate to the existing finalist setter
+  const { setCompetitionFinalists } = await import("@/lib/actions/competition-judging");
+  const result = await setCompetitionFinalists(competitionId, adminEvent.slug, entryIds, adminCode);
+  if (result.error) return { error: result.error };
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true, pushed: entryIds.length };
+}
