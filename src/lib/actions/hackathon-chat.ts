@@ -21,9 +21,10 @@ export async function ensureDefaultChannels(eventId: string) {
   const supabase = await createServiceClient();
 
   const defaults = [
-    { name: "general", channel_type: "general", position: 0 },
-    { name: "announcements", channel_type: "announcements", position: 1 },
-    { name: "resources", channel_type: "resources", position: 2 },
+    { name: "spawn-point", channel_type: "spawn_point", position: 0 },
+    { name: "general", channel_type: "general", position: 1 },
+    { name: "announcements", channel_type: "announcements", position: 2 },
+    { name: "resources", channel_type: "resources", position: 3 },
   ];
 
   // Check which channels already exist first
@@ -188,6 +189,34 @@ export async function sendChatMessage(
       const adminRoles = ["admin", "staff", "facilitator"];
       if (!user || !adminRoles.includes(user.role)) {
         return { error: "You are not a member of this team" };
+      }
+    }
+  }
+
+  // Spawn Point is only for members who haven't been assigned to a team yet
+  if (channel.channel_type === "spawn_point") {
+    const { data: eventTeams } = await supabase
+      .from("hackathon_teams")
+      .select("id")
+      .eq("event_id", eventId);
+    const eventTeamIds = (eventTeams ?? []).map((t: { id: string }) => t.id);
+    if (eventTeamIds.length > 0) {
+      const { data: userMembership } = await supabase
+        .from("hackathon_team_members")
+        .select("id")
+        .eq("user_id", session.userId)
+        .in("team_id", eventTeamIds)
+        .limit(1);
+      if (userMembership?.length) {
+        const { data: user } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", session.userId)
+          .maybeSingle();
+        const adminRoles = ["admin", "staff", "facilitator"];
+        if (!user || !adminRoles.includes(user.role)) {
+          return { error: "You're on a team — use your team channel or #general" };
+        }
       }
     }
   }

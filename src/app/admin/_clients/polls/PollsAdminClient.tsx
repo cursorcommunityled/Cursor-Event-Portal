@@ -354,7 +354,7 @@ function CreatePollModal({
   }, []);
 
   const handleAddOption = () => {
-    if (options.length < 6) setOptions([...options, ""]);
+    if (options.length < 8) setOptions([...options, ""]);
   };
 
   const handleRemoveOption = (index: number) => {
@@ -449,7 +449,7 @@ function CreatePollModal({
                 )}
               </div>
             ))}
-            {options.length < 6 && (
+            {options.length < 8 && (
               <button type="button" onClick={handleAddOption} className="text-sm text-gray-500 hover:text-white transition-colors">
                 + Add option
               </button>

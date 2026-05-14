@@ -910,7 +910,7 @@ export interface HackathonTeamWithMembers extends HackathonTeam {
 
 // ─── Hackathon Chat ───────────────────────────────────────────────────────────
 
-export type ChatChannelType = 'general' | 'announcements' | 'team' | 'resources' | 'dm';
+export type ChatChannelType = 'spawn_point' | 'general' | 'announcements' | 'team' | 'resources' | 'dm';
 
 export interface HackathonChatChannel {
   id: string;
@@ -938,10 +938,13 @@ export interface HackathonChatMessage {
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
+  is_system_message: boolean;
+  suggestion_user_id: string | null;
   user?: Pick<User, 'id' | 'name'>;
   reactions?: HackathonChatReaction[];
   sender_team?: { id: string; name: string; icon_photo?: EventPhoto | null } | null;
   sender_role?: UserRole | null;
+  suggestion_user?: Pick<User, 'id' | 'name'> | null;
 }
 
 export interface HackathonChatReaction {
