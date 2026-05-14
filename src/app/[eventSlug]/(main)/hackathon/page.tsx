@@ -58,17 +58,21 @@ export default async function HackathonPage({ params }: Props) {
     ? await getMySentHackathonInviteUserIds(myTeam.id)
     : [];
 
-  // Load team's existing screenshots
+  // Load team's existing screenshots + AI analysis status (status only, no scores)
   const { createServiceClient } = await import("@/lib/supabase/server");
   const _supa = await createServiceClient();
-  const { data: screenshotRows } = myTeam
-    ? await _supa
-        .from("hackathon_project_screenshots")
-        .select("id, file_url")
-        .eq("team_id", myTeam.id)
-        .order("sort_order")
-    : { data: [] };
+
+  const [{ data: screenshotRows }, { data: analysisRows }] = await Promise.all([
+    myTeam
+      ? _supa.from("hackathon_project_screenshots").select("id, file_url").eq("team_id", myTeam.id).order("sort_order")
+      : Promise.resolve({ data: [] }),
+    myTeam
+      ? _supa.from("hackathon_ai_analyses").select("id, pass_name, status, updated_at").eq("team_id", myTeam.id)
+      : Promise.resolve({ data: [] }),
+  ]);
+
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
+  const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
 
   // Chat: get channels visible to this user (general + their team channel)
   const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null, session.userId);
@@ -102,6 +106,7 @@ export default async function HackathonPage({ params }: Props) {
       chatMembers={chatMembers}
       publishedJudgingResults={judgingResults}
       initialScreenshots={initialScreenshots}
+      initialTeamAnalyses={initialTeamAnalyses}
     />
   );
 }

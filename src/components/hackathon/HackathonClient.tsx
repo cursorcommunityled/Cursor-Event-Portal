@@ -43,6 +43,7 @@ interface Props {
   chatMembers: ChatMember[];
   publishedJudgingResults: CompetitionJudgingResult[];
   initialScreenshots?: { id: string; file_url: string }[];
+  initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
 }
 
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
@@ -104,7 +105,7 @@ export function HackathonClient({
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
-  publishedJudgingResults, initialScreenshots = [],
+  publishedJudgingResults, initialScreenshots = [], initialTeamAnalyses = [],
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -210,9 +211,33 @@ export function HackathonClient({
     return () => window.clearInterval(timer);
   }, []);
 
+  // AI analysis status state (status only — no scores until admin applies)
+  const [teamAnalyses, setTeamAnalyses] = useState(initialTeamAnalyses);
+
   // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
+
+    const analysisChannel = myTeam
+      ? supabase
+          .channel(`hackathon-ai-${myTeam.id}`)
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "hackathon_ai_analyses", filter: `team_id=eq.${myTeam.id}` },
+            (payload) => {
+              const row = payload.new as { id: string; pass_name: string; status: string; updated_at: string };
+              if (!row?.pass_name) return;
+              setTeamAnalyses((prev) => {
+                const idx = prev.findIndex((a) => a.pass_name === row.pass_name);
+                return idx >= 0
+                  ? prev.map((a, i) => (i === idx ? { ...a, status: row.status, updated_at: row.updated_at } : a))
+                  : [...prev, row];
+              });
+            }
+          )
+          .subscribe()
+      : null;
+
     const channels = [
       supabase
         .channel(`hackathon-teams-${event.id}`)
@@ -229,8 +254,11 @@ export function HackathonClient({
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `invited_user_id=eq.${userId}` }, refresh)
         .subscribe(),
     ];
-    return () => { channels.forEach((c) => supabase.removeChannel(c)); };
-  }, [event.id, userId, refresh]);
+    return () => {
+      channels.forEach((c) => supabase.removeChannel(c));
+      if (analysisChannel) supabase.removeChannel(analysisChannel);
+    };
+  }, [event.id, userId, myTeam?.id, refresh]);
 
   const showMsg = (msg: string, isError = false) => {
     if (isError) { setError(msg); setSuccess(null); }
@@ -878,6 +906,72 @@ export function HackathonClient({
                   </div>
                 )}
               </div>
+
+              {/* AI analysis status card */}
+              {teamAnalyses.length > 0 && (() => {
+                const PASS_LABELS: Record<string, string> = {
+                  pass1_repo: "Repo Analysis",
+                  pass2_code: "Code Review",
+                  pass3_innovation: "Innovation Check",
+                  pass4_visual: "Visual Review",
+                  pass5_pool: "Comparing with pool",
+                  pass6_synthesis: "Final Synthesis",
+                };
+                const ORDER = ["pass1_repo", "pass2_code", "pass3_innovation", "pass4_visual", "pass5_pool", "pass6_synthesis"];
+                const running = teamAnalyses.find((a) => a.status === "running");
+                const completed = teamAnalyses.filter((a) => a.status === "complete");
+                const allDone = completed.length === 6;
+                const hasError = teamAnalyses.some((a) => a.status === "error");
+                const scoresApplied = scores.some((s) => s.team_id === myTeam.id);
+
+                if (scoresApplied) return null; // score card handles this
+
+                return (
+                  <div className="glass rounded-[28px] p-5 border-white/20 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-2 h-2 rounded-full ${running ? "bg-purple-400 animate-pulse" : allDone ? "bg-green-400" : hasError ? "bg-red-400" : "bg-gray-600"}`} />
+                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">AI Analysis</p>
+                      </div>
+                      <span className="text-[11px] text-gray-500">
+                        {allDone ? "Complete" : running ? `Pass ${ORDER.indexOf(running.pass_name) + 1}/6` : hasError ? "Error" : `${completed.length}/6`}
+                      </span>
+                    </div>
+
+                    {/* Pass progress row */}
+                    <div className="flex items-center gap-1.5">
+                      {ORDER.map((passName, i) => {
+                        const pass = teamAnalyses.find((a) => a.pass_name === passName);
+                        const isRunning = pass?.status === "running";
+                        const isDone = pass?.status === "complete";
+                        const isError = pass?.status === "error";
+                        return (
+                          <div
+                            key={passName}
+                            title={PASS_LABELS[passName]}
+                            className={`flex-1 h-1.5 rounded-full transition-all ${
+                              isDone ? "bg-purple-400" :
+                              isRunning ? "bg-purple-400/50 animate-pulse" :
+                              isError ? "bg-red-400/60" :
+                              "bg-white/10"
+                            }`}
+                          />
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[12px] text-gray-500 leading-relaxed">
+                      {allDone
+                        ? "Analysis complete — results pending admin review."
+                        : running
+                        ? `Currently running: ${PASS_LABELS[running.pass_name] ?? running.pass_name}…`
+                        : hasError
+                        ? "Analysis encountered an error — admin has been notified."
+                        : "Analysis queued."}
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Leaderboard (if visible) */}
               {leaderboardVisible && (
