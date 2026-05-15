@@ -15,7 +15,7 @@ type BrandIconProps = {
 
 const BrandIcon: React.FC<BrandIconProps> = ({ iconPath }) => {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-4 h-4">
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="w-[22px] h-[22px]">
       <path d={iconPath} fill="currentColor" />
     </svg>
   );
@@ -27,9 +27,9 @@ type SocialIconProps = {
 
 const SocialIcon: React.FC<SocialIconProps> = ({ kind }) => {
   if (kind === 'x') return <BrandIcon iconPath={siX.path} />;
-  if (kind === 'linkedin') return <Linkedin className="w-4 h-4" />;
+  if (kind === 'linkedin') return <Linkedin className="w-[22px] h-[22px]" />;
   if (kind === 'github') return <BrandIcon iconPath={siGithub.path} />;
-  return <Globe className="w-4 h-4" />;
+  return <Globe className="w-[22px] h-[22px]" />;
 };
 
 const AmbassadorSection: React.FC = () => {
@@ -56,7 +56,7 @@ const AmbassadorSection: React.FC = () => {
         </h2>
       </div>
 
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 md:grid-cols-2 lg:max-w-4xl gap-6">
         {ambassadors.map((ambassador, index) => {
           const links = [
             { kind: 'x' as const, href: ambassador.links.x },
@@ -72,20 +72,20 @@ const AmbassadorSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-50px' }}
               transition={{ duration: 0.3, delay: index * 0.07 }}
-              className="bg-cursor-bg-dark border border-cursor-border rounded-md p-5 group hover:border-cursor-accent-purple/30 hover:shadow-[0_0_15px_rgba(184,168,200,0.08)] transition-all duration-300"
+              className="bg-cursor-bg-dark border border-cursor-border rounded-md p-7 group hover:border-cursor-accent-purple/30 hover:shadow-[0_0_15px_rgba(184,168,200,0.08)] transition-all duration-300"
             >
-              <div className="flex items-center gap-4">
-                <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-cursor-border-emphasis">
+              <div className="flex items-center gap-6">
+                <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-cursor-border-emphasis shrink-0">
                   <Image
                     src={ambassador.photo}
                     alt={ambassador.name}
                     fill
                     className="object-cover transition duration-500 group-hover:grayscale"
-                    sizes="80px"
+                    sizes="112px"
                   />
                 </div>
                 <div>
-                  <p className="text-cursor-text font-medium">{ambassador.name}</p>
+                  <p className="text-cursor-text font-semibold text-[22px]">{ambassador.name}</p>
                   {ambassador.role === 'Ambassador' ? (
                     <div className="mt-1">
                       <Image
@@ -94,24 +94,24 @@ const AmbassadorSection: React.FC = () => {
                         width={627}
                         height={157}
                         unoptimized
-                        className="h-[95px] w-auto object-contain object-left opacity-90"
+                        className="h-[133px] w-auto object-contain object-left opacity-90"
                       />
                     </div>
                   ) : ambassador.role ? (
-                    <p className="text-cursor-text-muted text-sm">{ambassador.role}</p>
+                    <p className="text-cursor-text-muted text-base">{ambassador.role}</p>
                   ) : null}
                 </div>
               </div>
 
               {links.length > 0 ? (
-                <div className="flex items-center gap-3 mt-4">
+                <div className="flex items-center gap-4 mt-6">
                   {links.map((link) => (
                     <a
                       key={`${ambassador.name}-${link.kind}`}
                       href={link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded border border-cursor-border text-cursor-text-muted hover:text-cursor-text hover:border-cursor-border-emphasis transition-colors"
+                      className="p-3 rounded border border-cursor-border text-cursor-text-muted hover:text-cursor-text hover:border-cursor-border-emphasis transition-colors"
                       aria-label={`${ambassador.name} ${link.kind}`}
                     >
                       <SocialIcon kind={link.kind} />

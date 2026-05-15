@@ -25,6 +25,7 @@ import type {
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
+import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 
 interface Props {
   event: Event;
@@ -397,38 +398,46 @@ export function HackathonClient({
   ];
 
   const header = (
-    <div className="relative overflow-hidden rounded-[34px] border border-white/15 bg-white/[0.035] px-5 py-4 shadow-glow backdrop-blur-3xl sm:px-6 sm:py-5">
-      <div className="absolute -left-10 top-1/2 h-28 w-28 -translate-y-1/2 rounded-full bg-purple-500/20 blur-3xl" />
-      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-      <div className="relative flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-purple-300/25 bg-purple-400/15 shadow-[0_0_24px_rgba(168,85,247,0.18)]">
-          <Swords className="h-6 w-6 text-purple-200" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-purple-200/90">
-            Build Sprint
-          </p>
-          <h1 className="mt-0.5 truncate text-3xl font-light tracking-tight text-white text-shadow-glow sm:text-4xl">
-            Hackathon
-          </h1>
-          <p className="mt-1 truncate text-sm leading-relaxed text-gray-300 sm:text-[15px]">
-            {event.name}
-          </p>
-          {settings?.team_formation_closes_at && (
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-gray-400">
-              <Clock className="h-3.5 w-3.5 text-purple-200/80" />
-              {formationOpen
-                ? `Teams lock ${new Date(settings.team_formation_closes_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                : "Team formation closed"}
+    <div className="relative overflow-hidden rounded-[34px] border border-white/15 bg-black/40 px-5 py-6 shadow-2xl backdrop-blur-3xl sm:px-8 sm:py-8 group">
+      {/* Animated background grid */}
+      <div className="absolute inset-0 bg-grid-purple/[0.05] bg-[size:30px_30px] opacity-20" />
+      
+      {/* Glowing orbs */}
+      <div className="absolute -left-20 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-purple-600/30 blur-[80px] group-hover:bg-purple-500/40 transition-colors duration-700" />
+      <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-blue-600/20 blur-[60px] group-hover:bg-blue-500/30 transition-colors duration-700" />
+      
+      {/* Top highlight line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-5">
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-400/30 bg-purple-500/20 shadow-neon overflow-hidden">
+            <div className="absolute inset-0 rounded-2xl bg-purple-400/10 animate-pulse-soft" />
+            <img src="/cursor-logo.svg" alt="Cursor" className="w-8 h-8 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-300/90">
+                System Active
+              </p>
+              <div className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse" />
+            </div>
+            <h1 className="truncate text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-purple-200 sm:text-5xl drop-shadow-lg">
+              HACKATHON
+            </h1>
+            <p className="mt-1.5 truncate text-sm font-medium text-purple-200/70 sm:text-[15px] uppercase tracking-widest">
+              {event.name}
             </p>
-          )}
+          </div>
         </div>
-        <div className="ml-auto flex items-center gap-3 shrink-0 self-start sm:self-center pr-2">
-          <div className="relative w-24 h-10 sm:w-32 sm:h-14 opacity-90 hover:opacity-100 transition-opacity mix-blend-screen">
+        
+        <div className="flex items-center gap-4 self-start sm:self-center bg-black/40 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
+          <div className="relative w-24 h-10 sm:w-28 sm:h-12 opacity-80 hover:opacity-100 transition-opacity mix-blend-screen filter brightness-125">
             <Image src="/sait.jpeg" alt="SAIT" fill className="object-contain object-right" />
           </div>
-          <div className="w-px h-8 bg-white/10 mx-1 hidden sm:block" />
-          <div className="relative w-14 h-14 sm:w-16 sm:h-16 opacity-90 hover:opacity-100 transition-opacity rounded-xl overflow-hidden shadow-md">
+          <div className="w-px h-10 bg-white/10 hidden sm:block" />
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 opacity-80 hover:opacity-100 transition-opacity rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10">
             <Image src="/megabyte-sait.jpeg" alt="Megabyte" fill className="object-cover" />
           </div>
         </div>
@@ -439,29 +448,38 @@ export function HackathonClient({
   // Chat tab: full-width layout, skip the narrow container
   if (tab === "chat") {
     return (
-      <main className="px-3 py-5 w-full animate-fade-in md:pl-40 md:pr-6">
+      <main className="relative px-3 py-5 w-full animate-fade-in md:pl-40 md:pr-6">
+        <div className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-30">
+          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,white,transparent_80%)]" />
+        </div>
+        <HackathonEffects 
+          scoresCount={scores.length} 
+          projectSubmitted={!!myTeam?.project?.submitted_at} 
+          eventStarted={eventHasStarted} 
+          teamFormed={!!myTeam}
+        />
         <div className="mb-5 max-w-5xl mx-auto">
           {header}
         </div>
         {/* Tab bar — stays above chat */}
-        <div className="glass mb-5 grid max-w-5xl grid-cols-5 gap-1.5 rounded-[26px] border-white/15 bg-white/[0.03] p-1.5 shadow-glow mx-auto">
+        <div className="relative mx-auto mb-5 flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-2xl">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "flex min-h-12 items-center justify-center gap-1.5 rounded-[20px] px-2 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-all duration-200 sm:text-[12px]",
+                "relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
                 t.id === tab
-                  ? "bg-white text-black shadow-glow scale-[1.02]"
-                  : "text-gray-300 hover:text-white bg-white/[0.045] hover:bg-white/[0.08]"
+                  ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105"
+                  : "text-gray-400 hover:bg-white/10 hover:text-white"
               )}
             >
               {t.icon}
               {t.label}
               {t.count != null && (
                 <span className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px]",
-                  t.id === tab ? "bg-black/10 text-black" : "bg-white/10 text-gray-300"
+                  "ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px]",
+                  t.id === tab ? "bg-black/20 text-black" : "bg-white/10 text-gray-300"
                 )}>
                   {t.count}
                 </span>
@@ -484,7 +502,18 @@ export function HackathonClient({
   }
 
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 animate-fade-in sm:px-6 sm:py-10">
+    <main className="relative mx-auto w-full max-w-4xl space-y-8 px-4 py-8 animate-fade-in sm:px-6 sm:py-12">
+      {/* Page background effects */}
+      <div className="pointer-events-none fixed inset-0 flex items-center justify-center opacity-30">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,white,transparent_80%)]" />
+      </div>
+
+      <HackathonEffects 
+        scoresCount={scores.length} 
+        projectSubmitted={!!myTeam?.project?.submitted_at} 
+        eventStarted={eventHasStarted} 
+        teamFormed={!!myTeam}
+      />
 
       {/* Header */}
       {header}
@@ -495,27 +524,30 @@ export function HackathonClient({
       {receivedInvites.length > 0 && (
         <div className="space-y-3">
           {receivedInvites.map((invite) => (
-            <div key={invite.id} className="glass rounded-3xl p-5 border border-purple-300/30 bg-purple-400/[0.08]">
-              <p className="text-[15px] leading-relaxed text-white/95">
-                <span className="font-medium">{(invite.inviter as { name?: string } | undefined)?.name ?? "Someone"}</span>
-                {" invited you to join "}
-                <span className="font-medium">"{(invite.team as { name?: string } | undefined)?.name ?? "a team"}"</span>
-              </p>
-              <div className="flex gap-3 mt-3">
-                <button
-                  disabled={isPending}
-                  onClick={() => handleAccept(invite.id)}
-                  className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[13px] font-semibold text-black transition-all hover:bg-white/90"
-                >
-                  <Check className="w-3.5 h-3.5" /> Accept
-                </button>
-                <button
-                  disabled={isPending}
-                  onClick={() => handleDecline(invite.id)}
-                  className="flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-2.5 text-[13px] text-gray-300 transition-all hover:text-white"
-                >
-                  <X className="w-3.5 h-3.5" /> Decline
-                </button>
+            <div key={invite.id} className="relative overflow-hidden rounded-[24px] border border-purple-500/30 bg-purple-500/10 p-5 backdrop-blur-xl shadow-neon">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.15)_0,transparent_100%)]" />
+              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <p className="text-[15px] font-medium leading-relaxed text-purple-100">
+                  <span className="font-bold text-white">{(invite.inviter as { name?: string } | undefined)?.name ?? "Someone"}</span>
+                  {" invited you to join "}
+                  <span className="font-bold text-white">"{(invite.team as { name?: string } | undefined)?.name ?? "a team"}"</span>
+                </p>
+                <div className="flex shrink-0 gap-3">
+                  <button
+                    disabled={isPending}
+                    onClick={() => handleAccept(invite.id)}
+                    className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                  >
+                    <Check className="w-4 h-4" /> Accept
+                  </button>
+                  <button
+                    disabled={isPending}
+                    onClick={() => handleDecline(invite.id)}
+                    className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:bg-white/10 hover:text-white"
+                  >
+                    <X className="w-4 h-4" /> Decline
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -527,24 +559,24 @@ export function HackathonClient({
       {success && <div className="glass rounded-xl p-3 border border-green-400/30 text-green-400 text-sm">{success}</div>}
 
       {/* Tab bar */}
-      <div className="glass grid grid-cols-5 gap-1.5 rounded-[26px] border-white/15 bg-white/[0.03] p-1.5 shadow-glow">
+      <div className="relative mx-auto flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-2xl">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "flex min-h-12 items-center justify-center gap-1.5 rounded-[20px] px-2 py-2.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-all duration-200 sm:text-[12px]",
+              "relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
               tab === t.id
-                ? "bg-white text-black shadow-glow scale-[1.02]"
-                : "text-gray-300 hover:text-white bg-white/[0.045] hover:bg-white/[0.08]"
+                ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105"
+                : "text-gray-400 hover:bg-white/10 hover:text-white"
             )}
           >
             {t.icon}
             {t.label}
             {t.count != null && (
               <span className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px]",
-                tab === t.id ? "bg-black/10 text-black" : "bg-white/10 text-gray-300"
+                "ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px]",
+                tab === t.id ? "bg-black/20 text-black" : "bg-white/10 text-gray-300"
               )}>
                 {t.count}
               </span>
@@ -556,48 +588,69 @@ export function HackathonClient({
       {/* Overview tab */}
       {tab === "overview" && (
         <div className="space-y-4 animate-slide-up">
-          <div className="glass relative overflow-hidden rounded-[40px] border border-white/20 bg-gradient-to-br from-white/[0.08] via-white/[0.03] to-purple-500/[0.06] p-6 shadow-[0_30px_80px_-35px_rgba(168,85,247,0.45)] sm:p-8">
-            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-purple-400/15 blur-3xl" />
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-purple-300/25 bg-purple-400/15 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-purple-200">
-                  <span className="h-1.5 w-1.5 rounded-full bg-purple-300 shadow-[0_0_10px_rgba(216,180,254,0.8)]" />
+          <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-2xl sm:p-10">
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px] [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+            <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-purple-600/20 blur-[100px]" />
+            <div className="absolute left-1/2 top-0 h-px w-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+            
+            <div className="relative flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-purple-300 shadow-neon">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                  </span>
                   Hackathon Hub
                 </div>
                 <div>
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.22em] text-gray-400">
+                  <p className="text-[12px] font-bold uppercase tracking-[0.3em] text-gray-500 mb-2">
                     {eventHasStarted ? "Event status" : "Event starts in"}
                   </p>
-                  <h2 className="mt-1 text-5xl font-light tracking-tight text-white text-shadow-glow sm:text-6xl">
+                  <h2 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 sm:text-7xl drop-shadow-2xl">
                     {formatCountdown(event.start_time, now)}
                   </h2>
-                  <p className="mt-3 max-w-xl text-base leading-relaxed text-gray-300">
-                    {event.start_time
-                      ? `${eventHasStarted ? "Started" : "Starts"} ${formatEventDateTime(event.start_time, event.timezone)}`
-                      : "Start time has not been set yet."}
-                    {" · "}
-                    {plural(totalParticipants, "participant")} active
-                  </p>
+                  <div className="mt-4 flex items-center gap-3 text-sm font-medium text-gray-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-purple-400" />
+                      {event.start_time
+                        ? `${eventHasStarted ? "Started" : "Starts"} ${formatEventDateTime(event.start_time, event.timezone)}`
+                        : "Start time has not been set yet."}
+                    </span>
+                    <span className="text-gray-600">•</span>
+                    <span className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-blue-400" />
+                      {plural(totalParticipants, "participant")} active
+                    </span>
+                  </div>
                 </div>
               </div>
+              
               <div className={cn(
-                "rounded-3xl border px-4 py-3 text-[15px] shadow-inner-glow sm:min-w-48",
+                "relative overflow-hidden rounded-3xl border px-6 py-5 shadow-2xl sm:min-w-56 backdrop-blur-md",
                 formationOpen
-                  ? "border-green-400/20 bg-green-400/10 text-green-300"
-                  : "border-amber-400/20 bg-amber-400/10 text-amber-300"
+                  ? "border-green-500/30 bg-green-500/10"
+                  : "border-amber-500/30 bg-amber-500/10"
               )}>
-                <div className="flex items-center gap-2 font-semibold">
-                  {formationOpen ? <Check className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                  {formationOpen ? "Teams forming" : "Teams locked"}
+                <div className={cn(
+                  "absolute inset-0 opacity-20",
+                  formationOpen ? "bg-[radial-gradient(circle_at_center,rgba(74,222,128,0.8)_0,transparent_100%)]" : "bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.8)_0,transparent_100%)]"
+                )} />
+                <div className="relative">
+                  <div className={cn(
+                    "flex items-center gap-2.5 text-[13px] font-black uppercase tracking-[0.2em]",
+                    formationOpen ? "text-green-400" : "text-amber-400"
+                  )}>
+                    {formationOpen ? <Check className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                    {formationOpen ? "Teams forming" : "Teams locked"}
+                  </div>
+                  <p className="mt-2 text-[12px] font-medium uppercase tracking-wider text-white/70">
+                    {formationOpen && settings?.team_formation_closes_at
+                      ? `Locks ${formatEventDateTime(settings.team_formation_closes_at, event.timezone)}`
+                      : formationOpen
+                        ? "Open for invites & changes"
+                        : "Team changes are closed"}
+                  </p>
                 </div>
-                <p className="mt-1.5 text-[12px] leading-relaxed text-white/65">
-                  {formationOpen && settings?.team_formation_closes_at
-                    ? `Locks ${formatEventDateTime(settings.team_formation_closes_at, event.timezone)}`
-                    : formationOpen
-                      ? "Open for invites and team changes"
-                      : "Team changes are closed"}
-                </p>
               </div>
             </div>
           </div>
@@ -609,18 +662,24 @@ export function HackathonClient({
             <HubMetric label="Open Slots" value={openTeamSlots} detail={`max ${maxTeamSize} per team`} muted={!formationOpen} />
           </div>
 
-          <div className="glass rounded-[34px] border border-white/15 bg-white/[0.025] p-5 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Your next move</p>
-                <h3 className="text-xl font-light text-white sm:text-2xl">
+          <div className="relative overflow-hidden rounded-[34px] border border-purple-500/20 bg-black/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-blue-500/10" />
+            <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-purple-600/20 blur-[50px]" />
+            
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-purple-300">Mission Objective</p>
+                </div>
+                <h3 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
                   {myTeam
                     ? `You're on ${myTeam.name}`
                     : formationOpen
                       ? "Find or form your team"
                       : "Wait for organizer assignment"}
                 </h3>
-                <p className="max-w-2xl text-[15px] leading-relaxed text-gray-300">
+                <p className="max-w-2xl text-[15px] font-medium text-gray-400">
                   {myTeam
                     ? myTeam.project?.submitted_at
                       ? "Your project is submitted. Keep an eye on chat and the leaderboard."
@@ -630,18 +689,19 @@ export function HackathonClient({
                       : "Team formation has closed, but chat is still available for coordination."}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="flex shrink-0 flex-wrap gap-3">
                 <button
                   onClick={() => setTab(myTeam ? "my-team" : "open-pool")}
-                  className="rounded-2xl bg-white px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-black transition-all hover:bg-white/90 hover:shadow-glow"
+                  className="group relative overflow-hidden rounded-2xl bg-white px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.15em] text-black transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
-                  {myTeam ? "Open Team" : "Open Pool"}
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="relative">{myTeam ? "Open Team" : "Open Pool"}</span>
                 </button>
                 <button
                   onClick={() => setTab("chat")}
-                  className="rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.12em] text-gray-200 transition-all hover:border-white/25 hover:bg-white/[0.1] hover:text-white"
+                  className="rounded-2xl border border-white/20 bg-white/5 px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.15em] text-white transition-all hover:bg-white/10 hover:border-white/40"
                 >
-                  Chat
+                  Comms
                 </button>
               </div>
             </div>
@@ -664,18 +724,27 @@ export function HackathonClient({
           </div>
 
           {(leaderboardVisible || leadingTeam) && (
-            <div className="glass flex items-center justify-between gap-4 rounded-[30px] border border-white/15 bg-white/[0.025] p-5">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-400">Leaderboard</p>
-                <p className="mt-1 text-[15px] leading-relaxed text-gray-300">
-                  {leadingTeam
-                    ? `${leadingTeam.name} is currently leading with ${totalScore(leadingTeam.id, scores)} points.`
-                    : "Leaderboard is visible once scores are available."}
-                </p>
+            <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-[34px] border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+              <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[50px]" />
+              
+              <div className="relative flex items-center gap-5">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.2)] overflow-hidden relative">
+                  <div className="absolute inset-0 bg-yellow-500/10 animate-pulse" />
+                  <img src="/cursor-logo.svg" alt="Cursor" className="w-7 h-7 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-500/80">Leaderboard</p>
+                  <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-gray-300">
+                    {leadingTeam
+                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading with <span className="text-yellow-400 font-bold">{totalScore(leadingTeam.id, scores)}</span> points.</>
+                      : "Leaderboard is visible once scores are available."}
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setTab("all-teams")}
-                className="shrink-0 rounded-2xl border border-white/15 bg-white/[0.04] px-4 py-2.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-gray-200 transition-all hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
+                className="relative shrink-0 rounded-[20px] border border-white/10 bg-white/5 px-6 py-3.5 text-[12px] font-bold uppercase tracking-wider text-white transition-all hover:bg-white/10 hover:border-white/30 hover:scale-105"
               >
                 View Teams
               </button>
@@ -688,50 +757,62 @@ export function HackathonClient({
       {tab === "my-team" && (
         <div className="space-y-4 animate-slide-up">
           {!myTeam ? (
-            <div className="glass rounded-[34px] p-10 border-white/20 bg-white/[0.02] text-center space-y-4">
-              <Users className="w-11 h-11 text-gray-400 mx-auto" />
-              <p className="text-[16px] text-gray-200">You&apos;re not on a team yet</p>
-              {formationOpen ? (
-                <p className="text-[13px] text-gray-400">
-                  Go to <button onClick={() => setTab("open-pool")} className="text-white underline">Open Pool</button> to find teammates and form a team
-                </p>
-              ) : (
-                <p className="text-[13px] text-amber-300 flex items-center justify-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5" /> Team formation is closed
-                </p>
-              )}
+            <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
+              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+              
+              <div className="relative space-y-6">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/5 shadow-xl">
+                  <Users className="h-10 w-10 text-gray-400" />
+                </div>
+                <div>
+                  <p className="text-2xl font-black tracking-tight text-white">You&apos;re not on a team yet</p>
+                  {formationOpen ? (
+                    <p className="mt-2 text-[15px] font-medium text-gray-400">
+                      Go to <button onClick={() => setTab("open-pool")} className="text-purple-400 hover:text-purple-300 underline decoration-purple-500/30 underline-offset-4 transition-colors">Open Pool</button> to find teammates and form a team
+                    </p>
+                  ) : (
+                    <p className="mt-3 flex items-center justify-center gap-2 text-[13px] font-bold uppercase tracking-wider text-amber-500">
+                      <Lock className="h-4 w-4" /> Team formation is closed
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <>
-              <div className="glass rounded-[34px] p-6 border-white/20 bg-white/[0.02] space-y-6 sm:p-8">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex items-start gap-4 min-w-0">
-                    <div className="relative flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-white/15 bg-white/[0.06] shadow-inner-glow">
+              <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-6 sm:p-10 backdrop-blur-xl shadow-2xl space-y-8">
+                <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-purple-500/10 blur-[60px]" />
+                
+                <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-5 min-w-0">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-white/15 bg-white/5 shadow-xl group">
                       {myTeam.icon_photo?.status === "approved" ? (
                         <Image
                           src={myTeam.icon_photo.file_url}
                           alt={`${myTeam.name} icon`}
                           fill
-                          className="object-cover"
-                          sizes="64px"
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          sizes="80px"
                         />
                       ) : (
-                        <ImageIcon className="w-6 h-6 text-gray-400" />
+                        <ImageIcon className="w-8 h-8 text-gray-500" />
                       )}
                     </div>
-                    <div className="min-w-0">
-                      <h2 className="text-3xl font-light truncate text-white">{myTeam.name}</h2>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400 mt-1.5">
+                    <div className="min-w-0 pt-1">
+                      <h2 className="text-4xl font-black tracking-tight truncate text-white drop-shadow-md">{myTeam.name}</h2>
+                      <p className="mt-2 text-[12px] font-bold uppercase tracking-[0.2em] text-gray-400">
                         {myTeam.members.length} member{myTeam.members.length !== 1 ? "s" : ""}
                         {teamLocked && (
-                          <span className="ml-3 text-amber-400 flex items-center gap-1 inline-flex">
-                            <Lock className="w-2.5 h-2.5" /> Locked
+                          <span className="ml-3 text-amber-500 inline-flex items-center gap-1.5">
+                            <Lock className="w-3 h-3" /> Locked
                           </span>
                         )}
                       </p>
                       {myTeam.icon_photo && myTeam.icon_photo.status !== "approved" && (
                         <p className={cn(
-                          "text-[11px] font-medium uppercase tracking-[0.18em] mt-2",
+                          "mt-2 text-[11px] font-bold uppercase tracking-[0.2em]",
                           myTeam.icon_photo.status === "pending" ? "text-amber-400" : "text-red-400"
                         )}>
                           Team icon {myTeam.icon_photo.status === "pending" ? "pending approval" : "not approved"}
@@ -739,7 +820,7 @@ export function HackathonClient({
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 shrink-0 sm:flex-col sm:items-end">
+                  <div className="flex flex-wrap gap-3 shrink-0 sm:flex-col sm:items-end">
                     <input
                       ref={teamIconInputRef}
                       type="file"
@@ -753,39 +834,39 @@ export function HackathonClient({
                     <button
                       disabled={uploadingIcon}
                       onClick={() => teamIconInputRef.current?.click()}
-                      className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-[12px] text-gray-300 transition-all hover:border-white/25 hover:text-white disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white disabled:opacity-50"
                     >
-                      {uploadingIcon ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                      {uploadingIcon ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                       {myTeam.icon_photo ? "Replace Icon" : "Upload Icon"}
                     </button>
                     {!teamLocked && (
                       <button
                         disabled={isPending}
                         onClick={handleLeave}
-                        className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-[12px] text-gray-300 transition-all hover:border-red-400/30 hover:text-red-300"
+                        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
                       >
-                        <LogOut className="w-3.5 h-3.5" /> Leave
+                        <LogOut className="w-4 h-4" /> Leave
                       </button>
                     )}
                     <button
                       disabled={isPending}
                       onClick={handleDissolve}
-                      className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-[12px] text-gray-300 transition-all hover:border-red-400/30 hover:text-red-300"
+                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
                     >
-                      <X className="w-3.5 h-3.5" /> Dissolve
+                      <X className="w-4 h-4" /> Dissolve
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="relative space-y-3">
                   {myTeam.members.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-white/[0.025] px-4 py-3 last:border-white/[0.06]">
-                      <span className="text-[15px] text-gray-100">{m.user?.name ?? "Unknown"}</span>
+                    <div key={m.id} className="flex items-center justify-between rounded-[20px] border border-white/5 bg-white/[0.02] px-5 py-4 transition-colors hover:bg-white/[0.04]">
+                      <span className="text-[16px] font-medium text-white">{m.user?.name ?? "Unknown"}</span>
                       <span className={cn(
-                        "text-[10px] uppercase tracking-[0.15em] rounded-full px-2.5 py-1",
+                        "text-[10px] font-bold uppercase tracking-[0.2em] rounded-full px-3 py-1.5",
                         m.role === "leader"
-                          ? "bg-purple-400/15 text-purple-200"
-                          : "bg-white/[0.07] text-gray-300"
+                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-neon"
+                          : "bg-white/10 text-gray-400 border border-white/5"
                       )}>
                         {m.role}
                       </span>
@@ -796,90 +877,104 @@ export function HackathonClient({
                 {!teamLocked && myTeam.members.length < (settings?.max_team_size ?? 4) && (
                   <button
                     onClick={() => setTab("open-pool")}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-white/25 py-3 text-[15px] text-gray-300 transition-all hover:border-white/45 hover:bg-white/[0.04] hover:text-white"
+                    className="relative w-full flex items-center justify-center gap-2.5 rounded-[20px] border border-dashed border-white/20 bg-white/[0.01] py-4 text-[14px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:border-purple-500/40 hover:bg-purple-500/5 hover:text-purple-300"
                   >
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-5 h-5" />
                     Invite from Open Pool
                   </button>
                 )}
               </div>
 
               {/* Project submission */}
-              <div className="glass rounded-[34px] p-6 border-white/20 bg-white/[0.02]">
+              <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+                
                 <button
                   onClick={() => setShowProjectForm(!showProjectForm)}
-                  className="w-full flex items-center justify-between"
+                  className="relative w-full flex items-center justify-between group"
                 >
-                  <div>
-                    <h3 className="text-left text-[16px] font-medium text-white">
-                      {myTeam.project?.submitted_at ? "Project Submitted" : "Submit Project"}
-                    </h3>
-                    {myTeam.project?.name && (
-                      <p className="mt-1 text-left text-[13px] text-gray-300">{myTeam.project.name}</p>
-                    )}
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[18px] border border-white/10 bg-white/5 group-hover:bg-white/10 transition-colors">
+                      <Globe className="h-5 w-5 text-gray-400 group-hover:text-white transition-colors" />
+                    </div>
+                    <div>
+                      <h3 className="text-left text-[18px] font-bold text-white">
+                        {myTeam.project?.submitted_at ? "Project Submitted" : "Submit Project"}
+                      </h3>
+                      {myTeam.project?.name && (
+                        <p className="mt-1 text-left text-[13px] font-medium text-gray-400">{myTeam.project.name}</p>
+                      )}
+                    </div>
                   </div>
-                  <ChevronDown className={cn("w-4 h-4 text-gray-300 transition-transform", showProjectForm && "rotate-180")} />
+                  <div className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-all duration-300",
+                    showProjectForm ? "rotate-180 bg-white/10" : "group-hover:bg-white/10"
+                  )}>
+                    <ChevronDown className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                  </div>
                 </button>
 
                 {showProjectForm && (
-                  <div className="space-y-4 mt-6 animate-fade-in">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">Project Name *</label>
+                  <div className="relative space-y-5 mt-8 animate-fade-in border-t border-white/10 pt-8">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">Project Name *</label>
                       <input
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         placeholder="What are you building?"
-                        className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[15px] text-white placeholder-gray-500 focus:outline-none focus:border-white/35"
+                        className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">Description</label>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">Description</label>
                       <textarea
                         value={projectDesc}
                         onChange={(e) => setProjectDesc(e.target.value)}
                         rows={3}
                         placeholder="Brief description of your project..."
-                        className="w-full resize-none rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[15px] text-white placeholder-gray-500 focus:outline-none focus:border-white/35"
+                        className="w-full resize-none rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                       />
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400 flex items-center gap-1.5">
-                          <Github className="w-3 h-3" /> Repo URL
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1 flex items-center gap-1.5">
+                          <Github className="w-3.5 h-3.5" /> Repo URL
                         </label>
                         <input
                           value={projectRepo}
                           onChange={(e) => setProjectRepo(e.target.value)}
                           placeholder="https://github.com/..."
-                          className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[15px] text-white placeholder-gray-500 focus:outline-none focus:border-white/35"
+                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                         />
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400 flex items-center gap-1.5">
-                          <Globe className="w-3 h-3" /> Demo URL
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1 flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5" /> Demo URL
                         </label>
                         <input
                           value={projectDemo}
                           onChange={(e) => setProjectDemo(e.target.value)}
                           placeholder="https://..."
-                          className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[15px] text-white placeholder-gray-500 focus:outline-none focus:border-white/35"
+                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
                         />
                       </div>
                     </div>
                     {/* Screenshots */}
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400 flex items-center gap-1.5">
-                        <Camera className="w-3 h-3" /> Screenshots <span className="text-gray-600 normal-case tracking-normal font-normal">({screenshots.length}/5) — used for AI judging</span>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1 flex items-center gap-1.5">
+                        <Camera className="w-3.5 h-3.5" /> Screenshots <span className="text-purple-400/70 normal-case tracking-normal font-medium ml-2">({screenshots.length}/5) — used for AI judging</span>
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-3">
                         {screenshots.map((s) => (
-                          <div key={s.id} className="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 bg-white/5 group">
-                            <img src={s.file_url} alt="screenshot" className="w-full h-full object-cover" />
+                          <div key={s.id} className="relative w-24 h-24 rounded-[20px] overflow-hidden border border-white/10 bg-white/5 group shadow-lg">
+                            <img src={s.file_url} alt="screenshot" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             <button
                               onClick={() => handleScreenshotDelete(s.id)}
-                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                              className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm"
                             >
-                              <X className="w-4 h-4 text-white" />
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/80 text-white">
+                                <X className="w-4 h-4" />
+                              </div>
                             </button>
                           </div>
                         ))}
@@ -888,11 +983,11 @@ export function HackathonClient({
                             type="button"
                             disabled={uploadingScreenshot}
                             onClick={() => screenshotInputRef.current?.click()}
-                            className="w-20 h-20 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all disabled:opacity-40"
+                            className="w-24 h-24 rounded-[20px] border border-dashed border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 flex items-center justify-center transition-all disabled:opacity-40 group"
                           >
                             {uploadingScreenshot
-                              ? <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
-                              : <Camera className="w-4 h-4 text-gray-500" />}
+                              ? <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                              : <Camera className="w-6 h-6 text-gray-500 group-hover:text-white transition-colors" />}
                           </button>
                         )}
                       </div>
@@ -908,9 +1003,10 @@ export function HackathonClient({
                     <button
                       disabled={isPending || !projectName.trim()}
                       onClick={handleProjectSubmit}
-                      className="w-full rounded-2xl bg-white py-3.5 text-[15px] font-semibold text-black transition-all hover:bg-white/90 hover:shadow-glow disabled:opacity-40"
+                      className="relative w-full overflow-hidden rounded-[20px] bg-white py-4 text-[15px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                     >
-                      {myTeam.project?.submitted_at ? "Update Project" : "Submit Project"}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <span className="relative">{myTeam.project?.submitted_at ? "Update Project" : "Submit Project"}</span>
                     </button>
                   </div>
                 )}
@@ -936,19 +1032,23 @@ export function HackathonClient({
                 if (scoresApplied) return null; // score card handles this
 
                 return (
-                  <div className="glass rounded-[28px] p-5 border-white/20 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-2 h-2 rounded-full ${running ? "bg-purple-400 animate-pulse" : allDone ? "bg-green-400" : hasError ? "bg-red-400" : "bg-gray-600"}`} />
-                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">AI Analysis</p>
+                  <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl space-y-4">
+                    <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:20px_20px]" />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`relative flex h-3 w-3 items-center justify-center`}>
+                          {running && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75"></span>}
+                          <span className={`relative inline-flex h-2 w-2 rounded-full ${running ? "bg-purple-500" : allDone ? "bg-green-500" : hasError ? "bg-red-500" : "bg-gray-500"}`}></span>
+                        </div>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">AI Analysis</p>
                       </div>
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
                         {allDone ? "Complete" : running ? `Pass ${ORDER.indexOf(running.pass_name) + 1}/6` : hasError ? "Error" : `${completed.length}/6`}
                       </span>
                     </div>
 
                     {/* Pass progress row */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="relative flex items-center gap-2">
                       {ORDER.map((passName, i) => {
                         const pass = teamAnalyses.find((a) => a.pass_name === passName);
                         const isRunning = pass?.status === "running";
@@ -958,18 +1058,18 @@ export function HackathonClient({
                           <div
                             key={passName}
                             title={PASS_LABELS[passName]}
-                            className={`flex-1 h-1.5 rounded-full transition-all ${
-                              isDone ? "bg-purple-400" :
-                              isRunning ? "bg-purple-400/50 animate-pulse" :
-                              isError ? "bg-red-400/60" :
-                              "bg-white/10"
+                            className={`flex-1 h-2 rounded-full transition-all duration-500 ${
+                              isDone ? "bg-purple-500 shadow-neon" :
+                              isRunning ? "bg-purple-500/50 animate-pulse shadow-neon" :
+                              isError ? "bg-red-500/60 shadow-neon-red" :
+                              "bg-white/5"
                             }`}
                           />
                         );
                       })}
                     </div>
 
-                    <p className="text-[12px] text-gray-500 leading-relaxed">
+                    <p className="relative text-[12px] font-medium text-gray-400 leading-relaxed">
                       {allDone
                         ? "Analysis complete — results pending admin review."
                         : running
@@ -995,18 +1095,27 @@ export function HackathonClient({
       {tab === "all-teams" && (
         <div className="space-y-4 animate-slide-up">
           {allTeams.length === 0 && (
-            <div className="glass rounded-[34px] p-12 border-white/20 bg-white/[0.02] text-center text-[16px] text-gray-300">
-              No teams formed yet — be the first!
+            <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
+              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+              <div className="relative">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 mb-4 shadow-xl">
+                  <Swords className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-xl font-bold tracking-tight text-white">No teams formed yet — be the first!</p>
+              </div>
             </div>
           )}
-          {leaderboardVisible
-            ? [...allTeams].sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)).map((team, i) => (
-              <TeamCard key={team.id} team={team} rank={i + 1} score={leaderboardVisible ? totalScore(team.id, scores) : null} formationOpen={formationOpen} />
-            ))
-            : allTeams.map((team) => (
-              <TeamCard key={team.id} team={team} rank={null} score={null} formationOpen={formationOpen} />
-            ))
-          }
+          <div className="grid gap-4 sm:grid-cols-2">
+            {leaderboardVisible
+              ? [...allTeams].sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)).map((team, i) => (
+                <TeamCard key={team.id} team={team} rank={i + 1} score={leaderboardVisible ? totalScore(team.id, scores) : null} formationOpen={formationOpen} />
+              ))
+              : allTeams.map((team) => (
+                <TeamCard key={team.id} team={team} rank={null} score={null} formationOpen={formationOpen} />
+              ))
+            }
+          </div>
         </div>
       )}
 
@@ -1014,90 +1123,121 @@ export function HackathonClient({
       {tab === "open-pool" && (
         <div className="space-y-4 animate-slide-up">
           {!formationOpen && (
-            <div className="glass rounded-2xl p-4 border border-amber-400/25 bg-amber-400/[0.07] flex items-center gap-3">
-              <Lock className="w-4 h-4 text-amber-400 shrink-0" />
-              <p className="text-[15px] text-amber-200">Team formation is closed — teams are locked</p>
+            <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 backdrop-blur-md">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.1)_0,transparent_100%)]" />
+              <div className="relative flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold uppercase tracking-wider text-amber-400">Formation Closed</p>
+                  <p className="text-[13px] text-amber-200/80">Teams are locked and no new invites can be sent.</p>
+                </div>
+              </div>
             </div>
           )}
 
           {pool.length === 0 && (
-            <div className="glass rounded-[34px] p-12 border-white/20 bg-white/[0.02] text-center text-[16px] text-gray-300">
-              Everyone is on a team!
+            <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
+              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+              <div className="relative">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 mb-4 shadow-xl">
+                  <Users className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-xl font-bold tracking-tight text-white">Everyone is on a team!</p>
+              </div>
             </div>
           )}
 
-          {pool.map((person) => {
-            const alreadyInvited = sentIds.has(person.id);
-            return (
-              <div key={person.id} className="glass rounded-3xl p-5 border-white/20 bg-white/[0.02] flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-[16px] font-medium text-white">{person.name}</p>
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">Looking for team</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {pool.map((person) => {
+              const alreadyInvited = sentIds.has(person.id);
+              return (
+                <div key={person.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group">
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400 shadow-inner group-hover:border-purple-500/30 group-hover:text-purple-300 transition-colors">
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-[16px] font-bold text-white tracking-tight">{person.name}</p>
+                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Looking for team</p>
+                      </div>
+                    </div>
+                    {formationOpen && (
+                      alreadyInvited ? (
+                        <span className="flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-green-400 shadow-neon-green">
+                          <Check className="w-3 h-3" /> Invited
+                        </span>
+                      ) : (
+                        <button
+                          disabled={isPending}
+                          onClick={() => setInviteTarget(person)}
+                          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-purple-500/50 hover:bg-purple-500/20 hover:text-purple-200 hover:shadow-neon"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          Invite
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
-                {formationOpen && (
-                  alreadyInvited ? (
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-gray-400 flex items-center gap-1.5">
-                      <Check className="w-3 h-3 text-green-500" /> Invited
-                    </span>
-                  ) : (
-                    <button
-                      disabled={isPending}
-                      onClick={() => setInviteTarget(person)}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] border border-white/15 hover:bg-white/[0.14] text-[15px] transition-all"
-                    >
-                      <UserPlus className="w-3.5 h-3.5" />
-                      Invite
-                    </button>
-                  )
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Invite modal */}
       {inviteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setInviteTarget(null)} />
-          <div className="relative glass rounded-[34px] p-8 border-white/20 bg-black/70 w-full max-w-md space-y-5 z-10 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]">
-            <h3 className="text-2xl font-light text-white">Invite {inviteTarget.name}</h3>
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setInviteTarget(null)} />
+          <div className="relative overflow-hidden rounded-[34px] border border-purple-500/30 bg-black/80 p-8 w-full max-w-md space-y-6 z-10 shadow-2xl backdrop-blur-xl">
+            <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:20px_20px]" />
+            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-purple-500/20 blur-[50px]" />
+            
+            <div className="relative">
+              <h3 className="text-3xl font-black tracking-tight text-white drop-shadow-md">Invite {inviteTarget.name}</h3>
+              
+              {!myTeam && (
+                <div className="mt-6 space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">Team Name *</label>
+                  <input
+                    autoFocus
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder="Name your team..."
+                    maxLength={60}
+                    className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                  />
+                  <p className="text-[11px] font-medium text-gray-500 ml-1">You&apos;ll be set as team leader</p>
+                </div>
+              )}
 
-            {!myTeam && (
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">Team Name *</label>
-                <input
-                  autoFocus
-                  value={newTeamName}
-                  onChange={(e) => setNewTeamName(e.target.value)}
-                  placeholder="Name your team..."
-                  maxLength={60}
-                  className="w-full rounded-xl border border-white/15 bg-white/[0.06] px-3 py-2.5 text-[15px] text-white placeholder-gray-500 focus:outline-none focus:border-white/35"
-                />
-                <p className="text-[12px] text-gray-400">You&apos;ll be set as team leader</p>
+              {myTeam && (
+                <p className="mt-4 text-[15px] font-medium text-gray-300 bg-white/5 border border-white/10 rounded-2xl p-4">
+                  Inviting to <span className="text-white font-bold">{myTeam.name}</span>
+                </p>
+              )}
+
+              <div className="mt-8 flex gap-3">
+                <button
+                  disabled={isPending || (!myTeam && !newTeamName.trim())}
+                  onClick={handleSendInvite}
+                  className="relative flex-1 overflow-hidden rounded-[20px] bg-white py-4 text-[14px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="relative">Send Invite</span>
+                </button>
+                <button
+                  onClick={() => setInviteTarget(null)}
+                  className="px-6 rounded-[20px] border border-white/10 bg-white/5 text-[14px] font-bold uppercase tracking-wider text-gray-400 hover:bg-white/10 hover:text-white transition-all"
+                >
+                  Cancel
+                </button>
               </div>
-            )}
-
-            {myTeam && (
-              <p className="text-[15px] text-gray-300">
-                Inviting to <span className="text-white font-medium">{myTeam.name}</span>
-              </p>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                disabled={isPending || (!myTeam && !newTeamName.trim())}
-                onClick={handleSendInvite}
-                className="flex-1 rounded-2xl bg-white py-3.5 text-[15px] font-semibold text-black transition-all hover:bg-white/90 disabled:opacity-40"
-              >
-                Send Invite
-              </button>
-              <button
-                onClick={() => setInviteTarget(null)}
-                className="px-5 rounded-2xl border border-white/15 text-[15px] text-gray-300 hover:text-white transition-all"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </div>
@@ -1119,12 +1259,17 @@ function HubMetric({
 }) {
   return (
     <div className={cn(
-      "glass rounded-[26px] border border-white/15 bg-white/[0.025] p-4 shadow-inner-glow",
-      muted && "opacity-55"
+      "relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:border-purple-500/30 hover:bg-white/[0.04] group",
+      muted && "opacity-60"
     )}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">{label}</p>
-      <p className="mt-2 text-4xl font-light tabular-nums text-white">{value}</p>
-      <p className="mt-1 text-[12px] leading-relaxed text-gray-300">{detail}</p>
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px] group-hover:bg-purple-500/20 transition-all duration-500" />
+      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-purple-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <div className="relative">
+        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-purple-300/70">{label}</p>
+        <p className="mt-2 text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{value}</p>
+        <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-gray-400">{detail}</p>
+      </div>
     </div>
   );
 }
@@ -1140,14 +1285,29 @@ function TimelineItem({
 }) {
   return (
     <div className={cn(
-      "rounded-3xl border bg-white/[0.035] p-4 shadow-inner-glow",
-      active ? "border-purple-300/25" : "border-white/10"
+      "relative overflow-hidden rounded-[24px] border p-5 backdrop-blur-md transition-all",
+      active 
+        ? "border-purple-500/40 bg-purple-500/[0.05] shadow-neon" 
+        : "border-white/10 bg-black/40 hover:bg-white/[0.03]"
     )}>
-      <div className="flex items-center gap-2">
-        <Clock className={cn("h-3.5 w-3.5", active ? "text-purple-200" : "text-gray-400")} />
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">{label}</p>
+      {active && (
+        <div className="absolute inset-0 bg-grid-purple/[0.05] bg-[size:20px_20px]" />
+      )}
+      <div className="relative flex items-center gap-3">
+        <div className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-full border",
+          active ? "border-purple-400/50 bg-purple-500/20 text-purple-200" : "border-white/10 bg-white/5 text-gray-400"
+        )}>
+          <Clock className="h-4 w-4" />
+        </div>
+        <div>
+          <p className={cn(
+            "text-[10px] font-bold uppercase tracking-[0.2em]",
+            active ? "text-purple-300" : "text-gray-500"
+          )}>{label}</p>
+          <p className="mt-0.5 text-[14px] font-medium text-gray-200">{value}</p>
+        </div>
       </div>
-      <p className="mt-2 text-[15px] leading-snug text-gray-200">{value}</p>
     </div>
   );
 }
@@ -1160,74 +1320,78 @@ function TeamCard({ team, rank, score, formationOpen }: {
 }) {
   return (
     <div className={cn(
-      "glass rounded-[28px] p-5 border-white/20 bg-white/[0.02] space-y-4",
-      rank === 1 && "border-yellow-400/20 bg-yellow-400/5"
+      "relative overflow-hidden rounded-[28px] border p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group",
+      rank === 1 ? "border-yellow-500/30 bg-yellow-500/[0.02]" : "border-white/10 bg-black/40"
     )}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+      {rank === 1 && (
+        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[40px]" />
+      )}
+      
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="flex items-center gap-4">
           {rank != null && (
             <div className={cn(
-              "w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-light shrink-0",
-              rank === 1 ? "bg-yellow-400/20 text-yellow-400" :
-              rank === 2 ? "bg-gray-400/10 text-gray-300" :
-              rank === 3 ? "bg-orange-400/10 text-orange-400" :
-              "bg-white/5 text-gray-400"
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[16px] font-black shadow-neon",
+              rank === 1 ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
+              rank === 2 ? "bg-gray-400/10 text-gray-300 border border-gray-400/20" :
+              rank === 3 ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
+              "bg-white/5 text-gray-500 border border-white/10"
             )}>
               {rank}
             </div>
           )}
-          <div className="relative w-12 h-12 rounded-2xl bg-white/[0.06] border border-white/15 overflow-hidden shrink-0 flex items-center justify-center">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg group-hover:border-purple-500/30 transition-colors">
             {team.icon_photo?.status === "approved" ? (
               <Image
                 src={team.icon_photo.file_url}
                 alt={`${team.name} icon`}
                 fill
                 className="object-cover"
-                sizes="48px"
+                sizes="56px"
               />
             ) : (
-              <ImageIcon className="w-4 h-4 text-gray-400" />
+              <ImageIcon className="h-5 w-5 text-gray-500" />
             )}
           </div>
           <div>
-            <h3 className="text-[16px] font-medium text-white">{team.name}</h3>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+            <h3 className="text-lg font-bold text-white tracking-tight">{team.name}</h3>
+            <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
               {team.members.length} member{team.members.length !== 1 ? "s" : ""}
-              {!formationOpen && <span className="ml-2 text-amber-400">· Locked</span>}
+              {!formationOpen && <span className="ml-2 text-amber-500">· Locked</span>}
             </p>
           </div>
         </div>
         {score != null && (
-          <div className="text-right shrink-0">
-            <p className="text-2xl font-light tabular-nums text-white">{score}</p>
-            <p className="text-[10px] text-gray-400">/ 40</p>
+          <div className="shrink-0 text-right">
+            <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{score}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/70">/ 40 pts</p>
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="relative mt-5 flex flex-wrap gap-2">
         {team.members.map((m) => (
-          <span key={m.id} className="text-[12px] bg-white/[0.07] border border-white/10 rounded-full px-3 py-1.5 text-gray-200">
+          <span key={m.id} className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[12px] font-medium text-gray-300">
             {m.user?.name ?? "Unknown"}
-            {m.role === "leader" && <span className="text-purple-400/60 ml-1">★</span>}
+            {m.role === "leader" && <span className="text-purple-400">★</span>}
           </span>
         ))}
       </div>
 
       {team.project && (
-        <div className="border-t border-white/10 pt-3 flex items-center justify-between gap-2">
-          <p className="text-[14px] text-gray-200 truncate">{team.project.name}</p>
-          <div className="flex gap-3 shrink-0">
+        <div className="relative mt-5 flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
+          <p className="text-[14px] font-medium text-gray-300 truncate">{team.project.name}</p>
+          <div className="flex shrink-0 gap-2">
             {team.project.repo_url && (
               <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
-                className="text-[11px] font-semibold uppercase tracking-[0.15em] text-blue-300 hover:text-blue-200 flex items-center gap-1">
-                <Github className="w-3 h-3" /> Repo
+                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-400 transition-colors hover:bg-blue-500/10 hover:text-blue-300">
+                <Github className="h-3.5 w-3.5" /> Repo
               </a>
             )}
             {team.project.demo_url && (
               <a href={team.project.demo_url} target="_blank" rel="noopener noreferrer"
-                className="text-[11px] font-semibold uppercase tracking-[0.15em] text-green-300 hover:text-green-200 flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> Demo
+                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-500/10 hover:text-green-300">
+                <ExternalLink className="h-3.5 w-3.5" /> Demo
               </a>
             )}
           </div>
@@ -1253,22 +1417,28 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
   };
   const total = cats.reduce((sum, c) => sum + (avg(c.key) ?? 0), 0);
   return (
-    <div className="glass rounded-[30px] p-6 border-white/20 bg-white/[0.02]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.3em] text-gray-400">Your Score</h3>
-        <span className="text-3xl font-light text-white">{total}<span className="text-sm text-gray-400">/40</span></span>
+    <div className="relative overflow-hidden rounded-[30px] border border-purple-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px]" />
+      
+      <div className="relative flex items-center justify-between mb-6">
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-300">Your Score</h3>
+        <div className="flex items-baseline gap-1">
+          <span className="text-4xl font-black tracking-tight text-white drop-shadow-md">{total}</span>
+          <span className="text-sm font-bold text-gray-500">/40</span>
+        </div>
       </div>
-      <div className="space-y-3">
+      <div className="relative space-y-4">
         {cats.map((c) => {
           const v = avg(c.key);
           return (
             <div key={c.key} className="flex items-center justify-between">
-              <span className="text-[13px] text-gray-300">{c.label}</span>
-              <div className="flex items-center gap-3">
-                <div className="w-28 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-white/75 rounded-full" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
+              <span className="text-[13px] font-medium text-gray-300">{c.label}</span>
+              <div className="flex items-center gap-4">
+                <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden shadow-inner">
+                  <div className="h-full bg-gradient-to-r from-purple-500 to-purple-300 rounded-full shadow-neon" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
                 </div>
-                <span className="text-[13px] tabular-nums text-white/75 w-6 text-right">{v ?? "—"}</span>
+                <span className="text-[14px] font-bold tabular-nums text-white w-6 text-right">{v ?? "—"}</span>
               </div>
             </div>
           );
