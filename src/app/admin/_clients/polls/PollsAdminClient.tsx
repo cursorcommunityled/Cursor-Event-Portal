@@ -19,6 +19,7 @@ import {
   Clock,
   BarChart3,
   CalendarClock,
+  Pencil,
 } from "lucide-react";
 import type { Event, Poll, ScheduledItem } from "@/types";
 
@@ -40,6 +41,7 @@ export function PollsAdminClient({
   const router = useRouter();
   const [polls, setPolls] = useState(initialPolls);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingPoll, setEditingPoll] = useState<Poll | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
@@ -75,7 +77,7 @@ export function PollsAdminClient({
   const handleCreatePoll = async (data: {
     question: string;
     options: string[];
-    ends_at?: string;
+    ends_at?: string | null;
     is_active: boolean;
     scheduled_at?: string;
   }) => {
@@ -111,7 +113,7 @@ export function PollsAdminClient({
     }
 
     // Immediate poll
-    const result = await createPoll(event.id, eventSlug, data, adminCode);
+    const result = await createPoll(event.id, eventSlug, { ...data, ends_at: data.ends_at ?? undefined }, adminCode);
     if (result.success && result.pollId) {
       setPolls((prev) => [
         {
@@ -131,6 +133,42 @@ export function PollsAdminClient({
       return { success: true };
     }
     const msg = result.error || "Failed to create poll";
+    setError(msg);
+    return { success: false, error: msg };
+  };
+
+  const handleUpdatePoll = async (pollId: string, data: {
+    question: string;
+    options: string[];
+    ends_at?: string | null;
+    is_active: boolean;
+  }) => {
+    setError(null);
+    setLoading(pollId);
+
+    const result = await updatePoll(pollId, eventSlug, data, adminCode);
+    setLoading(null);
+
+    if (result.success) {
+      setPolls((prev) =>
+        prev.map((poll) =>
+          poll.id === pollId
+            ? {
+                ...poll,
+                question: data.question,
+                options: data.options,
+                ends_at: data.ends_at ?? null,
+                is_active: data.is_active,
+              }
+            : poll
+        )
+      );
+      setEditingPoll(null);
+      router.refresh();
+      return { success: true };
+    }
+
+    const msg = result.error || "Failed to update poll";
     setError(msg);
     return { success: false, error: msg };
   };
@@ -236,6 +274,17 @@ export function PollsAdminClient({
 
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => {
+                    setError(null);
+                    setEditingPoll(poll);
+                  }}
+                  disabled={loading === poll.id}
+                  className="p-3 rounded-full bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all"
+                  title="Edit poll"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => handleToggleActive(poll.id)}
                   disabled={loading === poll.id}
                   className={cn(
@@ -278,9 +327,17 @@ export function PollsAdminClient({
         </div>
         {content}
         {showCreateModal && (
-          <CreatePollModal
+          <PollFormModal
             onClose={() => { setShowCreateModal(false); setError(null); }}
             onCreate={handleCreatePoll}
+            error={error}
+          />
+        )}
+        {editingPoll && (
+          <PollFormModal
+            poll={editingPoll}
+            onClose={() => { setEditingPoll(null); setError(null); }}
+            onUpdate={(data) => handleUpdatePoll(editingPoll.id, data)}
             error={error}
           />
         )}
@@ -312,9 +369,17 @@ export function PollsAdminClient({
       </footer>
 
       {showCreateModal && (
-        <CreatePollModal
+        <PollFormModal
           onClose={() => { setShowCreateModal(false); setError(null); }}
           onCreate={handleCreatePoll}
+          error={error}
+        />
+      )}
+      {editingPoll && (
+        <PollFormModal
+          poll={editingPoll}
+          onClose={() => { setEditingPoll(null); setError(null); }}
+          onUpdate={(data) => handleUpdatePoll(editingPoll.id, data)}
           error={error}
         />
       )}
@@ -323,35 +388,51 @@ export function PollsAdminClient({
 }
 
 type CreateMode = "now" | "scheduled";
+type PollFormValues = {
+  question: string;
+  options: string[];
+  ends_at?: string | null;
+  is_active: boolean;
+  scheduled_at?: string;
+};
 
-function CreatePollModal({
+function formatLocalDateTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+function PollFormModal({
+  poll,
   onClose,
   onCreate,
+  onUpdate,
   error: externalError,
 }: {
+  poll?: Poll;
   onClose: () => void;
-  onCreate: (data: {
-    question: string;
-    options: string[];
-    ends_at?: string;
-    is_active: boolean;
-    scheduled_at?: string;
-  }) => Promise<{ success?: boolean; error?: string } | void>;
+  onCreate?: (data: PollFormValues) => Promise<{ success?: boolean; error?: string } | void>;
+  onUpdate?: (data: PollFormValues) => Promise<{ success?: boolean; error?: string } | void>;
   error?: string | null;
 }) {
-  const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState(["", ""]);
+  const isEditing = !!poll;
+  const [question, setQuestion] = useState(poll?.question ?? "");
+  const [options, setOptions] = useState(poll?.options?.length ? poll.options : ["", ""]);
   const [duration, setDuration] = useState<number | null>(null);
   const [mode, setMode] = useState<CreateMode>("now");
+  const [endsAt, setEndsAt] = useState(formatLocalDateTime(poll?.ends_at));
+  const [isActive, setIsActive] = useState(poll?.is_active ?? true);
   const [scheduledAt, setScheduledAt] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Default scheduled time to 30 min from now
   useEffect(() => {
+    if (isEditing) return;
     const d = new Date(Date.now() + 30 * 60 * 1000);
     const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setScheduledAt(local);
-  }, []);
+  }, [isEditing]);
 
   const handleAddOption = () => {
     if (options.length < 8) setOptions([...options, ""]);
@@ -367,24 +448,30 @@ function CreatePollModal({
     setLoading(true);
 
     let ends_at: string | undefined;
-    if (duration && mode === "now") {
-      const end = new Date();
-      end.setMinutes(end.getMinutes() + duration);
-      ends_at = end.toISOString();
-    } else if (duration && mode === "scheduled" && scheduledAt) {
-      const base = new Date(scheduledAt);
-      base.setMinutes(base.getMinutes() + duration);
-      ends_at = base.toISOString();
+    if (isEditing) {
+      ends_at = endsAt ? new Date(endsAt).toISOString() : undefined;
+    } else {
+      if (duration && mode === "now") {
+        const end = new Date();
+        end.setMinutes(end.getMinutes() + duration);
+        ends_at = end.toISOString();
+      } else if (duration && mode === "scheduled" && scheduledAt) {
+        const base = new Date(scheduledAt);
+        base.setMinutes(base.getMinutes() + duration);
+        ends_at = base.toISOString();
+      }
     }
 
     try {
-      await onCreate({
+      const payload = {
         question: question.trim(),
         options: options.filter((o) => o.trim()),
-        ends_at,
-        is_active: mode === "now",
-        scheduled_at: mode === "scheduled" ? new Date(scheduledAt).toISOString() : undefined,
-      });
+        ends_at: isEditing ? ends_at ?? null : ends_at,
+        is_active: isEditing ? isActive : mode === "now",
+        scheduled_at: !isEditing && mode === "scheduled" ? new Date(scheduledAt).toISOString() : undefined,
+      };
+      const result = isEditing ? await onUpdate?.(payload) : await onCreate?.(payload);
+      if (result?.success === false) return;
     } finally {
       setLoading(false);
     }
@@ -401,7 +488,9 @@ function CreatePollModal({
           <X className="w-4 h-4 text-gray-400" />
         </button>
 
-        <h2 className="text-2xl font-light text-white mb-8">Create Poll</h2>
+        <h2 className="text-2xl font-light text-white mb-8">
+          {isEditing ? "Edit Poll" : "Create Poll"}
+        </h2>
 
         {externalError && (
           <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
@@ -456,71 +545,110 @@ function CreatePollModal({
             )}
           </div>
 
-          {/* Duration */}
-          <div className="space-y-3">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-              Duration (optional)
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {[1, 2, 5, 10, null].map((mins) => (
-                <button
-                  key={mins ?? "none"}
-                  type="button"
-                  onClick={() => setDuration(mins)}
-                  className={cn(
-                    "px-4 py-2 rounded-full text-sm transition-all",
-                    duration === mins ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"
-                  )}
-                >
-                  {mins ? `${mins}m` : "No limit"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Launch mode */}
-          <div className="space-y-3">
-            <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-              Launch
-            </label>
-            <div className="flex gap-2">
-              {(["now", "scheduled"] as CreateMode[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all",
-                    mode === m ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"
-                  )}
-                >
-                  {m === "scheduled" && <CalendarClock className="w-3.5 h-3.5" />}
-                  {m === "now" ? "Start immediately" : "Schedule"}
-                </button>
-              ))}
-            </div>
-
-            {mode === "scheduled" && (
+          {isEditing ? (
+            <>
               <div className="space-y-1">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium flex items-center gap-1.5">
-                  <Clock className="w-3 h-3" /> Go Live At
+                <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium flex items-center gap-1.5">
+                  <Clock className="w-3 h-3" /> Ends At (optional)
                 </label>
                 <input
                   type="datetime-local"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
+                  value={endsAt}
+                  onChange={(e) => setEndsAt(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30"
                 />
               </div>
-            )}
-          </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsActive((value) => !value)}
+                  className={cn(
+                    "w-5 h-5 rounded border transition-all flex items-center justify-center",
+                    isActive ? "bg-white border-white" : "border-white/20 bg-transparent"
+                  )}
+                >
+                  {isActive && (
+                    <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+                <span className="text-sm text-gray-400">Poll is live</span>
+              </div>
+
+              <p className="text-xs leading-relaxed text-amber-300/70">
+                Editing options on a poll with votes keeps existing vote indexes, so avoid reordering options once voting has started.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+                  Duration (optional)
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {[1, 2, 5, 10, null].map((mins) => (
+                    <button
+                      key={mins ?? "none"}
+                      type="button"
+                      onClick={() => setDuration(mins)}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-sm transition-all",
+                        duration === mins ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      )}
+                    >
+                      {mins ? `${mins}m` : "No limit"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Launch mode */}
+              <div className="space-y-3">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
+                  Launch
+                </label>
+                <div className="flex gap-2">
+                  {(["now", "scheduled"] as CreateMode[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setMode(m)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all",
+                        mode === m ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"
+                      )}
+                    >
+                      {m === "scheduled" && <CalendarClock className="w-3.5 h-3.5" />}
+                      {m === "now" ? "Start immediately" : "Schedule"}
+                    </button>
+                  ))}
+                </div>
+
+                {mode === "scheduled" && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> Go Live At
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={scheduledAt}
+                      onChange={(e) => setScheduledAt(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <button
             type="submit"
-            disabled={loading || !question.trim() || options.filter((o) => o.trim()).length < 2 || (mode === "scheduled" && !scheduledAt)}
+            disabled={loading || !question.trim() || options.filter((o) => o.trim()).length < 2 || (!isEditing && mode === "scheduled" && !scheduledAt)}
             className="w-full py-4 bg-white text-black rounded-full font-medium text-sm hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            {loading ? "..." : mode === "scheduled" ? "Schedule Poll" : "Create Poll"}
+            {loading ? "..." : isEditing ? "Save Poll" : mode === "scheduled" ? "Schedule Poll" : "Create Poll"}
           </button>
         </form>
       </div>
