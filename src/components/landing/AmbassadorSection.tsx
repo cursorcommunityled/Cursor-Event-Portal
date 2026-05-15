@@ -48,16 +48,6 @@ const AmbassadorSection: React.FC = () => {
       className="mb-16"
     >
       <div className="mb-10">
-        <div className="mb-6">
-          <Image
-            src="/GIF image.gif"
-            alt="Cursor Ambassador Logo"
-            width={400}
-            height={100}
-            unoptimized
-            className="h-20 w-auto sm:h-24 object-contain object-left"
-          />
-        </div>
         <p className="text-xs uppercase tracking-wider text-cursor-text-muted font-medium mb-2">
           {t('ambassadors.title', { communityName: siteConfig.communityName })}
         </p>
@@ -101,10 +91,10 @@ const AmbassadorSection: React.FC = () => {
                       <Image
                         src="/GIF image.gif"
                         alt="Cursor Ambassador"
-                        width={160}
-                        height={40}
+                        width={224}
+                        height={56}
                         unoptimized
-                        className="h-6 w-auto object-contain object-left opacity-90"
+                        className="h-[34px] w-auto object-contain object-left opacity-90"
                       />
                     </div>
                   ) : ambassador.role ? (
