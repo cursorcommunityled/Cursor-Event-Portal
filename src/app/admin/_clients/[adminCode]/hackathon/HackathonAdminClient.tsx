@@ -21,7 +21,7 @@ import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
-  ImageIcon, MessageSquare, Star, Sparkles,
+  ImageIcon, MessageSquare, Star, Sparkles, Plus,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -50,6 +50,18 @@ interface Props {
 }
 
 type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
+type SimonTodoItem = { id: string; text: string };
+type SimonTodoTarget = string | number;
+type SimonTodoConsoleApi = {
+  help: () => string;
+  list: () => SimonTodoItem[];
+  set: (items: Array<string | Partial<SimonTodoItem>>) => SimonTodoItem[];
+  add: (text: string) => SimonTodoItem[];
+  update: (target: SimonTodoTarget, text: string) => SimonTodoItem[];
+  remove: (target: SimonTodoTarget) => SimonTodoItem[];
+  reset: () => SimonTodoItem[];
+};
+type WindowWithSimonTodo = Window & { simonTodo?: SimonTodoConsoleApi };
 
 const SCORE_CATEGORIES = [
   { key: "innovation" as const, label: "Innovation" },
@@ -58,7 +70,7 @@ const SCORE_CATEGORIES = [
   { key: "ux_polish" as const, label: "UX / Polish" },
 ];
 
-const SIMON_TODO_ITEMS = [
+const DEFAULT_SIMON_TODO_ITEMS: SimonTodoItem[] = [
   {
     id: "spawn-point-channel",
     text: 'Create a "Spawn Point" channel for all undrafted members; remove members once assigned to a team.',
@@ -79,6 +91,75 @@ const SIMON_TODO_ITEMS = [
   { id: "progressive-house", text: "Play progressive house during build." },
   { id: "demo-av-check", text: "Demo AV setup and check." },
 ];
+
+function simonTodoItemsStorageKey(eventId: string) {
+  return `hackathon-admin:${eventId}:simon-todo-items`;
+}
+
+function simonTodoCheckedStorageKey(eventId: string) {
+  return `hackathon-admin:${eventId}:simon-todo`;
+}
+
+function createTodoId(text: string, existingIds: Set<string>) {
+  const base = text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "todo";
+  let id = base;
+  let suffix = 2;
+
+  while (existingIds.has(id)) {
+    id = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  existingIds.add(id);
+  return id;
+}
+
+function normalizeSimonTodoItems(items: unknown): SimonTodoItem[] {
+  if (!Array.isArray(items)) return [];
+
+  const existingIds = new Set<string>();
+  return items.reduce<SimonTodoItem[]>((acc, item) => {
+    const text = typeof item === "string"
+      ? item.trim()
+      : typeof item === "object" && item !== null && "text" in item
+        ? String((item as { text?: unknown }).text ?? "").trim()
+        : "";
+
+    if (!text) return acc;
+
+    const requestedId = typeof item === "object" && item !== null && "id" in item
+      ? String((item as { id?: unknown }).id ?? "")
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+      : "";
+    const id = requestedId && !existingIds.has(requestedId)
+      ? requestedId
+      : createTodoId(text, existingIds);
+
+    existingIds.add(id);
+    acc.push({ id, text });
+    return acc;
+  }, []);
+}
+
+function resolveSimonTodoIndex(items: SimonTodoItem[], target: SimonTodoTarget) {
+  if (typeof target === "number") {
+    return Number.isInteger(target) ? target - 1 : -1;
+  }
+
+  const needle = target.trim().toLowerCase();
+  return items.findIndex((item) => (
+    item.id.toLowerCase() === needle ||
+    item.text.toLowerCase().includes(needle)
+  ));
+}
 
 function fmt(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -123,7 +204,9 @@ export function HackathonAdminClient({
   const [scores, setScores] = useState(initialScores);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [todoItems, setTodoItems] = useState<SimonTodoItem[]>(DEFAULT_SIMON_TODO_ITEMS);
   const [checkedTodoIds, setCheckedTodoIds] = useState<Set<string>>(new Set());
+  const [newTodoText, setNewTodoText] = useState("");
 
   // Settings form state
   const [teamFormationEnabled, setTeamFormationEnabled] = useState(
@@ -182,7 +265,19 @@ export function HackathonAdminClient({
   }, [initialTeams, initialScores]);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(`hackathon-admin:${event.id}:simon-todo`);
+    const storedItems = window.localStorage.getItem(simonTodoItemsStorageKey(event.id));
+    if (!storedItems) {
+      setTodoItems(DEFAULT_SIMON_TODO_ITEMS);
+    } else {
+      try {
+        const parsedItems = normalizeSimonTodoItems(JSON.parse(storedItems));
+        setTodoItems(parsedItems.length > 0 ? parsedItems : DEFAULT_SIMON_TODO_ITEMS);
+      } catch {
+        setTodoItems(DEFAULT_SIMON_TODO_ITEMS);
+      }
+    }
+
+    const stored = window.localStorage.getItem(simonTodoCheckedStorageKey(event.id));
     if (!stored) {
       setCheckedTodoIds(new Set());
       return;
@@ -195,6 +290,58 @@ export function HackathonAdminClient({
       setCheckedTodoIds(new Set());
     }
   }, [event.id]);
+
+  const saveTodoItems = useCallback((items: SimonTodoItem[]) => {
+    const next = normalizeSimonTodoItems(items);
+    if (next.length === 0) {
+      throw new Error("Todo list must include at least one item.");
+    }
+
+    setTodoItems(next);
+    window.localStorage.setItem(simonTodoItemsStorageKey(event.id), JSON.stringify(next));
+
+    const validIds = new Set(next.map((item) => item.id));
+    setCheckedTodoIds((prev) => {
+      const filtered = new Set([...prev].filter((id) => validIds.has(id)));
+      window.localStorage.setItem(simonTodoCheckedStorageKey(event.id), JSON.stringify([...filtered]));
+      return filtered;
+    });
+
+    return next;
+  }, [event.id]);
+
+  useEffect(() => {
+    const win = window as WindowWithSimonTodo;
+    const api: SimonTodoConsoleApi = {
+      help: () => "Use simonTodo.list(), simonTodo.add('Task'), simonTodo.update(1, 'Task'), simonTodo.remove(1), simonTodo.set(['Task A', 'Task B']), or simonTodo.reset(). Number targets are 1-based.",
+      list: () => todoItems.map((item) => ({ ...item })),
+      set: (items) => saveTodoItems(normalizeSimonTodoItems(items)),
+      add: (text) => {
+        const trimmed = text.trim();
+        if (!trimmed) throw new Error("Todo text is required.");
+        const existingIds = new Set(todoItems.map((item) => item.id));
+        return saveTodoItems([...todoItems, { id: createTodoId(trimmed, existingIds), text: trimmed }]);
+      },
+      update: (target, text) => {
+        const trimmed = text.trim();
+        if (!trimmed) throw new Error("Todo text is required.");
+        const index = resolveSimonTodoIndex(todoItems, target);
+        if (index < 0) throw new Error(`Todo not found: ${target}`);
+        return saveTodoItems(todoItems.map((item, i) => (i === index ? { ...item, text: trimmed } : item)));
+      },
+      remove: (target) => {
+        const index = resolveSimonTodoIndex(todoItems, target);
+        if (index < 0) throw new Error(`Todo not found: ${target}`);
+        return saveTodoItems(todoItems.filter((_, i) => i !== index));
+      },
+      reset: () => saveTodoItems(DEFAULT_SIMON_TODO_ITEMS),
+    };
+
+    win.simonTodo = api;
+    return () => {
+      if (win.simonTodo === api) delete win.simonTodo;
+    };
+  }, [saveTodoItems, todoItems]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -247,10 +394,21 @@ export function HackathonAdminClient({
       const next = new Set(prev);
       if (next.has(itemId)) next.delete(itemId);
       else next.add(itemId);
-      window.localStorage.setItem(`hackathon-admin:${event.id}:simon-todo`, JSON.stringify([...next]));
+      window.localStorage.setItem(simonTodoCheckedStorageKey(event.id), JSON.stringify([...next]));
       return next;
     });
   };
+
+  const addPlanningTodo = () => {
+    const text = newTodoText.trim();
+    if (!text) return;
+
+    const existingIds = new Set(todoItems.map((item) => item.id));
+    saveTodoItems([...todoItems, { id: createTodoId(text, existingIds), text }]);
+    setNewTodoText("");
+  };
+
+  const completedTodoCount = todoItems.filter((item) => checkedTodoIds.has(item.id)).length;
 
   function totalScore(teamId: string): number {
     const cats = scoreInputs[teamId] ?? {};
@@ -486,13 +644,36 @@ export function HackathonAdminClient({
                   <h3 className="mt-1 text-sm font-light text-white/70">Simon&apos;s Todo</h3>
                 </div>
                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-gray-600">
-                  <span>{checkedTodoIds.size}/{SIMON_TODO_ITEMS.length}</span>
+                  <span>{completedTodoCount}/{todoItems.length}</span>
                   <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
                 </div>
               </summary>
 
-              <div className="mt-4 space-y-2">
-                {SIMON_TODO_ITEMS.map((item) => {
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  addPlanningTodo();
+                }}
+                className="mt-4 flex gap-2"
+              >
+                <input
+                  value={newTodoText}
+                  onChange={(e) => setNewTodoText(e.target.value)}
+                  placeholder="Add a new todo..."
+                  className="min-w-0 flex-1 rounded-2xl border border-white/[0.06] bg-white/[0.025] px-3 py-2.5 text-sm text-white/70 placeholder:text-gray-700 focus:border-white/20 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!newTodoText.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-2xl border border-white/10 bg-white/10 px-3 py-2.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add
+                </button>
+              </form>
+
+              <div className="mt-3 space-y-2">
+                {todoItems.map((item) => {
                   const checked = checkedTodoIds.has(item.id);
                   return (
                     <label
@@ -511,6 +692,9 @@ export function HackathonAdminClient({
                     </label>
                   );
                 })}
+                <p className="pt-2 text-[10px] leading-relaxed text-gray-600">
+                  Console editing: <code className="text-gray-500">simonTodo.help()</code>
+                </p>
               </div>
             </details>
           </div>
