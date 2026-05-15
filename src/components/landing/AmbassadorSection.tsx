@@ -91,10 +91,10 @@ const AmbassadorSection: React.FC = () => {
                       <Image
                         src="/GIF image.gif"
                         alt="Cursor Ambassador"
-                        width={448}
-                        height={112}
+                        width={627}
+                        height={157}
                         unoptimized
-                        className="h-[68px] w-auto object-contain object-left opacity-90"
+                        className="h-[95px] w-auto object-contain object-left opacity-90"
                       />
                     </div>
                   ) : ambassador.role ? (
