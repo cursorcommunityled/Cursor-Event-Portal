@@ -319,16 +319,16 @@ export function HackathonAdminClient({
         </div>
 
         {/* Tab bar */}
-        <div className="glass rounded-[24px] p-2 flex gap-2 animate-slide-up">
+        <div className="relative mx-auto flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-2xl animate-slide-up">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-[16px] text-xs font-medium uppercase tracking-[0.15em] transition-all duration-200",
+                "relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
                 tab === t.id
-                  ? "bg-white text-black shadow-glow"
-                  : "text-gray-500 hover:text-white"
+                  ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105"
+                  : "text-gray-400 hover:bg-white/10 hover:text-white"
               )}
             >
               {t.icon}
@@ -525,41 +525,41 @@ export function HackathonAdminClient({
               </div>
             )}
             {teams.map((team) => (
-              <div key={team.id} className="glass rounded-[28px] p-6 border-white/20 space-y-4">
+              <div key={team.id} className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl transition-all hover:bg-white/[0.04] space-y-5">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="relative w-12 h-12 rounded-2xl bg-white/5 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg">
                       {team.icon_photo?.status === "approved" ? (
                         <Image
                           src={team.icon_photo.file_url}
                           alt={`${team.name} icon`}
                           fill
                           className="object-cover"
-                          sizes="48px"
+                          sizes="56px"
                         />
                       ) : (
-                        <ImageIcon className="w-5 h-5 text-gray-600" />
+                        <ImageIcon className="h-5 w-5 text-gray-500" />
                       )}
                     </div>
-                    <div className="min-w-0">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-lg font-light">{team.name}</h3>
-                      {team.locked_at && (
-                        <span className="flex items-center gap-1 text-[9px] uppercase tracking-[0.2em] text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">
-                          <Lock className="w-2.5 h-2.5" /> Locked
-                        </span>
-                      )}
-                      {team.project?.submitted_at && (
-                        <span className="text-[9px] uppercase tracking-[0.2em] text-green-400 bg-green-400/10 border border-green-400/20 rounded-full px-2 py-0.5">
-                          Project Submitted
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">
-                      {team.members.length} member{team.members.length !== 1 ? "s" : ""}
-                      {team.icon_photo?.status === "pending" && <span className="ml-2 text-amber-400">Icon pending</span>}
-                      {team.icon_photo?.status === "rejected" && <span className="ml-2 text-red-400">Icon rejected</span>}
-                    </p>
+                    <div className="min-w-0 pt-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-xl font-bold tracking-tight text-white">{team.name}</h3>
+                        {team.locked_at && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded-full px-2.5 py-1">
+                            <Lock className="w-3 h-3" /> Locked
+                          </span>
+                        )}
+                        {team.project?.submitted_at && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-green-400 bg-green-500/10 border border-green-500/20 rounded-full px-2.5 py-1">
+                            Project Submitted
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                        {team.members.length} member{team.members.length !== 1 ? "s" : ""}
+                        {team.icon_photo?.status === "pending" && <span className="ml-3 text-amber-500">Icon pending</span>}
+                        {team.icon_photo?.status === "rejected" && <span className="ml-3 text-red-500">Icon rejected</span>}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
@@ -577,9 +577,9 @@ export function HackathonAdminClient({
                               ));
                             } else setError(res.error ?? "Failed");
                           })}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs border border-green-400/30 text-green-400 hover:bg-green-400/10 transition-all disabled:opacity-50"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-green-500/30 text-green-400 hover:bg-green-500/10 transition-all disabled:opacity-50"
                         >
-                          <Check className="w-3 h-3" /> Icon
+                          <Check className="w-3.5 h-3.5" /> Icon
                         </button>
                         <button
                           disabled={isPending}
@@ -593,9 +593,9 @@ export function HackathonAdminClient({
                               ));
                             } else setError(res.error ?? "Failed");
                           })}
-                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs border border-red-400/30 text-red-400 hover:bg-red-400/10 transition-all disabled:opacity-50"
+                          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-50"
                         >
-                          <X className="w-3 h-3" /> Icon
+                          <X className="w-3.5 h-3.5" /> Icon
                         </button>
                       </div>
                     )}
@@ -612,13 +612,13 @@ export function HackathonAdminClient({
                         } else setError(res.error ?? "Failed");
                       })}
                       className={cn(
-                        "flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs border transition-all",
+                        "flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border transition-all",
                         team.locked_at
-                          ? "border-amber-400/30 text-amber-400 hover:bg-amber-400/10"
-                          : "border-white/10 text-gray-400 hover:text-white hover:border-white/30"
+                          ? "border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                          : "border-white/10 text-gray-400 hover:text-white hover:border-white/30 hover:bg-white/5"
                       )}
                     >
-                      {team.locked_at ? <><Unlock className="w-3 h-3" /> Unlock</> : <><Lock className="w-3 h-3" /> Lock</>}
+                      {team.locked_at ? <><Unlock className="w-3.5 h-3.5" /> Unlock</> : <><Lock className="w-3.5 h-3.5" /> Lock</>}
                     </button>
                     <button
                       disabled={isPending}
@@ -629,19 +629,19 @@ export function HackathonAdminClient({
                           setTeams((prev) => prev.filter((t) => t.id !== team.id));
                         } else setError(res.error ?? "Failed");
                       })}
-                      className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs border border-red-400/20 text-red-400/80 hover:bg-red-400/10 transition-all"
+                      className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all"
                     >
-                      <X className="w-3 h-3" /> Dissolve
+                      <X className="w-3.5 h-3.5" /> Dissolve
                     </button>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
                   {team.members.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5">
-                      <span className="text-sm">{m.user?.name ?? "Unknown"}</span>
+                    <div key={m.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
+                      <span className="text-[13px] font-medium text-gray-200">{m.user?.name ?? "Unknown"}</span>
                       {m.role === "leader" && (
-                        <span className="text-[8px] uppercase tracking-[0.2em] text-purple-400">Leader</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-purple-400">Leader</span>
                       )}
                       <button
                         onClick={() => startTransition(async () => {
@@ -655,30 +655,30 @@ export function HackathonAdminClient({
                             ).filter((t) => t.members.length > 0));
                           } else setError(res.error ?? "Failed");
                         })}
-                        className="text-gray-600 hover:text-red-400 transition-colors ml-1"
+                        className="text-gray-500 hover:text-red-400 transition-colors ml-1"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
 
                 {team.project && (
-                  <div className="border-t border-white/5 pt-4 space-y-1">
-                    <p className="text-xs font-medium text-white/80">{team.project.name}</p>
+                  <div className="border-t border-white/10 pt-4 space-y-2">
+                    <p className="text-[14px] font-bold text-white">{team.project.name}</p>
                     {team.project.description && (
-                      <p className="text-xs text-gray-400">{team.project.description}</p>
+                      <p className="text-[13px] font-medium text-gray-400 leading-relaxed">{team.project.description}</p>
                     )}
-                    <div className="flex gap-4 mt-2">
+                    <div className="flex gap-3 mt-3">
                       {team.project.repo_url && (
                         <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
-                          className="text-[10px] uppercase tracking-[0.15em] text-blue-400 hover:text-blue-300">
+                          className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-400 transition-colors hover:bg-blue-500/10 hover:text-blue-300">
                           Repo →
                         </a>
                       )}
                       {team.project.demo_url && (
                         <a href={team.project.demo_url} target="_blank" rel="noopener noreferrer"
-                          className="text-[10px] uppercase tracking-[0.15em] text-green-400 hover:text-green-300">
+                          className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-500/10 hover:text-green-300">
                           Demo →
                         </a>
                       )}
@@ -694,19 +694,29 @@ export function HackathonAdminClient({
         {tab === "scoring" && (
           <div className="space-y-4 animate-slide-up">
             {/* Flow explanation + push button */}
-            <div className="glass rounded-[28px] p-5 border-white/20 space-y-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-1">How AI Screening Works</p>
-                <p className="text-[13px] text-gray-400 leading-relaxed">
-                  Step 1: Teams submit project + repo URL + screenshots.<br/>
-                  Step 2: Run AI analysis per team below — Claude scores across 7 criteria (~3 min each).<br/>
-                  Step 3: Push the top scored projects to Final Round, or hand-pick them.<br/>
-                  Step 4: Go to <strong className="text-white">Final Round</strong> tab to add your own judge scores.
-                </p>
-              </div>
+            <div className="relative overflow-hidden rounded-[28px] border border-purple-500/20 bg-black/40 p-5 shadow-2xl backdrop-blur-xl">
+              <div className="absolute inset-0 bg-grid-purple opacity-5" />
+              <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-purple-500/10 blur-[50px]" />
+              
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.2)] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />
+                    <img src="/cursor-logo.svg" alt="Cursor" className="w-6 h-6 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-1">How AI Screening Works</p>
+                    <p className="text-[13px] text-gray-400 leading-relaxed">
+                      Step 1: Teams submit project + repo URL + screenshots.<br/>
+                      Step 2: Run AI analysis per team below — Cursor scores across 7 criteria (~3 min each).<br/>
+                      Step 3: Push the top scored projects to Final Round, or hand-pick them.<br/>
+                      Step 4: Go to <strong className="text-white">Final Round</strong> tab to add your own judge scores.
+                    </p>
+                  </div>
+                </div>
 
-              {judgingCompetitions.length > 0 && (
-                <div className="flex items-center justify-between gap-4 border-t border-white/[0.06] pt-4">
+                {judgingCompetitions.length > 0 && (
+                  <div className="flex items-center justify-between gap-4 border-t border-purple-500/20 pt-4">
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium text-white/80">Push Top 8 to Final Round</p>
                     <p className="text-[11px] text-gray-500 mt-0.5">
@@ -750,25 +760,25 @@ export function HackathonAdminClient({
               </div>
             )}
             {teams.map((team) => (
-              <div key={team.id} className="glass rounded-[28px] p-6 border-white/20 space-y-4">
+              <div key={team.id} className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl transition-all hover:bg-white/[0.04] space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-lg font-light">{team.name}</h3>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500">
+                    <h3 className="text-xl font-bold tracking-tight text-white">{team.name}</h3>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">
                       {team.members.map((m) => m.user?.name).join(" · ")}
                     </p>
                   </div>
-                  <div className="text-3xl font-light tabular-nums text-white/60">
-                    {totalScore(team.id)}<span className="text-sm text-gray-600">/40</span>
+                  <div className="text-3xl font-black tabular-nums text-white drop-shadow-md">
+                    {totalScore(team.id)}<span className="text-sm font-bold text-gray-500">/40</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {SCORE_CATEGORIES.map((cat) => (
-                    <div key={cat.key} className="space-y-1.5">
+                    <div key={cat.key} className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">{cat.label}</span>
-                        <span className="text-xs tabular-nums text-white/60">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">{cat.label}</span>
+                        <span className="text-[13px] font-bold tabular-nums text-white">
                           {scoreInputs[team.id]?.[cat.key] ?? "—"}/10
                         </span>
                       </div>
@@ -782,7 +792,7 @@ export function HackathonAdminClient({
                           ...prev,
                           [team.id]: { ...(prev[team.id] ?? {}), [cat.key]: Number(e.target.value) },
                         }))}
-                        className="w-full accent-white"
+                        className="w-full accent-purple-500"
                       />
                     </div>
                   ))}
@@ -793,7 +803,7 @@ export function HackathonAdminClient({
                   rows={2}
                   value={scoreNotes[team.id] ?? ""}
                   onChange={(e) => setScoreNotes((prev) => ({ ...prev, [team.id]: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 resize-none"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none transition-colors"
                 />
 
                 <button
@@ -809,7 +819,7 @@ export function HackathonAdminClient({
                     });
                     showFeedback(res.error);
                   })}
-                  className="w-full py-2.5 rounded-xl bg-white/10 border border-white/10 text-sm text-white hover:bg-white/20 transition-all disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-white/10 border border-white/10 text-[13px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50"
                 >
                   Save Score
                 </button>
@@ -830,10 +840,11 @@ export function HackathonAdminClient({
         {/* Leaderboard tab */}
         {tab === "leaderboard" && (
           <div className="space-y-4 animate-slide-up">
-            <div className="glass rounded-[28px] p-6 border-white/20 flex items-center justify-between">
-              <div>
-                <p className="text-sm">Leaderboard Visible to Attendees</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 mt-1">
+            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl flex items-center justify-between">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:15px_15px]" />
+              <div className="relative">
+                <p className="text-[15px] font-bold text-white">Leaderboard Visible to Attendees</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">
                   {settings?.leaderboard_visible ? "Scores are live" : "Hidden during judging"}
                 </p>
               </div>
@@ -846,48 +857,51 @@ export function HackathonAdminClient({
                   else setError(res.error ?? "Failed");
                 })}
                 className={cn(
-                  "relative w-14 h-7 rounded-full border transition-all duration-200",
+                  "relative w-14 h-7 rounded-full border transition-all duration-300",
                   settings?.leaderboard_visible
-                    ? "bg-green-500/40 border-green-400/60"
+                    ? "bg-green-500/40 border-green-500/60 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
                     : "bg-white/5 border-white/10"
                 )}
               >
                 <div className={cn(
-                  "absolute top-1 w-5 h-5 rounded-full transition-all duration-200",
-                  settings?.leaderboard_visible ? "left-8 bg-green-400" : "left-1 bg-gray-600"
+                  "absolute top-1 w-5 h-5 rounded-full transition-all duration-300",
+                  settings?.leaderboard_visible ? "left-8 bg-green-400" : "left-1 bg-gray-500"
                 )} />
               </button>
             </div>
 
             {rankedTeams.length === 0 && (
-              <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
-                No scored teams yet
+              <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+                <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
+                <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+                <p className="relative text-[16px] font-bold text-gray-400">No scored teams yet</p>
               </div>
             )}
 
             {rankedTeams.map((team, i) => (
               <div key={team.id} className={cn(
-                "glass rounded-[24px] p-5 border-white/20 flex items-center gap-5",
-                i === 0 && "border-yellow-400/20 bg-yellow-400/5"
+                "relative overflow-hidden rounded-[24px] border p-5 backdrop-blur-xl flex items-center gap-5 transition-all hover:scale-[1.02]",
+                i === 0 ? "border-yellow-500/30 bg-yellow-500/10 shadow-[0_0_20px_rgba(234,179,8,0.15)]" : "border-white/10 bg-black/40 hover:bg-white/[0.04]"
               )}>
+                {i === 0 && <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-yellow-500/20 blur-[40px]" />}
                 <div className={cn(
-                  "w-10 h-10 rounded-full flex items-center justify-center text-lg font-light",
-                  i === 0 ? "bg-yellow-400/20 text-yellow-400" :
-                  i === 1 ? "bg-gray-400/10 text-gray-300" :
-                  i === 2 ? "bg-orange-400/10 text-orange-400" :
-                  "bg-white/5 text-gray-500"
+                  "relative flex w-12 h-12 shrink-0 items-center justify-center rounded-2xl text-[18px] font-black shadow-inner",
+                  i === 0 ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 shadow-neon" :
+                  i === 1 ? "bg-gray-400/10 text-gray-300 border border-gray-400/20" :
+                  i === 2 ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
+                  "bg-white/5 text-gray-500 border border-white/10"
                 )}>
                   {i + 1}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{team.name}</p>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 truncate">
+                <div className="relative flex-1 min-w-0">
+                  <p className="text-[16px] font-bold text-white tracking-tight truncate">{team.name}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 truncate mt-0.5">
                     {team.members.map((m) => m.user?.name).filter(Boolean).join(" · ")}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-light tabular-nums">{totalScore(team.id)}</p>
-                  <p className="text-[9px] uppercase tracking-[0.15em] text-gray-600">/ 40 pts</p>
+                <div className="relative text-right shrink-0">
+                  <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{totalScore(team.id)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">/ 40 pts</p>
                 </div>
               </div>
             ))}
