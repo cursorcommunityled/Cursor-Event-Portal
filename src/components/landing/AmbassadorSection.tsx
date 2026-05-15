@@ -96,7 +96,18 @@ const AmbassadorSection: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-cursor-text font-medium">{ambassador.name}</p>
-                  {ambassador.role ? (
+                  {ambassador.role === 'Ambassador' ? (
+                    <div className="mt-1">
+                      <Image
+                        src="/GIF image.gif"
+                        alt="Cursor Ambassador"
+                        width={160}
+                        height={40}
+                        unoptimized
+                        className="h-6 w-auto object-contain object-left opacity-90"
+                      />
+                    </div>
+                  ) : ambassador.role ? (
                     <p className="text-cursor-text-muted text-sm">{ambassador.role}</p>
                   ) : null}
                 </div>
