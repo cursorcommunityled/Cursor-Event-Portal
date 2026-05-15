@@ -424,11 +424,11 @@ export function HackathonClient({
           )}
         </div>
         <div className="ml-auto flex items-center gap-3 shrink-0 self-start sm:self-center pr-2">
-          <div className="relative w-16 h-8 sm:w-20 sm:h-10 opacity-90 hover:opacity-100 transition-opacity mix-blend-screen">
+          <div className="relative w-24 h-10 sm:w-32 sm:h-14 opacity-90 hover:opacity-100 transition-opacity mix-blend-screen">
             <Image src="/sait.jpeg" alt="SAIT" fill className="object-contain object-right" />
           </div>
           <div className="w-px h-8 bg-white/10 mx-1 hidden sm:block" />
-          <div className="relative w-12 h-12 sm:w-14 sm:h-14 opacity-90 hover:opacity-100 transition-opacity rounded-xl overflow-hidden shadow-md">
+          <div className="relative w-14 h-14 sm:w-16 sm:h-16 opacity-90 hover:opacity-100 transition-opacity rounded-xl overflow-hidden shadow-md">
             <Image src="/megabyte-sait.jpeg" alt="Megabyte" fill className="object-cover" />
           </div>
         </div>
