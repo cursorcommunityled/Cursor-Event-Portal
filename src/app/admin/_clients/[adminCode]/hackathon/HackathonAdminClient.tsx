@@ -754,6 +754,7 @@ export function HackathonAdminClient({
                 </div>
               )}
             </div>
+            </div>
             {teams.length === 0 && (
               <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
                 No teams to score yet
