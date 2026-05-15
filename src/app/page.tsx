@@ -4,10 +4,22 @@ import LandingPage from "@/components/landing/LandingPage";
 export const revalidate = 0;
 
 export default async function HomePage() {
-  const [eventsWithPhotos, heroFeaturedIds] = await Promise.all([
+  const [eventsResult, featuredResult] = await Promise.allSettled([
     getEventsWithApprovedPhotos(),
     getHeroFeaturedPhotoIds(),
   ]);
+
+  if (eventsResult.status === "rejected") {
+    console.error("[HomePage] Failed to load event photos:", eventsResult.reason);
+  }
+
+  if (featuredResult.status === "rejected") {
+    console.error("[HomePage] Failed to load featured photo settings:", featuredResult.reason);
+  }
+
+  const eventsWithPhotos = eventsResult.status === "fulfilled" ? eventsResult.value : [];
+  const heroFeaturedIds = featuredResult.status === "fulfilled" ? featuredResult.value : [];
+
   return (
     <LandingPage
       eventsWithPhotos={eventsWithPhotos}
