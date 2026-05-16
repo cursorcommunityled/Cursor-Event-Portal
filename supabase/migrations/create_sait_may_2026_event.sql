@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS public.hackathon_settings (
   min_team_size             INT         NOT NULL DEFAULT 2,
   max_team_size             INT         NOT NULL DEFAULT 4,
   leaderboard_visible       BOOLEAN     NOT NULL DEFAULT false,
+  prompt_text               TEXT        NOT NULL DEFAULT 'Sample prompt....xxx etc.',
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(event_id)
@@ -68,6 +69,7 @@ ALTER TABLE public.hackathon_settings
   ADD COLUMN IF NOT EXISTS min_team_size INT NOT NULL DEFAULT 2,
   ADD COLUMN IF NOT EXISTS max_team_size INT NOT NULL DEFAULT 4,
   ADD COLUMN IF NOT EXISTS leaderboard_visible BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS prompt_text TEXT NOT NULL DEFAULT 'Sample prompt....xxx etc.',
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 WITH ranked_settings AS (
@@ -390,7 +392,8 @@ INSERT INTO public.hackathon_settings (
   judging_starts_at,
   min_team_size,
   max_team_size,
-  leaderboard_visible
+  leaderboard_visible,
+  prompt_text
 )
 SELECT
   e.id,
@@ -401,7 +404,8 @@ SELECT
   '2026-05-24T18:15:00Z',   -- 12:15 PM MDT Sunday, final demos and judging start
   3,
   4,
-  false
+  false,
+  'Sample prompt....xxx etc.'
 FROM public.events e
 WHERE e.slug = 'calgary-hackathon-sait-may-2026'
   AND NOT EXISTS (
@@ -419,6 +423,7 @@ SET
   min_team_size = 3,
   max_team_size = 4,
   leaderboard_visible = false,
+  prompt_text = COALESCE(NULLIF(BTRIM(hs.prompt_text), ''), 'Sample prompt....xxx etc.'),
   updated_at = NOW()
 FROM public.events e
 WHERE e.slug = 'calgary-hackathon-sait-may-2026'
