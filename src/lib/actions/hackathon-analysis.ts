@@ -22,6 +22,22 @@ async function getBaseUrl(): Promise<string | null> {
   return `${protocol}://${host}`;
 }
 
+function normalizeRepoUrl(url?: string | null) {
+  const trimmed = url?.trim();
+  if (!trimmed) return "";
+
+  try {
+    const parsed = new URL(trimmed);
+    parsed.hash = "";
+    parsed.search = "";
+    const hostname = parsed.hostname.replace(/^www\./, "").toLowerCase();
+    const pathname = parsed.pathname.replace(/\/$/, "").replace(/\.git$/i, "").toLowerCase();
+    return `${hostname}${pathname}`;
+  } catch {
+    return trimmed.replace(/\/$/, "").replace(/\.git$/i, "").toLowerCase();
+  }
+}
+
 // Fetch all AI analysis passes for a set of teams
 export async function getTeamAnalyses(
   eventId: string,
@@ -168,39 +184,109 @@ export async function pushTopAIToFinalRound(
 
   const topTeamIds = sorted.map((s) => s.teamId);
 
-  // Fetch repo_urls for those teams
+  // Fetch submitted projects for those teams
   const { data: projects } = await supabase
     .from("hackathon_projects")
-    .select("team_id, repo_url")
+    .select("team_id, name, description, repo_url, demo_url, video_url")
     .in("team_id", topTeamIds)
     .not("submitted_at", "is", null)
     .not("repo_url", "is", null);
 
-  const repoByTeam = new Map(
-    (projects ?? []).map((p: { team_id: string; repo_url: string }) => [p.team_id, p.repo_url.trim().replace(/\/$/, "")])
+  const projectsByTeam = new Map(
+    (projects ?? []).map((project: {
+      team_id: string;
+      name: string;
+      description: string | null;
+      repo_url: string;
+      demo_url: string | null;
+      video_url: string | null;
+    }) => [project.team_id, project])
   );
 
-  // Match to competition entries by repo_url
+  if (projectsByTeam.size === 0) {
+    return { error: "No submitted projects with repo URLs were found for the AI-scored teams." };
+  }
+
+  const { data: members } = await supabase
+    .from("hackathon_team_members")
+    .select("team_id, user_id, role, joined_at")
+    .in("team_id", topTeamIds)
+    .order("joined_at", { ascending: true });
+
+  const primaryUserByTeam = new Map<string, string>();
+  for (const teamId of topTeamIds) {
+    const teamMembers = (members ?? []).filter((member: {
+      team_id: string;
+      user_id: string;
+      role: string | null;
+    }) => member.team_id === teamId);
+    const leader = teamMembers.find((member) => member.role === "leader");
+    const primaryUserId = leader?.user_id ?? teamMembers[0]?.user_id;
+    if (primaryUserId) primaryUserByTeam.set(teamId, primaryUserId);
+  }
+
+  // Match existing entries by normalized repo URL or by the team's primary user.
   const { data: entries } = await supabase
     .from("competition_entries")
-    .select("id, repo_url")
+    .select("id, user_id, repo_url")
     .eq("competition_id", competitionId);
 
   const entryByRepo = new Map(
-    (entries ?? []).map((e: { id: string; repo_url: string }) => [e.repo_url.trim().replace(/\/$/, ""), e.id])
+    (entries ?? [])
+      .map((entry: { id: string; repo_url: string | null }) => [normalizeRepoUrl(entry.repo_url), entry.id] as const)
+      .filter(([repo]) => repo)
+  );
+  const entryByUser = new Map(
+    (entries ?? []).map((entry: { id: string; user_id: string }) => [entry.user_id, entry.id])
   );
 
   // Build ordered list of entry IDs for the top teams
   const entryIds: string[] = [];
   for (const { teamId } of sorted) {
-    const repo = repoByTeam.get(teamId);
-    if (!repo) continue;
-    const entryId = entryByRepo.get(repo);
+    const project = projectsByTeam.get(teamId);
+    if (!project?.repo_url) continue;
+
+    const primaryUserId = primaryUserByTeam.get(teamId);
+    if (!primaryUserId) continue;
+
+    const normalizedRepo = normalizeRepoUrl(project.repo_url);
+    let entryId = entryByRepo.get(normalizedRepo) ?? entryByUser.get(primaryUserId);
+
+    if (!entryId) {
+      const { data: inserted, error: insertError } = await supabase
+        .from("competition_entries")
+        .insert({
+          competition_id: competitionId,
+          user_id: primaryUserId,
+          title: project.name,
+          description: project.description,
+          repo_url: project.repo_url,
+          project_url: project.demo_url,
+          video_url: project.video_url,
+        })
+        .select("id")
+        .single();
+
+      if (insertError) return { error: insertError.message };
+      entryId = inserted?.id;
+    } else {
+      await supabase
+        .from("competition_entries")
+        .update({
+          title: project.name,
+          description: project.description,
+          repo_url: project.repo_url,
+          project_url: project.demo_url,
+          video_url: project.video_url,
+        })
+        .eq("id", entryId);
+    }
+
     if (entryId && !entryIds.includes(entryId)) entryIds.push(entryId);
   }
 
   if (!entryIds.length) {
-    return { error: "Could not match AI-scored teams to competition entries. Make sure repo URLs match between project submissions and competition entries." };
+    return { error: "Could not create final-round entries from the AI-scored teams. Make sure the top teams have submitted projects and team members." };
   }
 
   // Delegate to the existing finalist setter
