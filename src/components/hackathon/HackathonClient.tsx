@@ -53,6 +53,8 @@ interface Props {
 
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
 
+const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
+
 function isFormationOpen(settings: HackathonSettings | null): boolean {
   if (!settings) return true;
   if (!settings.team_formation_enabled) return false; // manual kill switch
@@ -182,6 +184,7 @@ export function HackathonClient({
   const submittedProjects = allTeams.filter((team) => team.project?.submitted_at).length;
   const totalParticipants = totalTeamMembers + pool.length;
   const eventHasStarted = !!event.start_time && !!now && new Date(event.start_time) <= now;
+  const promptText = settings?.prompt_text?.trim() || DEFAULT_HACKATHON_PROMPT;
   const openTeamSlots = formationOpen
     ? allTeams.reduce((sum, team) => sum + Math.max(0, maxTeamSize - team.members.length), 0)
     : 0;
@@ -674,6 +677,17 @@ export function HackathonClient({
             <HubMetric label="Free Pool" value={pool.length} detail={formationOpen ? "Looking for teams" : "Unassigned"} />
             <HubMetric label="Submissions" value={submittedProjects} detail={`of ${plural(allTeams.length, "team")}`} />
             <HubMetric label="Open Slots" value={openTeamSlots} detail={`max ${maxTeamSize} per team`} muted={!formationOpen} />
+          </div>
+
+          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
+            <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-red-500/10 blur-[55px]" />
+            <div className="relative space-y-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">Prompt</p>
+              <p className="whitespace-pre-wrap text-2xl italic leading-relaxed tracking-tight text-white/90 sm:text-3xl">
+                {promptText}
+              </p>
+            </div>
           </div>
 
           <div className="relative overflow-hidden rounded-[34px] border border-red-500/20 bg-black/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">

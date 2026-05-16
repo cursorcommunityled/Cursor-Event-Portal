@@ -60,6 +60,7 @@ export async function saveHackathonSettings(
     judging_starts_at?: string | null;
     min_team_size?: number;
     max_team_size?: number;
+    prompt_text?: string;
   }
 ): Promise<{ success?: true; error?: string }> {
   const auth = await validateAdmin(adminCode);

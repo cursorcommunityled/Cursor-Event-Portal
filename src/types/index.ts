@@ -833,6 +833,7 @@ export interface HackathonSettings {
   min_team_size: number;
   max_team_size: number;
   leaderboard_visible: boolean;
+  prompt_text: string;
   created_at: string;
   updated_at: string;
 }

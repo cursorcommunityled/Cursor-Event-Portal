@@ -77,6 +77,8 @@ const SCORE_CATEGORIES = [
   { key: "ux_polish" as const, label: "UX / Polish" },
 ];
 
+const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
+
 const DEFAULT_SIMON_TODO_ITEMS: SimonTodoItem[] = [
   {
     id: "spawn-point-channel",
@@ -240,6 +242,7 @@ export function HackathonAdminClient({
   const [formJudging, setFormJudging] = useState(fmt(initialSettings?.judging_starts_at));
   const [formMinSize, setFormMinSize] = useState(initialSettings?.min_team_size ?? 2);
   const [formMaxSize, setFormMaxSize] = useState(initialSettings?.max_team_size ?? 4);
+  const [formPrompt, setFormPrompt] = useState(initialSettings?.prompt_text ?? DEFAULT_HACKATHON_PROMPT);
 
   // Scoring state: { [teamId]: { [category]: score } }
   const [scoreInputs, setScoreInputs] = useState<Record<string, Record<string, number | null>>>(() =>
@@ -296,6 +299,7 @@ export function HackathonAdminClient({
     setFormJudging(fmt(initialSettings?.judging_starts_at));
     setFormMinSize(initialSettings?.min_team_size ?? 2);
     setFormMaxSize(initialSettings?.max_team_size ?? 4);
+    setFormPrompt(initialSettings?.prompt_text ?? DEFAULT_HACKATHON_PROMPT);
   }, [initialSettings]);
 
   useEffect(() => {
@@ -705,6 +709,23 @@ export function HackathonAdminClient({
               </button>
             </div>
 
+            <div className="border-t border-white/5 pt-6">
+              <h3 className="text-[11px] uppercase tracking-[0.3em] text-gray-400 mb-4">Prompt</h3>
+              <label className="space-y-1.5 block">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500">Attendee Prompt Text</span>
+                <textarea
+                  value={formPrompt}
+                  onChange={(e) => setFormPrompt(e.target.value)}
+                  rows={5}
+                  placeholder={DEFAULT_HACKATHON_PROMPT}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30 resize-y"
+                />
+              </label>
+              <p className="mt-2 text-xs text-gray-600">
+                This appears in the attendee Hackathon Hub prompt area.
+              </p>
+            </div>
+
             <h3 className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Team Formation Window (Optional Timer)</h3>
             <div className="grid grid-cols-2 gap-4">
               <label className="space-y-1.5">
@@ -784,6 +805,7 @@ export function HackathonAdminClient({
                   judging_starts_at: formJudging || null,
                   min_team_size: formMinSize,
                   max_team_size: formMaxSize,
+                  prompt_text: formPrompt.trim() || DEFAULT_HACKATHON_PROMPT,
                 });
                 showFeedback(res.error);
               })}
