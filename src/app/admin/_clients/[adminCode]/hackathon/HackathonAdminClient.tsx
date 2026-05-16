@@ -168,13 +168,16 @@ function fmt(iso: string | null | undefined): string {
 
 function buildScoreInputs(
   teams: HackathonTeamWithMembers[],
-  scores: HackathonScore[]
+  scores: HackathonScore[],
+  judgeId: string | null
 ): Record<string, Record<string, number | null>> {
   const init: Record<string, Record<string, number | null>> = {};
   for (const team of teams) {
-    const teamScores = scores.filter((s) => s.team_id === team.id);
+    const myScores = judgeId
+      ? scores.filter((s) => s.team_id === team.id && s.judge_id === judgeId)
+      : scores.filter((s) => s.team_id === team.id);
     const merged: Record<string, number | null> = {};
-    for (const s of teamScores) {
+    for (const s of myScores) {
       for (const cat of SCORE_CATEGORIES) {
         if (s[cat.key] != null) merged[cat.key] = s[cat.key];
       }
@@ -184,9 +187,10 @@ function buildScoreInputs(
   return init;
 }
 
-function buildScoreNotes(scores: HackathonScore[]): Record<string, string> {
+function buildScoreNotes(scores: HackathonScore[], judgeId: string | null): Record<string, string> {
   const init: Record<string, string> = {};
-  for (const s of scores) init[s.team_id] = s.notes ?? "";
+  const relevant = judgeId ? scores.filter((s) => s.judge_id === judgeId) : scores;
+  for (const s of relevant) init[s.team_id] = s.notes ?? "";
   return init;
 }
 
@@ -221,15 +225,16 @@ export function HackathonAdminClient({
 
   // Scoring state: { [teamId]: { [category]: score } }
   const [scoreInputs, setScoreInputs] = useState<Record<string, Record<string, number | null>>>(() =>
-    buildScoreInputs(initialTeams, initialScores)
+    buildScoreInputs(initialTeams, initialScores, adminUserId)
   );
   const [scoreNotes, setScoreNotes] = useState<Record<string, string>>(() =>
-    buildScoreNotes(initialScores)
+    buildScoreNotes(initialScores, adminUserId)
   );
 
   // Team match suggestions state
   const [suggestStatus, setSuggestStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [suggestCount, setSuggestCount] = useState<number | null>(null);
+  const [suggestError, setSuggestError] = useState<string | null>(null);
 
   // AI analysis state (keyed by teamId)
   const [aiAnalyses, setAiAnalyses] = useState<Record<string, HackathonAIAnalysis[]>>(initialAiAnalyses);
@@ -260,8 +265,8 @@ export function HackathonAdminClient({
   useEffect(() => {
     setTeams(initialTeams);
     setScores(initialScores);
-    setScoreInputs(buildScoreInputs(initialTeams, initialScores));
-    setScoreNotes(buildScoreNotes(initialScores));
+    setScoreInputs(buildScoreInputs(initialTeams, initialScores, adminUserId));
+    setScoreNotes(buildScoreNotes(initialScores, adminUserId));
   }, [initialTeams, initialScores]);
 
   useEffect(() => {
@@ -1121,16 +1126,18 @@ export function HackathonAdminClient({
                   <p className="text-[11px] text-green-400 mt-1">{suggestCount} suggestion{suggestCount !== 1 ? "s" : ""} sent.</p>
                 )}
                 {suggestStatus === "error" && (
-                  <p className="text-[11px] text-red-400 mt-1">Failed — check that ANTHROPIC_API_KEY is set and attendees have intake data.</p>
+                  <p className="text-[11px] text-red-400 mt-1">{suggestError ?? "Failed to generate suggestions"}</p>
                 )}
               </div>
               <button
                 disabled={suggestStatus === "pending"}
                 onClick={async () => {
                   setSuggestStatus("pending");
+                  setSuggestError(null);
                   const res = await triggerTeamMatchSuggestions(event.id);
                   if (res.error) {
                     setSuggestStatus("error");
+                    setSuggestError(res.error);
                   } else {
                     setSuggestStatus("done");
                     setSuggestCount(res.count ?? 0);
