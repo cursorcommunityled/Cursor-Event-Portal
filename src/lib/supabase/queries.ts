@@ -2171,7 +2171,7 @@ export async function getMySentHackathonInviteUserIds(
 export async function getCheckedInAttendeesWithoutTeams(
   eventId: string,
   excludeUserId: string
-): Promise<{ id: string; name: string }[]> {
+): Promise<{ id: string; name: string; occupation: string | null; is_technical: boolean | null }[]> {
   noStore();
   const supabase = await createServiceClient();
 
@@ -2202,16 +2202,38 @@ export async function getCheckedInAttendeesWithoutTeams(
     .eq("event_id", eventId)
     .not("checked_in_at", "is", null);
 
-  const result: { id: string; name: string }[] = [];
+  const result: { id: string; name: string; occupation: string | null; is_technical: boolean | null }[] = [];
   const seen = new Set<string>();
   for (const reg of regs ?? []) {
     if (!reg.user_id || teamUserIds.has(reg.user_id) || seen.has(reg.user_id)) continue;
     seen.add(reg.user_id);
     const u = Array.isArray(reg.user) ? reg.user[0] : reg.user;
     if (u && typeof u === "object") {
-      result.push({ id: String(u.id), name: String(u.name) });
+      result.push({ id: String(u.id), name: String(u.name), occupation: null, is_technical: null });
     }
   }
+
+  // Step 4: Enrich with hackathon profiles (occupation, technical background)
+  if (result.length > 0) {
+    const { data: profiles } = await supabase
+      .from("hackathon_profiles")
+      .select("user_id, occupation, is_technical")
+      .eq("event_id", eventId)
+      .in("user_id", result.map((u) => u.id));
+
+    const profileMap = new Map(
+      (profiles ?? []).map((p: { user_id: string; occupation: string | null; is_technical: boolean | null }) => [p.user_id, p])
+    );
+
+    for (const person of result) {
+      const profile = profileMap.get(person.id);
+      if (profile) {
+        person.occupation = profile.occupation;
+        person.is_technical = profile.is_technical;
+      }
+    }
+  }
+
   return result;
 }
 

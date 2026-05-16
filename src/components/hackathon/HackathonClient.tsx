@@ -36,7 +36,7 @@ interface Props {
   receivedInvites: HackathonTeamInvite[];
   sentInviteUserIds: string[];
   allTeams: HackathonTeamWithMembers[];
-  openPool: { id: string; name: string }[];
+  openPool: { id: string; name: string; occupation: string | null; is_technical: boolean | null }[];
   scores: HackathonScore[];
   chatChannels: HackathonChatChannel[];
   initialMessages: HackathonChatMessage[];
@@ -1168,9 +1168,25 @@ export function HackathonClient({
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400 shadow-inner group-hover:border-red-500/30 group-hover:text-red-300 transition-colors">
                         <Users className="h-5 w-5" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[16px] font-bold text-white tracking-tight">{person.name}</p>
-                        <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Looking for team</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          {person.occupation ? (
+                            <p className="text-[11px] text-gray-400 truncate">{person.occupation}</p>
+                          ) : (
+                            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">Looking for team</p>
+                          )}
+                          {person.is_technical !== null && (
+                            <span className={cn(
+                              "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shrink-0",
+                              person.is_technical
+                                ? "text-blue-300 border-blue-400/30 bg-blue-400/10"
+                                : "text-purple-300 border-purple-400/30 bg-purple-400/10"
+                            )}>
+                              {person.is_technical ? "Technical" : "Non-Technical"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {formationOpen && (
