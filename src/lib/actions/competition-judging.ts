@@ -10,7 +10,7 @@ import type {
   CompetitionJudgingStanding,
 } from "@/types";
 
-export const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, index) => ({
+const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, index) => ({
   slug: criterion.key.replace(/_/g, "-"),
   label: criterion.label,
   description: criterion.description,

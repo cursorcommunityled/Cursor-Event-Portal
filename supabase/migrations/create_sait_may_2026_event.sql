@@ -252,6 +252,47 @@ CREATE TABLE IF NOT EXISTS public.competition_votes (
   UNIQUE(competition_id, user_id, entry_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.competition_judging_results (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id       UUID        NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  competition_id UUID        NOT NULL REFERENCES public.competitions(id) ON DELETE CASCADE,
+  entry_id       UUID        NOT NULL REFERENCES public.competition_entries(id) ON DELETE CASCADE,
+  placement      INT         NOT NULL CHECK (placement > 0),
+  final_score    NUMERIC(8,2) NOT NULL DEFAULT 0 CHECK (final_score >= 0),
+  max_score      NUMERIC(8,2) NOT NULL DEFAULT 100 CHECK (max_score > 0),
+  judge_count    INT         NOT NULL DEFAULT 0 CHECK (judge_count >= 0),
+  is_published   BOOLEAN     NOT NULL DEFAULT true,
+  published_at   TIMESTAMPTZ,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (competition_id, placement),
+  UNIQUE (competition_id, entry_id)
+);
+
+CREATE INDEX IF NOT EXISTS competition_judging_results_event_idx
+  ON public.competition_judging_results(event_id, is_published, placement);
+
+ALTER TABLE public.competition_judging_results ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT ON public.competition_judging_results TO anon, authenticated;
+GRANT ALL ON public.competition_judging_results TO service_role;
+
+DROP POLICY IF EXISTS "Public read competition_judging_results" ON public.competition_judging_results;
+CREATE POLICY "Public read competition_judging_results"
+  ON public.competition_judging_results FOR SELECT USING (is_published = true);
+
+DROP POLICY IF EXISTS "Service write competition_judging_results" ON public.competition_judging_results;
+CREATE POLICY "Service write competition_judging_results"
+  ON public.competition_judging_results FOR ALL USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.competition_judging_results;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
 -- Clean up older partial hackathon schemas that allowed duplicate membership rows.
 WITH ranked_members AS (
   SELECT
