@@ -24,12 +24,14 @@ import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
   ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award, Megaphone,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore,
   HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingCompetition,
+  HackathonRepoSubmissionBackup,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
@@ -53,6 +55,7 @@ interface Props {
   judgingCompetitions: CompetitionJudgingCompetition[];
   initialAiAnalyses: Record<string, HackathonAIAnalysis[]>;
   initialOpenPool: OpenPoolMember[];
+  initialRepoSubmissionBackups: HackathonRepoSubmissionBackup[];
   initialAudienceVote: AudienceVoteSummary | null;
 }
 
@@ -214,10 +217,38 @@ function buildScoreNotes(scores: HackathonScore[], judgeId: string | null): Reco
   return init;
 }
 
+function buildRepoSubmissionMasterFile(backups: HackathonRepoSubmissionBackup[]) {
+  if (backups.length === 0) {
+    return "No repo submissions have been written to the fallback file yet.";
+  }
+
+  return backups.map((backup, index) => {
+    const teamName = backup.team?.name ?? backup.team_name ?? "Unknown team";
+    const submitter = backup.submitter?.name
+      ? `${backup.submitter.name}${backup.submitter.email ? ` <${backup.submitter.email}>` : ""}`
+      : backup.submitted_by ?? "Unknown submitter";
+    const savedState = backup.primary_project_saved ? "primary saved" : "fallback only";
+    const lines = [
+      `#${index + 1} ${teamName}`,
+      `Project: ${backup.project_name ?? "Untitled"}`,
+      `Repo: ${backup.repo_url}`,
+      `Demo: ${backup.demo_url ?? "Not provided"}`,
+      `Submitted By: ${submitter}`,
+      `Submitted At: ${new Date(backup.submitted_at).toLocaleString()}`,
+      `Status: ${savedState}`,
+    ];
+
+    if (backup.primary_project_error) lines.push(`Primary Save Error: ${backup.primary_project_error}`);
+    if (backup.description) lines.push(`Description: ${backup.description}`);
+
+    return lines.join("\n");
+  }).join("\n\n---\n\n");
+}
+
 export function HackathonAdminClient({
   event, adminCode, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
-  judgingCompetitions, initialAiAnalyses, initialOpenPool, initialAudienceVote,
+  judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
@@ -243,6 +274,7 @@ export function HackathonAdminClient({
   const [formMinSize, setFormMinSize] = useState(initialSettings?.min_team_size ?? 2);
   const [formMaxSize, setFormMaxSize] = useState(initialSettings?.max_team_size ?? 4);
   const [formPrompt, setFormPrompt] = useState(initialSettings?.prompt_text ?? DEFAULT_HACKATHON_PROMPT);
+  const [repoSubmissionBackups, setRepoSubmissionBackups] = useState(initialRepoSubmissionBackups);
 
   // Scoring state: { [teamId]: { [category]: score } }
   const [scoreInputs, setScoreInputs] = useState<Record<string, Record<string, number | null>>>(() =>
@@ -308,6 +340,10 @@ export function HackathonAdminClient({
     setScoreInputs(buildScoreInputs(initialTeams, initialScores, adminUserId));
     setScoreNotes(buildScoreNotes(initialScores, adminUserId));
   }, [initialTeams, initialScores]);
+
+  useEffect(() => {
+    setRepoSubmissionBackups(initialRepoSubmissionBackups);
+  }, [initialRepoSubmissionBackups]);
 
   useEffect(() => {
     setAudienceVote(initialAudienceVote);
@@ -402,6 +438,7 @@ export function HackathonAdminClient({
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_members" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_invites", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_repo_submission_backups", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
       .on(
         "postgres_changes",
@@ -472,6 +509,7 @@ export function HackathonAdminClient({
   const submissionDeadlineLabel = settings?.submission_deadline
     ? formatAdminDateTime(settings.submission_deadline, event.timezone)
     : "No deadline set";
+  const repoSubmissionMasterFile = buildRepoSubmissionMasterFile(repoSubmissionBackups);
 
   const broadcastSubmissionNudge = async () => {
     if (unsubmittedTeams.length === 0 || nudgeStatus === "pending") return;
@@ -587,7 +625,7 @@ export function HackathonAdminClient({
 
   return (
     <div className="min-h-screen bg-black-gradient text-white flex flex-col relative overflow-hidden">
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-white/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-red-500/10 rounded-full blur-[150px] pointer-events-none" />
 
       <AdminHeader adminCode={adminCode} title="Hackathon" subtitle="Control Center" showBackArrow={false} />
 
@@ -624,13 +662,13 @@ export function HackathonAdminClient({
             className={cn(
               "relative w-14 h-7 rounded-full border transition-all duration-200",
               isHackathon
-                ? "bg-red-500/40 border-red-400/60"
+                ? "bg-green-500/40 border-green-400/60"
                 : "bg-white/5 border-white/10"
             )}
           >
             <div className={cn(
               "absolute top-1 w-5 h-5 rounded-full transition-all duration-200",
-              isHackathon ? "left-8 bg-red-400" : "left-1 bg-gray-600"
+              isHackathon ? "left-8 bg-green-400" : "left-1 bg-gray-600"
             )} />
           </button>
         </div>
@@ -725,6 +763,36 @@ export function HackathonAdminClient({
                 This appears in the attendee Hackathon Hub prompt area.
               </p>
             </div>
+
+            <details className="group border-t border-white/5 pt-6">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Admin Master File</p>
+                    <h3 className="mt-1 text-sm font-light text-white/70">Repo Submission Backup</h3>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-gray-600">
+                  <span>{repoSubmissionBackups.length} saved</span>
+                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180" />
+                </div>
+              </summary>
+
+              <div className="mt-5 space-y-3">
+                <p className="text-xs text-gray-600">
+                  Each repo URL submitted from the attendee hub is mirrored here as a fallback, even if the main project card fails to update.
+                </p>
+                <textarea
+                  readOnly
+                  value={repoSubmissionMasterFile}
+                  rows={Math.min(14, Math.max(5, repoSubmissionBackups.length * 8))}
+                  className="w-full resize-y rounded-2xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-xs leading-5 text-gray-300 focus:outline-none focus:border-white/20"
+                />
+              </div>
+            </details>
 
             <h3 className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Team Formation Window (Optional Timer)</h3>
             <div className="grid grid-cols-2 gap-4">
@@ -1429,81 +1497,83 @@ export function HackathonAdminClient({
                 No teams to score yet
               </div>
             )}
-            {teams.map((team) => (
-              <div key={team.id} className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl transition-all hover:bg-white/[0.04] space-y-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold tracking-tight text-white">{team.name}</h3>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">
-                      {team.members.map((m) => m.user?.name).join(" · ")}
-                    </p>
-                  </div>
-                  <div className="text-3xl font-black tabular-nums text-white drop-shadow-md">
-                    {totalScore(team.id)}<span className="text-sm font-bold text-gray-500">/40</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {SCORE_CATEGORIES.map((cat) => (
-                    <div key={cat.key} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">{cat.label}</span>
-                        <span className="text-[13px] font-bold tabular-nums text-white">
-                          {scoreInputs[team.id]?.[cat.key] ?? "—"}/10
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={10}
-                        step={1}
-                        value={scoreInputs[team.id]?.[cat.key] ?? 0}
-                        onChange={(e) => setScoreInputs((prev) => ({
-                          ...prev,
-                          [team.id]: { ...(prev[team.id] ?? {}), [cat.key]: Number(e.target.value) },
-                        }))}
-                        className="w-full accent-red-500"
-                      />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {teams.map((team) => (
+                <div key={team.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold tracking-tight text-white truncate">{team.name}</h3>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1 truncate">
+                        {team.members.map((m) => m.user?.name).join(" · ")}
+                      </p>
                     </div>
-                  ))}
+                    <div className="text-2xl font-black tabular-nums text-white drop-shadow-md shrink-0">
+                      {totalScore(team.id)}<span className="text-xs font-bold text-gray-500">/40</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {SCORE_CATEGORIES.map((cat) => (
+                      <div key={cat.key} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">{cat.label}</span>
+                          <span className="text-[12px] font-bold tabular-nums text-white">
+                            {scoreInputs[team.id]?.[cat.key] ?? "—"}/10
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={10}
+                          step={1}
+                          value={scoreInputs[team.id]?.[cat.key] ?? 0}
+                          onChange={(e) => setScoreInputs((prev) => ({
+                            ...prev,
+                            [team.id]: { ...(prev[team.id] ?? {}), [cat.key]: Number(e.target.value) },
+                          }))}
+                          className="w-full accent-red-500"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <textarea
+                    placeholder="Judge notes..."
+                    rows={2}
+                    value={scoreNotes[team.id] ?? ""}
+                    onChange={(e) => setScoreNotes((prev) => ({ ...prev, [team.id]: e.target.value }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[13px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 resize-none transition-colors"
+                  />
+
+                  <button
+                    disabled={isPending}
+                    onClick={() => startTransition(async () => {
+                      const cats = scoreInputs[team.id] ?? {};
+                      const res = await saveHackathonScore(adminCode, team.id, {
+                        innovation: cats.innovation ?? null,
+                        execution: cats.execution ?? null,
+                        presentation: cats.presentation ?? null,
+                        ux_polish: cats.ux_polish ?? null,
+                        notes: scoreNotes[team.id] || null,
+                      });
+                      showFeedback(res.error);
+                    })}
+                    className="w-full py-2.5 rounded-xl bg-white/10 border border-white/10 text-[12px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50 mt-auto"
+                  >
+                    Save Score
+                  </button>
+
+                  <AIAnalysisPanel
+                    teamId={team.id}
+                    teamName={team.name}
+                    eventId={event.id}
+                    adminCode={adminCode}
+                    analyses={aiAnalyses[team.id] ?? []}
+                    hasRepo={!!team.project?.repo_url}
+                  />
                 </div>
-
-                <textarea
-                  placeholder="Judge notes..."
-                  rows={2}
-                  value={scoreNotes[team.id] ?? ""}
-                  onChange={(e) => setScoreNotes((prev) => ({ ...prev, [team.id]: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 resize-none transition-colors"
-                />
-
-                <button
-                  disabled={isPending}
-                  onClick={() => startTransition(async () => {
-                    const cats = scoreInputs[team.id] ?? {};
-                    const res = await saveHackathonScore(adminCode, team.id, {
-                      innovation: cats.innovation ?? null,
-                      execution: cats.execution ?? null,
-                      presentation: cats.presentation ?? null,
-                      ux_polish: cats.ux_polish ?? null,
-                      notes: scoreNotes[team.id] || null,
-                    });
-                    showFeedback(res.error);
-                  })}
-                  className="w-full py-3 rounded-xl bg-white/10 border border-white/10 text-[13px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50"
-                >
-                  Save Score
-                </button>
-
-                <AIAnalysisPanel
-                  teamId={team.id}
-                  teamName={team.name}
-                  eventId={event.id}
-                  adminCode={adminCode}
-                  analyses={aiAnalyses[team.id] ?? []}
-                  hasRepo={!!team.project?.repo_url}
-                />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 

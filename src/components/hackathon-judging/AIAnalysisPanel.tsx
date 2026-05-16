@@ -19,6 +19,15 @@ const PASS_LABELS: Record<string, string> = {
   pass6_synthesis: "Synthesis",
 };
 
+const PASS_ORDER = [
+  "pass1_repo",
+  "pass2_code",
+  "pass3_innovation",
+  "pass4_visual",
+  "pass5_pool",
+  "pass6_synthesis",
+] as const;
+
 const CRITERIA_ICONS: Record<string, React.ReactNode> = {
   innovation: <Lightbulb className="w-3.5 h-3.5" />,
   technical_execution: <Cpu className="w-3.5 h-3.5" />,
@@ -66,16 +75,42 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
   const [isPending, startTransition] = useTransition();
   const [applyDone, setApplyDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [optimisticStarted, setOptimisticStarted] = useState(false);
 
-  const byPass = Object.fromEntries(analyses.map((a) => [a.pass_name, a]));
+  const byPass = Object.fromEntries(analyses.map((a) => [a.pass_name, a])) as Partial<Record<(typeof PASS_ORDER)[number], HackathonAIAnalysis>>;
   const pass6 = byPass["pass6_synthesis"]?.result as Pass6Result | undefined;
   const isRunning = analyses.some((a) => a.status === "running");
   const hasAnalysisError = analyses.some((a) => a.status === "error");
-  const allDone = ["pass1_repo", "pass2_code", "pass3_innovation", "pass4_visual", "pass5_pool", "pass6_synthesis"]
+  const allDone = PASS_ORDER
     .every((p) => byPass[p]?.status === "complete");
-  const hasStarted = analyses.length > 0;
+  const hasStarted = analyses.length > 0 || optimisticStarted;
 
   const completedCount = Object.values(byPass).filter((a) => a.status === "complete").length;
+  const runningPass = PASS_ORDER.find((p) => byPass[p]?.status === "running");
+  const failedPass = PASS_ORDER.find((p) => byPass[p]?.status === "error");
+  const failedError = failedPass ? byPass[failedPass]?.error : null;
+  const statusMessage = failedPass
+    ? `${PASS_LABELS[failedPass]} failed`
+    : isRunning && runningPass
+      ? `Running ${PASS_LABELS[runningPass]} (${completedCount}/6 complete)`
+      : allDone
+        ? "Analysis complete. Review the synthesis or apply scores."
+        : hasStarted
+          ? `Analysis queued (${completedCount}/6 complete)`
+          : null;
+
+  const startAnalysisRun = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await triggerAnalysis(teamId, eventId, adminCode);
+      if (res.error) {
+        setOptimisticStarted(false);
+        setError(res.error);
+      } else {
+        setOptimisticStarted(true);
+      }
+    });
+  };
 
   return (
     <div className="relative overflow-hidden rounded-[24px] border border-red-500/20 bg-black/40 backdrop-blur-xl shadow-2xl transition-all hover:border-red-500/40 group">
@@ -83,17 +118,17 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
       
       {/* Header */}
-      <div className="relative flex items-center justify-between px-5 py-4 bg-white/[0.02] border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/30 shadow-neon overflow-hidden relative">
+      <div className="relative flex flex-wrap items-center justify-between px-4 py-4 bg-white/[0.02] border-b border-white/5 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/30 shadow-neon overflow-hidden relative shrink-0">
             <div className="absolute inset-0 bg-red-500/20 animate-pulse" />
             <img src="/cursor-logo.svg" alt="Cursor" className="w-4 h-4 relative z-10 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] brightness-200" />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center flex-wrap gap-2">
             <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-300">AI Judge</span>
             {hasStarted && (
-              <div className="flex items-center gap-2">
-                {Object.keys(PASS_LABELS).map((p) => (
+              <div className="flex items-center gap-1.5">
+                {PASS_ORDER.map((p) => (
                   <PassStatus key={p} pass={byPass[p]} />
                 ))}
                 {isRunning && (
@@ -104,24 +139,18 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
               </div>
             )}
             {pass6 && (
-              <span className="text-[14px] font-black text-white ml-2 bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/20">
+              <span className="text-[14px] font-black text-white bg-white/10 px-2 py-0.5 rounded-lg border border-white/20">
                 {pass6.overall_score.toFixed(1)}<span className="text-gray-500 text-[10px]">/10</span>
               </span>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {!hasStarted && !isRunning && (
             <button
               disabled={isPending || !hasRepo}
-              onClick={() => {
-                setError(null);
-                startTransition(async () => {
-                  const res = await triggerAnalysis(teamId, eventId, adminCode);
-                  if (res.error) setError(res.error);
-                });
-              }}
+              onClick={startAnalysisRun}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/40 bg-red-500/20 text-red-200 hover:bg-red-500/30 hover:border-red-500/60 transition-all disabled:opacity-40 shadow-neon"
               title={!hasRepo ? "Team must submit a repo URL first" : undefined}
             >
@@ -133,13 +162,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
           {hasStarted && !isRunning && hasAnalysisError && (
             <button
               disabled={isPending}
-              onClick={() => {
-                setError(null);
-                startTransition(async () => {
-                  const res = await triggerAnalysis(teamId, eventId, adminCode);
-                  if (res.error) setError(res.error);
-                });
-              }}
+              onClick={startAnalysisRun}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all disabled:opacity-40"
             >
               Retry
@@ -179,6 +202,45 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
           )}
         </div>
       </div>
+
+      {hasStarted && (
+        <div className="relative px-5 py-3 border-t border-white/5 bg-black/20 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {PASS_ORDER.map((passName) => {
+              const pass = byPass[passName];
+              return (
+                <div
+                  key={passName}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+                    pass?.status === "complete" && "border-green-500/30 bg-green-500/10 text-green-300",
+                    pass?.status === "running" && "border-red-500/30 bg-red-500/10 text-red-200",
+                    pass?.status === "error" && "border-red-500/40 bg-red-500/15 text-red-300",
+                    !pass && "border-white/10 bg-white/5 text-gray-500"
+                  )}
+                  title={pass?.error ?? undefined}
+                >
+                  <PassStatus pass={pass} />
+                  <span>{PASS_LABELS[passName]}</span>
+                </div>
+              );
+            })}
+          </div>
+          {statusMessage && (
+            <p className={cn(
+              "text-[12px] font-semibold",
+              failedPass ? "text-red-300" : allDone ? "text-green-300" : "text-gray-400"
+            )}>
+              {statusMessage}
+            </p>
+          )}
+          {failedError && (
+            <p className="text-[12px] leading-relaxed text-red-300/90 break-words">
+              {failedError}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -222,17 +284,14 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
                   <span className="text-gray-400">
                     {CRITERIA_ICONS[c.criteria_key] ?? <Star className="w-4 h-4" />}
                   </span>
-                  <span className="text-[13px] font-bold text-gray-200 flex-1 text-left capitalize tracking-wide">
+                  <span className="text-[13px] font-bold text-gray-200 flex-1 text-left capitalize tracking-wide truncate">
                     {c.criteria_key.replace(/_/g, " ")}
                   </span>
-                  <div className="w-32 hidden sm:block">
-                    <ScoreBar score={c.score} />
-                  </div>
-                  <span className="text-[14px] font-black text-white tabular-nums w-10 text-right">
+                  <span className="text-[14px] font-black text-white tabular-nums shrink-0 text-right">
                     {c.score.toFixed(1)}
                   </span>
                   <span className={cn(
-                    "text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-1 rounded-full border",
+                    "text-[9px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0",
                     c.confidence === "high" ? "border-green-500/40 text-green-400 bg-green-500/10 shadow-[0_0_10px_rgba(74,222,128,0.1)]" :
                     c.confidence === "medium" ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10 shadow-[0_0_10px_rgba(234,179,8,0.1)]" :
                     "border-gray-500/40 text-gray-400 bg-white/5"

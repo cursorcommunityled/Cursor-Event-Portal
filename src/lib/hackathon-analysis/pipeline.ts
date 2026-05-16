@@ -6,7 +6,7 @@ import { runPass2 } from './passes/pass2-code';
 import { runPass3 } from './passes/pass3-innovation';
 import { runPass4 } from './passes/pass4-visual';
 import { runPass5 } from './passes/pass5-pool';
-import { runPass6 } from './passes/pass6-synthesis';
+import { runPass6WithModel } from './passes/pass6-synthesis';
 import type { PassName, Pass1Result, Pass2Result, Pass3Result, PoolEntry, ProjectContext } from './types';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -153,7 +153,7 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
       const p4 = passMap.get('pass4_visual');
       const p5 = passMap.get('pass5_pool');
 
-      const pass6 = await runPass6(
+      const { result: pass6, modelUsed } = await runPass6WithModel(
         anthropic,
         ctx.teamName,
         ctx.pitchText,
@@ -161,7 +161,7 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
         p4 as Awaited<ReturnType<typeof runPass4>>,
         p5 as Awaited<ReturnType<typeof runPass5>>
       );
-      await savePass(supabase, ctx.teamId, ctx.eventId, 'pass6_synthesis', 'complete', pass6, undefined, 'claude-opus-4-7');
+      await savePass(supabase, ctx.teamId, ctx.eventId, 'pass6_synthesis', 'complete', pass6, undefined, modelUsed);
     } catch (e) {
       await savePass(supabase, ctx.teamId, ctx.eventId, 'pass6_synthesis', 'error', undefined, String(e));
       throw e;

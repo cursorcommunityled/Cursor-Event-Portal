@@ -311,113 +311,115 @@ export function HackathonJudgingAdminPanel({
         </div>
       )}
 
-      {competition.finalists.map((finalist) => {
-        const entry = finalist.entry ?? competition.entries.find((candidate) => candidate.id === finalist.entry_id);
-        if (!entry) return null;
-        const draftTotal = competition.criteria.reduce(
-          (sum, criterion) => sum + Number(scoreDrafts[entry.id]?.[criterion.id] ?? 0),
-          0
-        );
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {competition.finalists.map((finalist) => {
+          const entry = finalist.entry ?? competition.entries.find((candidate) => candidate.id === finalist.entry_id);
+          if (!entry) return null;
+          const draftTotal = competition.criteria.reduce(
+            (sum, criterion) => sum + Number(scoreDrafts[entry.id]?.[criterion.id] ?? 0),
+            0
+          );
 
-        return (
-          <div key={finalist.id} className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6 transition-all hover:border-white/20 group">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
-            <div className="relative flex items-start justify-between gap-4">
-              <div className="min-w-0 space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-400">
-                  Finalist #{finalist.position + 1}
-                </p>
-                <h4 className="text-2xl font-black tracking-tight text-white">{entry.title}</h4>
-                <p className="text-[13px] font-medium text-gray-400">{entry.user?.name ?? "Unknown submitter"}</p>
-                {entry.description && <p className="text-[14px] font-medium text-gray-300 leading-relaxed mt-2">{entry.description}</p>}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <a
-                    href={entry.repo_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
-                  >
-                    Repo <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                  {entry.project_url && (
+          return (
+            <div key={finalist.id} className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl flex flex-col gap-6 transition-all hover:border-white/20 group">
+              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
+              <div className="relative flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-400">
+                    Finalist #{finalist.position + 1}
+                  </p>
+                  <h4 className="text-2xl font-black tracking-tight text-white">{entry.title}</h4>
+                  <p className="text-[13px] font-medium text-gray-400">{entry.user?.name ?? "Unknown submitter"}</p>
+                  {entry.description && <p className="text-[14px] font-medium text-gray-300 leading-relaxed mt-2 line-clamp-3">{entry.description}</p>}
+                  <div className="flex flex-wrap gap-2 mt-3">
                     <a
-                      href={entry.project_url}
+                      href={entry.repo_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
                     >
-                      Demo <ExternalLink className="w-3.5 h-3.5" />
+                      Repo <ExternalLink className="w-3.5 h-3.5" />
                     </a>
-                  )}
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{draftTotal}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">/ {maxScore} pts</p>
-              </div>
-            </div>
-
-            {/* AI pre-screen summary */}
-            <div className="relative z-10">
-              <EntryAISummary repoUrl={entry.repo_url} teams={teams} aiAnalyses={aiAnalyses} />
-            </div>
-
-            {/* Human judge scoring */}
-            <div className="relative">
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400 mb-4">Your Judge Score</p>
-            </div>
-            <div className="relative space-y-4">
-              {competition.criteria.map((criterion) => (
-                <div key={criterion.id} className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">{criterion.label}</span>
-                    <span className="text-[13px] font-bold tabular-nums text-white">
-                      {scoreDrafts[entry.id]?.[criterion.id] ?? 0}/{Number(criterion.max_points)}
-                    </span>
+                    {entry.project_url && (
+                      <a
+                        href={entry.project_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-colors"
+                      >
+                        Demo <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={Number(criterion.max_points)}
-                    step={1}
-                    value={scoreDrafts[entry.id]?.[criterion.id] ?? 0}
-                    onChange={(e) =>
-                      setScoreDrafts((prev) => ({
-                        ...prev,
-                        [entry.id]: {
-                          ...(prev[entry.id] ?? {}),
-                          [criterion.id]: Number(e.target.value),
-                        },
-                      }))
-                    }
-                    className="w-full accent-red-500"
-                  />
-                  {criterion.description && (
-                    <p className="text-[11px] font-medium text-gray-500">{criterion.description}</p>
-                  )}
                 </div>
-              ))}
+                <div className="text-right shrink-0">
+                  <p className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{draftTotal}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">/ {maxScore} pts</p>
+                </div>
+              </div>
+
+              {/* AI pre-screen summary */}
+              <div className="relative z-10">
+                <EntryAISummary repoUrl={entry.repo_url} teams={teams} aiAnalyses={aiAnalyses} />
+              </div>
+
+              {/* Human judge scoring */}
+              <div className="relative flex-1">
+                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400 mb-4">Your Judge Score</p>
+                <div className="space-y-4">
+                  {competition.criteria.map((criterion) => (
+                    <div key={criterion.id} className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">{criterion.label}</span>
+                        <span className="text-[13px] font-bold tabular-nums text-white">
+                          {scoreDrafts[entry.id]?.[criterion.id] ?? 0}/{Number(criterion.max_points)}
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={Number(criterion.max_points)}
+                        step={1}
+                        value={scoreDrafts[entry.id]?.[criterion.id] ?? 0}
+                        onChange={(e) =>
+                          setScoreDrafts((prev) => ({
+                            ...prev,
+                            [entry.id]: {
+                              ...(prev[entry.id] ?? {}),
+                              [criterion.id]: Number(e.target.value),
+                            },
+                          }))
+                        }
+                        className="w-full accent-red-500"
+                      />
+                      {criterion.description && (
+                        <p className="text-[11px] font-medium text-gray-500">{criterion.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                placeholder="Judge notes..."
+                rows={2}
+                value={notesDrafts[entry.id] ?? ""}
+                onChange={(e) => setNotesDrafts((prev) => ({ ...prev, [entry.id]: e.target.value }))}
+                className="relative w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none transition-colors shadow-inner mt-auto"
+              />
+
+              <button
+                disabled={isPending || !adminUserId || activeEntryId === entry.id}
+                onClick={() => saveEntryScore(entry.id)}
+                className="relative w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/10 py-3.5 text-[13px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-[1.02] shadow-sm mt-2"
+              >
+                <Save className="w-4 h-4" />
+                {activeEntryId === entry.id ? "Saving..." : savedEntryId === entry.id ? "Saved" : "Save Scorecard"}
+              </button>
             </div>
-
-            <textarea
-              placeholder="Judge notes..."
-              rows={2}
-              value={notesDrafts[entry.id] ?? ""}
-              onChange={(e) => setNotesDrafts((prev) => ({ ...prev, [entry.id]: e.target.value }))}
-              className="relative w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none transition-colors shadow-inner"
-            />
-
-            <button
-              disabled={isPending || !adminUserId || activeEntryId === entry.id}
-              onClick={() => saveEntryScore(entry.id)}
-              className="relative w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/10 py-3.5 text-[13px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-[1.02] shadow-sm"
-            >
-              <Save className="w-4 h-4" />
-              {activeEntryId === entry.id ? "Saving..." : savedEntryId === entry.id ? "Saved" : "Save Scorecard"}
-            </button>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
 
       <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
