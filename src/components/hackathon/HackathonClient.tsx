@@ -10,6 +10,7 @@ import {
   leaveTeam,
   dissolveTeam,
   submitHackathonProject,
+  cancelHackathonProjectSubmission,
 } from "@/lib/actions/hackathon";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,7 @@ type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+const PROJECT_JUDGING_LOCK_BUFFER_MS = 5 * 60 * 1000;
 
 function getTeamIconValidationError(file: File): string | null {
   if (!TEAM_ICON_ALLOWED_TYPES.includes(file.type)) {
@@ -118,6 +120,18 @@ function formatCountdown(targetValue: string | null | undefined, now: Date | nul
   if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
+}
+
+function getProjectSubmissionCutoff(settings: HackathonSettings | null): Date | null {
+  if (settings?.judging_starts_at) {
+    return new Date(new Date(settings.judging_starts_at).getTime() - PROJECT_JUDGING_LOCK_BUFFER_MS);
+  }
+  return settings?.submission_deadline ? new Date(settings.submission_deadline) : null;
+}
+
+function isProjectSubmissionOpen(settings: HackathonSettings | null, now: Date | null): boolean {
+  const cutoff = getProjectSubmissionCutoff(settings);
+  return !cutoff || !now || now < cutoff;
 }
 
 export function HackathonClient({
@@ -219,6 +233,12 @@ export function HackathonClient({
   const totalParticipants = totalTeamMembers + pool.length;
   const eventHasStarted = !!event.start_time && !!now && new Date(event.start_time) <= now;
   const promptText = settings?.prompt_text?.trim() || DEFAULT_HACKATHON_PROMPT;
+  const projectSubmitted = Boolean(myTeam?.project?.submitted_at);
+  const projectSubmissionOpen = isProjectSubmissionOpen(settings, now);
+  const projectSubmissionCutoff = getProjectSubmissionCutoff(settings);
+  const projectSubmissionCutoffLabel = projectSubmissionCutoff
+    ? formatEventDateTime(projectSubmissionCutoff.toISOString(), event.timezone)
+    : null;
   const openTeamSlots = formationOpen
     ? allTeams.reduce((sum, team) => sum + Math.max(0, maxTeamSize - team.members.length), 0)
     : 0;
@@ -444,6 +464,22 @@ export function HackathonClient({
       if (res.error) { showMsg(res.error, true); return; }
       showMsg(res.warning ?? "Project saved", false, res.fallback ? 10000 : 4000);
       setShowProjectForm(false);
+      refresh();
+    });
+  };
+
+  const handleProjectCancel = () => {
+    if (!myTeam?.project?.submitted_at) return;
+    if (!confirm("Cancel this project submission? You can edit it and resubmit until judging locks.")) return;
+    startTransition(async () => {
+      const res = await cancelHackathonProjectSubmission(myTeam.id, event.id);
+      if (res.error) { showMsg(res.error, true); return; }
+      setMyTeam((prev) => prev?.project
+        ? { ...prev, project: { ...prev.project, submitted_at: null } }
+        : prev
+      );
+      showMsg("Submission cancelled. Make your changes and resubmit before judging locks.", false, 6000);
+      setShowProjectForm(true);
       refresh();
     });
   };
@@ -1020,7 +1056,7 @@ export function HackathonClient({
                     </div>
                     <div>
                       <h3 className="text-left text-[18px] font-bold text-white">
-                        {myTeam.project?.submitted_at ? "Project Submitted" : "Submit Project"}
+                        {projectSubmitted ? "Project Submitted" : "Submit Project"}
                       </h3>
                       {myTeam.project?.name && (
                         <p className="mt-1 text-left text-[13px] font-medium text-gray-400">{myTeam.project.name}</p>
@@ -1037,6 +1073,31 @@ export function HackathonClient({
 
                 {showProjectForm && (
                   <div className="relative space-y-5 mt-8 animate-fade-in border-t border-white/10 pt-8">
+                    {projectSubmitted ? (
+                      <div className="space-y-4 rounded-[24px] border border-green-500/20 bg-green-500/[0.05] p-5">
+                        <div>
+                          <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-green-300">Submission Locked</p>
+                          <p className="mt-2 text-sm font-medium leading-relaxed text-gray-300">
+                            Your team already has a submitted project. To make changes, cancel this submission first, edit the form, then resubmit.
+                            {projectSubmissionCutoffLabel ? ` Changes lock at ${projectSubmissionCutoffLabel}.` : ""}
+                          </p>
+                        </div>
+                        {projectSubmissionOpen ? (
+                          <button
+                            disabled={isPending}
+                            onClick={handleProjectCancel}
+                            className="flex w-full items-center justify-center gap-2 rounded-[18px] border border-red-400/30 bg-red-500/10 px-4 py-3 text-[13px] font-bold uppercase tracking-wider text-red-200 transition-all hover:bg-red-500/20 disabled:opacity-40"
+                          >
+                            <X className="h-4 w-4" /> Cancel Submission
+                          </button>
+                        ) : (
+                          <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm font-medium text-amber-200">
+                            Judging is about to begin, so this submission can no longer be cancelled.
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">Project Name *</label>
                       <input
@@ -1121,14 +1182,22 @@ export function HackathonClient({
                       />
                     </div>
 
+                    {!projectSubmissionOpen && (
+                      <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm font-medium text-amber-200">
+                        Project submissions are locked for judging.
+                      </p>
+                    )}
+
                     <button
-                      disabled={isPending || !projectName.trim()}
+                      disabled={isPending || !projectName.trim() || !projectSubmissionOpen}
                       onClick={handleProjectSubmit}
                       className="relative w-full overflow-hidden rounded-[20px] bg-white py-4 text-[15px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <span className="relative">{myTeam.project?.submitted_at ? "Update Project" : "Submit Project"}</span>
+                      <span className="relative">{projectSubmissionOpen ? "Submit Project" : "Submissions Locked"}</span>
                     </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -1577,7 +1646,7 @@ function TeamCard({ team, rank, score, formationOpen }: {
         ))}
       </div>
 
-      {team.project && (
+      {team.project?.submitted_at && (
         <div className="relative mt-5 flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
           <p className="text-[14px] font-medium text-gray-300 truncate">{team.project.name}</p>
           <div className="flex shrink-0 gap-2">

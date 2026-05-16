@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
-    if (!project?.repo_url) return NextResponse.json({ error: 'Team has not submitted a repo URL' }, { status: 400 });
+    if (!project?.submitted_at || !project.repo_url) return NextResponse.json({ error: 'Team has not submitted a repo URL' }, { status: 400 });
 
     // Check minimum pool size (at least 4 projects submitted)
     const { count: submittedCount } = await supabase
