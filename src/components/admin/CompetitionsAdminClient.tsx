@@ -71,7 +71,7 @@ const revertActions: Record<string, { label: string; prev: CompetitionStatus; wa
 const statusBadge: Record<string, string> = {
   draft: "bg-gray-500/20 text-gray-400",
   active: "bg-green-500/20 text-green-400",
-  voting: "bg-blue-500/20 text-blue-400",
+  voting: "bg-red-500/20 text-red-400",
   ended: "bg-gray-500/20 text-gray-500",
 };
 
@@ -444,9 +444,9 @@ export function CompetitionsAdminClient({
           </div>
 
           {newVotingMode === "top3" && (
-            <div className="rounded-2xl bg-purple-500/10 border border-purple-500/20 p-4 text-xs text-purple-300 space-y-1">
+            <div className="rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-xs text-red-300 space-y-1">
               <p className="font-medium">How Top 3 works:</p>
-              <ol className="list-decimal list-inside space-y-0.5 text-purple-400">
+              <ol className="list-decimal list-inside space-y-0.5 text-red-400">
                 <li>Collect all project submissions (Active phase)</li>
                 <li>You select exactly 3 finalists from the entries</li>
                 <li>Open voting — the group upvotes their favorite finalist</li>
@@ -500,7 +500,7 @@ export function CompetitionsAdminClient({
                       {comp.status}
                     </span>
                     {isTop3 && (
-                      <span className="text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400">
+                      <span className="text-[10px] uppercase tracking-[0.15em] font-medium px-2 py-0.5 rounded-full bg-red-500/20 text-red-400">
                         Top 3 Mode
                       </span>
                     )}
@@ -637,8 +637,8 @@ export function CompetitionsAdminClient({
                   <div className="space-y-4">
                     {/* Step 1: Pick finalists — available during active AND voting (in case voting opened before finalists were confirmed) */}
                     {(comp.status === "active" || (comp.status === "voting" && top3Ids.length < 3)) && (
-                      <div className="bg-purple-500/10 rounded-2xl p-4 space-y-3 border border-purple-500/20">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 font-medium">
+                      <div className="bg-red-500/10 rounded-2xl p-4 space-y-3 border border-red-500/20">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-medium">
                           {comp.status === "voting" ? "⚠ Select 3 Finalists (voting is open)" : "Step 1 — Select 3 Finalists"}
                         </p>
                         <p className="text-xs text-gray-400">
@@ -646,14 +646,14 @@ export function CompetitionsAdminClient({
                             ? "Voting is open but no finalists have been confirmed yet. Select exactly 3 entries and click Confirm Finalists — attendees won't be able to vote until this is done."
                             : "Check exactly 3 entries below, then click Confirm Finalists. After that, open voting."}
                         </p>
-                        <p className="text-xs text-purple-300">
+                        <p className="text-xs text-red-300">
                           {pendingTop3.size}/3 selected
                         </p>
                         {pendingTop3.size === 3 && (
                           <button
                             onClick={() => handleConfirmTop3(comp.id)}
                             disabled={loading === comp.id}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/30 text-purple-200 text-xs font-medium hover:bg-purple-500/40 transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/30 text-red-200 text-xs font-medium hover:bg-red-500/40 transition-all disabled:opacity-50"
                           >
                             <Star className="w-3.5 h-3.5" />
                             Confirm Finalists
@@ -679,21 +679,21 @@ export function CompetitionsAdminClient({
                         </div>
 
                         {/* People's Choice */}
-                        <div className="bg-blue-500/10 rounded-2xl p-4 space-y-3 border border-blue-500/20">
-                          <p className="text-[10px] uppercase tracking-[0.2em] text-blue-400 font-medium flex items-center gap-2">
+                        <div className="bg-red-500/10 rounded-2xl p-4 space-y-3 border border-red-500/20">
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 font-medium flex items-center gap-2">
                             <Users className="w-3.5 h-3.5" />
                             People&apos;s Choice — calculated from group votes on the 3 finalists
                           </p>
                           <button
                             onClick={() => handleFinalizeGroupWinner(comp.id)}
                             disabled={loading === comp.id}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/20 text-blue-300 text-xs font-medium hover:bg-blue-500/30 transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 text-red-300 text-xs font-medium hover:bg-red-500/30 transition-all disabled:opacity-50"
                           >
                             <Users className="w-3.5 h-3.5" />
                             Calculate People&apos;s Choice (by vote count)
                           </button>
                           {comp.group_winner_entry_id && (
-                            <p className="text-xs text-blue-300">
+                            <p className="text-xs text-red-300">
                               Current People&apos;s Choice: {comp.entries?.find((e) => e.id === comp.group_winner_entry_id)?.title || "Unknown"}
                             </p>
                           )}
@@ -753,15 +753,15 @@ export function CompetitionsAdminClient({
                             isAdminWinner
                               ? "border-yellow-500/40 bg-yellow-500/10"
                               : isGroupWinner
-                              ? "border-blue-500/40 bg-blue-500/10"
+                              ? "border-red-500/40 bg-red-500/10"
                               : isWinner
                               ? "border-yellow-500/30 bg-yellow-500/5"
                               : isPendingJudgingFinalist
                               ? "border-cyan-500/50 bg-cyan-500/10"
                               : isFinalist
-                              ? "border-purple-500/30 bg-purple-500/5"
+                              ? "border-red-500/30 bg-red-500/5"
                               : isPendingSelected
-                              ? "border-purple-500/50 bg-purple-500/10"
+                              ? "border-red-500/50 bg-red-500/10"
                               : "border-white/10 bg-white/5"
                           )}
                         >
@@ -815,11 +815,11 @@ export function CompetitionsAdminClient({
                               </p>
                               <div className="flex items-center gap-2 flex-wrap">
                                 {isAdminWinner && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
-                                {isGroupWinner && <Users className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
+                                {isGroupWinner && <Users className="w-3.5 h-3.5 text-red-400 shrink-0" />}
                                 {isWinner && !isTop3 && <Trophy className="w-3.5 h-3.5 text-yellow-400 shrink-0" />}
                                 <span className="text-base text-white">{entry.title}</span>
                                 {isFinalist && !isAdminWinner && !isGroupWinner && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Finalist</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300">Finalist</span>
                                 )}
                                 {isJudgingFinalist && (
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-200">Judging</span>
@@ -828,7 +828,7 @@ export function CompetitionsAdminClient({
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Admin Pick</span>
                                 )}
                                 {isGroupWinner && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300">People&apos;s Choice</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300">People&apos;s Choice</span>
                                 )}
                               </div>
                             </div>
@@ -844,7 +844,7 @@ export function CompetitionsAdminClient({
                                   href={projectUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="min-w-0 flex-1 text-xs text-blue-300 hover:text-blue-200 break-all"
+                                  className="min-w-0 flex-1 text-xs text-red-300 hover:text-red-200 break-all"
                                 >
                                   {projectUrl}
                                 </a>
@@ -882,7 +882,7 @@ export function CompetitionsAdminClient({
                                   href={`https://stackblitz.com/github/${ghRepo.owner}/${ghRepo.repo}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all text-[10px] font-medium"
+                                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all text-[10px] font-medium"
                                   title="Open in StackBlitz"
                                 >
                                   <Code className="w-3 h-3" />
@@ -915,7 +915,7 @@ export function CompetitionsAdminClient({
                                 href={entry.video_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-purple-300 transition-all"
+                                className="p-1.5 rounded-lg bg-white/5 text-gray-500 hover:text-red-300 transition-all"
                                 title="Watch video"
                               >
                                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -932,7 +932,7 @@ export function CompetitionsAdminClient({
                                 className={cn(
                                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40",
                                   isPendingSelected
-                                    ? "bg-purple-500/40 text-purple-200 hover:bg-purple-500/50"
+                                    ? "bg-red-500/40 text-red-200 hover:bg-red-500/50"
                                     : "bg-white/5 text-gray-400 hover:bg-white/10"
                                 )}
                               >

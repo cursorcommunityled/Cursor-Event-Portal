@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug, getQuestions, getHelpRequests } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import { SocialsSubNav } from "@/components/layout/SocialsSubNav";
 import { QuestionsList } from "@/components/qa/QuestionsList";
 import { QuestionForm } from "@/components/qa/QuestionForm";
@@ -26,11 +25,6 @@ export default async function SocialsQAPage({ params, searchParams }: SocialsQAP
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   const activeView = view === "help" ? "help" : "qa";

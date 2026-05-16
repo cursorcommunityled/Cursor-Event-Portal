@@ -21,7 +21,7 @@ import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
-  ImageIcon, MessageSquare, Star, Sparkles, Plus,
+  ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -420,9 +420,9 @@ export function HackathonAdminClient({
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
-    { id: "scoring", label: "AI Screen", icon: <Sparkles className="w-4 h-4" /> },
+    { id: "scoring", label: "AI Screen", icon: <Cpu className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
-    { id: "judging", label: "Final Round", icon: <Star className="w-4 h-4" /> },
+    { id: "judging", label: "Final Round", icon: <Award className="w-4 h-4" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
@@ -441,7 +441,7 @@ export function HackathonAdminClient({
           </Link>
           <span className="text-gray-700">/</span>
           <div className="flex items-center gap-2">
-            <Swords className="w-4 h-4 text-purple-400" />
+            <Swords className="w-4 h-4 text-red-400" />
             <span className="text-sm text-white/70">Hackathon</span>
           </div>
         </div>
@@ -465,13 +465,13 @@ export function HackathonAdminClient({
             className={cn(
               "relative w-14 h-7 rounded-full border transition-all duration-200",
               isHackathon
-                ? "bg-purple-500/40 border-purple-400/60"
+                ? "bg-red-500/40 border-red-400/60"
                 : "bg-white/5 border-white/10"
             )}
           >
             <div className={cn(
               "absolute top-1 w-5 h-5 rounded-full transition-all duration-200",
-              isHackathon ? "left-8 bg-purple-400" : "left-1 bg-gray-600"
+              isHackathon ? "left-8 bg-red-400" : "left-1 bg-gray-600"
             )} />
           </button>
         </div>
@@ -684,7 +684,7 @@ export function HackathonAdminClient({
                         type="checkbox"
                         checked={checked}
                         onChange={() => togglePlanningTodo(item.id)}
-                        className="mt-0.5 h-4 w-4 rounded border-white/10 bg-white/5 accent-purple-400"
+                        className="mt-0.5 h-4 w-4 rounded border-white/10 bg-white/5 accent-red-400"
                       />
                       <span className={cn("leading-relaxed", checked && "text-gray-600 line-through")}>
                         {item.text}
@@ -825,7 +825,7 @@ export function HackathonAdminClient({
                     <div key={m.id} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
                       <span className="text-[13px] font-medium text-gray-200">{m.user?.name ?? "Unknown"}</span>
                       {m.role === "leader" && (
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-purple-400">Leader</span>
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-red-400">Leader</span>
                       )}
                       <button
                         onClick={() => startTransition(async () => {
@@ -856,7 +856,7 @@ export function HackathonAdminClient({
                     <div className="flex gap-3 mt-3">
                       {team.project.repo_url && (
                         <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-400 transition-colors hover:bg-blue-500/10 hover:text-blue-300">
+                          className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300">
                           Repo →
                         </a>
                       )}
@@ -878,18 +878,18 @@ export function HackathonAdminClient({
         {tab === "scoring" && (
           <div className="space-y-4 animate-slide-up">
             {/* Flow explanation + push button */}
-            <div className="relative overflow-hidden rounded-[28px] border border-purple-500/20 bg-black/40 p-5 shadow-2xl backdrop-blur-xl">
-              <div className="absolute inset-0 bg-grid-purple opacity-5" />
-              <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-purple-500/10 blur-[50px]" />
+            <div className="relative overflow-hidden rounded-[28px] border border-red-500/20 bg-black/40 p-5 shadow-2xl backdrop-blur-xl">
+              <div className="absolute inset-0 bg-grid-red opacity-5" />
+              <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/10 blur-[50px]" />
               
               <div className="relative z-10 space-y-4">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-purple-500/30 bg-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.2)] relative overflow-hidden">
-                    <div className="absolute inset-0 bg-purple-500/10 animate-pulse" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.2)] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-red-500/10 animate-pulse" />
                     <img src="/cursor-logo.svg" alt="Cursor" className="w-6 h-6 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-purple-400 mb-1">How AI Screening Works</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mb-1">How AI Screening Works</p>
                     <p className="text-[13px] text-gray-400 leading-relaxed">
                       Step 1: Teams submit project + repo URL + screenshots.<br/>
                       Step 2: Run AI analysis per team below — Cursor scores across 7 criteria (~3 min each).<br/>
@@ -900,7 +900,7 @@ export function HackathonAdminClient({
                 </div>
 
                 {judgingCompetitions.length > 0 && (
-                  <div className="flex items-center justify-between gap-4 border-t border-purple-500/20 pt-4">
+                  <div className="flex items-center justify-between gap-4 border-t border-red-500/20 pt-4">
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium text-white/80">Push Top 8 to Final Round</p>
                     <p className="text-[11px] text-gray-500 mt-0.5">
@@ -977,7 +977,7 @@ export function HackathonAdminClient({
                           ...prev,
                           [team.id]: { ...(prev[team.id] ?? {}), [cat.key]: Number(e.target.value) },
                         }))}
-                        className="w-full accent-purple-500"
+                        className="w-full accent-red-500"
                       />
                     </div>
                   ))}
@@ -988,7 +988,7 @@ export function HackathonAdminClient({
                   rows={2}
                   value={scoreNotes[team.id] ?? ""}
                   onChange={(e) => setScoreNotes((prev) => ({ ...prev, [team.id]: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none transition-colors"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 resize-none transition-colors"
                 />
 
                 <button
@@ -1058,7 +1058,7 @@ export function HackathonAdminClient({
             {rankedTeams.length === 0 && (
               <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-                <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+                <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
                 <p className="relative text-[16px] font-bold text-gray-400">No scored teams yet</p>
               </div>
             )}
@@ -1134,7 +1134,7 @@ export function HackathonAdminClient({
                     setSuggestCount(res.count ?? 0);
                   }
                 }}
-                className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-semibold border border-purple-400/40 bg-purple-500/15 text-purple-300 hover:bg-purple-500/30 transition-all disabled:opacity-50"
+                className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-semibold border border-red-400/40 bg-red-500/15 text-red-300 hover:bg-red-500/30 transition-all disabled:opacity-50"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 {suggestStatus === "pending" ? "Generating…" : "Suggest Teams"}

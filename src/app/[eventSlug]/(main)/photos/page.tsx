@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug, getUserEventPhotos } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import { PhotoUploadClient } from "@/components/photos/PhotoUploadClient";
 
 interface PhotosPageProps {
@@ -17,11 +16,6 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   const myPhotos = await getUserEventPhotos(event.id, session.userId);

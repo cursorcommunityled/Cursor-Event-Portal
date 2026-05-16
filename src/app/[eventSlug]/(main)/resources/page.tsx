@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import { ExternalLink, Download, Code, MessageSquare, Users, Trophy, Cpu, Github, Camera, Star, ChevronRight } from "lucide-react";
 import { ResourcesEggTrigger } from "@/components/easter/ResourcesEggTrigger";
 
@@ -39,11 +38,6 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   return (

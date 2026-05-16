@@ -5,6 +5,7 @@ import { getSession } from "@/lib/actions/registration";
 import { mapToHackathonScores } from "@/lib/hackathon-analysis/criteria";
 import type { Pass6Result, HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 // Fetch all AI analysis passes for a set of teams
 export async function getTeamAnalyses(
@@ -35,9 +36,15 @@ export async function triggerAnalysis(
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/hackathon/analyze`, {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) return { error: "NEXT_PUBLIC_BASE_URL is not configured" };
+
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+
+  const res = await fetch(`${baseUrl}/api/hackathon/analyze`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: "" },
+    headers: { "Content-Type": "application/json", Cookie: cookieHeader },
     body: JSON.stringify({ teamId, eventId }),
     cache: "no-store",
   });

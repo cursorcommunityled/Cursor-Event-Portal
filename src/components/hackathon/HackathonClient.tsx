@@ -401,33 +401,33 @@ export function HackathonClient({
   const header = (
     <div className="relative overflow-hidden rounded-[34px] border border-white/15 bg-black/40 px-5 py-6 shadow-2xl backdrop-blur-3xl sm:px-8 sm:py-8 group">
       {/* Animated background grid */}
-      <div className="absolute inset-0 bg-grid-purple/[0.05] bg-[size:30px_30px] opacity-20" />
+      <div className="absolute inset-0 bg-grid-red/[0.05] bg-[size:30px_30px] opacity-20" />
       
       {/* Glowing orbs */}
-      <div className="absolute -left-20 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-purple-600/30 blur-[80px] group-hover:bg-purple-500/40 transition-colors duration-700" />
-      <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-blue-600/20 blur-[60px] group-hover:bg-blue-500/30 transition-colors duration-700" />
+      <div className="absolute -left-20 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-red-600/30 blur-[80px] group-hover:bg-red-500/40 transition-colors duration-700" />
+      <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-red-600/20 blur-[60px] group-hover:bg-red-500/30 transition-colors duration-700" />
       
       {/* Top highlight line */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/50 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-400/50 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-5">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-purple-400/30 bg-purple-500/20 shadow-neon overflow-hidden">
-            <div className="absolute inset-0 rounded-2xl bg-purple-400/10 animate-pulse-soft" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-red-400/30 bg-red-500/20 shadow-neon overflow-hidden">
+            <div className="absolute inset-0 rounded-2xl bg-red-400/10 animate-pulse-soft" />
             <img src="/cursor-logo.svg" alt="Cursor" className="w-8 h-8 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3 mb-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-300/90">
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300/90">
                 System Active
               </p>
               <div className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse" />
             </div>
-            <h1 className="truncate text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-purple-200 sm:text-5xl drop-shadow-lg">
+            <h1 className="truncate text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-red-200 sm:text-5xl drop-shadow-lg">
               HACKATHON
             </h1>
-            <p className="mt-1.5 truncate text-sm font-medium text-purple-200/70 sm:text-[15px] uppercase tracking-widest">
+            <p className="mt-1.5 truncate text-sm font-medium text-red-200/70 sm:text-[15px] uppercase tracking-widest">
               {event.name}
             </p>
           </div>
@@ -526,10 +526,10 @@ export function HackathonClient({
       {receivedInvites.length > 0 && (
         <div className="space-y-3">
           {receivedInvites.map((invite) => (
-            <div key={invite.id} className="relative overflow-hidden rounded-[24px] border border-purple-500/30 bg-purple-500/10 p-5 backdrop-blur-xl shadow-neon">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.15)_0,transparent_100%)]" />
+            <div key={invite.id} className="relative overflow-hidden rounded-[24px] border border-red-500/30 bg-red-500/10 p-5 backdrop-blur-xl shadow-neon">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.15)_0,transparent_100%)]" />
               <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <p className="text-[15px] font-medium leading-relaxed text-purple-100">
+                <p className="text-[15px] font-medium leading-relaxed text-red-100">
                   <span className="font-bold text-white">{(invite.inviter as { name?: string } | undefined)?.name ?? "Someone"}</span>
                   {" invited you to join "}
                   <span className="font-bold text-white">"{(invite.team as { name?: string } | undefined)?.name ?? "a team"}"</span>
@@ -592,15 +592,15 @@ export function HackathonClient({
         <div className="space-y-4 animate-slide-up">
           <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-2xl sm:p-10">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px] [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-            <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-purple-600/20 blur-[100px]" />
-            <div className="absolute left-1/2 top-0 h-px w-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+            <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-red-600/20 blur-[100px]" />
+            <div className="absolute left-1/2 top-0 h-px w-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
             
             <div className="relative flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-purple-300 shadow-neon">
+                <div className="inline-flex items-center gap-2.5 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-red-300 shadow-neon">
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                   </span>
                   Hackathon Hub
                 </div>
@@ -613,14 +613,14 @@ export function HackathonClient({
                   </h2>
                   <div className="mt-4 flex items-center gap-3 text-sm font-medium text-gray-400 uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-purple-400" />
+                      <Clock className="w-4 h-4 text-red-400" />
                       {event.start_time
                         ? `${eventHasStarted ? "Started" : "Starts"} ${formatEventDateTime(event.start_time, event.timezone)}`
                         : "Start time has not been set yet."}
                     </span>
                     <span className="text-gray-600">•</span>
                     <span className="flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-blue-400" />
+                      <Users className="w-4 h-4 text-red-400" />
                       {plural(totalParticipants, "participant")} active
                     </span>
                   </div>
@@ -664,15 +664,15 @@ export function HackathonClient({
             <HubMetric label="Open Slots" value={openTeamSlots} detail={`max ${maxTeamSize} per team`} muted={!formationOpen} />
           </div>
 
-          <div className="relative overflow-hidden rounded-[34px] border border-purple-500/20 bg-black/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-blue-500/10" />
-            <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-purple-600/20 blur-[50px]" />
+          <div className="relative overflow-hidden rounded-[34px] border border-red-500/20 bg-black/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-red-500/10" />
+            <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-red-600/20 blur-[50px]" />
             
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
-                  <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-purple-300">Mission Objective</p>
+                  <div className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">Mission Objective</p>
                 </div>
                 <h3 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
                   {myTeam
@@ -696,7 +696,7 @@ export function HackathonClient({
                   onClick={() => setTab(myTeam ? "my-team" : "open-pool")}
                   className="group relative overflow-hidden rounded-2xl bg-white px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.15em] text-black transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="relative">{myTeam ? "Open Team" : "Open Pool"}</span>
                 </button>
                 <button
@@ -761,7 +761,7 @@ export function HackathonClient({
           {!myTeam ? (
             <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
               
               <div className="relative space-y-6">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/5 shadow-xl">
@@ -771,7 +771,7 @@ export function HackathonClient({
                   <p className="text-2xl font-black tracking-tight text-white">You&apos;re not on a team yet</p>
                   {formationOpen ? (
                     <p className="mt-2 text-[15px] font-medium text-gray-400">
-                      Go to <button onClick={() => setTab("open-pool")} className="text-purple-400 hover:text-purple-300 underline decoration-purple-500/30 underline-offset-4 transition-colors">Open Pool</button> to find teammates and form a team
+                      Go to <button onClick={() => setTab("open-pool")} className="text-red-400 hover:text-red-300 underline decoration-red-500/30 underline-offset-4 transition-colors">Open Pool</button> to find teammates and form a team
                     </p>
                   ) : (
                     <p className="mt-3 flex items-center justify-center gap-2 text-[13px] font-bold uppercase tracking-wider text-amber-500">
@@ -785,7 +785,7 @@ export function HackathonClient({
             <>
               <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-6 sm:p-10 backdrop-blur-xl shadow-2xl space-y-8">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-purple-500/10 blur-[60px]" />
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-red-500/10 blur-[60px]" />
                 
                 <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-5 min-w-0">
@@ -867,7 +867,7 @@ export function HackathonClient({
                       <span className={cn(
                         "text-[10px] font-bold uppercase tracking-[0.2em] rounded-full px-3 py-1.5",
                         m.role === "leader"
-                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-neon"
+                          ? "bg-red-500/20 text-red-300 border border-red-500/30 shadow-neon"
                           : "bg-white/10 text-gray-400 border border-white/5"
                       )}>
                         {m.role}
@@ -879,7 +879,7 @@ export function HackathonClient({
                 {!teamLocked && myTeam.members.length < (settings?.max_team_size ?? 4) && (
                   <button
                     onClick={() => setTab("open-pool")}
-                    className="relative w-full flex items-center justify-center gap-2.5 rounded-[20px] border border-dashed border-white/20 bg-white/[0.01] py-4 text-[14px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:border-purple-500/40 hover:bg-purple-500/5 hover:text-purple-300"
+                    className="relative w-full flex items-center justify-center gap-2.5 rounded-[20px] border border-dashed border-white/20 bg-white/[0.01] py-4 text-[14px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:border-red-500/40 hover:bg-red-500/5 hover:text-red-300"
                   >
                     <UserPlus className="w-5 h-5" />
                     Invite from Open Pool
@@ -924,7 +924,7 @@ export function HackathonClient({
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         placeholder="What are you building?"
-                        className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                        className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                       />
                     </div>
                     <div className="space-y-2">
@@ -934,7 +934,7 @@ export function HackathonClient({
                         onChange={(e) => setProjectDesc(e.target.value)}
                         rows={3}
                         placeholder="Brief description of your project..."
-                        className="w-full resize-none rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                        className="w-full resize-none rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                       />
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -946,7 +946,7 @@ export function HackathonClient({
                           value={projectRepo}
                           onChange={(e) => setProjectRepo(e.target.value)}
                           placeholder="https://github.com/..."
-                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                         />
                       </div>
                       <div className="space-y-2">
@@ -957,14 +957,14 @@ export function HackathonClient({
                           value={projectDemo}
                           onChange={(e) => setProjectDemo(e.target.value)}
                           placeholder="https://..."
-                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                         />
                       </div>
                     </div>
                     {/* Screenshots */}
                     <div className="space-y-3">
                       <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1 flex items-center gap-1.5">
-                        <Camera className="w-3.5 h-3.5" /> Screenshots <span className="text-purple-400/70 normal-case tracking-normal font-medium ml-2">({screenshots.length}/5) — used for AI judging</span>
+                        <Camera className="w-3.5 h-3.5" /> Screenshots <span className="text-red-400/70 normal-case tracking-normal font-medium ml-2">({screenshots.length}/5) — used for AI judging</span>
                       </label>
                       <div className="flex flex-wrap gap-3">
                         {screenshots.map((s) => (
@@ -988,7 +988,7 @@ export function HackathonClient({
                             className="w-24 h-24 rounded-[20px] border border-dashed border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 flex items-center justify-center transition-all disabled:opacity-40 group"
                           >
                             {uploadingScreenshot
-                              ? <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
+                              ? <Loader2 className="w-6 h-6 text-red-400 animate-spin" />
                               : <Camera className="w-6 h-6 text-gray-500 group-hover:text-white transition-colors" />}
                           </button>
                         )}
@@ -1007,7 +1007,7 @@ export function HackathonClient({
                       onClick={handleProjectSubmit}
                       className="relative w-full overflow-hidden rounded-[20px] bg-white py-4 text-[15px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       <span className="relative">{myTeam.project?.submitted_at ? "Update Project" : "Submit Project"}</span>
                     </button>
                   </div>
@@ -1035,12 +1035,12 @@ export function HackathonClient({
 
                 return (
                   <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl space-y-4">
-                    <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:20px_20px]" />
+                    <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
                     <div className="relative flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`relative flex h-3 w-3 items-center justify-center`}>
-                          {running && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-75"></span>}
-                          <span className={`relative inline-flex h-2 w-2 rounded-full ${running ? "bg-purple-500" : allDone ? "bg-green-500" : hasError ? "bg-red-500" : "bg-gray-500"}`}></span>
+                          {running && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>}
+                          <span className={`relative inline-flex h-2 w-2 rounded-full ${running ? "bg-red-500" : allDone ? "bg-green-500" : hasError ? "bg-red-500" : "bg-gray-500"}`}></span>
                         </div>
                         <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-300">AI Analysis</p>
                       </div>
@@ -1061,8 +1061,8 @@ export function HackathonClient({
                             key={passName}
                             title={PASS_LABELS[passName]}
                             className={`flex-1 h-2 rounded-full transition-all duration-500 ${
-                              isDone ? "bg-purple-500 shadow-neon" :
-                              isRunning ? "bg-purple-500/50 animate-pulse shadow-neon" :
+                              isDone ? "bg-red-500 shadow-neon" :
+                              isRunning ? "bg-red-500/50 animate-pulse shadow-neon" :
                               isError ? "bg-red-500/60 shadow-neon-red" :
                               "bg-white/5"
                             }`}
@@ -1099,7 +1099,7 @@ export function HackathonClient({
           {allTeams.length === 0 && (
             <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
               <div className="relative">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 mb-4 shadow-xl">
                   <Swords className="h-8 w-8 text-gray-400" />
@@ -1142,7 +1142,7 @@ export function HackathonClient({
           {pool.length === 0 && (
             <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-[60px]" />
+              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
               <div className="relative">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 mb-4 shadow-xl">
                   <Users className="h-8 w-8 text-gray-400" />
@@ -1157,10 +1157,10 @@ export function HackathonClient({
               const alreadyInvited = sentIds.has(person.id);
               return (
                 <div key={person.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group">
-                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
                   <div className="relative flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400 shadow-inner group-hover:border-purple-500/30 group-hover:text-purple-300 transition-colors">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400 shadow-inner group-hover:border-red-500/30 group-hover:text-red-300 transition-colors">
                         <Users className="h-5 w-5" />
                       </div>
                       <div>
@@ -1177,7 +1177,7 @@ export function HackathonClient({
                         <button
                           disabled={isPending}
                           onClick={() => setInviteTarget(person)}
-                          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-purple-500/50 hover:bg-purple-500/20 hover:text-purple-200 hover:shadow-neon"
+                          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/50 hover:bg-red-500/20 hover:text-red-200 hover:shadow-neon"
                         >
                           <UserPlus className="w-4 h-4" />
                           Invite
@@ -1196,9 +1196,9 @@ export function HackathonClient({
       {inviteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setInviteTarget(null)} />
-          <div className="relative overflow-hidden rounded-[34px] border border-purple-500/30 bg-black/80 p-8 w-full max-w-md space-y-6 z-10 shadow-2xl backdrop-blur-xl">
-            <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:20px_20px]" />
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-purple-500/20 blur-[50px]" />
+          <div className="relative overflow-hidden rounded-[34px] border border-red-500/30 bg-black/80 p-8 w-full max-w-md space-y-6 z-10 shadow-2xl backdrop-blur-xl">
+            <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
+            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/20 blur-[50px]" />
             
             <div className="relative">
               <h3 className="text-3xl font-black tracking-tight text-white drop-shadow-md">Invite {inviteTarget.name}</h3>
@@ -1212,7 +1212,7 @@ export function HackathonClient({
                     onChange={(e) => setNewTeamName(e.target.value)}
                     placeholder="Name your team..."
                     maxLength={60}
-                    className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-purple-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+                    className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                   />
                   <p className="text-[11px] font-medium text-gray-500 ml-1">You&apos;ll be set as team leader</p>
                 </div>
@@ -1230,7 +1230,7 @@ export function HackathonClient({
                   onClick={handleSendInvite}
                   className="relative flex-1 overflow-hidden rounded-[20px] bg-white py-4 text-[14px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white via-purple-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="relative">Send Invite</span>
                 </button>
                 <button
@@ -1261,14 +1261,14 @@ function HubMetric({
 }) {
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:border-purple-500/30 hover:bg-white/[0.04] group",
+      "relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:border-red-500/30 hover:bg-white/[0.04] group",
       muted && "opacity-60"
     )}>
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px] group-hover:bg-purple-500/20 transition-all duration-500" />
-      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-purple-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] group-hover:bg-red-500/20 transition-all duration-500" />
+      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-red-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       
       <div className="relative">
-        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-purple-300/70">{label}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-300/70">{label}</p>
         <p className="mt-2 text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{value}</p>
         <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-gray-400">{detail}</p>
       </div>
@@ -1289,23 +1289,23 @@ function TimelineItem({
     <div className={cn(
       "relative overflow-hidden rounded-[24px] border p-5 backdrop-blur-md transition-all",
       active 
-        ? "border-purple-500/40 bg-purple-500/[0.05] shadow-neon" 
+        ? "border-red-500/40 bg-red-500/[0.05] shadow-neon" 
         : "border-white/10 bg-black/40 hover:bg-white/[0.03]"
     )}>
       {active && (
-        <div className="absolute inset-0 bg-grid-purple/[0.05] bg-[size:20px_20px]" />
+        <div className="absolute inset-0 bg-grid-red/[0.05] bg-[size:20px_20px]" />
       )}
       <div className="relative flex items-center gap-3">
         <div className={cn(
           "flex h-8 w-8 items-center justify-center rounded-full border",
-          active ? "border-purple-400/50 bg-purple-500/20 text-purple-200" : "border-white/10 bg-white/5 text-gray-400"
+          active ? "border-red-400/50 bg-red-500/20 text-red-200" : "border-white/10 bg-white/5 text-gray-400"
         )}>
           <Clock className="h-4 w-4" />
         </div>
         <div>
           <p className={cn(
             "text-[10px] font-bold uppercase tracking-[0.2em]",
-            active ? "text-purple-300" : "text-gray-500"
+            active ? "text-red-300" : "text-gray-500"
           )}>{label}</p>
           <p className="mt-0.5 text-[14px] font-medium text-gray-200">{value}</p>
         </div>
@@ -1342,7 +1342,7 @@ function TeamCard({ team, rank, score, formationOpen }: {
               {rank}
             </div>
           )}
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg group-hover:border-purple-500/30 transition-colors">
+          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg group-hover:border-red-500/30 transition-colors">
             {team.icon_photo?.status === "approved" ? (
               <Image
                 src={team.icon_photo.file_url}
@@ -1366,7 +1366,7 @@ function TeamCard({ team, rank, score, formationOpen }: {
         {score != null && (
           <div className="shrink-0 text-right">
             <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{score}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/70">/ 40 pts</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">/ 40 pts</p>
           </div>
         )}
       </div>
@@ -1375,7 +1375,7 @@ function TeamCard({ team, rank, score, formationOpen }: {
         {team.members.map((m) => (
           <span key={m.id} className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[12px] font-medium text-gray-300">
             {m.user?.name ?? "Unknown"}
-            {m.role === "leader" && <span className="text-purple-400">★</span>}
+            {m.role === "leader" && <span className="text-red-400">★</span>}
           </span>
         ))}
       </div>
@@ -1386,7 +1386,7 @@ function TeamCard({ team, rank, score, formationOpen }: {
           <div className="flex shrink-0 gap-2">
             {team.project.repo_url && (
               <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-400 transition-colors hover:bg-blue-500/10 hover:text-blue-300">
+                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300">
                 <Github className="h-3.5 w-3.5" /> Repo
               </a>
             )}
@@ -1419,12 +1419,12 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
   };
   const total = cats.reduce((sum, c) => sum + (avg(c.key) ?? 0), 0);
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-purple-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent" />
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px]" />
+    <div className="relative overflow-hidden rounded-[30px] border border-red-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
+      <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px]" />
       
       <div className="relative flex items-center justify-between mb-6">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-300">Your Score</h3>
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">Your Score</h3>
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-black tracking-tight text-white drop-shadow-md">{total}</span>
           <span className="text-sm font-bold text-gray-500">/40</span>
@@ -1438,7 +1438,7 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
               <span className="text-[13px] font-medium text-gray-300">{c.label}</span>
               <div className="flex items-center gap-4">
                 <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden shadow-inner">
-                  <div className="h-full bg-gradient-to-r from-purple-500 to-purple-300 rounded-full shadow-neon" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-red-500 to-red-300 rounded-full shadow-neon" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
                 </div>
                 <span className="text-[14px] font-bold tabular-nums text-white w-6 text-right">{v ?? "—"}</span>
               </div>

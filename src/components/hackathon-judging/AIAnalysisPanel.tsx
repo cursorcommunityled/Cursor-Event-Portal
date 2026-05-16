@@ -33,7 +33,7 @@ function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
   const pct = (score / max) * 100;
   const color =
     score >= 8 ? "bg-green-400" :
-    score >= 6 ? "bg-blue-400" :
+    score >= 6 ? "bg-red-400" :
     score >= 4 ? "bg-yellow-400" :
     "bg-red-400";
   return (
@@ -45,7 +45,7 @@ function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
 
 function PassStatus({ pass }: { pass: HackathonAIAnalysis | undefined }) {
   if (!pass) return <span className="text-gray-600 text-[11px]">—</span>;
-  if (pass.status === "running") return <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin" />;
+  if (pass.status === "running") return <Loader2 className="w-3.5 h-3.5 text-red-400 animate-spin" />;
   if (pass.status === "complete") return <Check className="w-3.5 h-3.5 text-green-400" />;
   if (pass.status === "error") return <AlertCircle className="w-3.5 h-3.5 text-red-400" />;
   return <span className="w-2 h-2 rounded-full bg-gray-600 inline-block" />;
@@ -77,19 +77,19 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
   const completedCount = Object.values(byPass).filter((a) => a.status === "complete").length;
 
   return (
-    <div className="relative overflow-hidden rounded-[24px] border border-purple-500/20 bg-black/40 backdrop-blur-xl shadow-2xl transition-all hover:border-purple-500/40 group">
-      <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:15px_15px]" />
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
+    <div className="relative overflow-hidden rounded-[24px] border border-red-500/20 bg-black/40 backdrop-blur-xl shadow-2xl transition-all hover:border-red-500/40 group">
+      <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:15px_15px]" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
       
       {/* Header */}
       <div className="relative flex items-center justify-between px-5 py-4 bg-white/[0.02] border-b border-white/5">
         <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 shadow-neon overflow-hidden relative">
-            <div className="absolute inset-0 bg-purple-500/20 animate-pulse" />
+          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/30 shadow-neon overflow-hidden relative">
+            <div className="absolute inset-0 bg-red-500/20 animate-pulse" />
             <img src="/cursor-logo.svg" alt="Cursor" className="w-4 h-4 relative z-10 drop-shadow-[0_0_5px_rgba(255,255,255,0.8)] brightness-200" />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-purple-300">AI Judge</span>
+            <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-300">AI Judge</span>
             {hasStarted && (
               <div className="flex items-center gap-2">
                 {Object.keys(PASS_LABELS).map((p) => (
@@ -121,7 +121,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
                   if (res.error) setError(res.error);
                 });
               }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-purple-500/40 bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 hover:border-purple-500/60 transition-all disabled:opacity-40 shadow-neon"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/40 bg-red-500/20 text-red-200 hover:bg-red-500/30 hover:border-red-500/60 transition-all disabled:opacity-40 shadow-neon"
               title={!hasRepo ? "Team must submit a repo URL first" : undefined}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -202,7 +202,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
             {pass6.recommended_award_categories.length > 0 && (
               <div className="relative flex flex-wrap gap-2 pt-2">
                 {pass6.recommended_award_categories.map((cat) => (
-                  <span key={cat} className="text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-200 shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+                  <span key={cat} className="text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
                     {cat}
                   </span>
                 ))}
@@ -253,12 +253,12 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
             {pass6.judge_briefing_points.length > 0 && (
               <div className="rounded-[20px] bg-white/[0.02] border border-white/10 p-5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-blue-400" /> For Human Judges
+                  <Users className="w-4 h-4 text-red-400" /> For Human Judges
                 </p>
                 <ul className="space-y-2">
                   {pass6.judge_briefing_points.map((pt, i) => (
                     <li key={i} className="text-[13px] font-medium text-gray-300 flex gap-2.5">
-                      <span className="text-blue-500/50 shrink-0">·</span>
+                      <span className="text-red-500/50 shrink-0">·</span>
                       <span>{pt}</span>
                     </li>
                   ))}
