@@ -123,7 +123,6 @@ Return ONLY valid JSON:
     {
       model: 'claude-opus-4-7',
       max_tokens: 8192,
-      thinking: { type: 'enabled', budget_tokens: 4096 },
     },
     {
       model: 'claude-sonnet-4-6',

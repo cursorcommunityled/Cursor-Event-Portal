@@ -16,7 +16,7 @@ async function savePass(
   teamId: string,
   eventId: string,
   passName: PassName,
-  status: 'running' | 'complete' | 'error',
+  status: 'pending' | 'running' | 'complete' | 'error',
   result?: unknown,
   error?: string,
   modelUsed?: string
@@ -39,10 +39,12 @@ async function savePass(
 export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
   const supabase = await createServiceClient();
 
-  // Mark all passes as pending
   const passes: PassName[] = ['pass1_repo', 'pass2_code', 'pass3_innovation', 'pass4_visual', 'pass5_pool', 'pass6_synthesis'];
+  let activePass: PassName = 'pass1_repo';
+
+  // Show the whole pipeline immediately, but only spin the pass that is actually running.
   for (const p of passes) {
-    await savePass(supabase, ctx.teamId, ctx.eventId, p, 'running');
+    await savePass(supabase, ctx.teamId, ctx.eventId, p, p === activePass ? 'running' : 'pending');
   }
 
   try {
@@ -60,6 +62,8 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     }
 
     // ── Pass 2: Code deep-dive ────────────────────────────────────────────────
+    activePass = 'pass2_code';
+    await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
     let pass2: Pass2Result;
     try {
       pass2 = await runPass2(anthropic, repoData, pass1);
@@ -70,6 +74,8 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     }
 
     // ── Pass 3: Innovation audit ──────────────────────────────────────────────
+    activePass = 'pass3_innovation';
+    await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
     let pass3: Pass3Result;
     try {
       pass3 = await runPass3(anthropic, pass1, pass2);
@@ -80,6 +86,8 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     }
 
     // ── Pass 4: Visual/UX ─────────────────────────────────────────────────────
+    activePass = 'pass4_visual';
+    await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
     try {
       const pass4 = await runPass4(anthropic, ctx.screenshotUrls);
       await savePass(supabase, ctx.teamId, ctx.eventId, 'pass4_visual', 'complete', pass4, undefined, 'claude-sonnet-4-6');
@@ -129,6 +137,8 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     }
 
     try {
+      activePass = 'pass5_pool';
+      await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       const pass5 = await runPass5(anthropic, { teamName: ctx.teamName, pass1, pass2, pass3 }, pool);
       await savePass(supabase, ctx.teamId, ctx.eventId, 'pass5_pool', 'complete', pass5, undefined, 'claude-sonnet-4-6');
     } catch (e) {
@@ -147,6 +157,8 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     const passMap = new Map((allPasses ?? []).map((p) => [p.pass_name, p.result]));
 
     try {
+      activePass = 'pass6_synthesis';
+      await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       const p1 = passMap.get('pass1_repo') as Pass1Result;
       const p2 = passMap.get('pass2_code') as Pass2Result;
       const p3 = passMap.get('pass3_innovation') as Pass3Result;
@@ -168,6 +180,7 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     }
 
   } catch (e) {
+    await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'error', undefined, String(e));
     console.error(`[pipeline] Analysis failed for team ${ctx.teamId}:`, e);
   }
 }
