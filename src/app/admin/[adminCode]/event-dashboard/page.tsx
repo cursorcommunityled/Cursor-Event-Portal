@@ -9,7 +9,6 @@ import {
   getVenues,
   getSlideDeck,
   getAllCompetitions,
-  getCursorCredits,
 } from "@/lib/supabase/queries";
 import { getOrCreateDemoSettings, getDemoSlotsWithCounts } from "@/lib/demo/service";
 import { EventDashboardClient } from "../../_clients/[adminCode]/event-dashboard/EventDashboardClient";
@@ -38,7 +37,7 @@ export default async function EventDashboardPage({
 
   const event = await getEventForAdmin(adminCode);
 
-  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues, slideDeck, competitions, cursorCredits] = await Promise.all([
+  const [agendaItems, themes, themeSelection, plannedEvents, calendarCities, allEvents, activeSlug, venues, slideDeck, competitions] = await Promise.all([
     getAgendaItems(event.id),
     getConversationThemes(),
     getEventThemeSelection(event.id),
@@ -49,7 +48,6 @@ export default async function EventDashboardPage({
     getVenues(),
     getSlideDeck(event.id),
     getAllCompetitions(event.id),
-    getCursorCredits(event.id),
   ]);
 
   let demoSettings = null;
@@ -78,7 +76,7 @@ export default async function EventDashboardPage({
       demoSlots={demoSlots}
       initialDeck={slideDeck}
       initialCompetitions={competitions}
-      cursorCredits={cursorCredits}
+      cursorCredits={[]}
       activeTab={activeTab}
     />
   );

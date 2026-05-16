@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AgendaAdminClient } from "../../agenda/AgendaAdminClient";
 import { VenueAdminTab } from "../../event-dashboard/VenueAdminTab";
@@ -16,6 +16,9 @@ import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
 type TabType = "agenda" | "venue" | "sessions" | "slides" | "competitions" | "themes" | "calendar" | "credits";
 
+const CREDITS_TAB_PASSWORD = "CursorCredits2026";
+const CREDITS_TAB_UNLOCKED_KEY = "cursor-popup:credits-tab-unlocked";
+
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "agenda",       label: "Agenda",       description: "Event schedule" },
   { id: "venue",        label: "Venue",        description: "Venue & active event" },
@@ -26,6 +29,19 @@ const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "calendar",     label: "Calendar",     description: "Event planning" },
   { id: "credits",      label: "Credits",      description: "Sponsor codes" },
 ];
+
+function hasCreditsTabAccess() {
+  if (typeof window === "undefined") return false;
+  return window.sessionStorage.getItem(CREDITS_TAB_UNLOCKED_KEY) === "true";
+}
+
+function rememberCreditsTabAccess() {
+  try {
+    window.sessionStorage.setItem(CREDITS_TAB_UNLOCKED_KEY, "true");
+  } catch {
+    // If sessionStorage is unavailable, keep the unlock for this render only.
+  }
+}
 
 interface EventDashboardClientProps {
   event: Event;
@@ -75,17 +91,64 @@ export function EventDashboardClient({
   cursorCredits,
   activeTab: initialTab,
 }: EventDashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab === "credits" ? "agenda" : initialTab);
+  const [creditsUnlocked, setCreditsUnlocked] = useState(false);
+  const promptedInitialCreditsTab = useRef(false);
 
-  useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
-
-  const updateTab = (tab: TabType) => {
-    setActiveTab(tab);
+  const updateUrlTab = useCallback((tab: TabType) => {
     const params = new URLSearchParams(window.location.search);
     params.set("tab", tab);
     window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+  }, []);
+
+  const requestCreditsAccess = useCallback(() => {
+    if (creditsUnlocked || hasCreditsTabAccess()) {
+      setCreditsUnlocked(true);
+      return true;
+    }
+
+    const password = window.prompt("Enter the password to access Credits:");
+    if (password === CREDITS_TAB_PASSWORD) {
+      rememberCreditsTabAccess();
+      setCreditsUnlocked(true);
+      return true;
+    }
+
+    if (password !== null) {
+      window.alert("Incorrect Credits password.");
+    }
+    return false;
+  }, [creditsUnlocked]);
+
+  useEffect(() => {
+    if (initialTab !== "credits") {
+      setActiveTab(initialTab);
+      return;
+    }
+
+    if (hasCreditsTabAccess()) {
+      setCreditsUnlocked(true);
+      setActiveTab("credits");
+      return;
+    }
+
+    if (promptedInitialCreditsTab.current) return;
+    promptedInitialCreditsTab.current = true;
+
+    if (requestCreditsAccess()) {
+      setActiveTab("credits");
+      return;
+    }
+
+    setActiveTab("agenda");
+    updateUrlTab("agenda");
+  }, [initialTab, requestCreditsAccess, updateUrlTab]);
+
+  const updateTab = (tab: TabType) => {
+    if (tab === "credits" && !requestCreditsAccess()) return;
+
+    setActiveTab(tab);
+    updateUrlTab(tab);
   };
 
   const activeTabData = TABS.find((t) => t.id === activeTab)!;
@@ -192,7 +255,7 @@ export function EventDashboardClient({
           {activeTab === "calendar" && (
             <CalendarAdminTab initialEvents={plannedEvents} initialCities={calendarCities} initialVenues={venues} adminCode={adminCode} />
           )}
-          {activeTab === "credits" && (
+          {activeTab === "credits" && creditsUnlocked && (
             <CreditsAdminTab
               eventId={event.id}
               eventSlug={eventSlug}
