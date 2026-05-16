@@ -37,6 +37,7 @@ import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel"
 import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 
 type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
+type AudienceVoteSummary = { id: string; options: string[]; totalVotes: number };
 
 interface Props {
   event: Event;
@@ -52,6 +53,7 @@ interface Props {
   judgingCompetitions: CompetitionJudgingCompetition[];
   initialAiAnalyses: Record<string, HackathonAIAnalysis[]>;
   initialOpenPool: OpenPoolMember[];
+  initialAudienceVote: AudienceVoteSummary | null;
 }
 
 type Tab = "settings" | "teams" | "submissions" | "scoring" | "leaderboard" | "judging" | "chat";
@@ -213,7 +215,7 @@ function buildScoreNotes(scores: HackathonScore[], judgeId: string | null): Reco
 export function HackathonAdminClient({
   event, adminCode, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
-  judgingCompetitions, initialAiAnalyses, initialOpenPool,
+  judgingCompetitions, initialAiAnalyses, initialOpenPool, initialAudienceVote,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
@@ -260,6 +262,7 @@ export function HackathonAdminClient({
   const [pushResult, setPushResult] = useState<string | null>(null);
 
   // Audience vote
+  const [audienceVote, setAudienceVote] = useState<AudienceVoteSummary | null>(initialAudienceVote);
   const [voteStatus, setVoteStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [voteError, setVoteError] = useState<string | null>(null);
   const [selectedVoteTeams, setSelectedVoteTeams] = useState<Set<string>>(new Set());
@@ -301,6 +304,10 @@ export function HackathonAdminClient({
     setScoreInputs(buildScoreInputs(initialTeams, initialScores, adminUserId));
     setScoreNotes(buildScoreNotes(initialScores, adminUserId));
   }, [initialTeams, initialScores]);
+
+  useEffect(() => {
+    setAudienceVote(initialAudienceVote);
+  }, [initialAudienceVote]);
 
   useEffect(() => {
     const storedItems = window.localStorage.getItem(simonTodoItemsStorageKey(event.id));
@@ -499,6 +506,65 @@ export function HackathonAdminClient({
       setNudgeStatus("error");
       setNudgeError(err instanceof Error ? err.message : "Failed to broadcast reminder");
     }
+  };
+
+  const audienceVoteSelectedCount = selectedVoteTeams.size;
+  const audienceVoteSelectedOptions = teams
+    .filter((team) => selectedVoteTeams.has(team.id))
+    .map((team) => team.project?.name || team.name);
+
+  const toggleVoteTeam = (teamId: string) => {
+    setVoteError(null);
+    setSelectedVoteTeams((prev) => {
+      const next = new Set(prev);
+      if (next.has(teamId)) {
+        next.delete(teamId);
+        return next;
+      }
+      if (next.size >= 8) {
+        setVoteError("Select up to 8 teams for audience voting");
+        return prev;
+      }
+      next.add(teamId);
+      return next;
+    });
+  };
+
+  const launchAudienceVote = async () => {
+    setVoteStatus("pending");
+    setVoteError(null);
+
+    const teamIds = audienceVoteSelectedCount > 0 ? [...selectedVoteTeams] : undefined;
+    const res = await createAudienceVotePoll(adminCode, event.id, event.slug, teamIds);
+    if (res.error) {
+      setVoteStatus("error");
+      setVoteError(res.error);
+      return;
+    }
+
+    const options = teamIds
+      ? audienceVoteSelectedOptions
+      : submittedTeams.map((team) => team.project?.name || team.name);
+    setAudienceVote({ id: res.pollId ?? "active", options, totalVotes: 0 });
+    setVoteStatus("done");
+    setSelectedVoteTeams(new Set());
+    refresh();
+  };
+
+  const closeAudienceVote = async () => {
+    setVoteStatus("pending");
+    setVoteError(null);
+
+    const res = await closeAudienceVotePoll(adminCode, event.id, event.slug);
+    if (res.error) {
+      setVoteStatus("error");
+      setVoteError(res.error);
+      return;
+    }
+
+    setAudienceVote(null);
+    setVoteStatus("idle");
+    refresh();
   };
 
   const rankedTeams = [...teams]
@@ -1455,20 +1521,45 @@ export function HackathonAdminClient({
             {/* Audience Vote */}
             <div className="relative overflow-hidden rounded-[28px] border border-yellow-500/25 bg-black/40 p-6 backdrop-blur-xl space-y-4">
               <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-yellow-500/10 blur-[40px]" />
-              <div className="relative flex items-center gap-3 mb-1">
-                <Trophy className="w-4 h-4 text-yellow-400" />
-                <p className="text-[13px] font-bold text-white">Audience Favourite Vote · $250 Prize</p>
+              <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <p className="text-[13px] font-bold text-white">Audience Favourite Vote · $250 Prize</p>
+                  </div>
+                  <p className="text-[11px] text-gray-500">
+                    Select up to 8 teams manually, or leave all unchecked to include every submitted team.
+                  </p>
+                </div>
+                <div className="shrink-0 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                    {audienceVote ? "Vote Live" : "Not Live"}
+                  </p>
+                  <p className={cn("mt-0.5 text-[12px] font-bold", audienceVote ? "text-green-400" : "text-gray-400")}>
+                    {audienceVote
+                      ? `${audienceVote.options.length} options · ${audienceVote.totalVotes} votes`
+                      : `${submittedTeams.length} submitted teams ready`}
+                  </p>
+                </div>
               </div>
-              <p className="relative text-[11px] text-gray-500">
-                Select which teams to include (leave all unchecked to include every submitted team), then launch.
-              </p>
+
+              <div className="relative flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.025] px-3 py-2">
+                <p className="text-[11px] font-medium text-gray-400">
+                  Manual selection: <span className="font-bold text-yellow-300">{audienceVoteSelectedCount}/8</span>
+                </p>
+                {audienceVoteSelectedCount === 0 && (
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-gray-600">
+                    Auto uses submitted teams
+                  </p>
+                )}
+              </div>
 
               {/* Team checkboxes */}
-              {teams.filter((t) => t.project?.submitted_at).length === 0 ? (
-                <p className="relative text-[11px] text-gray-600 italic">No submitted projects yet.</p>
+              {teams.length === 0 ? (
+                <p className="relative text-[11px] text-gray-600 italic">No teams yet.</p>
               ) : (
-                <div className="relative grid grid-cols-2 gap-2">
-                  {teams.filter((t) => t.project?.submitted_at).map((t) => (
+                <div className="relative grid gap-2 md:grid-cols-2">
+                  {teams.map((t) => (
                     <label key={t.id} className={cn(
                       "flex items-center gap-2 rounded-xl border px-3 py-2.5 cursor-pointer transition-all text-[12px] font-medium",
                       selectedVoteTeams.has(t.id)
@@ -1478,14 +1569,18 @@ export function HackathonAdminClient({
                       <input
                         type="checkbox"
                         checked={selectedVoteTeams.has(t.id)}
-                        onChange={() => setSelectedVoteTeams((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
-                          return next;
-                        })}
+                        onChange={() => toggleVoteTeam(t.id)}
                         className="accent-yellow-400"
                       />
-                      <span className="truncate">{t.project?.name ?? t.name}</span>
+                      <span className="min-w-0 flex-1 truncate">{t.project?.name || t.name}</span>
+                      <span className={cn(
+                        "shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider",
+                        t.project?.submitted_at
+                          ? "bg-green-500/10 text-green-400"
+                          : "bg-white/5 text-gray-600"
+                      )}>
+                        {t.project?.submitted_at ? "Submitted" : "Manual"}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -1494,30 +1589,22 @@ export function HackathonAdminClient({
               {voteError && <p className="relative text-[11px] text-red-400">{voteError}</p>}
               {voteStatus === "done" && <p className="relative text-[11px] text-green-400">Vote launched — attendees can now vote on the hackathon page.</p>}
 
-              <div className="relative flex gap-3">
+              <div className="relative flex flex-wrap gap-3">
                 <button
-                  disabled={voteStatus === "pending"}
-                  onClick={async () => {
-                    setVoteStatus("pending");
-                    setVoteError(null);
-                    const teamIds = selectedVoteTeams.size > 0 ? [...selectedVoteTeams] : undefined;
-                    const res = await createAudienceVotePoll(adminCode, event.id, event.slug, teamIds);
-                    if (res.error) { setVoteStatus("error"); setVoteError(res.error); }
-                    else { setVoteStatus("done"); setSelectedVoteTeams(new Set()); refresh(); }
-                  }}
+                  disabled={voteStatus === "pending" || (audienceVoteSelectedCount === 0 && submittedTeams.length === 0)}
+                  onClick={launchAudienceVote}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-yellow-500/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
                 >
                   <Trophy className="w-3.5 h-3.5" />
-                  {voteStatus === "pending" ? "Launching…" : "Launch Vote"}
+                  {voteStatus === "pending"
+                    ? "Launching..."
+                    : audienceVoteSelectedCount > 0
+                      ? `Launch Selected (${audienceVoteSelectedCount})`
+                      : "Launch Submitted Teams"}
                 </button>
                 <button
-                  disabled={voteStatus === "pending"}
-                  onClick={async () => {
-                    setVoteStatus("pending");
-                    const res = await closeAudienceVotePoll(adminCode, event.id, event.slug);
-                    if (res.error) { setVoteStatus("error"); setVoteError(res.error); }
-                    else { setVoteStatus("idle"); refresh(); }
-                  }}
+                  disabled={voteStatus === "pending" || !audienceVote}
+                  onClick={closeAudienceVote}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:border-white/30 transition-all disabled:opacity-50"
                 >
                   Close Vote

@@ -124,6 +124,7 @@ export function PollsAdminClient({
           ends_at: data.ends_at || null,
           is_active: data.is_active,
           show_results: false,
+          hackathon_audience_vote: false,
           created_at: new Date().toISOString(),
         },
         ...prev,
