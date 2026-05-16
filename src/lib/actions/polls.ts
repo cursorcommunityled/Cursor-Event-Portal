@@ -358,3 +358,131 @@ export async function deactivateExpiredPolls(eventId: string, eventSlug?: string
     return 0;
   }
 }
+
+// ─── Hackathon audience vote ───────────────────────────────────────────────────
+
+export async function createAudienceVotePoll(
+  adminCode: string,
+  eventId: string,
+  eventSlug: string,
+  manualTeamIds?: string[]
+): Promise<{ success?: true; pollId?: string; error?: string }> {
+  const supabase = await createServiceClient();
+
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return { error: "Not authorized" };
+
+  // Deactivate any existing audience vote polls for this event
+  await supabase
+    .from("polls")
+    .update({ is_active: false })
+    .eq("event_id", eventId)
+    .eq("hackathon_audience_vote", true);
+
+  const selectedTeamIds = Array.from(new Set(manualTeamIds ?? []));
+  if (selectedTeamIds.length > 8) return { error: "Select up to 8 teams for audience voting" };
+
+  let options: string[] = [];
+
+  if (selectedTeamIds.length > 0) {
+    const [{ data: teams }, { data: projects }] = await Promise.all([
+      supabase
+        .from("hackathon_teams")
+        .select("id, name")
+        .eq("event_id", eventId)
+        .in("id", selectedTeamIds),
+      supabase
+        .from("hackathon_projects")
+        .select("team_id, name")
+        .eq("event_id", eventId)
+        .in("team_id", selectedTeamIds),
+    ]);
+
+    const teamMap = new Map((teams ?? []).map((team) => [team.id, team.name]));
+    const projectMap = new Map((projects ?? []).map((project) => [project.team_id, project.name]));
+
+    options = selectedTeamIds
+      .map((teamId) => projectMap.get(teamId) || teamMap.get(teamId))
+      .filter((option): option is string => Boolean(option));
+  } else {
+    const { data: projects } = await supabase
+      .from("hackathon_projects")
+      .select("name, team_id")
+      .eq("event_id", eventId)
+      .not("submitted_at", "is", null);
+
+    if (projects?.length) {
+      const teamIds = projects.map((project) => project.team_id).filter(Boolean);
+      const { data: teams } = teamIds.length
+        ? await supabase
+            .from("hackathon_teams")
+            .select("id, name")
+            .eq("event_id", eventId)
+            .in("id", teamIds)
+        : { data: [] };
+      const teamMap = new Map((teams ?? []).map((team) => [team.id, team.name]));
+
+      options = projects
+        .map((project) => project.name || teamMap.get(project.team_id) || "Unknown project")
+        .filter(Boolean);
+    }
+  }
+
+  if (!options.length) {
+    return selectedTeamIds.length > 0
+      ? { error: "None of the selected teams could be found" }
+      : { error: "No submitted projects found — select teams manually or have teams submit first" };
+  }
+
+  const { data: poll, error } = await supabase
+    .from("polls")
+    .insert({
+      event_id: eventId,
+      question: "Vote for your favourite project!",
+      options,
+      is_active: true,
+      show_results: true,
+      hackathon_audience_vote: true,
+    })
+    .select("id")
+    .single();
+
+  if (error || !poll) return { error: error?.message ?? "Failed to create vote" };
+
+  revalidatePath(`/${eventSlug}/hackathon`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true, pollId: poll.id };
+}
+
+export async function closeAudienceVotePoll(
+  adminCode: string,
+  eventId: string,
+  eventSlug: string
+): Promise<{ success?: true; error?: string }> {
+  const supabase = await createServiceClient();
+
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return { error: "Not authorized" };
+
+  const { error } = await supabase
+    .from("polls")
+    .update({ is_active: false })
+    .eq("event_id", eventId)
+    .eq("hackathon_audience_vote", true);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/${eventSlug}/hackathon`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true };
+}

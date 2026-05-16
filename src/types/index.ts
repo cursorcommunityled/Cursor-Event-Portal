@@ -434,6 +434,7 @@ export interface Poll {
   ends_at: string | null;
   is_active: boolean;
   show_results: boolean;
+  hackathon_audience_vote: boolean;
   created_at: string;
 }
 
