@@ -3,6 +3,7 @@ import {
   getHackathonSettings, getHackathonTeamsWithMembers, getHackathonScores,
   getHackathonChatChannels, getHackathonChatMessages, getEventChatMembers,
   getCompetitionJudgingData, getCheckedInAttendeesWithoutTeams,
+  getHackathonRepoSubmissionBackups,
 } from "@/lib/supabase/queries";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { getSession } from "@/lib/actions/registration";
@@ -25,7 +26,7 @@ export default async function HackathonAdminPage({ params }: Props) {
 
   const session = await getSession();
 
-  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions, openPool] = await Promise.all([
+  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions, openPool, repoSubmissionBackups] = await Promise.all([
     getHackathonSettings(event.id),
     getHackathonTeamsWithMembers(event.id),
     getHackathonScores(event.id),
@@ -35,6 +36,7 @@ export default async function HackathonAdminPage({ params }: Props) {
     getCompetitionJudgingData(event.id),
     // All checked-in attendees not yet on a team (no user to exclude)
     getCheckedInAttendeesWithoutTeams(event.id, ""),
+    getHackathonRepoSubmissionBackups(event.id),
   ]);
 
   const teamIds = teams.map((t) => t.id);
@@ -75,6 +77,7 @@ export default async function HackathonAdminPage({ params }: Props) {
       judgingCompetitions={judgingCompetitions}
       initialAiAnalyses={aiAnalyses}
       initialOpenPool={openPool}
+      initialRepoSubmissionBackups={repoSubmissionBackups}
       initialAudienceVote={activeAudienceVote ? {
         id: activeAudienceVote.id,
         options: activeAudienceVote.options ?? [],

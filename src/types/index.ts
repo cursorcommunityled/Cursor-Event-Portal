@@ -889,6 +889,25 @@ export interface HackathonProject {
   updated_at: string;
 }
 
+export interface HackathonRepoSubmissionBackup {
+  id: string;
+  event_id: string;
+  team_id: string;
+  submitted_by: string | null;
+  team_name: string | null;
+  project_name: string | null;
+  description: string | null;
+  repo_url: string;
+  demo_url: string | null;
+  primary_project_saved: boolean;
+  primary_project_error: string | null;
+  submission_payload: Record<string, unknown>;
+  submitted_at: string;
+  updated_at: string;
+  team?: Pick<HackathonTeam, "id" | "name"> | null;
+  submitter?: Pick<User, "id" | "name" | "email"> | null;
+}
+
 export interface HackathonScore {
   id: string;
   team_id: string;

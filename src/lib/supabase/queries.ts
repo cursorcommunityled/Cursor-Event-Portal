@@ -2018,6 +2018,7 @@ import type {
   HackathonTeamMember,
   HackathonTeamWithMembers,
   HackathonTeamInvite,
+  HackathonRepoSubmissionBackup,
   HackathonScore,
 } from "@/types";
 
@@ -2098,6 +2099,27 @@ export async function getHackathonSettings(eventId: string): Promise<HackathonSe
     .limit(1);
   if (error) return null;
   return (data?.[0] ?? null) as HackathonSettings | null;
+}
+
+export async function getHackathonRepoSubmissionBackups(eventId: string): Promise<HackathonRepoSubmissionBackup[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("hackathon_repo_submission_backups")
+    .select(`
+      *,
+      team:hackathon_teams(id, name),
+      submitter:users(id, name, email)
+    `)
+    .eq("event_id", eventId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("[getHackathonRepoSubmissionBackups] Error:", error);
+    return [];
+  }
+
+  return (data ?? []) as unknown as HackathonRepoSubmissionBackup[];
 }
 
 export async function getHackathonTeamsWithMembers(eventId: string): Promise<HackathonTeamWithMembers[]> {

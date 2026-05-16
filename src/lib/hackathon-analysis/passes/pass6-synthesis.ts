@@ -2,6 +2,21 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Pass1Result, Pass2Result, Pass3Result, Pass4Result, Pass5Result, Pass6Result } from '../types';
 import { DEFAULT_CRITERIA } from '../criteria';
 
+export type Pass6RunResult = {
+  result: Pass6Result;
+  modelUsed: string;
+};
+
+function parsePass6Json(text: string): Pass6Result {
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Pass 6 returned no JSON');
+  return JSON.parse(jsonMatch[0]) as Pass6Result;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export async function runPass6(
   client: Anthropic,
   teamName: string,
@@ -12,6 +27,20 @@ export async function runPass6(
   pass4: Pass4Result,
   pass5: Pass5Result
 ): Promise<Pass6Result> {
+  const { result } = await runPass6WithModel(client, teamName, pitchText, pass1, pass2, pass3, pass4, pass5);
+  return result;
+}
+
+export async function runPass6WithModel(
+  client: Anthropic,
+  teamName: string,
+  pitchText: string | null,
+  pass1: Pass1Result,
+  pass2: Pass2Result,
+  pass3: Pass3Result,
+  pass4: Pass4Result,
+  pass5: Pass5Result
+): Promise<Pass6RunResult> {
   const criteriaBlock = DEFAULT_CRITERIA.map((c) =>
     `${c.key} (weight ${(c.weight * 100).toFixed(0)}%): ${c.label} — ${c.description}`
   ).join('\n');
@@ -90,19 +119,36 @@ Return ONLY valid JSON:
   "recommended_award_categories": ["e.g. Best Use of AI, Most Creative, Best Technical, Most Useful"]
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-opus-4-7',
-    max_tokens: 16000,
-    thinking: { type: 'enabled', budget_tokens: 8000 },
-    messages: [{ role: 'user', content: prompt }],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any) as Awaited<ReturnType<typeof client.messages.create>>;
+  const attempts = [
+    {
+      model: 'claude-opus-4-7',
+      max_tokens: 8192,
+      thinking: { type: 'enabled', budget_tokens: 4096 },
+    },
+    {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4096,
+    },
+  ] as const;
 
-  // Find the text block (thinking blocks are separate)
-  const content = (response as { content: { type: string; text?: string }[] }).content;
-  const textBlock = content.find((b) => b.type === 'text');
-  const text = textBlock?.text ?? '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Pass 6 returned no JSON');
-  return JSON.parse(jsonMatch[0]) as Pass6Result;
+  const failures: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      const response = await client.messages.create({
+        ...attempt,
+        messages: [{ role: 'user', content: prompt }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any) as Awaited<ReturnType<typeof client.messages.create>>;
+
+      // Thinking blocks are separate from the final text response.
+      const content = (response as { content: { type: string; text?: string }[] }).content;
+      const textBlock = content.find((b) => b.type === 'text');
+      const result = parsePass6Json(textBlock?.text ?? '');
+      return { result, modelUsed: attempt.model };
+    } catch (error) {
+      failures.push(`${attempt.model}: ${errorMessage(error)}`);
+    }
+  }
+
+  throw new Error(`Pass 6 failed. ${failures.join(' | ')}`);
 }

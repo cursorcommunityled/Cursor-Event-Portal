@@ -443,7 +443,7 @@ export function HackathonClient({
         demo_url: projectDemo,
       });
       if (res.error) { showMsg(res.error, true); return; }
-      showMsg("Project saved");
+      showMsg(res.warning ?? "Project saved", false, res.fallback ? 10000 : 4000);
       setShowProjectForm(false);
       refresh();
     });

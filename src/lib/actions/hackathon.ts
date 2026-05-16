@@ -28,6 +28,52 @@ function isFormationOpen(settings: HackathonSettings | null): boolean {
   return true;
 }
 
+async function saveRepoSubmissionBackup(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  data: {
+    eventId: string;
+    teamId: string;
+    submittedBy: string;
+    teamName: string | null;
+    projectName: string;
+    description: string | null;
+    repoUrl: string;
+    demoUrl: string | null;
+    submittedAt: string;
+    primaryProjectSaved: boolean;
+    primaryProjectError: string | null;
+  }
+): Promise<{ saved: boolean; error?: string }> {
+  const { error } = await supabase
+    .from("hackathon_repo_submission_backups")
+    .upsert(
+      {
+        event_id: data.eventId,
+        team_id: data.teamId,
+        submitted_by: data.submittedBy,
+        team_name: data.teamName,
+        project_name: data.projectName,
+        description: data.description,
+        repo_url: data.repoUrl,
+        demo_url: data.demoUrl,
+        primary_project_saved: data.primaryProjectSaved,
+        primary_project_error: data.primaryProjectError,
+        submission_payload: {
+          name: data.projectName,
+          description: data.description,
+          repo_url: data.repoUrl,
+          demo_url: data.demoUrl,
+          submitted_at: data.submittedAt,
+        },
+        submitted_at: data.submittedAt,
+        updated_at: data.submittedAt,
+      },
+      { onConflict: "event_id,team_id" }
+    );
+
+  return error ? { saved: false, error: error.message } : { saved: true };
+}
+
 // ─── Admin: toggle hackathon mode ─────────────────────────────────────────────
 
 export async function toggleHackathonMode(
@@ -916,11 +962,27 @@ export async function submitHackathonProject(
     repo_url?: string;
     demo_url?: string;
   }
-): Promise<{ success?: true; error?: string }> {
+): Promise<{ success?: true; error?: string; fallback?: boolean; warning?: string }> {
   const session = await getSession();
   if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
 
   const supabase = await createServiceClient();
+
+  const projectName = data.name.trim();
+  const description = data.description?.trim() || null;
+  const repoUrl = data.repo_url?.trim() || null;
+  const demoUrl = data.demo_url?.trim() || null;
+
+  if (!projectName) return { error: "Project name is required" };
+
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("id, name")
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!team) return { error: "Team not found" };
 
   // Verify user is on the team
   const { data: membership } = await supabase
@@ -960,17 +1022,45 @@ export async function submitHackathonProject(
       {
         team_id: teamId,
         event_id: eventId,
-        name: data.name.trim(),
-        description: data.description?.trim() || null,
-        repo_url: data.repo_url?.trim() || null,
-        demo_url: data.demo_url?.trim() || null,
+        name: projectName,
+        description,
+        repo_url: repoUrl,
+        demo_url: demoUrl,
         submitted_at: now,
         updated_at: now,
       },
       { onConflict: "team_id" }
     );
 
-  if (error) return { error: error.message };
+  const backup = repoUrl
+    ? await saveRepoSubmissionBackup(supabase, {
+        eventId,
+        teamId,
+        submittedBy: session.userId,
+        teamName: team.name ?? null,
+        projectName,
+        description,
+        repoUrl,
+        demoUrl,
+        submittedAt: now,
+        primaryProjectSaved: !error,
+        primaryProjectError: error?.message ?? null,
+      })
+    : null;
+
+  if (error) {
+    if (backup?.saved) {
+      const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+      if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
+      return {
+        success: true,
+        fallback: true,
+        warning: "Repo saved to the admin backup file, but the project card did not update.",
+      };
+    }
+
+    return { error: error.message };
+  }
 
   const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
   if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
