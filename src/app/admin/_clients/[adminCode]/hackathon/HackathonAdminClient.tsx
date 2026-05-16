@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useTransition, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -19,7 +20,12 @@ import {
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
 import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
-import { createAudienceVotePoll, closeAudienceVotePoll } from "@/lib/actions/polls";
+import {
+  approveAudienceVoteWinner,
+  closeAudienceVotePoll,
+  createAudienceVotePoll,
+  type AudienceVoteWinnerPrompt,
+} from "@/lib/actions/polls";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
@@ -64,6 +70,7 @@ interface Props {
   initialOpenPool: OpenPoolMember[];
   initialRepoSubmissionBackups: HackathonRepoSubmissionBackup[];
   initialAudienceVote: AudienceVoteSummary | null;
+  initialAudienceVoteWinner: AudienceVoteWinnerPrompt | null;
 }
 
 type Tab = "settings" | "teams" | "submissions" | "scoring" | "leaderboard" | "judging" | "chat";
@@ -108,74 +115,104 @@ function ScoreNotesTextarea({
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trimmedValue = value.trim();
   const hasPopupContent = Boolean(trimmedValue || criteriaFeedback.length > 0);
   const isOpen = hasPopupContent && (isHovered || isPinned);
   const popupId = `${noteId}-notes-popup`;
 
+  const cancelClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const openPopup = () => {
+    cancelClose();
+    setIsHovered(true);
+  };
+
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimerRef.current = setTimeout(() => setIsHovered(false), 120);
+  };
+
+  useEffect(() => () => cancelClose(), []);
+
+  const popup = (
+    <div
+      id={popupId}
+      role="dialog"
+      aria-label="Full judge note and criteria feedback"
+      onMouseEnter={openPopup}
+      onMouseLeave={scheduleClose}
+      className="fixed left-1/2 top-1/2 z-[9999] flex max-h-[86vh] w-[min(92vw,1120px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[30px] border border-red-500/35 bg-zinc-950/95 p-6 text-left shadow-2xl shadow-red-950/50 backdrop-blur-xl"
+    >
+      <div className="mb-4 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-red-300">Judge Feedback</p>
+          <p className="mt-1 text-[12px] font-medium text-gray-500">Full assessment and criteria notes</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setIsPinned(false);
+            setIsHovered(false);
+          }}
+          className="rounded-full p-2 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label="Close note popup"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
+        {trimmedValue && (
+          <p className="whitespace-pre-wrap rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-[15px] font-medium leading-relaxed text-white">
+            {trimmedValue}
+          </p>
+        )}
+
+        {criteriaFeedback.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">
+              Criteria Feedback
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {criteriaFeedback.map((criterion) => (
+                <div key={criterion.criteria_key} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-gray-300">
+                      {formatCriteriaLabel(criterion.criteria_key)}
+                    </p>
+                    <span className="shrink-0 text-[13px] font-black tabular-nums text-white">
+                      {criterion.score.toFixed(1)}/10
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-medium leading-relaxed text-gray-400">
+                    {criterion.reasoning}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      {!isPinned && (
+        <p className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+          Click the note to keep this open
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div
       className="relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={openPopup}
+      onMouseLeave={scheduleClose}
     >
-      {isOpen && (
-        <div
-          id={popupId}
-          role="dialog"
-          aria-label="Full judge note and criteria feedback"
-          className="absolute left-0 right-0 bottom-full z-50 mb-2 rounded-2xl border border-red-500/30 bg-zinc-950/95 p-4 text-left shadow-2xl shadow-red-950/40 backdrop-blur-xl"
-        >
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">Judge Feedback</p>
-            {isPinned && (
-              <button
-                type="button"
-                onClick={() => setIsPinned(false)}
-                className="rounded-full p-1 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
-                aria-label="Close note popup"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
-            {trimmedValue && (
-              <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-white">
-                {trimmedValue}
-              </p>
-            )}
-
-            {criteriaFeedback.length > 0 && (
-              <div className="space-y-2 border-t border-white/10 pt-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
-                  Criteria Feedback
-                </p>
-                {criteriaFeedback.map((criterion) => (
-                  <div key={criterion.criteria_key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                    <div className="mb-1.5 flex items-center justify-between gap-3">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-300">
-                        {formatCriteriaLabel(criterion.criteria_key)}
-                      </p>
-                      <span className="shrink-0 text-[11px] font-black tabular-nums text-white">
-                        {criterion.score.toFixed(1)}/10
-                      </span>
-                    </div>
-                    <p className="text-[12px] font-medium leading-relaxed text-gray-400">
-                      {criterion.reasoning}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          {!isPinned && (
-            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-              Click the note to keep this open
-            </p>
-          )}
-        </div>
-      )}
+      {isOpen && typeof document !== "undefined" && createPortal(popup, document.body)}
 
       <textarea
         placeholder="Judge notes..."
@@ -358,6 +395,7 @@ export function HackathonAdminClient({
   event, adminCode, activeTab: initialTab, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
   judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
+  initialAudienceVoteWinner,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -407,6 +445,7 @@ export function HackathonAdminClient({
 
   // Audience vote
   const [audienceVote, setAudienceVote] = useState<AudienceVoteSummary | null>(initialAudienceVote);
+  const [audienceVoteWinner, setAudienceVoteWinner] = useState<AudienceVoteWinnerPrompt | null>(initialAudienceVoteWinner);
   const [voteStatus, setVoteStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [voteError, setVoteError] = useState<string | null>(null);
   const [selectedVoteTeams, setSelectedVoteTeams] = useState<Set<string>>(new Set());
@@ -473,7 +512,8 @@ export function HackathonAdminClient({
 
   useEffect(() => {
     setAudienceVote(initialAudienceVote);
-  }, [initialAudienceVote]);
+    setAudienceVoteWinner(initialAudienceVoteWinner);
+  }, [initialAudienceVote, initialAudienceVoteWinner]);
 
   useEffect(() => {
     const storedItems = window.localStorage.getItem(simonTodoItemsStorageKey(event.id));
@@ -731,6 +771,27 @@ export function HackathonAdminClient({
     }
 
     setAudienceVote(null);
+    setAudienceVoteWinner(res.winner ?? null);
+    setVoteStatus("idle");
+    if (!res.winner) {
+      setVoteError("Vote closed, but no audience votes were cast.");
+    }
+    refresh();
+  };
+
+  const approveAudienceWinner = async () => {
+    if (!audienceVoteWinner) return;
+    setVoteStatus("pending");
+    setVoteError(null);
+
+    const res = await approveAudienceVoteWinner(adminCode, event.id, event.slug, audienceVoteWinner.pollId);
+    if (res.error) {
+      setVoteStatus("error");
+      setVoteError(res.error);
+      return;
+    }
+
+    setAudienceVoteWinner(null);
     setVoteStatus("idle");
     refresh();
   };

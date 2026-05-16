@@ -20,6 +20,18 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
 ALTER TABLE public.app_settings
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+ALTER TABLE IF EXISTS public.polls
+  ADD COLUMN IF NOT EXISTS hackathon_audience_vote BOOLEAN NOT NULL DEFAULT false;
+
+DO $$
+BEGIN
+  IF to_regclass('public.polls') IS NOT NULL THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_polls_hackathon_audience_vote
+      ON public.polls (event_id, hackathon_audience_vote, is_active)
+      WHERE hackathon_audience_vote = true';
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.planned_events (
   id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   title            TEXT        NOT NULL,
@@ -634,3 +646,5 @@ ON CONFLICT (key) DO UPDATE
 SET
   value = 'calgary-hackathon-sait-may-2026',
   updated_at = NOW();
+
+NOTIFY pgrst, 'reload schema';
