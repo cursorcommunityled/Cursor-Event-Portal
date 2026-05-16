@@ -858,7 +858,6 @@ export async function submitHackathonProject(
     description?: string;
     repo_url?: string;
     demo_url?: string;
-    video_url?: string;
   }
 ): Promise<{ success?: true; error?: string }> {
   const session = await getSession();
@@ -908,7 +907,6 @@ export async function submitHackathonProject(
         description: data.description?.trim() || null,
         repo_url: data.repo_url?.trim() || null,
         demo_url: data.demo_url?.trim() || null,
-        video_url: data.video_url?.trim() || null,
         submitted_at: now,
         updated_at: now,
       },
