@@ -287,10 +287,16 @@ function TeamFinderPanel({
           </div>
 
           {loading ? (
-            <div className="flex gap-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="flex-1 h-20 rounded-2xl bg-white/[0.03] animate-pulse border border-white/[0.04]" />
-              ))}
+            <div className="space-y-3" role="status" aria-live="polite">
+              <div className="flex items-center gap-2 rounded-2xl border border-purple-500/25 bg-purple-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-purple-200">
+                <AlertCircle className="w-3.5 h-3.5" />
+                suggestions loading!
+              </div>
+              <div className="flex gap-3">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex-1 h-20 rounded-2xl bg-white/[0.03] animate-pulse border border-white/[0.04]" />
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2.5">
