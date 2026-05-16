@@ -17,7 +17,9 @@ import {
   Hash, Lock, Megaphone, BookOpen, Users, X, Send,
   Paperclip, Smile, Pin, Trash2, ChevronUp, Shield,
   Star, ImageIcon, FileText, Download, AlertCircle, MessageCircle, Zap, UserPlus,
+  Linkedin,
 } from "lucide-react";
+import { getTeamRecommendations, type TeamRecommendation } from "@/lib/actions/hackathon-profiles";
 import type {
   HackathonChatChannel, HackathonChatMessage, HackathonChatReaction,
   ChatMember, Event,
@@ -40,6 +42,7 @@ interface Props {
   initialChannelId: string;
   members: ChatMember[];
   myTeamId: string | null;
+  needsTeam?: boolean;
 }
 
 // ─── Avatar ──────────────────────────────────────────────────────────────────
@@ -210,6 +213,159 @@ function SuggestionCard({
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Team Finder Panel ────────────────────────────────────────────────────────
+
+function TeamFinderPanel({
+  eventId, myTeamId,
+}: {
+  eventId: string;
+  myTeamId: string | null;
+}) {
+  const [recs, setRecs] = useState<TeamRecommendation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dismissed, setDismissed] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<Record<string, "idle" | "pending" | "sent" | "error">>({});
+  const [teamNameInputs, setTeamNameInputs] = useState<Record<string, string>>({});
+  const [showNameInput, setShowNameInput] = useState<string | null>(null);
+
+  useEffect(() => {
+    getTeamRecommendations(eventId).then((res) => {
+      setRecs(res.recommendations);
+      setLoading(false);
+    });
+  }, [eventId]);
+
+  const handleInvite = async (userId: string, nameOverride?: string) => {
+    setInviteStatus((s) => ({ ...s, [userId]: "pending" }));
+    const res = await sendTeamInvite(eventId, userId, nameOverride);
+    if (res.error) {
+      setInviteStatus((s) => ({ ...s, [userId]: "error" }));
+      setTimeout(() => setInviteStatus((s) => ({ ...s, [userId]: "idle" })), 3000);
+    } else {
+      setInviteStatus((s) => ({ ...s, [userId]: "sent" }));
+      setShowNameInput(null);
+    }
+  };
+
+  const handleYes = (userId: string) => {
+    if (myTeamId) {
+      handleInvite(userId);
+    } else {
+      setShowNameInput(userId);
+    }
+  };
+
+  if (dismissed || (!loading && recs.length === 0)) return null;
+
+  return (
+    <div className="shrink-0 mx-3 mt-3 sm:mx-5">
+      <div className="relative overflow-hidden rounded-[28px] border border-purple-500/30 bg-purple-500/[0.07] p-4 shadow-[0_0_40px_rgba(168,85,247,0.08)]">
+        <div className="absolute inset-0 bg-grid-white/[0.01] bg-[size:15px_15px]" />
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[50px]" />
+
+        <div className="relative">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-500/30">
+                <Zap className="w-3.5 h-3.5 text-purple-300" />
+              </div>
+              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-purple-300">Team Finder</span>
+              <span className="text-[10px] text-gray-500 font-medium">— your top matches</span>
+            </div>
+            <button
+              onClick={() => setDismissed(true)}
+              className="text-gray-600 hover:text-gray-400 transition-colors p-1 rounded-lg hover:bg-white/5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="flex gap-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex-1 h-20 rounded-2xl bg-white/[0.03] animate-pulse border border-white/[0.04]" />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              {recs.map((rec) => {
+                const status = inviteStatus[rec.userId] ?? "idle";
+                const teamName = teamNameInputs[rec.userId] ?? "";
+                return (
+                  <div
+                    key={rec.userId}
+                    className="flex-1 rounded-2xl border border-white/[0.06] bg-black/30 p-3.5 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-[14px] font-bold text-white leading-tight">{rec.name}</p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {rec.is_technical !== null && (
+                          <span className={`text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
+                            rec.is_technical
+                              ? "text-blue-400 bg-blue-500/10 border-blue-500/20"
+                              : "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                          }`}>
+                            {rec.is_technical ? "Tech" : "Non-Tech"}
+                          </span>
+                        )}
+                        {rec.linkedin_url && (
+                          <a
+                            href={rec.linkedin_url.startsWith("http") ? rec.linkedin_url : `https://${rec.linkedin_url}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 hover:text-blue-400 transition-colors"
+                          >
+                            <Linkedin className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    {rec.occupation && (
+                      <p className="text-[10px] text-gray-500 font-medium leading-snug">{rec.occupation}</p>
+                    )}
+                    <p className="text-[12px] text-gray-300 leading-snug">{rec.reason}</p>
+
+                    {status === "sent" ? (
+                      <p className="text-[11px] font-bold text-green-400">Invite sent!</p>
+                    ) : status === "error" ? (
+                      <p className="text-[11px] font-bold text-red-400">Could not send invite</p>
+                    ) : showNameInput === rec.userId && !myTeamId ? (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          value={teamName}
+                          onChange={(e) => setTeamNameInputs((s) => ({ ...s, [rec.userId]: e.target.value }))}
+                          placeholder="Team name…"
+                          className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+                        />
+                        <button
+                          disabled={!teamName.trim() || status === "pending"}
+                          onClick={() => handleInvite(rec.userId, teamName.trim())}
+                          className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-purple-500/20 border border-purple-500/30 text-purple-200 hover:bg-purple-500/30 transition-all disabled:opacity-40"
+                        >
+                          Go
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={status === "pending"}
+                        onClick={() => handleYes(rec.userId)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-purple-500/15 border border-purple-500/25 text-purple-200 hover:bg-purple-500/25 hover:border-purple-500/40 transition-all disabled:opacity-40"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        {status === "pending" ? "Sending…" : "Invite"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -477,7 +633,7 @@ function ChatMsg({
 
 export function HackathonChat({
   event, userId, isAdmin, channels: initialChannels,
-  initialMessages, initialChannelId, members, myTeamId,
+  initialMessages, initialChannelId, members, myTeamId, needsTeam = false,
 }: Props) {
   const [channels, setChannels] = useState(initialChannels);
   const [activeChannelId, setActiveChannelId] = useState(initialChannelId);
@@ -1008,6 +1164,10 @@ export function HackathonChat({
               {messages.length} message{messages.length === 1 ? "" : "s"}
             </span>
           </div>
+
+          {needsTeam && currentChannel?.channel_type === "spawn_point" && !myTeamId && (
+            <TeamFinderPanel eventId={event.id} myTeamId={myTeamId} />
+          )}
 
           {/* Message list */}
           <div
