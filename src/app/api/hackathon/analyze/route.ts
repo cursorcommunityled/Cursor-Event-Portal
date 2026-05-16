@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       eventId,
       teamName: team.name as string,
       repoUrl: project.repo_url as string,
-      pitchText: (project.pitch_text as string | null) ?? null,
+      pitchText: (project.description as string | null) ?? null,
       screenshotUrls,
     });
 

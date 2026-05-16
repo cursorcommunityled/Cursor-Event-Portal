@@ -850,13 +850,15 @@ export function HackathonClient({
                         <LogOut className="w-4 h-4" /> Leave
                       </button>
                     )}
-                    <button
-                      disabled={isPending}
-                      onClick={handleDissolve}
-                      className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
-                    >
-                      <X className="w-4 h-4" /> Dissolve
-                    </button>
+                    {!teamLocked && (
+                      <button
+                        disabled={isPending}
+                        onClick={handleDissolve}
+                        className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                      >
+                        <X className="w-4 h-4" /> Dissolve
+                      </button>
+                    )}
                   </div>
                 </div>
 
