@@ -35,15 +35,56 @@ function isInteresting(path: string): boolean {
 }
 
 async function ghFetch(path: string): Promise<Response> {
-  const headers: Record<string, string> = {
+  const baseHeaders: Record<string, string> = {
     'Accept': 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'cursor-popup-portal/1.0',
   };
-  if (process.env.GITHUB_TOKEN) {
-    headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  const fetchOptions = { headers: baseHeaders, next: { revalidate: 0 }, signal: controller.signal };
+
+  try {
+    const token = process.env.GITHUB_TOKEN?.trim();
+    if (!token) {
+      return await fetch(`${GITHUB_API}${path}`, fetchOptions);
+    }
+
+    const headers = { ...baseHeaders, Authorization: `Bearer ${token}` };
+    const authedResponse = await fetch(`${GITHUB_API}${path}`, {
+      ...fetchOptions,
+      headers,
+    });
+
+    // Render can have a stale/invalid token. Public repos should still work without it.
+    if (authedResponse.status === 401 || authedResponse.status === 403) {
+      return await fetch(`${GITHUB_API}${path}`, fetchOptions);
+    }
+
+    return authedResponse;
+  } finally {
+    clearTimeout(timeout);
   }
-  return fetch(`${GITHUB_API}${path}`, { headers, next: { revalidate: 0 } });
+}
+
+async function githubError(res: Response, repo: string): Promise<Error> {
+  const remaining = res.headers.get('x-ratelimit-remaining');
+  const reset = res.headers.get('x-ratelimit-reset');
+  let message = res.statusText;
+
+  try {
+    const data = await res.json() as { message?: string };
+    if (data.message) message = data.message;
+  } catch {
+    // GitHub did not return JSON; keep the HTTP status text.
+  }
+
+  const rateLimit = remaining === '0' && reset
+    ? ` GitHub rate limit resets at ${new Date(Number(reset) * 1000).toLocaleString()}.`
+    : '';
+
+  return new Error(`GitHub repo fetch failed for ${repo}: ${res.status} ${message}.${rateLimit}`);
 }
 
 export function parseGithubUrl(url: string): { owner: string; repo: string } | null {
@@ -61,6 +102,7 @@ export async function fetchRepoData(repoUrl: string, hackathonDate?: string): Pr
   const parsed = parseGithubUrl(repoUrl);
   if (!parsed) return null;
   const { owner, repo } = parsed;
+  const repoName = `${owner}/${repo}`;
 
   // Fetch in parallel where possible
   const [repoRes, langsRes, commitsRes] = await Promise.all([
@@ -69,7 +111,7 @@ export async function fetchRepoData(repoUrl: string, hackathonDate?: string): Pr
     ghFetch(`/repos/${owner}/${repo}/commits?per_page=100`),
   ]);
 
-  if (!repoRes.ok) return null;
+  if (!repoRes.ok) throw await githubError(repoRes, repoName);
   const repoMeta = await repoRes.json();
 
   const languages: Record<string, number> = langsRes.ok ? await langsRes.json() : {};
