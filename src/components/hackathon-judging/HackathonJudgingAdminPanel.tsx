@@ -176,11 +176,6 @@ export function HackathonJudgingAdminPanel({
   );
 
   useEffect(() => {
-    if (!competition || selectedCompetitionId) return;
-    setSelectedCompetitionId(competition.id);
-  }, [competition, selectedCompetitionId]);
-
-  useEffect(() => {
     if (!competition || !adminUserId) return;
 
     const nextScores: ScoreDraft = {};

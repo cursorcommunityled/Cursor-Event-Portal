@@ -158,6 +158,7 @@ export function HackathonClient({
 
   const handleScreenshotDelete = async (id: string) => {
     if (!myTeam) return;
+    if (!confirm("Remove this screenshot?")) return;
     const res = await fetch("/api/hackathon/screenshot", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

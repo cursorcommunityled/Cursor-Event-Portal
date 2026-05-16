@@ -708,7 +708,17 @@ export async function declineTeamInvite(
 
   const team = invite?.hackathon_teams as { category: string | null } | null | undefined;
   if (invite?.team_id && team?.category === PENDING_INVITE_TEAM_CATEGORY) {
-    await supabase.from("hackathon_teams").delete().eq("id", invite.team_id);
+    // Only delete the pending team if no other pending invites remain for it
+    const { count: remainingInvites } = await supabase
+      .from("hackathon_team_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", invite.team_id)
+      .eq("status", "pending")
+      .neq("id", inviteId);
+
+    if ((remainingInvites ?? 0) === 0) {
+      await supabase.from("hackathon_teams").delete().eq("id", invite.team_id);
+    }
   }
 
   return { success: true };
