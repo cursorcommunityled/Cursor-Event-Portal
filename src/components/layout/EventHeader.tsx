@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import type { Event, Announcement } from "@/types";
 import { cn } from "@/lib/utils";
 import { EventTimer } from "@/components/timer/EventTimer";
 import { createClient } from "@/lib/supabase/client";
 import { hasUserSeenItem, markItemAsSeen } from "@/lib/supabase/seenItems";
-import { MapPin } from "lucide-react";
+import { logout as logoutAttendee } from "@/lib/actions/auth";
+import { LogOut, MapPin } from "lucide-react";
 import { DemoStatusBadge } from "@/components/demos/DemoStatusBadge";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
@@ -25,6 +27,7 @@ interface TableAssignment {
 }
 
 export function EventHeader({ event, announcement: initialAnnouncement, showTimer = true, userId }: EventHeaderProps) {
+  const router = useRouter();
   const [announcement, setAnnouncement] = useState<Announcement | null>(initialAnnouncement || null);
   const [tableAssignment, setTableAssignment] = useState<TableAssignment | null>(null);
   const [isFirstView, setIsFirstView] = useState(false);
@@ -32,6 +35,15 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
   const [venueHovered, setVenueHovered] = useState(false);
   const venueTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [egg1Found, setEgg1Found] = useState(false);
+  const [isLoggingOut, startLogoutTransition] = useTransition();
+
+  const handleLogout = () => {
+    startLogoutTransition(async () => {
+      await logoutAttendee();
+      router.push(`/${event.slug}`);
+      router.refresh();
+    });
+  };
 
   // Listen for egg_1 being claimed by anyone
   useEffect(() => {
@@ -370,11 +382,24 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
           <div className="flex items-center gap-2">
             {/* Notification Bell */}
             {userId && (
-              <NotificationBell
-                userId={userId}
-                eventId={event.id}
-                eventSlug={event.slug}
-              />
+              <div className="flex flex-col items-center gap-1">
+                <NotificationBell
+                  userId={userId}
+                  eventId={event.id}
+                  eventSlug={event.slug}
+                />
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="flex items-center gap-1 text-[8px] uppercase tracking-[0.18em] text-gray-700 hover:text-gray-400 transition-colors disabled:opacity-40 disabled:cursor-wait"
+                  title="Sign out"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="w-2.5 h-2.5" />
+                  Logout
+                </button>
+              </div>
             )}
 
             {tableAssignment && (
