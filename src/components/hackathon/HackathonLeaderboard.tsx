@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore } from "@/types";
+import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore } from "@/lib/hackathon-rubric";
 
 interface Props {
   event: Event;
@@ -13,13 +14,9 @@ interface Props {
   initialScores: HackathonScore[];
 }
 
-const CATS = ["innovation", "execution", "presentation", "ux_polish"] as const;
-
 function teamTotal(teamId: string, scores: HackathonScore[]): number {
   const rows = scores.filter((s) => s.team_id === teamId);
-  if (!rows.length) return 0;
-  const sum = rows.reduce((acc, s) => acc + CATS.reduce((c, k) => c + (s[k] ?? 0), 0), 0);
-  return Math.round(sum / rows.length);
+  return calculateAverageHackathonWeightedScore(rows);
 }
 
 function Clock() {
@@ -80,7 +77,7 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
       .sort((a, b) => b.total - a.total);
   }, [teams, scores]);
 
-  const maxScore = 40;
+  const maxScore = HACKATHON_SCORE_MAX;
 
   // ── Holding screen ────────────────────────────────────────────────────────
   if (!settings?.leaderboard_visible) {

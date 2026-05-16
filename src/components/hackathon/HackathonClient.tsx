@@ -28,6 +28,11 @@ import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinn
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import type { PollWithVotes } from "@/types";
+import {
+  HACKATHON_SCORE_CATEGORIES,
+  HACKATHON_SCORE_MAX,
+  calculateAverageHackathonWeightedScore,
+} from "@/lib/hackathon-rubric";
 
 interface Props {
   event: Event;
@@ -80,13 +85,7 @@ function isFormationOpen(settings: HackathonSettings | null): boolean {
 
 function totalScore(teamId: string, scores: HackathonScore[]): number {
   const s = scores.filter((x) => x.team_id === teamId);
-  if (!s.length) return 0;
-  const cats = ["innovation", "execution", "presentation", "ux_polish"] as const;
-  return Math.round(
-    s.reduce((sum, score) => {
-      return sum + cats.reduce((c, k) => c + (score[k] ?? 0), 0);
-    }, 0) / s.length
-  );
+  return calculateAverageHackathonWeightedScore(s);
 }
 
 function plural(count: number, singular: string, pluralWord = `${singular}s`) {
@@ -1564,7 +1563,7 @@ function TeamCard({ team, rank, score, formationOpen }: {
         {score != null && (
           <div className="shrink-0 text-right">
             <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{score}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">/ 40 pts</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">/ {HACKATHON_SCORE_MAX} pts</p>
           </div>
         )}
       </div>
@@ -1604,18 +1603,12 @@ function TeamCard({ team, rank, score, formationOpen }: {
 function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[] }) {
   const teamScores = scores.filter((s) => s.team_id === teamId);
   if (!teamScores.length) return null;
-  const cats = [
-    { key: "innovation" as const, label: "Innovation" },
-    { key: "execution" as const, label: "Execution" },
-    { key: "presentation" as const, label: "Presentation" },
-    { key: "ux_polish" as const, label: "UX / Polish" },
-  ];
-  const avg = (key: typeof cats[0]["key"]) => {
+  const avg = (key: typeof HACKATHON_SCORE_CATEGORIES[number]["key"]) => {
     const vals = teamScores.map((s) => s[key]).filter((v) => v != null) as number[];
     if (!vals.length) return null;
     return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
   };
-  const total = cats.reduce((sum, c) => sum + (avg(c.key) ?? 0), 0);
+  const total = calculateAverageHackathonWeightedScore(teamScores);
   return (
     <div className="relative overflow-hidden rounded-[30px] border border-red-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
       <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
@@ -1628,20 +1621,20 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
         </div>
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-black tracking-tight text-white drop-shadow-md">{total}</span>
-          <span className="text-sm font-bold text-gray-500">/40</span>
+          <span className="text-sm font-bold text-gray-500">/{HACKATHON_SCORE_MAX}</span>
         </div>
       </div>
       <div className="relative space-y-4">
-        {cats.map((c) => {
+        {HACKATHON_SCORE_CATEGORIES.map((c) => {
           const v = avg(c.key);
           return (
             <div key={c.key} className="flex items-center justify-between">
-              <span className="text-[13px] font-medium text-gray-300">{c.label}</span>
+              <span className="text-[13px] font-medium text-gray-300">{c.shortLabel}</span>
               <div className="flex items-center gap-4">
                 <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden shadow-inner">
                   <div className="h-full bg-gradient-to-r from-red-500 to-red-300 rounded-full shadow-neon" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
                 </div>
-                <span className="text-[14px] font-bold tabular-nums text-white w-6 text-right">{v ?? "—"}</span>
+                <span className="text-[14px] font-bold tabular-nums text-white w-12 text-right">{v ?? "—"}/10</span>
               </div>
             </div>
           );

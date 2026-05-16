@@ -914,6 +914,13 @@ export interface HackathonScore {
   event_id: string;
   judge_id: string;
   innovation: number | null;
+  technical_execution: number | null;
+  functional_completeness: number | null;
+  problem_solution_fit: number | null;
+  ux_design: number | null;
+  demo_communication: number | null;
+  learning_ambition: number | null;
+  // Legacy 4-column rubric fields kept for previously applied migrations.
   execution: number | null;
   presentation: number | null;
   ux_polish: number | null;

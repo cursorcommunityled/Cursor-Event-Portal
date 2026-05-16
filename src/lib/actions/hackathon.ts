@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
 import type { HackathonSettings, HackathonTeamWithMembers, HackathonTeamInvite, HackathonScore } from "@/types";
+import type { HackathonScoreCategoryKey } from "@/lib/hackathon-rubric";
 import { ensureTeamChannel } from "./hackathon-chat";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -282,13 +283,7 @@ export async function adminReviewTeamIcon(
 export async function saveHackathonScore(
   adminCode: string,
   teamId: string,
-  scores: {
-    innovation?: number | null;
-    execution?: number | null;
-    presentation?: number | null;
-    ux_polish?: number | null;
-    notes?: string | null;
-  }
+  scores: Partial<Record<HackathonScoreCategoryKey, number | null>> & { notes?: string | null }
 ): Promise<{ success?: true; error?: string }> {
   const auth = await validateAdmin(adminCode);
   if (!auth.valid) return { error: auth.error };
