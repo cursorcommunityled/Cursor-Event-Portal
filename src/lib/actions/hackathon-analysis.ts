@@ -5,7 +5,22 @@ import { getSession } from "@/lib/actions/registration";
 import { mapToHackathonScores } from "@/lib/hackathon-analysis/criteria";
 import type { Pass6Result, HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+
+async function getBaseUrl(): Promise<string | null> {
+  const configured = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (configured) return configured.replace(/\/$/, "");
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (!host) return null;
+
+  const protocol =
+    h.get("x-forwarded-proto") ??
+    (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
+
+  return `${protocol}://${host}`;
+}
 
 // Fetch all AI analysis passes for a set of teams
 export async function getTeamAnalyses(
@@ -37,8 +52,8 @@ export async function triggerAnalysis(
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
-  if (!baseUrl) return { error: "NEXT_PUBLIC_BASE_URL is not configured" };
+  const baseUrl = await getBaseUrl();
+  if (!baseUrl) return { error: "Could not determine application URL" };
 
   const cookieStore = await cookies();
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
