@@ -117,7 +117,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
               onClick={() => {
                 setError(null);
                 startTransition(async () => {
-                  const res = await triggerAnalysis(teamId, eventId);
+                  const res = await triggerAnalysis(teamId, eventId, adminCode);
                   if (res.error) setError(res.error);
                 });
               }}
@@ -135,7 +135,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
               onClick={() => {
                 setError(null);
                 startTransition(async () => {
-                  const res = await triggerAnalysis(teamId, eventId);
+                  const res = await triggerAnalysis(teamId, eventId, adminCode);
                   if (res.error) setError(res.error);
                 });
               }}

@@ -10,19 +10,17 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createServiceClient();
 
-    // Verify admin
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.userId)
-      .maybeSingle();
-    const adminRoles = ['admin', 'staff', 'facilitator'];
-    if (!user || !adminRoles.includes(user.role as string)) {
-      return NextResponse.json({ error: 'Admin only' }, { status: 403 });
-    }
+    const { teamId, eventId, adminCode } = await req.json() as { teamId: string; eventId: string; adminCode: string };
+    if (!teamId || !eventId || !adminCode) return NextResponse.json({ error: 'Missing teamId, eventId, or adminCode' }, { status: 400 });
 
-    const { teamId, eventId } = await req.json() as { teamId: string; eventId: string };
-    if (!teamId || !eventId) return NextResponse.json({ error: 'Missing teamId or eventId' }, { status: 400 });
+    // Verify admin via admin_code (consistent with all other admin actions)
+    const { data: adminEvent } = await supabase
+      .from('events')
+      .select('id')
+      .eq('admin_code', adminCode)
+      .eq('id', eventId)
+      .maybeSingle();
+    if (!adminEvent) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
 
     // Fetch team + project + screenshots
     const [{ data: team }, { data: project }, { data: screenshots }] = await Promise.all([
