@@ -1,5 +1,7 @@
+import { HACKATHON_SCORE_CATEGORIES, type HackathonScoreCategoryKey } from '@/lib/hackathon-rubric';
+
 export interface CriterionConfig {
-  key: string;
+  key: HackathonScoreCategoryKey;
   label: string;
   weight: number; // 0–1, must sum to 1.0
   description: string;
@@ -42,8 +44,8 @@ export const DEFAULT_CRITERIA: CriterionConfig[] = [
   },
   {
     key: 'problem_solution_fit',
-    label: 'Problem–Solution Fit',
-    weight: 0.15,
+    label: 'Problem-Solution Fit',
+    weight: 0.20,
     description: 'Is this solving a real problem convincingly?',
     subQuestions: [
       'Is there a real, tangible need being addressed?',
@@ -54,7 +56,7 @@ export const DEFAULT_CRITERIA: CriterionConfig[] = [
   {
     key: 'ux_design',
     label: 'UX & Design',
-    weight: 0.10,
+    weight: 0.05,
     description: 'Visual polish and usability',
     subQuestions: [
       'Is there clear visual hierarchy and consistent design?',
@@ -84,18 +86,11 @@ export const DEFAULT_CRITERIA: CriterionConfig[] = [
   },
 ];
 
-// Map Pass 6 criteria → hackathon_scores 4-column format for apply funnel
-export function mapToHackathonScores(scores: { criteria_key: string; score: number }[]): {
-  innovation: number;
-  execution: number;
-  presentation: number;
-  ux_polish: number;
-} {
+// Map Pass 6 criteria into the persisted manual score columns.
+export function mapToHackathonScores(scores: { criteria_key: string; score: number }[]): Record<HackathonScoreCategoryKey, number> {
   const get = (key: string) => scores.find((s) => s.criteria_key === key)?.score ?? 0;
-  return {
-    innovation: Math.round(get('innovation')),
-    execution: Math.round((get('technical_execution') + get('functional_completeness')) / 2),
-    presentation: Math.round((get('demo_communication') + get('problem_solution_fit')) / 2),
-    ux_polish: Math.round(get('ux_design')),
-  };
+  return HACKATHON_SCORE_CATEGORIES.reduce((acc, category) => {
+    acc[category.key] = Math.round(get(category.key));
+    return acc;
+  }, {} as Record<HackathonScoreCategoryKey, number>);
 }

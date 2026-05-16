@@ -78,7 +78,7 @@ They do **not** see scores — only "Analysis complete — awaiting admin review
 
 **11. Review AI Scores**
 Each team card shows a full AI report: 7 criteria (Innovation, Technical Execution,
-Functional Completeness, Problem–Solution Fit, UX & Design, Demo & Communication,
+Functional Completeness, Problem-Solution Fit, UX & Design, Demo & Communication,
 Learning & Ambition), each with a score, reasoning, and confidence level.
 Also shows: most impressive aspect, concerns, suggested award categories.
 
@@ -159,8 +159,8 @@ Admin: Publish Top 3 → results go live for attendees
 | Innovation & Originality | 25% | How novel and surprising is the concept? |
 | Technical Execution | 20% | Cleverness and quality of the engineering |
 | Functional Completeness | 20% | Does the core loop actually work? |
-| Problem–Solution Fit | 15% | Is it solving a real problem convincingly? |
-| UX & Design | 10% | Visual polish and usability |
+| Problem-Solution Fit | 20% | Is it solving a real problem convincingly? |
+| UX & Design | 5% | Visual polish and usability |
 | Demo & Communication | 5% | How clearly is the project communicated? |
 | Learning & Ambition | 5% | Did the team stretch themselves? |
 

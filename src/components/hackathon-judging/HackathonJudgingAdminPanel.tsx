@@ -19,6 +19,7 @@ import {
   unpublishCompetitionJudgingResults,
 } from "@/lib/actions/competition-judging";
 import { cn } from "@/lib/utils";
+import { HACKATHON_SCORE_CATEGORIES } from "@/lib/hackathon-rubric";
 import type { CompetitionJudgingCompetition, HackathonTeamWithMembers } from "@/types";
 import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
 
@@ -56,7 +57,7 @@ function EntryAISummary({ repoUrl, teams, aiAnalyses }: {
 
   const pass6 = pass6Row?.result as Pass6Result | undefined;
 
-  const KEY_CRITERIA = ['innovation', 'technical_execution', 'functional_completeness', 'ux_design'];
+  const KEY_CRITERIA: string[] = HACKATHON_SCORE_CATEGORIES.map((criterion) => criterion.key);
 
   return (
     <div className="rounded-2xl border border-red-500/25 bg-red-500/[0.06] overflow-hidden">

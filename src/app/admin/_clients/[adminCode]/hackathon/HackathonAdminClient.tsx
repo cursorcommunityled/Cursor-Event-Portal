@@ -28,6 +28,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import {
+  HACKATHON_SCORE_CATEGORIES,
+  HACKATHON_SCORE_MAX,
+  calculateHackathonWeightedScore,
+  type HackathonScoreCategoryKey,
+} from "@/lib/hackathon-rubric";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore,
   HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingCompetition,
@@ -72,13 +78,6 @@ type SimonTodoConsoleApi = {
   reset: () => SimonTodoItem[];
 };
 type WindowWithSimonTodo = Window & { simonTodo?: SimonTodoConsoleApi };
-
-const SCORE_CATEGORIES = [
-  { key: "innovation" as const, label: "Innovation" },
-  { key: "execution" as const, label: "Execution" },
-  { key: "presentation" as const, label: "Presentation" },
-  { key: "ux_polish" as const, label: "UX / Polish" },
-];
 
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 
@@ -193,15 +192,15 @@ function buildScoreInputs(
   teams: HackathonTeamWithMembers[],
   scores: HackathonScore[],
   judgeId: string | null
-): Record<string, Record<string, number | null>> {
-  const init: Record<string, Record<string, number | null>> = {};
+): Record<string, Partial<Record<HackathonScoreCategoryKey, number | null>>> {
+  const init: Record<string, Partial<Record<HackathonScoreCategoryKey, number | null>>> = {};
   for (const team of teams) {
     const myScores = judgeId
       ? scores.filter((s) => s.team_id === team.id && s.judge_id === judgeId)
       : scores.filter((s) => s.team_id === team.id);
-    const merged: Record<string, number | null> = {};
+    const merged: Partial<Record<HackathonScoreCategoryKey, number | null>> = {};
     for (const s of myScores) {
-      for (const cat of SCORE_CATEGORIES) {
+      for (const cat of HACKATHON_SCORE_CATEGORIES) {
         if (s[cat.key] != null) merged[cat.key] = s[cat.key];
       }
     }
@@ -277,7 +276,7 @@ export function HackathonAdminClient({
   const [repoSubmissionBackups, setRepoSubmissionBackups] = useState(initialRepoSubmissionBackups);
 
   // Scoring state: { [teamId]: { [category]: score } }
-  const [scoreInputs, setScoreInputs] = useState<Record<string, Record<string, number | null>>>(() =>
+  const [scoreInputs, setScoreInputs] = useState<Record<string, Partial<Record<HackathonScoreCategoryKey, number | null>>>>(() =>
     buildScoreInputs(initialTeams, initialScores, adminUserId)
   );
   const [scoreNotes, setScoreNotes] = useState<Record<string, string>>(() =>
@@ -498,7 +497,7 @@ export function HackathonAdminClient({
 
   function totalScore(teamId: string): number {
     const cats = scoreInputs[teamId] ?? {};
-    return SCORE_CATEGORIES.reduce((sum, c) => sum + (cats[c.key] ?? 0), 0);
+    return calculateHackathonWeightedScore(cats);
   }
 
   const submittedTeams = teams.filter((team) => Boolean(team.project?.submitted_at));
@@ -1508,17 +1507,17 @@ export function HackathonAdminClient({
                       </p>
                     </div>
                     <div className="text-2xl font-black tabular-nums text-white drop-shadow-md shrink-0">
-                      {totalScore(team.id)}<span className="text-xs font-bold text-gray-500">/40</span>
+                      {totalScore(team.id)}<span className="text-xs font-bold text-gray-500">/{HACKATHON_SCORE_MAX}</span>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    {SCORE_CATEGORIES.map((cat) => (
+                    {HACKATHON_SCORE_CATEGORIES.map((cat) => (
                       <div key={cat.key} className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">{cat.label}</span>
                           <span className="text-[12px] font-bold tabular-nums text-white">
-                            {scoreInputs[team.id]?.[cat.key] ?? "—"}/10
+                            {scoreInputs[team.id]?.[cat.key] ?? "—"}/10 · {cat.weight}%
                           </span>
                         </div>
                         <input
@@ -1549,11 +1548,12 @@ export function HackathonAdminClient({
                     disabled={isPending}
                     onClick={() => startTransition(async () => {
                       const cats = scoreInputs[team.id] ?? {};
+                      const scorePayload: Partial<Record<HackathonScoreCategoryKey, number | null>> = {};
+                      for (const cat of HACKATHON_SCORE_CATEGORIES) {
+                        scorePayload[cat.key] = cats[cat.key] ?? null;
+                      }
                       const res = await saveHackathonScore(adminCode, team.id, {
-                        innovation: cats.innovation ?? null,
-                        execution: cats.execution ?? null,
-                        presentation: cats.presentation ?? null,
-                        ux_polish: cats.ux_polish ?? null,
+                        ...scorePayload,
                         notes: scoreNotes[team.id] || null,
                       });
                       showFeedback(res.error);

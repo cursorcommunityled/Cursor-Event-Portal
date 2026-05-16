@@ -3,62 +3,21 @@
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { HACKATHON_SCORE_CATEGORIES } from "@/lib/hackathon-rubric";
 import type {
   CompetitionEntry,
   CompetitionJudgingCriterion,
   CompetitionJudgingStanding,
 } from "@/types";
 
-export const DEFAULT_JUDGING_CRITERIA = [
-  {
-    slug: "innovation",
-    label: "Innovation & Originality",
-    description: "How novel, creative, or surprising is the project?",
-    max_points: 25,
-    weight: 25,
-    sort_order: 0,
-  },
-  {
-    slug: "technical-execution",
-    label: "Technical Execution",
-    description: "Quality and cleverness of the engineering.",
-    max_points: 20,
-    weight: 20,
-    sort_order: 1,
-  },
-  {
-    slug: "functional-completeness",
-    label: "Functional Completeness",
-    description: "Does the core loop work end to end?",
-    max_points: 20,
-    weight: 20,
-    sort_order: 2,
-  },
-  {
-    slug: "problem-solution-fit",
-    label: "Problem-Solution Fit",
-    description: "Does it solve a real problem convincingly?",
-    max_points: 15,
-    weight: 15,
-    sort_order: 3,
-  },
-  {
-    slug: "ux-design",
-    label: "UX & Design",
-    description: "Visual polish, usability, and clarity.",
-    max_points: 10,
-    weight: 10,
-    sort_order: 4,
-  },
-  {
-    slug: "demo-communication",
-    label: "Demo & Communication",
-    description: "How clearly is the project presented?",
-    max_points: 5,
-    weight: 5,
-    sort_order: 5,
-  },
-];
+export const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, index) => ({
+  slug: criterion.key.replace(/_/g, "-"),
+  label: criterion.label,
+  description: criterion.description,
+  max_points: criterion.weight,
+  weight: criterion.weight,
+  sort_order: index,
+}));
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
