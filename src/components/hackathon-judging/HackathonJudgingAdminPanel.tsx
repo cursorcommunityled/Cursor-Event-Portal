@@ -329,7 +329,7 @@ export function HackathonJudgingAdminPanel({
                   <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-400">
                     Finalist #{finalist.position + 1}
                   </p>
-                  <h4 className="text-2xl font-black tracking-tight text-white">{entry.title}</h4>
+                  <h4 className="text-2xl font-black tracking-tight text-amber-200">{entry.title}</h4>
                   <p className="text-[13px] font-medium text-gray-400">{entry.user?.name ?? "Unknown submitter"}</p>
                   {entry.description && <p className="text-[14px] font-medium text-gray-300 leading-relaxed mt-2 line-clamp-3">{entry.description}</p>}
                   <div className="flex flex-wrap gap-2 mt-3">

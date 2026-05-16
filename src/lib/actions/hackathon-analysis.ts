@@ -173,6 +173,7 @@ export async function pushTopAIToFinalRound(
     .from("hackathon_projects")
     .select("team_id, repo_url")
     .in("team_id", topTeamIds)
+    .not("submitted_at", "is", null)
     .not("repo_url", "is", null);
 
   const repoByTeam = new Map(

@@ -42,7 +42,7 @@ import type {
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
 import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
-import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
+import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
 
 type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
 type AudienceVoteSummary = { id: string; options: string[]; totalVotes: number };
@@ -50,6 +50,7 @@ type AudienceVoteSummary = { id: string; options: string[]; totalVotes: number }
 interface Props {
   event: Event;
   adminCode: string;
+  activeTab: Tab;
   initialSettings: HackathonSettings | null;
   initialTeams: HackathonTeamWithMembers[];
   initialScores: HackathonScore[];
@@ -80,6 +81,115 @@ type SimonTodoConsoleApi = {
 type WindowWithSimonTodo = Window & { simonTodo?: SimonTodoConsoleApi };
 
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
+
+function formatCriteriaLabel(criteriaKey: string) {
+  return HACKATHON_SCORE_CATEGORIES.find((criterion) => criterion.key === criteriaKey)?.label
+    ?? criteriaKey.replace(/_/g, " ");
+}
+
+function getCompletedPass6(analyses: HackathonAIAnalysis[]) {
+  const pass6Row = analyses.find((analysis) => (
+    analysis.pass_name === "pass6_synthesis" && analysis.status === "complete"
+  ));
+
+  return (pass6Row?.result as Pass6Result | null) ?? null;
+}
+
+function ScoreNotesTextarea({
+  noteId,
+  value,
+  onChange,
+  criteriaFeedback = [],
+}: {
+  noteId: string;
+  value: string;
+  onChange: (value: string) => void;
+  criteriaFeedback?: Pass6Result["criteria_scores"];
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
+  const trimmedValue = value.trim();
+  const hasPopupContent = Boolean(trimmedValue || criteriaFeedback.length > 0);
+  const isOpen = hasPopupContent && (isHovered || isPinned);
+  const popupId = `${noteId}-notes-popup`;
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {isOpen && (
+        <div
+          id={popupId}
+          role="dialog"
+          aria-label="Full judge note and criteria feedback"
+          className="absolute left-0 right-0 bottom-full z-50 mb-2 rounded-2xl border border-red-500/30 bg-zinc-950/95 p-4 text-left shadow-2xl shadow-red-950/40 backdrop-blur-xl"
+        >
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-red-300">Judge Feedback</p>
+            {isPinned && (
+              <button
+                type="button"
+                onClick={() => setIsPinned(false)}
+                className="rounded-full p-1 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Close note popup"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="max-h-80 space-y-3 overflow-y-auto pr-1">
+            {trimmedValue && (
+              <p className="whitespace-pre-wrap text-[13px] font-medium leading-relaxed text-white">
+                {trimmedValue}
+              </p>
+            )}
+
+            {criteriaFeedback.length > 0 && (
+              <div className="space-y-2 border-t border-white/10 pt-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                  Criteria Feedback
+                </p>
+                {criteriaFeedback.map((criterion) => (
+                  <div key={criterion.criteria_key} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-300">
+                        {formatCriteriaLabel(criterion.criteria_key)}
+                      </p>
+                      <span className="shrink-0 text-[11px] font-black tabular-nums text-white">
+                        {criterion.score.toFixed(1)}/10
+                      </span>
+                    </div>
+                    <p className="text-[12px] font-medium leading-relaxed text-gray-400">
+                      {criterion.reasoning}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {!isPinned && (
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+              Click the note to keep this open
+            </p>
+          )}
+        </div>
+      )}
+
+      <textarea
+        placeholder="Judge notes..."
+        rows={2}
+        value={value}
+        aria-describedby={isOpen ? popupId : undefined}
+        onClick={() => setIsPinned(hasPopupContent)}
+        onFocus={() => setIsPinned(hasPopupContent)}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[13px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 resize-none transition-colors"
+      />
+    </div>
+  );
+}
 
 const DEFAULT_SIMON_TODO_ITEMS: SimonTodoItem[] = [
   {
@@ -245,12 +355,12 @@ function buildRepoSubmissionMasterFile(backups: HackathonRepoSubmissionBackup[])
 }
 
 export function HackathonAdminClient({
-  event, adminCode, initialSettings, initialTeams, initialScores,
+  event, adminCode, activeTab: initialTab, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
   judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
 }: Props) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("settings");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [isPending, startTransition] = useTransition();
   const [isHackathon, setIsHackathon] = useState(event.is_hackathon);
   const [settings, setSettings] = useState(initialSettings);
@@ -317,9 +427,26 @@ export function HackathonAdminClient({
     router.refresh();
   }, [router]);
 
+  const updateUrlTab = useCallback((nextTab: Tab) => {
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("tab", nextTab);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+  }, []);
+
+  const selectTab = useCallback((nextTab: Tab) => {
+    setTab(nextTab);
+    updateUrlTab(nextTab);
+  }, [updateUrlTab]);
+
   useEffect(() => {
     setIsHackathon(event.is_hackathon);
   }, [event.is_hackathon]);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     setSettings(initialSettings);
@@ -677,7 +804,7 @@ export function HackathonAdminClient({
           {tabs.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => selectTab(t.id)}
               className={cn(
                 "relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
                 tab === t.id
@@ -1254,7 +1381,7 @@ export function HackathonAdminClient({
                   ))}
                 </div>
 
-                {team.project && (
+                {team.project?.submitted_at && (
                   <div className="border-t border-white/10 pt-4 space-y-2">
                     <p className="text-[14px] font-bold text-white">{team.project.name}</p>
                     {team.project.description && (
@@ -1536,12 +1663,11 @@ export function HackathonAdminClient({
                     ))}
                   </div>
 
-                  <textarea
-                    placeholder="Judge notes..."
-                    rows={2}
+                  <ScoreNotesTextarea
+                    noteId={`team-${team.id}`}
                     value={scoreNotes[team.id] ?? ""}
-                    onChange={(e) => setScoreNotes((prev) => ({ ...prev, [team.id]: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[13px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 resize-none transition-colors"
+                    onChange={(value) => setScoreNotes((prev) => ({ ...prev, [team.id]: value }))}
+                    criteriaFeedback={getCompletedPass6(aiAnalyses[team.id] ?? [])?.criteria_scores}
                   />
 
                   <button

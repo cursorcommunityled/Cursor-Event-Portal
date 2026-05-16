@@ -400,7 +400,8 @@ export async function createAudienceVotePoll(
         .from("hackathon_projects")
         .select("team_id, name")
         .eq("event_id", eventId)
-        .in("team_id", selectedTeamIds),
+        .in("team_id", selectedTeamIds)
+        .not("submitted_at", "is", null),
     ]);
 
     const teamMap = new Map((teams ?? []).map((team) => [team.id, team.name]));

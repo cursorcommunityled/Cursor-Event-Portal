@@ -13,13 +13,19 @@ import { HackathonAdminClient } from "@/app/admin/_clients/[adminCode]/hackathon
 
 interface Props {
   params: Promise<{ adminCode: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function HackathonAdminPage({ params }: Props) {
+const VALID_TABS = ["settings", "teams", "submissions", "scoring", "leaderboard", "judging", "chat"] as const;
+type Tab = typeof VALID_TABS[number];
+
+export default async function HackathonAdminPage({ params, searchParams }: Props) {
   const { adminCode } = await params;
+  const { tab } = await searchParams;
+  const activeTab: Tab = VALID_TABS.includes(tab as Tab) ? (tab as Tab) : "settings";
   const event = await getEventForAdmin(adminCode);
 
   await ensureDefaultChannels(event.id);
@@ -66,6 +72,7 @@ export default async function HackathonAdminPage({ params }: Props) {
     <HackathonAdminClient
       event={event}
       adminCode={adminCode}
+      activeTab={activeTab}
       initialSettings={settings}
       initialTeams={teams}
       initialScores={scores}

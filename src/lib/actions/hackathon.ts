@@ -29,6 +29,23 @@ function isFormationOpen(settings: HackathonSettings | null): boolean {
   return true;
 }
 
+const PROJECT_JUDGING_LOCK_BUFFER_MS = 5 * 60 * 1000;
+
+function getProjectSubmissionCutoff(settings: Pick<HackathonSettings, "submission_deadline" | "judging_starts_at"> | null): Date | null {
+  if (settings?.judging_starts_at) {
+    return new Date(new Date(settings.judging_starts_at).getTime() - PROJECT_JUDGING_LOCK_BUFFER_MS);
+  }
+  return settings?.submission_deadline ? new Date(settings.submission_deadline) : null;
+}
+
+function isProjectSubmissionOpen(
+  settings: Pick<HackathonSettings, "submission_deadline" | "judging_starts_at"> | null,
+  now = new Date()
+): boolean {
+  const cutoff = getProjectSubmissionCutoff(settings);
+  return !cutoff || now < cutoff;
+}
+
 async function saveRepoSubmissionBackup(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
   data: {
@@ -946,7 +963,7 @@ export async function dissolveTeam(
   return { success: true, dissolvedByName: dissolvedBy?.name ?? "Someone", teamName: team.name };
 }
 
-// ─── Attendee: submit / update project ────────────────────────────────────────
+// ─── Attendee: submit / cancel project ────────────────────────────────────────
 
 export async function submitHackathonProject(
   teamId: string,
@@ -989,15 +1006,15 @@ export async function submitHackathonProject(
 
   if (!membership) return { error: "You are not on this team" };
 
-  // Enforce submission deadline and min team size
+  // Enforce submission cutoff and min team size
   const { data: settings } = await supabase
     .from("hackathon_settings")
-    .select("submission_deadline, min_team_size")
+    .select("submission_deadline, judging_starts_at, min_team_size")
     .eq("event_id", eventId)
     .maybeSingle();
 
-  if (settings?.submission_deadline && new Date(settings.submission_deadline) < new Date()) {
-    return { error: "The submission deadline has passed" };
+  if (!isProjectSubmissionOpen(settings as Pick<HackathonSettings, "submission_deadline" | "judging_starts_at"> | null)) {
+    return { error: "Project submissions are locked for judging" };
   }
 
   if (settings?.min_team_size && settings.min_team_size > 1) {
@@ -1010,22 +1027,60 @@ export async function submitHackathonProject(
     }
   }
 
-  const now = new Date().toISOString();
-  const { error } = await supabase
+  const { data: existingProject, error: existingProjectError } = await supabase
     .from("hackathon_projects")
-    .upsert(
-      {
-        team_id: teamId,
-        event_id: eventId,
-        name: projectName,
-        description,
-        repo_url: repoUrl,
-        demo_url: demoUrl,
-        submitted_at: now,
-        updated_at: now,
-      },
-      { onConflict: "team_id" }
-    );
+    .select("id, submitted_at")
+    .eq("team_id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (existingProjectError) return { error: existingProjectError.message };
+
+  if (existingProject?.submitted_at) {
+    return { error: "This team already has a submitted project. Cancel it before submitting changes." };
+  }
+
+  const now = new Date().toISOString();
+  const payload = {
+    team_id: teamId,
+    event_id: eventId,
+    name: projectName,
+    description,
+    repo_url: repoUrl,
+    demo_url: demoUrl,
+    submitted_at: now,
+    updated_at: now,
+  };
+
+  const { error } = existingProject
+    ? await supabase
+        .from("hackathon_projects")
+        .update(payload)
+        .eq("id", existingProject.id)
+        .is("submitted_at", null)
+    : await supabase
+        .from("hackathon_projects")
+        .insert({
+          ...payload,
+          created_at: now,
+        });
+
+  if (error?.code === "23505") {
+    return { error: "This team already has a submitted project. Refresh to see the latest submission." };
+  }
+
+  if (!error && existingProject) {
+    const { data: savedProject } = await supabase
+      .from("hackathon_projects")
+      .select("id")
+      .eq("id", existingProject.id)
+      .eq("submitted_at", now)
+      .maybeSingle();
+
+    if (!savedProject) {
+      return { error: "This team already has a submitted project. Refresh to see the latest submission." };
+    }
+  }
 
   const backup = repoUrl
     ? await saveRepoSubmissionBackup(supabase, {
@@ -1056,6 +1111,72 @@ export async function submitHackathonProject(
 
     return { error: error.message };
   }
+
+  const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
+  return { success: true };
+}
+
+export async function cancelHackathonProjectSubmission(
+  teamId: string,
+  eventId: string
+): Promise<{ success?: true; error?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+
+  const { data: membership } = await supabase
+    .from("hackathon_team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (!membership) return { error: "You are not on this team" };
+
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("id, event_id")
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!team) return { error: "Team not found" };
+
+  const { data: settings } = await supabase
+    .from("hackathon_settings")
+    .select("submission_deadline, judging_starts_at")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!isProjectSubmissionOpen(settings as Pick<HackathonSettings, "submission_deadline" | "judging_starts_at"> | null)) {
+    return { error: "Project submissions can no longer be cancelled because judging is about to begin" };
+  }
+
+  const { data: project, error: projectError } = await supabase
+    .from("hackathon_projects")
+    .select("id, submitted_at")
+    .eq("team_id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (projectError) return { error: projectError.message };
+  if (!project?.submitted_at) return { error: "There is no submitted project to cancel" };
+
+  const { data: cancelledProject, error } = await supabase
+    .from("hackathon_projects")
+    .update({
+      submitted_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", project.id)
+    .eq("submitted_at", project.submitted_at)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!cancelledProject) return { error: "This submission has already changed. Refresh to see the latest project status." };
 
   const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
   if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);

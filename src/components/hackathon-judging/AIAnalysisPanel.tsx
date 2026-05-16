@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { triggerAnalysis, applyAIScores } from "@/lib/actions/hackathon-analysis";
+import { createClient } from "@/lib/supabase/client";
 import {
   Cpu, ChevronDown, ChevronUp, Check, AlertCircle, Loader2,
-  Sparkles, Star, TrendingUp, Eye, Users, MessageSquare, Lightbulb,
+  Star, TrendingUp, Eye, Users, MessageSquare, Lightbulb,
 } from "lucide-react";
 import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 import type { Pass6Result } from "@/lib/hackathon-analysis/types";
@@ -27,6 +28,25 @@ const PASS_ORDER = [
   "pass5_pool",
   "pass6_synthesis",
 ] as const;
+
+const PASS_INDEX = new Map(PASS_ORDER.map((passName, index) => [passName, index]));
+
+function sortAnalyses(analyses: HackathonAIAnalysis[]) {
+  return [...analyses].sort(
+    (a, b) => (PASS_INDEX.get(a.pass_name) ?? 99) - (PASS_INDEX.get(b.pass_name) ?? 99)
+  );
+}
+
+function upsertAnalyses(
+  current: HackathonAIAnalysis[],
+  incoming: HackathonAIAnalysis[]
+) {
+  const next = new Map(current.map((analysis) => [analysis.pass_name, analysis]));
+  for (const analysis of incoming) {
+    next.set(analysis.pass_name, analysis);
+  }
+  return sortAnalyses([...next.values()]);
+}
 
 const CRITERIA_ICONS: Record<string, React.ReactNode> = {
   innovation: <Lightbulb className="w-3.5 h-3.5" />,
@@ -70,6 +90,7 @@ interface Props {
 }
 
 export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses, hasRepo }: Props) {
+  const [liveAnalyses, setLiveAnalyses] = useState(() => sortAnalyses(analyses));
   const [expanded, setExpanded] = useState(false);
   const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -77,13 +98,61 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
   const [error, setError] = useState<string | null>(null);
   const [optimisticStarted, setOptimisticStarted] = useState(false);
 
-  const byPass = Object.fromEntries(analyses.map((a) => [a.pass_name, a])) as Partial<Record<(typeof PASS_ORDER)[number], HackathonAIAnalysis>>;
+  useEffect(() => {
+    if (analyses.length === 0) return;
+    setLiveAnalyses((prev) => upsertAnalyses(prev, analyses));
+  }, [analyses]);
+
+  const fetchAnalyses = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("hackathon_ai_analyses")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("event_id", eventId)
+      .order("pass_name");
+
+    if (data) setLiveAnalyses(sortAnalyses(data as HackathonAIAnalysis[]));
+  }, [eventId, teamId]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`hackathon-ai-panel-${teamId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hackathon_ai_analyses", filter: `team_id=eq.${teamId}` },
+        (payload) => {
+          const row = payload.new as HackathonAIAnalysis | null;
+          if (!row || row.event_id !== eventId) return;
+          setLiveAnalyses((prev) => upsertAnalyses(prev, [row]));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, teamId]);
+
+  const byPass = Object.fromEntries(liveAnalyses.map((a) => [a.pass_name, a])) as Partial<Record<(typeof PASS_ORDER)[number], HackathonAIAnalysis>>;
   const pass6 = byPass["pass6_synthesis"]?.result as Pass6Result | undefined;
-  const isRunning = analyses.some((a) => a.status === "running");
-  const hasAnalysisError = analyses.some((a) => a.status === "error");
+  const isRunning = liveAnalyses.some((a) => a.status === "running");
+  const hasAnalysisError = liveAnalyses.some((a) => a.status === "error");
   const allDone = PASS_ORDER
     .every((p) => byPass[p]?.status === "complete");
-  const hasStarted = analyses.length > 0 || optimisticStarted;
+  const hasStarted = liveAnalyses.length > 0 || optimisticStarted;
+
+  useEffect(() => {
+    if (!hasStarted || allDone || hasAnalysisError) return;
+
+    void fetchAnalyses();
+    const interval = window.setInterval(() => {
+      void fetchAnalyses();
+    }, 2500);
+
+    return () => window.clearInterval(interval);
+  }, [allDone, fetchAnalyses, hasAnalysisError, hasStarted]);
 
   const completedCount = Object.values(byPass).filter((a) => a.status === "complete").length;
   const runningPass = PASS_ORDER.find((p) => byPass[p]?.status === "running");
@@ -101,13 +170,12 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
 
   const startAnalysisRun = () => {
     setError(null);
+    setOptimisticStarted(true);
     startTransition(async () => {
       const res = await triggerAnalysis(teamId, eventId, adminCode);
       if (res.error) {
         setOptimisticStarted(false);
         setError(res.error);
-      } else {
-        setOptimisticStarted(true);
       }
     });
   };
@@ -154,7 +222,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/40 bg-red-500/20 text-red-200 hover:bg-red-500/30 hover:border-red-500/60 transition-all disabled:opacity-40 shadow-neon"
               title={!hasRepo ? "Team must submit a repo URL first" : undefined}
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <Cpu className="w-3.5 h-3.5" />
               {isPending ? "Starting…" : "Analyze"}
             </button>
           )}
