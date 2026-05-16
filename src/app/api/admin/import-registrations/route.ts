@@ -80,10 +80,73 @@ export async function POST(request: NextRequest) {
 
     let imported = 0;
     let skipped = 0;
+    let profilesUpdated = 0;
     const errors: string[] = [];
 
+    const saveHackathonProfile = async (
+      userId: string,
+      attendee: {
+        email: string;
+        occupation?: string;
+        is_technical?: boolean;
+        unique_skill?: string;
+        linkedin_url?: string;
+        needs_team?: boolean;
+        accessibility?: string;
+      }
+    ) => {
+      const hasSurveyData =
+        attendee.occupation ||
+        attendee.is_technical !== undefined ||
+        attendee.unique_skill ||
+        attendee.linkedin_url ||
+        attendee.needs_team !== undefined ||
+        attendee.accessibility;
+
+      if (!hasSurveyData) return;
+
+      const { error } = await supabase.from("hackathon_profiles").upsert(
+        {
+          user_id: userId,
+          event_id: eventId,
+          occupation: attendee.occupation ?? null,
+          is_technical: attendee.is_technical ?? null,
+          unique_skill: attendee.unique_skill ?? null,
+          linkedin_url: attendee.linkedin_url ?? null,
+          needs_team: attendee.needs_team ?? false,
+          accessibility: attendee.accessibility ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,event_id" }
+      );
+
+      if (error) {
+        errors.push(`Failed to save profile for ${attendee.email}: ${error.message}`);
+      } else {
+        profilesUpdated++;
+      }
+    };
+
     for (const attendee of attendees) {
-      const { name, email } = attendee;
+      const {
+        name,
+        email,
+        occupation,
+        is_technical,
+        unique_skill,
+        linkedin_url,
+        needs_team,
+        accessibility,
+      } = attendee as {
+        name: string;
+        email: string;
+        occupation?: string;
+        is_technical?: boolean;
+        unique_skill?: string;
+        linkedin_url?: string;
+        needs_team?: boolean;
+        accessibility?: string;
+      };
 
       if (!name || !email) {
         errors.push(`Invalid attendee data: ${JSON.stringify(attendee)}`);
@@ -123,6 +186,16 @@ export async function POST(request: NextRequest) {
         userId = newUser.id;
       }
 
+      await saveHackathonProfile(userId, {
+        email: normalizedEmail,
+        occupation,
+        is_technical,
+        unique_skill,
+        linkedin_url,
+        needs_team,
+        accessibility,
+      });
+
       // Check if registration already exists
       const { data: existingReg } = await supabase
         .from("registrations")
@@ -154,6 +227,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       imported,
       skipped,
+      profilesUpdated,
       errors: errors.slice(0, 10), // Limit errors returned
     });
   } catch (error) {

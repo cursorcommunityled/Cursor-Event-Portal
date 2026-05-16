@@ -43,6 +43,7 @@ interface Props {
   initialChannelId: string;
   chatMembers: ChatMember[];
   publishedJudgingResults: CompetitionJudgingResult[];
+  needsTeam?: boolean;
   initialScreenshots?: { id: string; file_url: string }[];
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
 }
@@ -106,7 +107,7 @@ export function HackathonClient({
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
-  publishedJudgingResults, initialScreenshots = [], initialTeamAnalyses = [],
+  publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -496,6 +497,7 @@ export function HackathonClient({
           initialChannelId={initialChannelId}
           members={chatMembers}
           myTeamId={myTeam?.id ?? null}
+          needsTeam={needsTeam}
         />
       </main>
     );

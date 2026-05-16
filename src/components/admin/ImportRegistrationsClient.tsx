@@ -1,17 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Upload,
-  FileSpreadsheet,
   CheckCircle2,
   XCircle,
-  Loader2,
-  Users,
 } from "lucide-react";
 
 interface ImportRegistrationsClientProps {
@@ -25,6 +19,12 @@ interface ParsedAttendee {
   name: string;
   email: string;
   status: "new" | "existing" | "invalid";
+  occupation?: string;
+  is_technical?: boolean;
+  unique_skill?: string;
+  linkedin_url?: string;
+  needs_team?: boolean;
+  accessibility?: string;
 }
 
 export function ImportRegistrationsClient({
@@ -40,10 +40,14 @@ export function ImportRegistrationsClient({
   const [result, setResult] = useState<{
     success: number;
     skipped: number;
+    profilesUpdated: number;
     errors: string[];
   } | null>(null);
 
-  const existingSet = new Set(existingEmails.map((e) => e.toLowerCase()));
+  const existingSet = useMemo(
+    () => new Set(existingEmails.map((e) => e.toLowerCase())),
+    [existingEmails]
+  );
 
   // Parse Luma CSV/TSV format (handles both comma and tab delimiters)
   const parseCSV = useCallback(
@@ -69,6 +73,26 @@ export function ImportRegistrationsClient({
       const lastNameIdx = headers.findIndex((h) => h === "last_name" || h === "last name");
       const emailIdx = headers.findIndex(
         (h) => h === "email" || h === "attendee email" || h === "email address"
+      );
+      const occupationIdx = headers.findIndex((h) => h.includes("occupation"));
+      const technicalIdx = headers.findIndex((h) => h.includes("technical"));
+      const skillIdx = headers.findIndex(
+        (h) =>
+          h.includes("unique thing") ||
+          h.includes("teach someone") ||
+          h.includes("pair you up")
+      );
+      const linkedinIdx = headers.findIndex((h) => h.includes("linkedin"));
+      const needsTeamIdx = headers.findIndex(
+        (h) =>
+          (h.includes("help") && h.includes("team")) ||
+          h.includes("matched with a team")
+      );
+      const accessibilityIdx = headers.findIndex(
+        (h) =>
+          h.includes("accessibility") ||
+          h.includes("accommodations") ||
+          h.includes("special requests")
       );
 
       if (emailIdx === -1) {
@@ -107,7 +131,10 @@ export function ImportRegistrationsClient({
           values.push(current.trim());
         }
 
-        const email = values[emailIdx]?.replace(/"/g, "").toLowerCase().trim();
+        const cleanValue = (index: number) =>
+          index >= 0 ? values[index]?.replace(/^"|"$/g, "").trim() || undefined : undefined;
+
+        const email = cleanValue(emailIdx)?.toLowerCase();
 
         // Build name: prefer "name" column, fall back to first_name + last_name
         let name = "";
@@ -131,7 +158,26 @@ export function ImportRegistrationsClient({
           ? "existing"
           : "new";
 
-        attendees.push({ name, email, status });
+        const technicalRaw = cleanValue(technicalIdx)?.toLowerCase();
+        const needsTeamRaw = cleanValue(needsTeamIdx)?.toLowerCase();
+
+        attendees.push({
+          name,
+          email,
+          status,
+          occupation: cleanValue(occupationIdx),
+          is_technical: technicalRaw
+            ? technicalRaw.includes("non")
+              ? false
+              : technicalRaw.includes("technical")
+                ? true
+                : undefined
+            : undefined,
+          unique_skill: cleanValue(skillIdx),
+          linkedin_url: cleanValue(linkedinIdx),
+          needs_team: needsTeamRaw ? needsTeamRaw.includes("yes") : undefined,
+          accessibility: cleanValue(accessibilityIdx),
+        });
       }
 
       setParsed(attendees);
@@ -158,7 +204,7 @@ export function ImportRegistrationsClient({
   };
 
   const handleImport = async () => {
-    const toImport = parsed.filter((a) => a.status === "new");
+    const toImport = parsed.filter((a) => a.status === "new" || a.status === "existing");
     if (toImport.length === 0) return;
 
     setImporting(true);
@@ -176,7 +222,16 @@ export function ImportRegistrationsClient({
         },
         body: JSON.stringify({
           eventId,
-          attendees: toImport.map((a) => ({ name: a.name, email: a.email })),
+          attendees: toImport.map((a) => ({
+            name: a.name,
+            email: a.email,
+            occupation: a.occupation,
+            is_technical: a.is_technical,
+            unique_skill: a.unique_skill,
+            linkedin_url: a.linkedin_url,
+            needs_team: a.needs_team,
+            accessibility: a.accessibility,
+          })),
         }),
       });
 
@@ -186,12 +241,14 @@ export function ImportRegistrationsClient({
         setResult({
           success: 0,
           skipped: toImport.length,
+          profilesUpdated: 0,
           errors: [data.error || "Import failed"],
         });
       } else {
         setResult({
           success: data.imported || 0,
           skipped: data.skipped || 0,
+          profilesUpdated: data.profilesUpdated || 0,
           errors: data.errors || [],
         });
 
@@ -204,6 +261,7 @@ export function ImportRegistrationsClient({
       setResult({
         success: 0,
         skipped: toImport.length,
+        profilesUpdated: 0,
         errors: ["Network error - please try again"],
       });
     } finally {
@@ -213,6 +271,17 @@ export function ImportRegistrationsClient({
 
   const newCount = parsed.filter((a) => a.status === "new").length;
   const existingCount = parsed.filter((a) => a.status === "existing").length;
+  const importableCount = newCount + existingCount;
+  const needsTeamCount = parsed.filter((a) => a.needs_team === true).length;
+  const hasSurveyData = parsed.some(
+    (a) =>
+      a.occupation ||
+      a.is_technical !== undefined ||
+      a.unique_skill ||
+      a.linkedin_url ||
+      a.needs_team !== undefined ||
+      a.accessibility
+  );
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -267,6 +336,12 @@ export function ImportRegistrationsClient({
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                 <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-500">{existingCount} Existing</span>
               </div>
+              {needsTeamCount > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]" />
+                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-purple-400">{needsTeamCount} Need Team</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -277,6 +352,9 @@ export function ImportRegistrationsClient({
                   <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Signal</th>
                   <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Identity</th>
                   <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Contact</th>
+                  {hasSurveyData && (
+                    <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Profile</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
@@ -291,6 +369,26 @@ export function ImportRegistrationsClient({
                     </td>
                     <td className="py-4 text-sm font-light tracking-tight text-white/90">{attendee.name}</td>
                     <td className="py-4 text-[10px] font-medium tracking-[0.1em] text-gray-700 uppercase">{attendee.email}</td>
+                    {hasSurveyData && (
+                      <td className="py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {attendee.is_technical !== undefined && (
+                            <span className={`text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
+                              attendee.is_technical
+                                ? "text-blue-400 bg-blue-500/5 border-blue-500/15"
+                                : "text-orange-400 bg-orange-500/5 border-orange-500/15"
+                            }`}>
+                              {attendee.is_technical ? "Tech" : "Non-Tech"}
+                            </span>
+                          )}
+                          {attendee.needs_team && (
+                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border text-purple-400 bg-purple-500/5 border-purple-500/15">
+                              Needs Team
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -302,18 +400,18 @@ export function ImportRegistrationsClient({
       {/* Import Result */}
       {result && (
         <div className={`glass rounded-[32px] p-8 border ${
-          result.success > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-red-500/20 bg-red-500/5"
+          result.success > 0 || result.profilesUpdated > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-red-500/20 bg-red-500/5"
         }`}>
           <div className="flex items-start gap-6">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-              result.success > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+              result.success > 0 || result.profilesUpdated > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
             }`}>
-              {result.success > 0 ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
+              {result.success > 0 || result.profilesUpdated > 0 ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
             </div>
             <div className="space-y-2">
               <p className="text-lg font-light tracking-tight">
-                {result.success > 0
-                  ? `Successfully synchronized ${result.success} identities`
+                {result.success > 0 || result.profilesUpdated > 0
+                  ? `Successfully synchronized ${result.success} identities and ${result.profilesUpdated} profiles`
                   : "Synchronization failed"}
               </p>
               {result.skipped > 0 && (
@@ -337,9 +435,9 @@ export function ImportRegistrationsClient({
       <div className="flex gap-6">
         <button
           onClick={handleImport}
-          disabled={newCount === 0 || importing}
+          disabled={importableCount === 0 || importing}
           className={`flex-1 h-16 rounded-full font-bold uppercase tracking-[0.2em] text-[10px] transition-all flex items-center justify-center gap-3 ${
-            newCount === 0 || importing
+            importableCount === 0 || importing
               ? "bg-white/5 text-white/10 cursor-not-allowed"
               : "bg-white text-black hover:scale-[1.02] shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
           }`}
@@ -349,7 +447,7 @@ export function ImportRegistrationsClient({
           ) : (
             <>
               <Upload className="w-3.5 h-3.5" />
-              Ingest {newCount} Identities
+              Ingest {importableCount} Identities
             </>
           )}
         </button>

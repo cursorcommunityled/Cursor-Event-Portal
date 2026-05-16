@@ -25,6 +25,12 @@ interface ParsedAttendee {
   name: string;
   email: string;
   status: "new" | "existing" | "invalid";
+  occupation?: string;
+  is_technical?: boolean;
+  unique_skill?: string;
+  linkedin_url?: string;
+  needs_team?: boolean;
+  accessibility?: string;
 }
 
 export function ImportRegistrationsClient({
@@ -70,6 +76,14 @@ export function ImportRegistrationsClient({
       const emailIdx = headers.findIndex(
         (h) => h === "email" || h === "attendee email" || h === "email address"
       );
+
+      // Survey column detection (partial matching for long Luma headers)
+      const occupationIdx = headers.findIndex((h) => h.includes("occupation") || h.includes("current occupation"));
+      const technicalIdx = headers.findIndex((h) => h.includes("technical or non-technical") || h.includes("are you technical"));
+      const skillIdx = headers.findIndex((h) => h.includes("unique thing") || h.includes("teach someone") || h.includes("pair you up"));
+      const linkedinIdx = headers.findIndex((h) => h.includes("linkedin"));
+      const needsTeamIdx = headers.findIndex((h) => h.includes("need help") && h.includes("team") || h.includes("matched with a team"));
+      const accessibilityIdx = headers.findIndex((h) => h.includes("accessibility") || h.includes("accommodations") || h.includes("special requests"));
 
       if (emailIdx === -1) {
         // Try to find email column by content pattern
@@ -131,7 +145,23 @@ export function ImportRegistrationsClient({
           ? "existing"
           : "new";
 
-        attendees.push({ name, email, status });
+        // Parse survey fields
+        const technicalRaw = technicalIdx >= 0 ? values[technicalIdx]?.trim().toLowerCase() : "";
+        const needsTeamRaw = needsTeamIdx >= 0 ? values[needsTeamIdx]?.trim().toLowerCase() : "";
+
+        attendees.push({
+          name,
+          email,
+          status,
+          occupation: occupationIdx >= 0 ? values[occupationIdx]?.trim() || undefined : undefined,
+          is_technical: technicalRaw
+            ? technicalRaw.includes("non") ? false : technicalRaw.includes("technical") ? true : undefined
+            : undefined,
+          unique_skill: skillIdx >= 0 ? values[skillIdx]?.trim() || undefined : undefined,
+          linkedin_url: linkedinIdx >= 0 ? values[linkedinIdx]?.trim() || undefined : undefined,
+          needs_team: needsTeamRaw ? needsTeamRaw.includes("yes") : undefined,
+          accessibility: accessibilityIdx >= 0 ? values[accessibilityIdx]?.trim() || undefined : undefined,
+        });
       }
 
       setParsed(attendees);
@@ -175,7 +205,16 @@ export function ImportRegistrationsClient({
         headers,
         body: JSON.stringify({
           eventId,
-          attendees: toImport.map((a) => ({ name: a.name, email: a.email })),
+          attendees: toImport.map((a) => ({
+            name: a.name,
+            email: a.email,
+            occupation: a.occupation,
+            is_technical: a.is_technical,
+            unique_skill: a.unique_skill,
+            linkedin_url: a.linkedin_url,
+            needs_team: a.needs_team,
+            accessibility: a.accessibility,
+          })),
         }),
       });
 
@@ -212,6 +251,8 @@ export function ImportRegistrationsClient({
 
   const newCount = parsed.filter((a) => a.status === "new").length;
   const existingCount = parsed.filter((a) => a.status === "existing").length;
+  const needsTeamCount = parsed.filter((a) => a.needs_team === true).length;
+  const hasSurveyData = parsed.some((a) => a.occupation || a.is_technical !== undefined || a.unique_skill);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -266,6 +307,12 @@ export function ImportRegistrationsClient({
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
                 <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-amber-500">{existingCount} Existing</span>
               </div>
+              {needsTeamCount > 0 && (
+                <div className="flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]" />
+                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-purple-400">{needsTeamCount} Need Team</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -276,6 +323,9 @@ export function ImportRegistrationsClient({
                   <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Signal</th>
                   <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Identity</th>
                   <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Contact</th>
+                  {hasSurveyData && (
+                    <th className="pb-6 text-[10px] uppercase tracking-[0.3em] text-gray-800 font-medium">Profile</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
@@ -290,6 +340,26 @@ export function ImportRegistrationsClient({
                     </td>
                     <td className="py-4 text-sm font-light tracking-tight text-white/90">{attendee.name}</td>
                     <td className="py-4 text-[10px] font-medium tracking-[0.1em] text-gray-700 uppercase">{attendee.email}</td>
+                    {hasSurveyData && (
+                      <td className="py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {attendee.is_technical !== undefined && (
+                            <span className={`text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
+                              attendee.is_technical
+                                ? "text-blue-400 bg-blue-500/5 border-blue-500/15"
+                                : "text-orange-400 bg-orange-500/5 border-orange-500/15"
+                            }`}>
+                              {attendee.is_technical ? "Tech" : "Non-Tech"}
+                            </span>
+                          )}
+                          {attendee.needs_team && (
+                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border text-purple-400 bg-purple-500/5 border-purple-500/15">
+                              Needs Team
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

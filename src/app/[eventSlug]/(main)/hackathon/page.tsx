@@ -73,6 +73,12 @@ export default async function HackathonPage({ params }: Props) {
 
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
+  const { data: hackathonProfile } = await _supa
+    .from("hackathon_profiles")
+    .select("needs_team")
+    .eq("event_id", event.id)
+    .eq("user_id", session.userId)
+    .maybeSingle();
 
   // Chat: get channels visible to this user (general + their team channel)
   const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null, session.userId);
@@ -105,6 +111,7 @@ export default async function HackathonPage({ params }: Props) {
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
       publishedJudgingResults={judgingResults}
+      needsTeam={hackathonProfile?.needs_team === true}
       initialScreenshots={initialScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
     />
