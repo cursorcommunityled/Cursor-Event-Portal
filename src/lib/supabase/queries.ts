@@ -2089,7 +2089,9 @@ export async function getHackathonTeamsWithMembers(eventId: string): Promise<Hac
     console.error("[getHackathonTeamsWithMembers] Error:", error);
     return [];
   }
-  const teams = ((data ?? []) as unknown as HackathonTeamWithMembers[]).map(normalizeHackathonTeam);
+  const teams = ((data ?? []) as unknown as HackathonTeamWithMembers[])
+    .filter((team) => team.category !== "pending_invite")
+    .map(normalizeHackathonTeam);
   return attachHackathonTeamIconPhotos(supabase, teams);
 }
 

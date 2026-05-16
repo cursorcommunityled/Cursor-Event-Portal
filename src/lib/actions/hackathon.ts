@@ -350,8 +350,10 @@ export async function adminDissolveTeam(
   return { success: true };
 }
 
+const PENDING_INVITE_TEAM_CATEGORY = "pending_invite";
+
 // ─── Attendee: send team invite ────────────────────────────────────────────────
-// If teamName is provided and user has no team, creates the team first.
+// If teamName is provided and user has no team, creates a hidden pending team.
 
 export async function sendTeamInvite(
   eventId: string,
@@ -402,8 +404,20 @@ export async function sendTeamInvite(
 
   if (existingMembership) return { error: "That person is already on a team" };
 
+  const { data: existingInviteFromMe } = await supabase
+    .from("hackathon_team_invites")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("invited_by", userId)
+    .eq("invited_user_id", invitedUserId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (existingInviteFromMe) return { error: "Invite already sent" };
+
   // Find or create my team
   let teamId: string;
+  let createdPendingTeam = false;
 
   // Two-step: get event teams → find my membership
   const { data: eventTeamRows } = await supabase
@@ -426,27 +440,23 @@ export async function sendTeamInvite(
   if (myMembership) {
     teamId = myMembership.team_id;
   } else {
-    // Need to create a team
+    // Create a hidden pending team. It becomes a real team only after the invitee accepts.
     if (!teamName?.trim()) return { error: "Team name is required" };
 
     const { data: newTeam, error: teamError } = await supabase
       .from("hackathon_teams")
-      .insert({ event_id: eventId, name: teamName.trim(), created_by: userId })
+      .insert({
+        event_id: eventId,
+        name: teamName.trim(),
+        created_by: userId,
+        category: PENDING_INVITE_TEAM_CATEGORY,
+      })
       .select("id")
       .single();
 
     if (teamError || !newTeam) return { error: teamError?.message ?? "Failed to create team" };
     teamId = newTeam.id;
-
-    // Add creator as leader
-    await supabase.from("hackathon_team_members").insert({
-      team_id: teamId,
-      user_id: userId,
-      role: "leader",
-    });
-
-    // Auto-create private team chat channel
-    await ensureTeamChannel(eventId, teamId, teamName.trim());
+    createdPendingTeam = true;
   }
 
   // Check team size limit
@@ -494,7 +504,12 @@ export async function sendTeamInvite(
       status: "pending",
     });
 
-  if (inviteError) return { error: inviteError.message };
+  if (inviteError) {
+    if (createdPendingTeam) {
+      await supabase.from("hackathon_teams").delete().eq("id", teamId);
+    }
+    return { error: inviteError.message };
+  }
 
   // Create in-app notification for invited user
   const eventSlug = (await supabase.from("events").select("slug").eq("id", eventId).single()).data?.slug;
@@ -524,7 +539,7 @@ export async function acceptTeamInvite(
 
   const { data: invite } = await supabase
     .from("hackathon_team_invites")
-    .select("*, hackathon_teams(event_id, locked_at, name)")
+    .select("*, hackathon_teams(event_id, locked_at, name, category)")
     .eq("id", inviteId)
     .eq("invited_user_id", userId)
     .eq("status", "pending")
@@ -532,7 +547,12 @@ export async function acceptTeamInvite(
 
   if (!invite) return { error: "Invite not found" };
 
-  const team = invite.hackathon_teams as { event_id: string; locked_at: string | null; name: string } | null;
+  const team = invite.hackathon_teams as {
+    event_id: string;
+    locked_at: string | null;
+    name: string;
+    category: string | null;
+  } | null;
   if (!team) return { error: "Team not found" };
 
   const eventId = team.event_id;
@@ -565,6 +585,29 @@ export async function acceptTeamInvite(
 
   if (existing) return { error: "You are already on a team" };
 
+  const isPendingInviteTeam = team.category === PENDING_INVITE_TEAM_CATEGORY;
+
+  if (isPendingInviteTeam) {
+    const { data: inviterMembershipRows } = eventTeamCheckIds.length
+      ? await supabase
+          .from("hackathon_team_members")
+          .select("team_id")
+          .eq("user_id", invite.invited_by)
+          .in("team_id", eventTeamCheckIds)
+          .neq("team_id", invite.team_id)
+          .limit(1)
+      : { data: [] };
+    const inviterMembership = inviterMembershipRows?.[0] ?? null;
+
+    if (inviterMembership) {
+      await supabase
+        .from("hackathon_team_invites")
+        .update({ status: "declined", updated_at: new Date().toISOString() })
+        .eq("id", inviteId);
+      return { error: "The inviter is already on another team" };
+    }
+  }
+
   // Check team size
   const maxSize = (settings as HackathonSettings | null)?.max_team_size ?? 4;
   const { count } = await supabase
@@ -572,14 +615,32 @@ export async function acceptTeamInvite(
     .select("id", { count: "exact", head: true })
     .eq("team_id", invite.team_id);
 
-  if ((count ?? 0) >= maxSize) return { error: "Team is full" };
+  if (isPendingInviteTeam && maxSize < 2) return { error: "Team is full" };
+  if (!isPendingInviteTeam && (count ?? 0) >= maxSize) return { error: "Team is full" };
 
-  // Add member
+  // Activate pending teams only after the invitee accepts.
+  const memberRows = isPendingInviteTeam
+    ? [
+        { team_id: invite.team_id, user_id: invite.invited_by, role: "leader" },
+        { team_id: invite.team_id, user_id: userId, role: "member" },
+      ]
+    : [{ team_id: invite.team_id, user_id: userId, role: "member" }];
+
   const { error: memberError } = await supabase
     .from("hackathon_team_members")
-    .insert({ team_id: invite.team_id, user_id: userId, role: "member" });
-
+    .insert(memberRows);
   if (memberError) return { error: memberError.message };
+
+  if (isPendingInviteTeam) {
+    const { error: teamError } = await supabase
+      .from("hackathon_teams")
+      .update({ category: null, updated_at: new Date().toISOString() })
+      .eq("id", invite.team_id);
+
+    if (teamError) return { error: teamError.message };
+
+    await ensureTeamChannel(eventId, invite.team_id, team.name);
+  }
 
   // Mark invite accepted + decline other pending invites for this user in this event
   await supabase
@@ -595,6 +656,30 @@ export async function acceptTeamInvite(
     .eq("status", "pending")
     .neq("id", inviteId);
 
+  if (isPendingInviteTeam) {
+    const { data: pendingTeams } = await supabase
+      .from("hackathon_teams")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("created_by", invite.invited_by)
+      .eq("category", PENDING_INVITE_TEAM_CATEGORY)
+      .neq("id", invite.team_id);
+
+    const stalePendingTeamIds = (pendingTeams ?? []).map((row: { id: string }) => row.id);
+    if (stalePendingTeamIds.length > 0) {
+      await supabase
+        .from("hackathon_team_invites")
+        .update({ status: "declined", updated_at: new Date().toISOString() })
+        .in("team_id", stalePendingTeamIds)
+        .eq("status", "pending");
+
+      await supabase
+        .from("hackathon_teams")
+        .delete()
+        .in("id", stalePendingTeamIds);
+    }
+  }
+
   const eventSlug = (await supabase.from("events").select("slug").eq("id", eventId).single()).data?.slug;
   revalidatePath(`/${eventSlug}/hackathon`);
   return { success: true };
@@ -609,6 +694,14 @@ export async function declineTeamInvite(
   if (!session) return { error: "Not authenticated" };
 
   const supabase = await createServiceClient();
+  const { data: invite } = await supabase
+    .from("hackathon_team_invites")
+    .select("team_id, hackathon_teams(category)")
+    .eq("id", inviteId)
+    .eq("invited_user_id", session.userId)
+    .eq("status", "pending")
+    .maybeSingle();
+
   const { error } = await supabase
     .from("hackathon_team_invites")
     .update({ status: "declined", updated_at: new Date().toISOString() })
@@ -617,6 +710,12 @@ export async function declineTeamInvite(
     .eq("status", "pending");
 
   if (error) return { error: error.message };
+
+  const team = invite?.hackathon_teams as { category: string | null } | null | undefined;
+  if (invite?.team_id && team?.category === PENDING_INVITE_TEAM_CATEGORY) {
+    await supabase.from("hackathon_teams").delete().eq("id", invite.team_id);
+  }
+
   return { success: true };
 }
 
