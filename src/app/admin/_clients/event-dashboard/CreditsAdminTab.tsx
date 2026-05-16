@@ -44,6 +44,7 @@ export function CreditsAdminTab({
   creditAmount,
 }: CreditsAdminTabProps) {
   const [credits, setCredits] = useState<CursorCredit[]>(initialCredits);
+  const [creditsLoading, setCreditsLoading] = useState(initialCredits.length === 0);
   const [importOpen, setImportOpen] = useState(false);
   const [rawInput, setRawInput] = useState("");
   const [importMsg, setImportMsg] = useState<string | null>(null);
@@ -56,6 +57,23 @@ export function CreditsAdminTab({
   const [eggSaving, setEggSaving] = useState<string | null>(null);
   const [eggSaveMsg, setEggSaveMsg] = useState<Record<string, string>>({});
   const isEasterEvent = eventSlug === EASTER_EVENT_SLUG;
+
+  useEffect(() => {
+    let cancelled = false;
+    setCreditsLoading(true);
+
+    fetchCursorCredits(eventId)
+      .then((fresh) => {
+        if (!cancelled) setCredits(fresh);
+      })
+      .finally(() => {
+        if (!cancelled) setCreditsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId]);
 
   useEffect(() => {
     if (!isEasterEvent) {
@@ -355,7 +373,9 @@ export function CreditsAdminTab({
       {credits.length === 0 ? (
         <div className="glass rounded-3xl p-8 border border-white/10 text-center">
           <Gift className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">No codes imported yet.</p>
+          <p className="text-sm text-gray-500">
+            {creditsLoading ? "Loading codes..." : "No codes imported yet."}
+          </p>
         </div>
       ) : (
         <div className="glass rounded-3xl border border-white/10 overflow-hidden">
