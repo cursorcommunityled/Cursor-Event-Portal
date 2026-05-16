@@ -2061,6 +2061,33 @@ async function attachHackathonTeamIconPhotos(
   }));
 }
 
+async function attachHackathonInviteTeamIconPhotos(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  invites: HackathonTeamInvite[]
+): Promise<HackathonTeamInvite[]> {
+  const iconPhotoIds = invites
+    .map((invite) => invite.team?.icon_photo_id)
+    .filter((id): id is string => Boolean(id));
+
+  if (!iconPhotoIds.length) return invites;
+
+  const { data: photos } = await supabase
+    .from("event_photos")
+    .select("*")
+    .in("id", iconPhotoIds);
+
+  const photosById = new Map((photos ?? []).map((photo) => [photo.id, photo as EventPhoto]));
+  return invites.map((invite) => ({
+    ...invite,
+    team: invite.team
+      ? {
+          ...invite.team,
+          icon_photo: invite.team.icon_photo_id ? photosById.get(invite.team.icon_photo_id) ?? null : null,
+        }
+      : invite.team,
+  }));
+}
+
 export async function getHackathonSettings(eventId: string): Promise<HackathonSettings | null> {
   noStore();
   const supabase = await createServiceClient();
@@ -2143,7 +2170,7 @@ export async function getMyReceivedHackathonInvites(
   const supabase = await createServiceClient();
   const { data, error } = await supabase
     .from("hackathon_team_invites")
-    .select("*, team:hackathon_teams(id, name), inviter:users!hackathon_team_invites_invited_by_fkey(id, name)")
+    .select("*, team:hackathon_teams(id, name, icon_photo_id), inviter:users!hackathon_team_invites_invited_by_fkey(id, name)")
     .eq("event_id", eventId)
     .eq("invited_user_id", userId)
     .eq("status", "pending")
@@ -2152,7 +2179,7 @@ export async function getMyReceivedHackathonInvites(
     console.error("[getMyReceivedHackathonInvites] Error:", error);
     return [];
   }
-  return (data ?? []) as unknown as HackathonTeamInvite[];
+  return attachHackathonInviteTeamIconPhotos(supabase, (data ?? []) as unknown as HackathonTeamInvite[]);
 }
 
 export async function getMySentHackathonInviteUserIds(

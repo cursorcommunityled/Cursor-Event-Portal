@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     const { data: team } = await supabase
       .from("hackathon_teams")
-      .select("id, event_id, name")
+      .select("id, event_id, name, created_by, category")
       .eq("id", teamId)
       .eq("event_id", eventId)
       .single();
@@ -80,7 +80,10 @@ export async function POST(request: NextRequest) {
       .eq("user_id", session.userId)
       .limit(1);
 
-    if (!membership?.[0]) {
+    const canUploadAsPendingInviteCreator =
+      team.created_by === session.userId && team.category === "pending_invite";
+
+    if (!membership?.[0] && !canUploadAsPendingInviteCreator) {
       return NextResponse.json({ error: "You are not on this team" }, { status: 403 });
     }
 

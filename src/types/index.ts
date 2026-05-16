@@ -871,7 +871,7 @@ export interface HackathonTeamInvite {
   status: HackathonInviteStatus;
   created_at: string;
   updated_at: string;
-  team?: HackathonTeam;
+  team?: Pick<HackathonTeam, 'id' | 'name' | 'icon_photo_id'> & { icon_photo?: EventPhoto | null };
   inviter?: Pick<User, 'id' | 'name'>;
 }
 

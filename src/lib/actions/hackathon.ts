@@ -852,7 +852,7 @@ export async function leaveTeam(
 
 export async function dissolveTeam(
   teamId: string
-): Promise<{ success?: true; error?: string }> {
+): Promise<{ success?: true; error?: string; dissolvedByName?: string; teamName?: string }> {
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
@@ -860,7 +860,7 @@ export async function dissolveTeam(
 
   const { data: team } = await supabase
     .from("hackathon_teams")
-    .select("event_id")
+    .select("event_id, name")
     .eq("id", teamId)
     .maybeSingle();
 
@@ -886,6 +886,12 @@ export async function dissolveTeam(
 
   if (!membership) return { error: "You are not on this team" };
 
+  const { data: dissolvedBy } = await supabase
+    .from("users")
+    .select("name")
+    .eq("id", session.userId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("hackathon_teams")
     .delete()
@@ -896,7 +902,7 @@ export async function dissolveTeam(
 
   const { data: slugRow } = await supabase.from("events").select("slug").eq("id", team.event_id).maybeSingle();
   if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
-  return { success: true };
+  return { success: true, dissolvedByName: dissolvedBy?.name ?? "Someone", teamName: team.name };
 }
 
 // ─── Attendee: submit / update project ────────────────────────────────────────

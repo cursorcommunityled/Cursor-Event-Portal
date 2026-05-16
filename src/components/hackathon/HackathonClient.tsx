@@ -54,6 +54,20 @@ interface Props {
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
 
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
+const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
+function getTeamIconValidationError(file: File): string | null {
+  if (!TEAM_ICON_ALLOWED_TYPES.includes(file.type)) {
+    return "Only image files are supported (PNG, JPEG, WebP, GIF)";
+  }
+
+  if (file.size > TEAM_ICON_MAX_SIZE_BYTES) {
+    return "File size exceeds 10MB limit";
+  }
+
+  return null;
+}
 
 function isFormationOpen(settings: HackathonSettings | null): boolean {
   if (!settings) return true;
@@ -130,6 +144,9 @@ export function HackathonClient({
   // Invite modal
   const [inviteTarget, setInviteTarget] = useState<{ id: string; name: string } | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
+  const [inviteLogoFile, setInviteLogoFile] = useState<File | null>(null);
+  const [inviteLogoPreviewUrl, setInviteLogoPreviewUrl] = useState<string | null>(null);
+  const inviteLogoInputRef = useRef<HTMLInputElement>(null);
 
   // Project form
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -139,11 +156,29 @@ export function HackathonClient({
   const [projectDemo, setProjectDemo] = useState(myTeam?.project?.demo_url ?? "");
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const teamIconInputRef = useRef<HTMLInputElement>(null);
+  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Screenshots
   const [screenshots, setScreenshots] = useState<{ id: string; file_url: string }[]>(initialScreenshots);
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!inviteLogoFile) {
+      setInviteLogoPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(inviteLogoFile);
+    setInviteLogoPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [inviteLogoFile]);
+
+  useEffect(() => {
+    return () => {
+      if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
+    };
+  }, []);
 
   const handleScreenshotUpload = async (file: File | undefined) => {
     if (!file || !myTeam) return;
@@ -272,25 +307,85 @@ export function HackathonClient({
     };
   }, [event.id, userId, myTeam?.id, refresh]);
 
-  const showMsg = (msg: string, isError = false) => {
+  const showMsg = (msg: string, isError = false, durationMs = 3000) => {
+    if (messageTimeoutRef.current) clearTimeout(messageTimeoutRef.current);
     if (isError) { setError(msg); setSuccess(null); }
     else { setSuccess(msg); setError(null); }
-    setTimeout(() => { setError(null); setSuccess(null); }, 3000);
+    messageTimeoutRef.current = setTimeout(() => {
+      setError(null);
+      setSuccess(null);
+      messageTimeoutRef.current = null;
+    }, durationMs);
+  };
+
+  const closeInviteModal = () => {
+    setInviteTarget(null);
+    setNewTeamName("");
+    setInviteLogoFile(null);
+  };
+
+  const uploadTeamIconFile = async (file: File, teamId: string): Promise<{ photo?: EventPhoto; error?: string }> => {
+    const validationError = getTeamIconValidationError(file);
+    if (validationError) return { error: validationError };
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("eventId", event.id);
+    formData.append("teamId", teamId);
+
+    try {
+      const res = await fetch("/api/hackathon/team-icon", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { error: data.error || "Upload failed" };
+      }
+
+      return { photo: data.photo as EventPhoto };
+    } catch {
+      return { error: "Upload failed. Please try again." };
+    }
   };
 
   const handleSendInvite = () => {
     if (!inviteTarget) return;
     startTransition(async () => {
+      const targetName = inviteTarget.name;
       const res = await sendTeamInvite(
         event.id,
         inviteTarget.id,
         myTeam ? undefined : newTeamName.trim() || undefined
       );
       if (res.error) { showMsg(res.error, true); return; }
+
+      let logoUploadError: string | null = null;
+      if (inviteLogoFile && res.teamId) {
+        setUploadingIcon(true);
+        const uploadResult = await uploadTeamIconFile(inviteLogoFile, res.teamId);
+        setUploadingIcon(false);
+
+        if (uploadResult.error) {
+          logoUploadError = uploadResult.error;
+        } else if (uploadResult.photo && myTeam?.id === res.teamId) {
+          const photo = uploadResult.photo;
+          setMyTeam((prev) => prev ? { ...prev, icon_photo_id: photo.id, icon_photo: photo } : prev);
+          setAllTeams((prev) => prev.map((team) =>
+            team.id === res.teamId ? { ...team, icon_photo_id: photo.id, icon_photo: photo } : team
+          ));
+        }
+      }
+
       setSentIds((prev) => new Set([...prev, inviteTarget.id]));
-      setInviteTarget(null);
-      setNewTeamName("");
-      showMsg(`Invite sent to ${inviteTarget.name}`);
+      closeInviteModal();
+      showMsg(
+        logoUploadError
+          ? `Invite sent to ${targetName}, but the logo upload failed: ${logoUploadError}`
+          : `Invite sent to ${targetName}`,
+        Boolean(logoUploadError)
+      );
       refresh();
     });
   };
@@ -331,7 +426,7 @@ export function HackathonClient({
     startTransition(async () => {
       const res = await dissolveTeam(myTeam.id);
       if (res.error) { showMsg(res.error, true); return; }
-      showMsg("Team dissolved");
+      showMsg(`${res.dissolvedByName ?? "Someone"} dissolved ${res.teamName ?? myTeam.name}`, false, 10000);
       setMyTeam(null);
       setTab("open-pool");
       refresh();
@@ -357,44 +452,21 @@ export function HackathonClient({
   const handleTeamIconUpload = async (file: File | undefined) => {
     if (!file || !myTeam) return;
 
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      showMsg("Only image files are supported (PNG, JPEG, WebP, GIF)", true);
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      showMsg("File size exceeds 10MB limit", true);
-      return;
-    }
-
     setUploadingIcon(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("eventId", event.id);
-      formData.append("teamId", myTeam.id);
-
-      const res = await fetch("/api/hackathon/team-icon", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        showMsg(data.error || "Upload failed", true);
+      const result = await uploadTeamIconFile(file, myTeam.id);
+      if (result.error || !result.photo) {
+        showMsg(result.error || "Upload failed", true);
         return;
       }
 
-      const photo = data.photo as EventPhoto;
+      const photo = result.photo;
       setMyTeam((prev) => prev ? { ...prev, icon_photo_id: photo.id, icon_photo: photo } : prev);
       setAllTeams((prev) => prev.map((team) =>
         team.id === myTeam.id ? { ...team, icon_photo_id: photo.id, icon_photo: photo } : team
       ));
       showMsg("Team icon submitted for approval");
       refresh();
-    } catch {
-      showMsg("Upload failed. Please try again.", true);
     } finally {
       setUploadingIcon(false);
     }
@@ -540,34 +612,54 @@ export function HackathonClient({
       {/* Pending invite banners */}
       {receivedInvites.length > 0 && (
         <div className="space-y-3">
-          {receivedInvites.map((invite) => (
-            <div key={invite.id} className="relative overflow-hidden rounded-[24px] border border-red-500/30 bg-red-500/10 p-5 backdrop-blur-xl shadow-neon">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.15)_0,transparent_100%)]" />
-              <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <p className="text-[15px] font-medium leading-relaxed text-red-100">
-                  <span className="font-bold text-white">{(invite.inviter as { name?: string } | undefined)?.name ?? "Someone"}</span>
-                  {" invited you to join "}
-                  <span className="font-bold text-white">"{(invite.team as { name?: string } | undefined)?.name ?? "a team"}"</span>
-                </p>
-                <div className="flex shrink-0 gap-3">
-                  <button
-                    disabled={isPending}
-                    onClick={() => handleAccept(invite.id)}
-                    className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)]"
-                  >
-                    <Check className="w-4 h-4" /> Accept
-                  </button>
-                  <button
-                    disabled={isPending}
-                    onClick={() => handleDecline(invite.id)}
-                    className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:bg-white/10 hover:text-white"
-                  >
-                    <X className="w-4 h-4" /> Decline
-                  </button>
+          {receivedInvites.map((invite) => {
+            const teamName = invite.team?.name ?? "a team";
+            const teamIcon = invite.team?.icon_photo;
+
+            return (
+              <div key={invite.id} className="relative overflow-hidden rounded-[24px] border border-red-500/30 bg-red-500/10 p-5 backdrop-blur-xl shadow-neon">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.15)_0,transparent_100%)]" />
+                <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg">
+                      {teamIcon?.file_url ? (
+                        <Image
+                          src={teamIcon.file_url}
+                          alt={`${teamName} logo`}
+                          fill
+                          className="object-cover"
+                          sizes="40px"
+                        />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-red-100/70" />
+                      )}
+                    </div>
+                    <p className="text-[15px] font-medium leading-relaxed text-red-100">
+                      <span className="font-bold text-white">{invite.inviter?.name ?? "Someone"}</span>
+                      {" invited you to join "}
+                      <span className="font-bold text-white">"{teamName}"</span>
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-3">
+                    <button
+                      disabled={isPending}
+                      onClick={() => handleAccept(invite.id)}
+                      className="flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 hover:shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                    >
+                      <Check className="w-4 h-4" /> Accept
+                    </button>
+                    <button
+                      disabled={isPending}
+                      onClick={() => handleDecline(invite.id)}
+                      className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:bg-white/10 hover:text-white"
+                    >
+                      <X className="w-4 h-4" /> Decline
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -645,17 +737,17 @@ export function HackathonClient({
               <div className={cn(
                 "relative overflow-hidden rounded-3xl border px-6 py-5 shadow-2xl sm:min-w-56 backdrop-blur-md",
                 formationOpen
-                  ? "border-green-500/30 bg-green-500/10"
+                  ? "border-white/20 bg-white/5"
                   : "border-amber-500/30 bg-amber-500/10"
               )}>
                 <div className={cn(
                   "absolute inset-0 opacity-20",
-                  formationOpen ? "bg-[radial-gradient(circle_at_center,rgba(74,222,128,0.8)_0,transparent_100%)]" : "bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.8)_0,transparent_100%)]"
+                  formationOpen ? "bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0,transparent_100%)]" : "bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.8)_0,transparent_100%)]"
                 )} />
                 <div className="relative">
                   <div className={cn(
                     "flex items-center gap-2.5 text-[13px] font-black uppercase tracking-[0.2em]",
-                    formationOpen ? "text-green-400" : "text-amber-400"
+                    formationOpen ? "text-white" : "text-amber-400"
                   )}>
                     {formationOpen ? <Check className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
                     {formationOpen ? "Teams forming" : "Teams locked"}
@@ -1239,7 +1331,7 @@ export function HackathonClient({
       {/* Invite modal */}
       {inviteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={() => setInviteTarget(null)} />
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closeInviteModal} />
           <div className="relative overflow-hidden rounded-[34px] border border-red-500/30 bg-black/80 p-8 w-full max-w-md space-y-6 z-10 shadow-2xl backdrop-blur-xl">
             <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
             <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/20 blur-[50px]" />
@@ -1268,17 +1360,79 @@ export function HackathonClient({
                 </p>
               )}
 
+              <div className="mt-6 space-y-3">
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1">
+                  Team Logo (optional)
+                </label>
+                <input
+                  ref={inviteLogoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+
+                    const validationError = getTeamIconValidationError(file);
+                    if (validationError) {
+                      showMsg(validationError, true);
+                      e.target.value = "";
+                      return;
+                    }
+
+                    setInviteLogoFile(file);
+                    e.target.value = "";
+                  }}
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => inviteLogoInputRef.current?.click()}
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-[20px] border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-white/20 hover:bg-white/10"
+                  >
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+                      {inviteLogoPreviewUrl || myTeam?.icon_photo?.file_url ? (
+                        <img
+                          src={inviteLogoPreviewUrl ?? myTeam?.icon_photo?.file_url ?? ""}
+                          alt="Team logo preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="h-5 w-5 text-gray-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-bold text-white">
+                        {inviteLogoFile ? inviteLogoFile.name : myTeam?.icon_photo ? "Use current team logo" : "Upload a logo"}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-gray-500">
+                        Shows next to your invite
+                      </p>
+                    </div>
+                  </button>
+                  {inviteLogoFile && (
+                    <button
+                      type="button"
+                      onClick={() => setInviteLogoFile(null)}
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:bg-white/10 hover:text-white"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="mt-8 flex gap-3">
                 <button
-                  disabled={isPending || (!myTeam && !newTeamName.trim())}
+                  disabled={isPending || uploadingIcon || (!myTeam && !newTeamName.trim())}
                   onClick={handleSendInvite}
                   className="relative flex-1 overflow-hidden rounded-[20px] bg-white py-4 text-[14px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="relative">Send Invite</span>
+                  <span className="relative">{uploadingIcon ? "Uploading..." : "Send Invite"}</span>
                 </button>
                 <button
-                  onClick={() => setInviteTarget(null)}
+                  onClick={closeInviteModal}
                   className="px-6 rounded-[20px] border border-white/10 bg-white/5 text-[14px] font-bold uppercase tracking-wider text-gray-400 hover:bg-white/10 hover:text-white transition-all"
                 >
                   Cancel
