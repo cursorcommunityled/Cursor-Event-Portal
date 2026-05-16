@@ -1868,6 +1868,53 @@ export function HackathonAdminClient({
               {voteError && <p className="relative text-[11px] text-red-400">{voteError}</p>}
               {voteStatus === "done" && <p className="relative text-[11px] text-green-400">Vote launched — attendees can now vote on the hackathon page.</p>}
 
+              {audienceVoteWinner && (
+                <div className="relative overflow-hidden rounded-[24px] border border-yellow-500/35 bg-yellow-500/10 p-5 shadow-[0_0_30px_rgba(234,179,8,0.12)]">
+                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-yellow-400/20 blur-[35px]" />
+                  <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-yellow-300">
+                        Audience Favourite Ready
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-2xl font-black tracking-tight text-white">
+                          {audienceVoteWinner.option}
+                        </p>
+                        <span className="rounded-full border border-yellow-500/40 bg-yellow-500/15 px-3 py-1 text-[11px] font-bold text-yellow-200">
+                          {audienceVoteWinner.voteCount}/{audienceVoteWinner.totalVotes} votes
+                        </span>
+                      </div>
+                      {audienceVoteWinner.tiedOptions.length > 1 ? (
+                        <p className="text-[12px] font-medium text-yellow-100/80">
+                          Tie detected: {audienceVoteWinner.tiedOptions.join(" vs ")}. Break the tie before approving.
+                        </p>
+                      ) : (
+                        <p className="text-[12px] font-medium text-yellow-100/80">
+                          Approve to trigger the winner reveal effects and publish the announcement.
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <button
+                        disabled={voteStatus === "pending" || audienceVoteWinner.tiedOptions.length > 1}
+                        onClick={approveAudienceWinner}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-yellow-400/50 bg-yellow-400/20 px-4 py-2.5 text-[12px] font-black uppercase tracking-wider text-yellow-100 transition-all hover:bg-yellow-400/30 disabled:opacity-50"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {voteStatus === "pending" ? "Publishing..." : "Approve + Announce"}
+                      </button>
+                      <button
+                        disabled={voteStatus === "pending"}
+                        onClick={() => setAudienceVoteWinner(null)}
+                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold text-gray-400 transition-all hover:border-white/20 hover:text-white disabled:opacity-50"
+                      >
+                        Not Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="relative flex flex-wrap gap-3">
                 <button
                   disabled={voteStatus === "pending" || (audienceVoteSelectedCount === 0 && submittedTeams.length === 0)}
