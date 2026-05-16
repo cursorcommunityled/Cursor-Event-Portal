@@ -182,7 +182,9 @@ export function HackathonClient({
     ? allTeams.reduce((sum, team) => sum + Math.max(0, maxTeamSize - team.members.length), 0)
     : 0;
   const rankedTeams = useMemo(
-    () => [...allTeams].sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)),
+    () => [...allTeams]
+      .filter((t) => scores.some((s) => s.team_id === t.id))
+      .sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)),
     [allTeams, scores]
   );
   const leadingTeam = leaderboardVisible ? rankedTeams[0] : null;

@@ -415,7 +415,9 @@ export function HackathonAdminClient({
     return SCORE_CATEGORIES.reduce((sum, c) => sum + (cats[c.key] ?? 0), 0);
   }
 
-  const rankedTeams = [...teams].sort((a, b) => totalScore(b.id) - totalScore(a.id));
+  const rankedTeams = [...teams]
+    .filter((t) => scores.some((s) => s.team_id === t.id))
+    .sort((a, b) => totalScore(b.id) - totalScore(a.id));
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },

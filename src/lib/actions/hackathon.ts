@@ -506,7 +506,8 @@ export async function sendTeamInvite(
   }
 
   // Create in-app notification for invited user
-  const eventSlug = (await supabase.from("events").select("slug").eq("id", eventId).single()).data?.slug;
+  const { data: eventRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  const eventSlug = eventRow?.slug;
   await supabase.from("in_app_notifications").insert({
     user_id: invitedUserId,
     event_id: eventId,
@@ -675,8 +676,8 @@ export async function acceptTeamInvite(
     }
   }
 
-  const eventSlug = (await supabase.from("events").select("slug").eq("id", eventId).single()).data?.slug;
-  revalidatePath(`/${eventSlug}/hackathon`);
+  const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
   return { success: true };
 }
 
@@ -791,8 +792,8 @@ export async function leaveTeam(
     await supabase.from("hackathon_teams").delete().eq("id", teamId);
   }
 
-  const eventSlug = (await supabase.from("events").select("slug").eq("id", team.event_id).single()).data?.slug;
-  revalidatePath(`/${eventSlug}/hackathon`);
+  const { data: slugRow } = await supabase.from("events").select("slug").eq("id", team.event_id).maybeSingle();
+  if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
   return { success: true };
 }
 
@@ -842,8 +843,8 @@ export async function dissolveTeam(
 
   if (error) return { error: error.message };
 
-  const eventSlug = (await supabase.from("events").select("slug").eq("id", team.event_id).single()).data?.slug;
-  revalidatePath(`/${eventSlug}/hackathon`);
+  const { data: slugRow } = await supabase.from("events").select("slug").eq("id", team.event_id).maybeSingle();
+  if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
   return { success: true };
 }
 
@@ -875,6 +876,17 @@ export async function submitHackathonProject(
 
   if (!membership) return { error: "You are not on this team" };
 
+  // Enforce submission deadline
+  const { data: settings } = await supabase
+    .from("hackathon_settings")
+    .select("submission_deadline")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (settings?.submission_deadline && new Date(settings.submission_deadline) < new Date()) {
+    return { error: "The submission deadline has passed" };
+  }
+
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("hackathon_projects")
@@ -895,7 +907,7 @@ export async function submitHackathonProject(
 
   if (error) return { error: error.message };
 
-  const eventSlug = (await supabase.from("events").select("slug").eq("id", eventId).single()).data?.slug;
-  revalidatePath(`/${eventSlug}/hackathon`);
+  const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
   return { success: true };
 }
