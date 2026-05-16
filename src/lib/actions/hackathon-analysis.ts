@@ -31,7 +31,8 @@ export async function getTeamAnalyses(
 // Trigger analysis via the API route (called from admin UI)
 export async function triggerAnalysis(
   teamId: string,
-  eventId: string
+  eventId: string,
+  adminCode: string
 ): Promise<{ success?: true; error?: string }> {
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
@@ -45,7 +46,7 @@ export async function triggerAnalysis(
   const res = await fetch(`${baseUrl}/api/hackathon/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookieHeader },
-    body: JSON.stringify({ teamId, eventId }),
+    body: JSON.stringify({ teamId, eventId, adminCode }),
     cache: "no-store",
   });
 

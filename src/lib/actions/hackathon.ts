@@ -281,12 +281,13 @@ export async function adminRemoveTeamMember(
 
   const supabase = await createServiceClient();
 
-  const { data: team } = await supabase
+  const { data: team, error: teamError } = await supabase
     .from("hackathon_teams")
     .select("created_by")
     .eq("id", teamId)
-    .single();
+    .maybeSingle();
 
+  if (teamError) return { error: teamError.message };
   if (!team) return { error: "Team not found" };
 
   const { error } = await supabase
@@ -479,13 +480,13 @@ export async function sendTeamInvite(
     .from("hackathon_teams")
     .select("name")
     .eq("id", teamId)
-    .single();
+    .maybeSingle();
 
   const { data: inviterRow } = await supabase
     .from("users")
     .select("name")
     .eq("id", userId)
-    .single();
+    .maybeSingle();
 
   const { error: inviteError } = await supabase
     .from("hackathon_team_invites")
@@ -530,14 +531,15 @@ export async function acceptTeamInvite(
 
   const supabase = await createServiceClient();
 
-  const { data: invite } = await supabase
+  const { data: invite, error: inviteError } = await supabase
     .from("hackathon_team_invites")
     .select("*, hackathon_teams(event_id, locked_at, name, category)")
     .eq("id", inviteId)
     .eq("invited_user_id", userId)
     .eq("status", "pending")
-    .single();
+    .maybeSingle();
 
+  if (inviteError) return { error: inviteError.message };
   if (!invite) return { error: "Invite not found" };
 
   const team = invite.hackathon_teams as {
@@ -723,12 +725,13 @@ export async function leaveTeam(
 
   const supabase = await createServiceClient();
 
-  const { data: team } = await supabase
+  const { data: team, error: teamError } = await supabase
     .from("hackathon_teams")
     .select("event_id, locked_at")
     .eq("id", teamId)
-    .single();
+    .maybeSingle();
 
+  if (teamError) return { error: teamError.message };
   if (!team) return { error: "Team not found" };
 
   const { data: settings } = await supabase
@@ -739,6 +742,25 @@ export async function leaveTeam(
 
   if (!isFormationOpen(settings as HackathonSettings | null)) {
     return { error: "Team formation is closed — you cannot leave your team" };
+  }
+
+  // Leaders must dissolve the team rather than leave it with members behind
+  const { data: myMembership } = await supabase
+    .from("hackathon_team_members")
+    .select("role")
+    .eq("team_id", teamId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (myMembership?.role === "leader") {
+    const { count: memberCount } = await supabase
+      .from("hackathon_team_members")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId);
+
+    if ((memberCount ?? 0) > 1) {
+      return { error: "You are the team leader — dissolve the team if you want to leave" };
+    }
   }
 
   const { error } = await supabase
