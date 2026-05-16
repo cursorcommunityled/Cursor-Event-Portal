@@ -876,15 +876,25 @@ export async function submitHackathonProject(
 
   if (!membership) return { error: "You are not on this team" };
 
-  // Enforce submission deadline
+  // Enforce submission deadline and min team size
   const { data: settings } = await supabase
     .from("hackathon_settings")
-    .select("submission_deadline")
+    .select("submission_deadline, min_team_size")
     .eq("event_id", eventId)
     .maybeSingle();
 
   if (settings?.submission_deadline && new Date(settings.submission_deadline) < new Date()) {
     return { error: "The submission deadline has passed" };
+  }
+
+  if (settings?.min_team_size && settings.min_team_size > 1) {
+    const { count: memberCount } = await supabase
+      .from("hackathon_team_members")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", teamId);
+    if ((memberCount ?? 0) < settings.min_team_size) {
+      return { error: `Your team needs at least ${settings.min_team_size} members to submit` };
+    }
   }
 
   const now = new Date().toISOString();

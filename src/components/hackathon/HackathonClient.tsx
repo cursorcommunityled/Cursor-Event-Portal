@@ -1083,7 +1083,7 @@ export function HackathonClient({
                         ? `Currently running: ${PASS_LABELS[running.pass_name] ?? running.pass_name}…`
                         : hasError
                         ? "Analysis encountered an error — admin has been notified."
-                        : "Analysis queued."}
+                        : "Starting analysis…"}
                     </p>
                   </div>
                 );
@@ -1429,7 +1429,10 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px]" />
       
       <div className="relative flex items-center justify-between mb-6">
-        <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">Your Score</h3>
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">Your Score</h3>
+          <p className="text-[10px] text-gray-500 mt-1">{teamScores.length} judge{teamScores.length !== 1 ? "s" : ""}</p>
+        </div>
         <div className="flex items-baseline gap-1">
           <span className="text-4xl font-black tracking-tight text-white drop-shadow-md">{total}</span>
           <span className="text-sm font-bold text-gray-500">/40</span>
