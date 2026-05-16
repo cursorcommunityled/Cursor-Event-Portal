@@ -67,12 +67,37 @@ export default async function HackathonPage({ params }: Props) {
 
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
-  const { data: hackathonProfile } = await _supa
-    .from("hackathon_profiles")
-    .select("needs_team")
-    .eq("event_id", event.id)
-    .eq("user_id", session.userId)
-    .maybeSingle();
+  const [{ data: hackathonProfile }, { data: audienceVoteRow }] = await Promise.all([
+    _supa
+      .from("hackathon_profiles")
+      .select("needs_team")
+      .eq("event_id", event.id)
+      .eq("user_id", session.userId)
+      .maybeSingle(),
+    _supa
+      .from("polls")
+      .select("*, votes:poll_votes(*)")
+      .eq("event_id", event.id)
+      .eq("hackathon_audience_vote", true)
+      .eq("is_active", true)
+      .maybeSingle(),
+  ]);
+
+  // Build audience vote poll with counts + user vote
+  let audienceVotePoll = null;
+  if (audienceVoteRow) {
+    const allVotes = (audienceVoteRow.votes as { user_id: string; option_index: number }[]) ?? [];
+    const userVote = allVotes.find((v) => v.user_id === session.userId) ?? null;
+    const options = audienceVoteRow.options as string[];
+    const voteCounts = options.map((_, i) => allVotes.filter((v) => v.option_index === i).length);
+    audienceVotePoll = {
+      ...audienceVoteRow,
+      votes: allVotes,
+      user_vote: userVote,
+      vote_counts: voteCounts,
+      total_votes: allVotes.length,
+    };
+  }
 
   // Chat: get channels visible to this user (general + their team channel)
   const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null, session.userId);
@@ -108,6 +133,7 @@ export default async function HackathonPage({ params }: Props) {
       needsTeam={hackathonProfile?.needs_team === true}
       initialScreenshots={initialScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
+      audienceVotePoll={audienceVotePoll as import("@/types").PollWithVotes | null}
     />
   );
 }

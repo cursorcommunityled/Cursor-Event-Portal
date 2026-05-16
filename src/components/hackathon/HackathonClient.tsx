@@ -26,6 +26,8 @@ import type {
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
+import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
+import type { PollWithVotes } from "@/types";
 
 interface Props {
   event: Event;
@@ -46,6 +48,7 @@ interface Props {
   needsTeam?: boolean;
   initialScreenshots?: { id: string; file_url: string }[];
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
+  audienceVotePoll?: PollWithVotes | null;
 }
 
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
@@ -108,6 +111,7 @@ export function HackathonClient({
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
   publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
+  audienceVotePoll = null,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -524,6 +528,11 @@ export function HackathonClient({
       {header}
 
       <JudgingWinnersPodium results={publishedJudgingResults} />
+
+      {/* Audience vote — shown prominently when active */}
+      {audienceVotePoll && (
+        <AudienceVoteCard poll={audienceVotePoll} eventSlug={event.slug} />
+      )}
 
       {/* Pending invite banners */}
       {receivedInvites.length > 0 && (

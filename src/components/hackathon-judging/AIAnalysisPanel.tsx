@@ -70,6 +70,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
   const byPass = Object.fromEntries(analyses.map((a) => [a.pass_name, a]));
   const pass6 = byPass["pass6_synthesis"]?.result as Pass6Result | undefined;
   const isRunning = analyses.some((a) => a.status === "running");
+  const hasAnalysisError = analyses.some((a) => a.status === "error");
   const allDone = ["pass1_repo", "pass2_code", "pass3_innovation", "pass4_visual", "pass5_pool", "pass6_synthesis"]
     .every((p) => byPass[p]?.status === "complete");
   const hasStarted = analyses.length > 0;
@@ -129,7 +130,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
             </button>
           )}
 
-          {hasStarted && !isRunning && !allDone && (
+          {hasStarted && !isRunning && hasAnalysisError && (
             <button
               disabled={isPending}
               onClick={() => {

@@ -1452,6 +1452,79 @@ export function HackathonAdminClient({
               </button>
             </div>
 
+            {/* Audience Vote */}
+            <div className="relative overflow-hidden rounded-[28px] border border-yellow-500/25 bg-black/40 p-6 backdrop-blur-xl space-y-4">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-yellow-500/10 blur-[40px]" />
+              <div className="relative flex items-center gap-3 mb-1">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                <p className="text-[13px] font-bold text-white">Audience Favourite Vote · $250 Prize</p>
+              </div>
+              <p className="relative text-[11px] text-gray-500">
+                Select which teams to include (leave all unchecked to include every submitted team), then launch.
+              </p>
+
+              {/* Team checkboxes */}
+              {teams.filter((t) => t.project?.submitted_at).length === 0 ? (
+                <p className="relative text-[11px] text-gray-600 italic">No submitted projects yet.</p>
+              ) : (
+                <div className="relative grid grid-cols-2 gap-2">
+                  {teams.filter((t) => t.project?.submitted_at).map((t) => (
+                    <label key={t.id} className={cn(
+                      "flex items-center gap-2 rounded-xl border px-3 py-2.5 cursor-pointer transition-all text-[12px] font-medium",
+                      selectedVoteTeams.has(t.id)
+                        ? "border-yellow-500/40 bg-yellow-500/10 text-yellow-200"
+                        : "border-white/8 bg-white/[0.02] text-gray-400 hover:border-white/20"
+                    )}>
+                      <input
+                        type="checkbox"
+                        checked={selectedVoteTeams.has(t.id)}
+                        onChange={() => setSelectedVoteTeams((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(t.id)) next.delete(t.id); else next.add(t.id);
+                          return next;
+                        })}
+                        className="accent-yellow-400"
+                      />
+                      <span className="truncate">{t.project?.name ?? t.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {voteError && <p className="relative text-[11px] text-red-400">{voteError}</p>}
+              {voteStatus === "done" && <p className="relative text-[11px] text-green-400">Vote launched — attendees can now vote on the hackathon page.</p>}
+
+              <div className="relative flex gap-3">
+                <button
+                  disabled={voteStatus === "pending"}
+                  onClick={async () => {
+                    setVoteStatus("pending");
+                    setVoteError(null);
+                    const teamIds = selectedVoteTeams.size > 0 ? [...selectedVoteTeams] : undefined;
+                    const res = await createAudienceVotePoll(adminCode, event.id, event.slug, teamIds);
+                    if (res.error) { setVoteStatus("error"); setVoteError(res.error); }
+                    else { setVoteStatus("done"); setSelectedVoteTeams(new Set()); refresh(); }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-yellow-500/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  {voteStatus === "pending" ? "Launching…" : "Launch Vote"}
+                </button>
+                <button
+                  disabled={voteStatus === "pending"}
+                  onClick={async () => {
+                    setVoteStatus("pending");
+                    const res = await closeAudienceVotePoll(adminCode, event.id, event.slug);
+                    if (res.error) { setVoteStatus("error"); setVoteError(res.error); }
+                    else { setVoteStatus("idle"); refresh(); }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-white/10 bg-white/5 text-gray-400 hover:text-white hover:border-white/30 transition-all disabled:opacity-50"
+                >
+                  Close Vote
+                </button>
+              </div>
+            </div>
+
             {rankedTeams.length === 0 && (
               <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
