@@ -89,13 +89,6 @@ export async function saveHackathonSettings(
 
   if (error) return { error: error.message };
 
-  if (data.team_formation_enabled !== false) {
-    await supabase
-      .from("hackathon_teams")
-      .update({ locked_at: null, updated_at: new Date().toISOString() })
-      .eq("event_id", auth.eventId);
-  }
-
   revalidatePath(`/admin/${adminCode}/hackathon`);
   return { success: true };
 }
@@ -789,6 +782,16 @@ export async function dissolveTeam(
 
   if (!team) return { error: "Team not found" };
   if (session.eventId !== team.event_id) return { error: "Not authorized for this event" };
+
+  const { data: settings } = await supabase
+    .from("hackathon_settings")
+    .select("*")
+    .eq("event_id", team.event_id)
+    .maybeSingle();
+
+  if (!isFormationOpen(settings as HackathonSettings | null)) {
+    return { error: "Team formation is closed — you cannot dissolve your team" };
+  }
 
   const { data: membership } = await supabase
     .from("hackathon_team_members")
