@@ -312,6 +312,56 @@ export async function adminRemoveTeamMember(
   return { success: true };
 }
 
+// ─── Admin: create a team on behalf of attendees ──────────────────────────────
+
+export async function adminCreateTeam(
+  adminCode: string,
+  teamName: string,
+  memberUserIds: string[]
+): Promise<{ success?: true; error?: string; teamId?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  if (!teamName.trim()) return { error: "Team name is required" };
+  if (memberUserIds.length === 0) return { error: "Select at least one member" };
+
+  const supabase = await createServiceClient();
+
+  // First member is the nominal leader / creator
+  const { data: team, error: teamError } = await supabase
+    .from("hackathon_teams")
+    .insert({
+      event_id: auth.eventId,
+      name: teamName.trim(),
+      created_by: memberUserIds[0],
+    })
+    .select("id")
+    .single();
+
+  if (teamError || !team) return { error: teamError?.message ?? "Failed to create team" };
+
+  const memberRows = memberUserIds.map((userId, i) => ({
+    team_id: team.id,
+    user_id: userId,
+    role: i === 0 ? ("leader" as const) : ("member" as const),
+  }));
+
+  const { error: memberError } = await supabase
+    .from("hackathon_team_members")
+    .insert(memberRows);
+
+  if (memberError) {
+    await supabase.from("hackathon_teams").delete().eq("id", team.id);
+    return { error: memberError.message };
+  }
+
+  await ensureTeamChannel(auth.eventId, team.id, teamName.trim());
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  return { success: true, teamId: team.id };
+}
+
 // ─── Admin: dissolve a team back into the open pool ───────────────────────────
 
 export async function adminDissolveTeam(

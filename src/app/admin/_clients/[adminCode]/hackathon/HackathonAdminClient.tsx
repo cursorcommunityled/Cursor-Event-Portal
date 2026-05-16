@@ -15,13 +15,15 @@ import {
   saveHackathonScore,
   adminRemoveTeamMember,
   adminDissolveTeam,
+  adminCreateTeam,
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
 import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
+import { createAudienceVotePoll, closeAudienceVotePoll } from "@/lib/actions/polls";
 import {
   Swords, Settings, Users, Trophy, BarChart3,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
-  ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award,
+  ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award, Megaphone,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,8 @@ import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
 import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
 import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
+
+type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
 
 interface Props {
   event: Event;
@@ -47,9 +51,10 @@ interface Props {
   adminUserId: string | null;
   judgingCompetitions: CompetitionJudgingCompetition[];
   initialAiAnalyses: Record<string, HackathonAIAnalysis[]>;
+  initialOpenPool: OpenPoolMember[];
 }
 
-type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
+type Tab = "settings" | "teams" | "submissions" | "scoring" | "leaderboard" | "judging" | "chat";
 type SimonTodoItem = { id: string; text: string };
 type SimonTodoTarget = string | number;
 type SimonTodoConsoleApi = {
@@ -166,6 +171,17 @@ function fmt(iso: string | null | undefined): string {
   return iso.slice(0, 16); // YYYY-MM-DDTHH:MM
 }
 
+function formatAdminDateTime(value: string | null | undefined, timezone?: string | null) {
+  if (!value) return "Not set";
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: timezone ?? undefined,
+  });
+}
+
 function buildScoreInputs(
   teams: HackathonTeamWithMembers[],
   scores: HackathonScore[],
@@ -197,7 +213,7 @@ function buildScoreNotes(scores: HackathonScore[], judgeId: string | null): Reco
 export function HackathonAdminClient({
   event, adminCode, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
-  judgingCompetitions, initialAiAnalyses,
+  judgingCompetitions, initialAiAnalyses, initialOpenPool,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("settings");
@@ -242,6 +258,23 @@ export function HackathonAdminClient({
   // Push top AI to final round
   const [pushStatus, setPushStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [pushResult, setPushResult] = useState<string | null>(null);
+
+  // Audience vote
+  const [voteStatus, setVoteStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
+  const [voteError, setVoteError] = useState<string | null>(null);
+  const [selectedVoteTeams, setSelectedVoteTeams] = useState<Set<string>>(new Set());
+
+  // Submission broadcast state
+  const [nudgeStatus, setNudgeStatus] = useState<"idle" | "pending" | "sent" | "error">("idle");
+  const [nudgeError, setNudgeError] = useState<string | null>(null);
+
+  // Create team state
+  const [openPool, setOpenPool] = useState<OpenPoolMember[]>(initialOpenPool);
+  const [createTeamOpen, setCreateTeamOpen] = useState(false);
+  const [createTeamName, setCreateTeamName] = useState("");
+  const [createTeamSelectedIds, setCreateTeamSelectedIds] = useState<Set<string>>(new Set());
+  const [createTeamSearch, setCreateTeamSearch] = useState("");
+  const [createTeamPending, setCreateTeamPending] = useState(false);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -420,6 +453,54 @@ export function HackathonAdminClient({
     return SCORE_CATEGORIES.reduce((sum, c) => sum + (cats[c.key] ?? 0), 0);
   }
 
+  const submittedTeams = teams.filter((team) => Boolean(team.project?.submitted_at));
+  const unsubmittedTeams = teams.filter((team) => !team.project?.submitted_at);
+  const submissionPercent = teams.length > 0
+    ? Math.round((submittedTeams.length / teams.length) * 100)
+    : 0;
+  const submissionDeadlineLabel = settings?.submission_deadline
+    ? formatAdminDateTime(settings.submission_deadline, event.timezone)
+    : "No deadline set";
+
+  const broadcastSubmissionNudge = async () => {
+    if (unsubmittedTeams.length === 0 || nudgeStatus === "pending") return;
+
+    const deadlinePhrase = settings?.submission_deadline
+      ? ` before ${formatAdminDateTime(settings.submission_deadline, event.timezone)}`
+      : " as soon as possible";
+    const teamPhrase = unsubmittedTeams.length === 1
+      ? "1 team still needs"
+      : `${unsubmittedTeams.length} teams still need`;
+    const content = `Submission reminder: ${teamPhrase} to submit. Please open the Hackathon hub and submit your project${deadlinePhrase}.`;
+
+    setNudgeStatus("pending");
+    setNudgeError(null);
+
+    try {
+      const response = await fetch("/api/announcements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-code": adminCode,
+          "x-event-id": event.id,
+        },
+        body: JSON.stringify({ eventId: event.id, content }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: "Failed to broadcast reminder" }));
+        throw new Error(data.error || "Failed to broadcast reminder");
+      }
+
+      setNudgeStatus("sent");
+      router.refresh();
+      setTimeout(() => setNudgeStatus("idle"), 3000);
+    } catch (err) {
+      setNudgeStatus("error");
+      setNudgeError(err instanceof Error ? err.message : "Failed to broadcast reminder");
+    }
+  };
+
   const rankedTeams = [...teams]
     .filter((t) => scores.some((s) => s.team_id === t.id))
     .sort((a, b) => totalScore(b.id) - totalScore(a.id));
@@ -427,6 +508,7 @@ export function HackathonAdminClient({
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
+    { id: "submissions", label: `Submissions (${submittedTeams.length}/${teams.length})`, icon: <BarChart3 className="w-4 h-4" /> },
     { id: "scoring", label: "AI Screen", icon: <Cpu className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
     { id: "judging", label: "Final Round", icon: <Award className="w-4 h-4" /> },
@@ -710,6 +792,161 @@ export function HackathonAdminClient({
         {/* Teams tab */}
         {tab === "teams" && (
           <div className="space-y-4 animate-slide-up">
+
+            {/* Admin Create Team */}
+            <div className="rounded-[28px] border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+              <button
+                onClick={() => { setCreateTeamOpen((v) => !v); setError(null); }}
+                className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/[0.03] transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Plus className="w-4 h-4 text-white/60" />
+                  <span className="text-[13px] font-bold uppercase tracking-wider text-white/80">Create Team</span>
+                </div>
+                {createTeamOpen ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+              </button>
+
+              {createTeamOpen && (
+                <div className="border-t border-white/10 px-6 pb-6 pt-5 space-y-5">
+                  {/* Team name */}
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold">Team Name</label>
+                    <input
+                      type="text"
+                      value={createTeamName}
+                      onChange={(e) => setCreateTeamName(e.target.value)}
+                      placeholder="e.g. Team Rocket"
+                      className="w-full bg-transparent border-b border-white/20 py-2 text-white placeholder:text-gray-600 focus:outline-none focus:border-white/40 transition-colors text-sm"
+                    />
+                  </div>
+
+                  {/* Member picker */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold">
+                        Members — Open Pool ({openPool.length})
+                      </label>
+                      {createTeamSelectedIds.size > 0 && (
+                        <span className="text-[10px] text-white/60 font-medium">
+                          {createTeamSelectedIds.size} selected
+                        </span>
+                      )}
+                    </div>
+
+                    {openPool.length === 0 ? (
+                      <p className="text-[12px] text-gray-600 py-2">No unassigned attendees</p>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          value={createTeamSearch}
+                          onChange={(e) => setCreateTeamSearch(e.target.value)}
+                          placeholder="Search attendees…"
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/20 transition-colors"
+                        />
+                        <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
+                          {openPool
+                            .filter((m) => m.name.toLowerCase().includes(createTeamSearch.toLowerCase()))
+                            .map((member) => {
+                              const selected = createTeamSelectedIds.has(member.id);
+                              return (
+                                <button
+                                  key={member.id}
+                                  type="button"
+                                  onClick={() => setCreateTeamSelectedIds((prev) => {
+                                    const next = new Set(prev);
+                                    selected ? next.delete(member.id) : next.add(member.id);
+                                    return next;
+                                  })}
+                                  className={cn(
+                                    "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-all",
+                                    selected
+                                      ? "bg-white/10 border border-white/20"
+                                      : "bg-white/[0.02] border border-white/5 hover:bg-white/[0.05]"
+                                  )}
+                                >
+                                  <div className={cn(
+                                    "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                                    selected ? "bg-white border-white" : "border-white/30"
+                                  )}>
+                                    {selected && <Check className="w-2.5 h-2.5 text-black" />}
+                                  </div>
+                                  <span className="text-[13px] font-medium text-gray-200 flex-1">{member.name}</span>
+                                  {member.occupation && (
+                                    <span className="text-[10px] text-gray-500 truncate max-w-[100px]">{member.occupation}</span>
+                                  )}
+                                  {member.is_technical != null && (
+                                    <span className={cn(
+                                      "text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full",
+                                      member.is_technical ? "text-blue-400 bg-blue-500/10" : "text-amber-400 bg-amber-500/10"
+                                    )}>
+                                      {member.is_technical ? "Dev" : "Non-tech"}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={() => { setCreateTeamOpen(false); setCreateTeamName(""); setCreateTeamSelectedIds(new Set()); setCreateTeamSearch(""); setError(null); }}
+                      className="px-4 py-2 rounded-xl border border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-500 hover:text-white hover:border-white/20 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={createTeamPending || !createTeamName.trim() || createTeamSelectedIds.size === 0}
+                      onClick={async () => {
+                        setCreateTeamPending(true);
+                        setError(null);
+                        const selectedIds = [...createTeamSelectedIds];
+                        const res = await adminCreateTeam(adminCode, createTeamName, selectedIds);
+                        setCreateTeamPending(false);
+                        if (res.error) { setError(res.error); return; }
+                        // Optimistic: build a team shell and add to list
+                        const selectedMembers = openPool.filter((m) => createTeamSelectedIds.has(m.id));
+                        const newTeam: HackathonTeamWithMembers = {
+                          id: res.teamId ?? crypto.randomUUID(),
+                          event_id: event.id,
+                          name: createTeamName.trim(),
+                          created_by: selectedIds[0],
+                          icon_photo_id: null,
+                          locked_at: null,
+                          category: null,
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString(),
+                          members: selectedMembers.map((m, i) => ({
+                            id: crypto.randomUUID(),
+                            team_id: res.teamId ?? "",
+                            user_id: m.id,
+                            role: i === 0 ? "leader" : "member",
+                            joined_at: new Date().toISOString(),
+                            user: { id: m.id, name: m.name },
+                          })),
+                          project: null,
+                          icon_photo: null,
+                        };
+                        setTeams((prev) => [...prev, newTeam]);
+                        setOpenPool((prev) => prev.filter((m) => !createTeamSelectedIds.has(m.id)));
+                        setCreateTeamName("");
+                        setCreateTeamSelectedIds(new Set());
+                        setCreateTeamSearch("");
+                        setCreateTeamOpen(false);
+                      }}
+                      className="flex-1 py-2 rounded-xl bg-white text-black text-[11px] font-bold uppercase tracking-wider hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    >
+                      {createTeamPending ? "Creating…" : `Create Team${createTeamSelectedIds.size > 0 ? ` (${createTeamSelectedIds.size})` : ""}`}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {teams.length === 0 && (
               <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
                 No teams formed yet
@@ -818,6 +1055,14 @@ export function HackathonAdminClient({
                         const res = await adminDissolveTeam(adminCode, team.id);
                         if (res.success) {
                           setTeams((prev) => prev.filter((t) => t.id !== team.id));
+                          // Return members to open pool
+                          const returning = team.members
+                            .filter((m) => m.user)
+                            .map((m) => ({ id: m.user_id, name: m.user!.name, occupation: null, is_technical: null }));
+                          setOpenPool((prev) => {
+                            const existing = new Set(prev.map((p) => p.id));
+                            return [...prev, ...returning.filter((r) => !existing.has(r.id))];
+                          });
                         } else setError(res.error ?? "Failed");
                       })}
                       className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-all"
@@ -878,6 +1123,151 @@ export function HackathonAdminClient({
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Submissions tab */}
+        {tab === "submissions" && (
+          <div className="space-y-4 animate-slide-up">
+            <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
+              <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:22px_22px]" />
+              <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-green-500/10 blur-[60px]" />
+              <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-green-400">Submission Progress</p>
+                  <div className="flex items-end gap-3">
+                    <p className="text-5xl font-black tracking-tight text-white tabular-nums">{submittedTeams.length}/{teams.length}</p>
+                    <p className="pb-2 text-sm font-medium text-gray-400">{submissionPercent}% submitted</p>
+                  </div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                    Deadline: {submissionDeadlineLabel}
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-stretch gap-2 md:items-end">
+                  <button
+                    disabled={unsubmittedTeams.length === 0 || nudgeStatus === "pending"}
+                    onClick={broadcastSubmissionNudge}
+                    className="flex items-center justify-center gap-2 rounded-2xl border border-red-400/40 bg-red-500/15 px-4 py-3 text-[12px] font-semibold text-red-200 transition-all hover:bg-red-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Megaphone className="h-4 w-4" />
+                    {nudgeStatus === "pending"
+                      ? "Broadcasting..."
+                      : unsubmittedTeams.length === 0
+                        ? "All Submitted"
+                        : `Nudge ${unsubmittedTeams.length} Missing`}
+                  </button>
+                  {nudgeStatus === "sent" && (
+                    <p className="text-right text-[11px] font-medium text-green-400">Reminder broadcast sent.</p>
+                  )}
+                  {nudgeStatus === "error" && (
+                    <p className="max-w-xs text-right text-[11px] font-medium text-red-400">{nudgeError ?? "Failed to broadcast reminder."}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="relative z-10 mt-6 h-2 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-300 transition-all duration-500"
+                  style={{ width: `${submissionPercent}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-[28px] border border-red-500/20 bg-red-500/[0.04] p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-300">Still Missing</p>
+                    <p className="mt-1 text-sm text-gray-500">Teams that have not submitted a project yet.</p>
+                  </div>
+                  <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-sm font-black text-red-200 tabular-nums">
+                    {unsubmittedTeams.length}
+                  </span>
+                </div>
+
+                {unsubmittedTeams.length === 0 ? (
+                  <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-5 text-sm font-medium text-green-300">
+                    Every team has submitted.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {unsubmittedTeams.map((team) => (
+                      <div key={team.id} className="rounded-2xl border border-white/[0.07] bg-black/30 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[15px] font-bold text-white">{team.name}</p>
+                            <p className="mt-1 truncate text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500">
+                              {team.members.map((m) => m.user?.name).filter(Boolean).join(" · ") || "No members"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full border border-red-400/20 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300">
+                            Missing
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-[28px] border border-green-500/20 bg-green-500/[0.04] p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-green-300">Submitted</p>
+                    <p className="mt-1 text-sm text-gray-500">Teams ready for screening and judging.</p>
+                  </div>
+                  <span className="rounded-full border border-green-400/30 bg-green-500/10 px-3 py-1 text-sm font-black text-green-200 tabular-nums">
+                    {submittedTeams.length}
+                  </span>
+                </div>
+
+                {submittedTeams.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm font-medium text-gray-500">
+                    No submissions yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {submittedTeams.map((team) => (
+                      <div key={team.id} className="rounded-2xl border border-white/[0.07] bg-black/30 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-[15px] font-bold text-white">{team.name}</p>
+                            <p className="mt-1 truncate text-[12px] font-medium text-gray-400">
+                              {team.project?.name ?? "Project submitted"}
+                            </p>
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-600">
+                              {team.project?.submitted_at
+                                ? `Submitted ${formatAdminDateTime(team.project.submitted_at, event.timezone)}`
+                                : "Submitted"}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full border border-green-400/20 bg-green-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-green-300">
+                            Ready
+                          </span>
+                        </div>
+                        {(team.project?.repo_url || team.project?.demo_url) && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {team.project.repo_url && (
+                              <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
+                                className="rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-red-300 transition-colors hover:bg-red-500/10">
+                                Repo
+                              </a>
+                            )}
+                            {team.project.demo_url && (
+                              <a href={team.project.demo_url} target="_blank" rel="noopener noreferrer"
+                                className="rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-300 transition-colors hover:bg-green-500/10">
+                                Demo
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
