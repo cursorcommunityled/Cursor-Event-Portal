@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import {
   getNetworkingSession,
   getNetworkingCurrentRound,
@@ -22,11 +21,6 @@ export default async function NetworkingPage({ params }: Props) {
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   const networkingSession = await getNetworkingSession(event.id);

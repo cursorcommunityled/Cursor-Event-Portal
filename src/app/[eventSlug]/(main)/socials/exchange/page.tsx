@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug, getOpenExchangePosts, getNetworkingSession, getNetworkingCurrentRound, getUserNetworkingPair } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import { createServiceClient } from "@/lib/supabase/server";
 import { SocialsSubNav } from "@/components/layout/SocialsSubNav";
 import { ExchangeBoard } from "@/components/exchange/ExchangeBoard";
@@ -24,11 +23,6 @@ export default async function SocialsExchangePage({ params, searchParams }: Soci
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   const activeView = view === "networking" ? "networking" : "exchange";

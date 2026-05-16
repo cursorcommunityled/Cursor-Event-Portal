@@ -59,14 +59,14 @@ function EntryAISummary({ repoUrl, teams, aiAnalyses }: {
   const KEY_CRITERIA = ['innovation', 'technical_execution', 'functional_completeness', 'ux_design'];
 
   return (
-    <div className="rounded-2xl border border-purple-500/25 bg-purple-500/[0.06] overflow-hidden">
+    <div className="rounded-2xl border border-red-500/25 bg-red-500/[0.06] overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-purple-500/10 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-red-500/10 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Cpu className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-purple-400">AI Pre-Screen</span>
+          <Cpu className="w-3.5 h-3.5 text-red-400 shrink-0" />
+          <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-red-400">AI Pre-Screen</span>
           {isRunning && (
             <span className="text-[10px] text-gray-500">{completedPasses}/6 passes…</span>
           )}
@@ -83,7 +83,7 @@ function EntryAISummary({ repoUrl, teams, aiAnalyses }: {
       </button>
 
       {pass6 && expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-purple-500/15">
+        <div className="px-4 pb-4 space-y-3 border-t border-red-500/15">
           {/* Score bars for key criteria */}
           <div className="grid grid-cols-2 gap-2 pt-3">
             {pass6.criteria_scores
@@ -99,7 +99,7 @@ function EntryAISummary({ repoUrl, teams, aiAnalyses }: {
                   <div className="h-1 rounded-full bg-white/10 overflow-hidden">
                     <div
                       className={cn("h-full rounded-full",
-                        c.score >= 8 ? "bg-green-400" : c.score >= 6 ? "bg-blue-400" : c.score >= 4 ? "bg-yellow-400" : "bg-red-400"
+                        c.score >= 8 ? "bg-green-400" : c.score >= 6 ? "bg-red-400" : c.score >= 4 ? "bg-yellow-400" : "bg-red-400"
                       )}
                       style={{ width: `${(c.score / 10) * 100}%` }}
                     />
@@ -257,13 +257,13 @@ export function HackathonJudgingAdminPanel({
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <div className="relative overflow-hidden rounded-[34px] border border-purple-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-        <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:20px_20px]" />
-        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-purple-500/10 blur-[50px]" />
+      <div className="relative overflow-hidden rounded-[34px] border border-red-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+        <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
+        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/10 blur-[50px]" />
         
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-400">Final Round — Human Judging</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-400">Final Round — Human Judging</p>
             <h3 className="text-2xl font-black tracking-tight text-white mt-1">Score Finalists</h3>
             <p className="text-[12px] font-medium text-gray-400 mt-1">AI pre-screen scores shown above each entry for reference. Add your own scores below.</p>
           </div>
@@ -274,7 +274,7 @@ export function HackathonJudgingAdminPanel({
               setSavedEntryId(null);
               setError(null);
             }}
-            className="bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-bold text-white focus:outline-none focus:border-purple-500/50 shadow-inner [&_option]:bg-black [&_option]:text-white"
+            className="bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-bold text-white focus:outline-none focus:border-red-500/50 shadow-inner [&_option]:bg-black [&_option]:text-white"
           >
             {competitions.map((comp) => (
               <option key={comp.id} value={comp.id}>
@@ -329,7 +329,7 @@ export function HackathonJudgingAdminPanel({
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
             <div className="relative flex items-start justify-between gap-4">
               <div className="min-w-0 space-y-2">
-                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-400">
+                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-400">
                   Finalist #{finalist.position + 1}
                 </p>
                 <h4 className="text-2xl font-black tracking-tight text-white">{entry.title}</h4>
@@ -340,7 +340,7 @@ export function HackathonJudgingAdminPanel({
                     href={entry.repo_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
                   >
                     Repo <ExternalLink className="w-3.5 h-3.5" />
                   </a>
@@ -395,7 +395,7 @@ export function HackathonJudgingAdminPanel({
                         },
                       }))
                     }
-                    className="w-full accent-purple-500"
+                    className="w-full accent-red-500"
                   />
                   {criterion.description && (
                     <p className="text-[11px] font-medium text-gray-500">{criterion.description}</p>
@@ -409,7 +409,7 @@ export function HackathonJudgingAdminPanel({
               rows={2}
               value={notesDrafts[entry.id] ?? ""}
               onChange={(e) => setNotesDrafts((prev) => ({ ...prev, [entry.id]: e.target.value }))}
-              className="relative w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 resize-none transition-colors shadow-inner"
+              className="relative w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none transition-colors shadow-inner"
             />
 
             <button

@@ -230,24 +230,24 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
           {/* Hackathon */}
           <div className="animate-slide-up h-full" style={{ animationDelay: "300ms" }}>
-            <div className={`glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full ${event.is_hackathon ? "border-purple-500/20 bg-purple-500/5" : ""}`}>
+            <div className={`glass rounded-[40px] p-8 border-white/20 hover:bg-white/10 hover:shadow-glow transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full ${event.is_hackathon ? "border-red-500/20 bg-red-500/5" : ""}`}>
               <Link href={`/admin/${adminCode}/hackathon`} prefetch={false} className="absolute inset-0 z-10" aria-label="Hackathon" />
               <div className="flex h-full items-center justify-between relative z-20 pointer-events-none">
                 <div className="flex items-center gap-6">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow ${event.is_hackathon ? "bg-purple-500/20 border border-purple-500/20" : "bg-white/10 border border-white/[0.05]"}`}>
-                    <Swords className={`w-6 h-6 transition-colors ${event.is_hackathon ? "text-purple-400" : "text-gray-600 group-hover:text-white"}`} />
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-105 transition-all shadow-inner-glow ${event.is_hackathon ? "bg-red-500/20 border border-red-500/20" : "bg-white/10 border border-white/[0.05]"}`}>
+                    <Swords className={`w-6 h-6 transition-colors ${event.is_hackathon ? "text-red-400" : "text-gray-600 group-hover:text-white"}`} />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
                       <h3 className="text-xl font-light tracking-tight text-white/90">Hackathon</h3>
                       {event.is_hackathon && (
-                        <span className="text-[8px] uppercase tracking-[0.2em] text-purple-400 bg-purple-400/10 border border-purple-400/20 rounded-full px-2 py-0.5">Active</span>
+                        <span className="text-[8px] uppercase tracking-[0.2em] text-red-400 bg-red-400/10 border border-red-400/20 rounded-full px-2 py-0.5">Active</span>
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-gray-500 font-medium">
                       <span>Teams</span>
                       <span className="text-gray-700">·</span>
-                      <span className="text-purple-300/80">Chat</span>
+                      <span className="text-red-300/80">Chat</span>
                       <span className="text-gray-700">·</span>
                       <span>Scoring</span>
                       <span className="text-gray-700">·</span>

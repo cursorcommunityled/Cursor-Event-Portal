@@ -135,11 +135,11 @@ export function EntryCard({
         isAdminWinner
           ? "border-yellow-500/50 bg-yellow-500/10 shadow-[0_0_24px_rgba(234,179,8,0.25)]"
           : isGroupWinner
-          ? "border-blue-500/50 bg-blue-500/10 shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+          ? "border-red-500/50 bg-red-500/10 shadow-[0_0_24px_rgba(239,68,68,0.25)]"
           : isWinner
           ? "border-yellow-500/40 bg-yellow-500/5 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
           : isFinalist
-          ? "border-purple-500/30 bg-purple-500/5"
+          ? "border-red-500/30 bg-red-500/5"
           : "border-white/10 bg-white/5"
       )}
     >
@@ -180,7 +180,7 @@ export function EntryCard({
             href={entry.video_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-300 hover:underline"
+            className="text-xs text-red-300 hover:underline"
           >
             Watch video
           </a>
@@ -192,7 +192,7 @@ export function EntryCard({
             href={entry.video_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-300 hover:underline"
+            className="text-sm text-red-300 hover:underline"
           >
             Open video →
           </a>
@@ -204,18 +204,18 @@ export function EntryCard({
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             {isAdminWinner && <Trophy className="w-4 h-4 text-yellow-400 shrink-0" />}
-            {isGroupWinner && <Users className="w-4 h-4 text-blue-400 shrink-0" />}
+            {isGroupWinner && <Users className="w-4 h-4 text-red-400 shrink-0" />}
             {isWinner && !isAdminWinner && !isGroupWinner && <Trophy className="w-4 h-4 text-yellow-400 shrink-0" />}
-            {isFinalist && !isAdminWinner && !isGroupWinner && <Star className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+            {isFinalist && !isAdminWinner && !isGroupWinner && <Star className="w-3.5 h-3.5 text-red-400 shrink-0" />}
             <h3 className="text-base font-medium text-white">{entry.title}</h3>
             {isAdminWinner && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300">Admin Pick</span>
             )}
             {isGroupWinner && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300">People&apos;s Choice</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300">People&apos;s Choice</span>
             )}
             {isFinalist && !isAdminWinner && !isGroupWinner && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300">Finalist</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300">Finalist</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -243,7 +243,7 @@ export function EntryCard({
               href={projectUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-w-0 flex-1 text-xs text-blue-300 hover:text-blue-200 break-all"
+              className="min-w-0 flex-1 text-xs text-red-300 hover:text-red-200 break-all"
             >
               {projectUrl}
             </a>
@@ -283,7 +283,7 @@ export function EntryCard({
               href={stackBlitzUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/30 transition-all"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-all"
             >
               <Code className="w-3.5 h-3.5" />
               Open in StackBlitz

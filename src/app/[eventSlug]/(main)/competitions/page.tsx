@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug, getActiveCompetitions } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CompetitionsList } from "@/components/competitions/CompetitionsList";
 
@@ -18,11 +17,6 @@ export default async function CompetitionsPage({ params }: CompetitionsPageProps
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   const supabase = await createServiceClient();

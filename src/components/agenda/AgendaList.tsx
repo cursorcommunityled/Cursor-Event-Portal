@@ -127,6 +127,7 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
     const endDate = new Date(end);
     const diffMs = endDate.getTime() - startDate.getTime();
     const diffMins = Math.round(diffMs / 60000);
+    if (diffMins <= 0) return null;
     if (diffMins < 60) return `${diffMins} min`;
     const hours = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
@@ -184,12 +185,12 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                   }`}>
                     {isCurrentlyNow ? "Happening Now" : isUpNext ? "Up Next" : formatTime(item.start_time || "", eventTimezone)}
                   </div>
-                  {item.start_time && item.end_time && !isCurrentlyNow && (
+                  {item.start_time && item.end_time && formatDuration(item.start_time, item.end_time) && !isCurrentlyNow && (
                     <div className="text-[12px] text-gray-600 font-medium px-3 py-1 rounded-full bg-white/5">
                       {formatDuration(item.start_time, item.end_time)}
                     </div>
                   )}
-                  {item.start_time && item.end_time && (
+                  {item.start_time && item.end_time && formatDuration(item.start_time, item.end_time) && (
                     <AgendaItemTimer startTime={item.start_time} endTime={item.end_time} eventStartTime={eventStartTime} />
                   )}
                 </div>
@@ -284,7 +285,9 @@ export function AgendaList({ items: initialItems, eventId, eventTimezone = "Amer
                   <Clock className="w-3 h-3 text-gray-500" />
                   <span className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em]">
                     {formatTime(selectedItem.start_time || "", eventTimezone)}
-                    {selectedItem.end_time && ` – ${formatTime(selectedItem.end_time, eventTimezone)}`}
+                    {selectedItem.end_time &&
+                      formatDuration(selectedItem.start_time, selectedItem.end_time) &&
+                      ` – ${formatTime(selectedItem.end_time, eventTimezone)}`}
                   </span>
                 </div>
                 {formatDuration(selectedItem.start_time, selectedItem.end_time) && (

@@ -309,8 +309,8 @@ export function ImportRegistrationsClient({
               </div>
               {needsTeamCount > 0 && (
                 <div className="flex items-center gap-3">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]" />
-                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-purple-400">{needsTeamCount} Need Team</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_8px_rgba(192,132,252,0.5)]" />
+                  <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-red-400">{needsTeamCount} Need Team</span>
                 </div>
               )}
             </div>
@@ -346,14 +346,14 @@ export function ImportRegistrationsClient({
                           {attendee.is_technical !== undefined && (
                             <span className={`text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
                               attendee.is_technical
-                                ? "text-blue-400 bg-blue-500/5 border-blue-500/15"
+                                ? "text-red-400 bg-red-500/5 border-red-500/15"
                                 : "text-orange-400 bg-orange-500/5 border-orange-500/15"
                             }`}>
                               {attendee.is_technical ? "Tech" : "Non-Tech"}
                             </span>
                           )}
                           {attendee.needs_team && (
-                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border text-purple-400 bg-purple-500/5 border-purple-500/15">
+                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border text-red-400 bg-red-500/5 border-red-500/15">
                               Needs Team
                             </span>
                           )}

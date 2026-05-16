@@ -97,7 +97,7 @@ function MemberCard({ member }: { member: ChatMember }) {
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/80 p-5 w-64 space-y-4 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] z-50 backdrop-blur-3xl">
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:15px_15px]" />
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[40px]" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px]" />
       
       <div className="relative flex items-center gap-4">
         <div className="ring-1 ring-white/15 rounded-2xl shadow-lg">
@@ -106,7 +106,7 @@ function MemberCard({ member }: { member: ChatMember }) {
         <div className="min-w-0">
           <p className="text-[16px] font-bold truncate text-white tracking-tight">{member.name}</p>
           {member.role === "admin" || member.role === "staff" || member.role === "facilitator" ? (
-            <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-purple-300 flex items-center gap-1 drop-shadow-md">
+            <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 flex items-center gap-1 drop-shadow-md">
               <Shield className="w-3 h-3" /> Admin
             </span>
           ) : member.team_role === "leader" ? (
@@ -168,16 +168,16 @@ function SuggestionCard({
 
   return (
     <div className="mx-3 my-4 sm:mx-6">
-      <div className="relative overflow-hidden rounded-[28px] border border-purple-500/40 bg-purple-500/10 px-5 py-5 shadow-neon">
-        <div className="absolute inset-0 bg-grid-purple/[0.02] bg-[size:20px_20px]" />
-        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/20 blur-[40px]" />
+      <div className="relative overflow-hidden rounded-[28px] border border-red-500/40 bg-red-500/10 px-5 py-5 shadow-neon">
+        <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/20 blur-[40px]" />
         
         <div className="relative flex items-start gap-4">
-          <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-purple-500/20 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
-            <Zap className="w-5 h-5 text-purple-300" />
+          <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-red-500/20 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+            <Zap className="w-5 h-5 text-red-300" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-purple-300 mb-1.5">Match Suggestion</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300 mb-1.5">Match Suggestion</p>
             <p className="text-[15px] font-medium text-gray-200 leading-relaxed">{msg.content}</p>
 
             {status === "sent" ? (
@@ -190,12 +190,12 @@ function SuggestionCard({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="Team name…"
-                  className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[14px] font-medium text-white placeholder:text-gray-500 focus:outline-none focus:border-purple-500/50 focus:bg-black/60"
+                  className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-[14px] font-medium text-white placeholder:text-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-black/60"
                 />
                 <button
                   disabled={!teamName.trim() || status === "pending"}
                   onClick={() => handleInvite(teamName.trim())}
-                  className="px-5 py-3 rounded-xl text-[13px] font-bold uppercase tracking-wider bg-purple-500/20 border border-purple-500/30 text-purple-200 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all disabled:opacity-40"
+                  className="px-5 py-3 rounded-xl text-[13px] font-bold uppercase tracking-wider bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 hover:border-red-500/50 transition-all disabled:opacity-40"
                 >
                   Send
                 </button>
@@ -205,7 +205,7 @@ function SuggestionCard({
                 <button
                   disabled={status === "pending"}
                   onClick={handleYes}
-                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-[13px] font-bold uppercase tracking-wider bg-purple-500/20 border border-purple-500/30 text-purple-200 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all disabled:opacity-40"
+                  className="flex items-center gap-2 px-5 py-3 rounded-xl text-[13px] font-bold uppercase tracking-wider bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 hover:border-red-500/50 transition-all disabled:opacity-40"
                 >
                   <UserPlus className="w-4 h-4" />
                   {status === "pending" ? "Sending…" : `Yes, invite ${suggestedName}`}
@@ -265,17 +265,17 @@ function TeamFinderPanel({
 
   return (
     <div className="shrink-0 mx-3 mt-3 sm:mx-5">
-      <div className="relative overflow-hidden rounded-[28px] border border-purple-500/30 bg-purple-500/[0.07] p-4 shadow-[0_0_40px_rgba(168,85,247,0.08)]">
+      <div className="relative overflow-hidden rounded-[28px] border border-red-500/30 bg-red-500/[0.07] p-4 shadow-[0_0_40px_rgba(239,68,68,0.08)]">
         <div className="absolute inset-0 bg-grid-white/[0.01] bg-[size:15px_15px]" />
-        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-purple-500/10 blur-[50px]" />
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[50px]" />
 
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-purple-500/20 border border-purple-500/30">
-                <Zap className="w-3.5 h-3.5 text-purple-300" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-red-500/20 border border-red-500/30">
+                <Zap className="w-3.5 h-3.5 text-red-300" />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-purple-300">Team Finder</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">Team Finder</span>
               <span className="text-[10px] text-gray-500 font-medium">— your top matches</span>
             </div>
             <button
@@ -288,7 +288,7 @@ function TeamFinderPanel({
 
           {loading ? (
             <div className="space-y-3" role="status" aria-live="polite">
-              <div className="flex items-center gap-2 rounded-2xl border border-purple-500/25 bg-purple-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-purple-200">
+              <div className="flex items-center gap-2 rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-red-200">
                 <AlertCircle className="w-3.5 h-3.5" />
                 suggestions loading!
               </div>
@@ -314,7 +314,7 @@ function TeamFinderPanel({
                         {rec.is_technical !== null && (
                           <span className={`text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
                             rec.is_technical
-                              ? "text-blue-400 bg-blue-500/10 border-blue-500/20"
+                              ? "text-red-400 bg-red-500/10 border-red-500/20"
                               : "text-orange-400 bg-orange-500/10 border-orange-500/20"
                           }`}>
                             {rec.is_technical ? "Tech" : "Non-Tech"}
@@ -325,7 +325,7 @@ function TeamFinderPanel({
                             href={rec.linkedin_url.startsWith("http") ? rec.linkedin_url : `https://${rec.linkedin_url}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-gray-600 hover:text-blue-400 transition-colors"
+                            className="text-gray-600 hover:text-red-400 transition-colors"
                           >
                             <Linkedin className="w-3 h-3" />
                           </a>
@@ -347,12 +347,12 @@ function TeamFinderPanel({
                           value={teamName}
                           onChange={(e) => setTeamNameInputs((s) => ({ ...s, [rec.userId]: e.target.value }))}
                           placeholder="Team name…"
-                          className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/50"
+                          className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/50"
                         />
                         <button
                           disabled={!teamName.trim() || status === "pending"}
                           onClick={() => handleInvite(rec.userId, teamName.trim())}
-                          className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-purple-500/20 border border-purple-500/30 text-purple-200 hover:bg-purple-500/30 transition-all disabled:opacity-40"
+                          className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-all disabled:opacity-40"
                         >
                           Go
                         </button>
@@ -361,7 +361,7 @@ function TeamFinderPanel({
                       <button
                         disabled={status === "pending"}
                         onClick={() => handleYes(rec.userId)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-purple-500/15 border border-purple-500/25 text-purple-200 hover:bg-purple-500/25 hover:border-purple-500/40 transition-all disabled:opacity-40"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/15 border border-red-500/25 text-red-200 hover:bg-red-500/25 hover:border-red-500/40 transition-all disabled:opacity-40"
                       >
                         <UserPlus className="w-3 h-3" />
                         {status === "pending" ? "Sending…" : "Invite"}
@@ -439,7 +439,7 @@ function ChatMsg({
         );
         if (mentioned) {
           return (
-            <span key={i} className="bg-purple-500/20 text-purple-300 rounded-md px-1 py-0.5 font-medium border border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]">
+            <span key={i} className="bg-red-500/20 text-red-300 rounded-md px-1 py-0.5 font-medium border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
               {part}
             </span>
           );
@@ -497,7 +497,7 @@ function ChatMsg({
               {sender?.name ?? "Unknown"}
             </span>
             {senderIsAdmin && (
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] bg-purple-500/20 text-purple-200 rounded-md px-1.5 py-0.5 border border-purple-400/25 shadow-[0_0_10px_rgba(168,85,247,0.15)]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] bg-red-500/20 text-red-200 rounded-md px-1.5 py-0.5 border border-red-400/25 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
                 Admin
               </span>
             )}
@@ -548,7 +548,7 @@ function ChatMsg({
             rel="noopener noreferrer"
             className="mt-2.5 inline-flex max-w-full items-center gap-3 bg-black/45 border border-white/15 rounded-2xl px-4 py-3 text-[15px] text-gray-100 hover:text-white hover:bg-white/[0.07] hover:border-white/25 transition-all duration-200 shadow-sm group"
           >
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+            <div className="p-2 rounded-lg bg-red-500/10 text-red-400 group-hover:bg-red-500/20 transition-colors">
               <FileText className="w-4 h-4 shrink-0" />
             </div>
             <span className="min-w-0 truncate max-w-[200px] font-medium">{msg.file_name ?? "File"}</span>
@@ -571,7 +571,7 @@ function ChatMsg({
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-200 border",
                   r.mine
-                    ? "bg-purple-500/20 border-purple-500/30 text-purple-100 shadow-[0_0_10px_rgba(168,85,247,0.1)]"
+                    ? "bg-red-500/20 border-red-500/30 text-red-100 shadow-[0_0_10px_rgba(239,68,68,0.1)]"
                     : "bg-white/[0.05] border-white/[0.1] text-gray-300 hover:bg-white/[0.1] hover:text-white"
                 )}
               >
@@ -1101,8 +1101,8 @@ export function HackathonChat({
       
       {/* Subtle top gradient light */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
-      <div className="absolute -top-20 right-10 h-52 w-52 rounded-full bg-purple-500/[0.08] blur-[80px] pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-blue-500/[0.05] blur-[80px] pointer-events-none" />
+      <div className="absolute -top-20 right-10 h-52 w-52 rounded-full bg-red-500/[0.08] blur-[80px] pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-red-500/[0.05] blur-[80px] pointer-events-none" />
 
       {/* Channel nav */}
       <div className="relative flex items-center gap-2 border-b border-white/10 bg-black/40 px-3 pt-3 pb-2.5 shrink-0 sm:px-4 z-10 backdrop-blur-md">
@@ -1158,10 +1158,10 @@ export function HackathonChat({
               <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-300 bg-yellow-500/20 px-2.5 py-1 rounded-full ml-1 border border-yellow-500/30">Unassigned</span>
             )}
             {currentChannel?.channel_type === "announcements" && (
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-purple-300 bg-purple-500/20 px-2.5 py-1 rounded-full ml-1 border border-purple-500/30">Admin Only</span>
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 bg-red-500/20 px-2.5 py-1 rounded-full ml-1 border border-red-500/30">Admin Only</span>
             )}
             {currentChannel?.channel_type === "team" && (
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300 bg-blue-500/20 px-2.5 py-1 rounded-full ml-1 border border-blue-500/30">Private Team</span>
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 bg-red-500/20 px-2.5 py-1 rounded-full ml-1 border border-red-500/30">Private Team</span>
             )}
             {currentChannel?.channel_type === "dm" && (
               <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-green-300 bg-green-500/20 px-2.5 py-1 rounded-full ml-1 border border-green-500/30">Direct</span>
@@ -1203,7 +1203,7 @@ export function HackathonChat({
             {!loadingChannel && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                 <div className="relative flex h-24 w-24 items-center justify-center rounded-[32px] border border-white/10 bg-white/5 mb-6 shadow-2xl">
-                  <div className="absolute inset-0 rounded-[32px] bg-purple-500/10 blur-xl" />
+                  <div className="absolute inset-0 rounded-[32px] bg-red-500/10 blur-xl" />
                   <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="w-10 h-10 text-gray-400" />
                 </div>
                 {currentChannel?.channel_type === "spawn_point" ? (
@@ -1285,7 +1285,7 @@ export function HackathonChat({
                   </div>
                 )}
 
-                <div className="flex items-end gap-2 rounded-[28px] border border-white/20 bg-black/60 backdrop-blur-2xl px-4 py-4 transition-all duration-300 focus-within:border-purple-500/50 focus-within:bg-black/80 focus-within:shadow-[0_0_30px_rgba(168,85,247,0.15)] sm:gap-3 sm:px-5 shadow-inner">
+                <div className="flex items-end gap-2 rounded-[28px] border border-white/20 bg-black/60 backdrop-blur-2xl px-4 py-4 transition-all duration-300 focus-within:border-red-500/50 focus-within:bg-black/80 focus-within:shadow-[0_0_30px_rgba(239,68,68,0.15)] sm:gap-3 sm:px-5 shadow-inner">
                   <textarea
                     ref={inputRef}
                     value={draft}
@@ -1378,7 +1378,7 @@ export function HackathonChat({
               {/* Admin / staff first */}
               {members.filter((m) => ["admin", "staff", "facilitator"].includes(m.role)).length > 0 && (
                 <div className="mb-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-200 px-3 mb-2">Organizers</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-200 px-3 mb-2">Organizers</p>
                   {members
                     .filter((m) => ["admin", "staff", "facilitator"].includes(m.role))
                     .map((m) => (
@@ -1471,7 +1471,7 @@ function MemberRow({
         )}
       </div>
       {(member.role === "admin" || member.role === "staff" || member.role === "facilitator") && (
-        <Shield className="w-4 h-4 text-purple-200 shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
+        <Shield className="w-4 h-4 text-red-200 shrink-0 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
       )}
       {canMessage && (
         <button

@@ -1,6 +1,6 @@
 -- Creates the SAIT Hackathon May 2026 event and supporting setup.
 -- Safe to run multiple times.
--- May 23/24 2026 is MDT (UTC-6): 9:00 AM MDT = 15:00 UTC; 2:00 PM MDT = 20:00 UTC.
+-- May 23/24 2026 is MDT (UTC-6): 8:00 AM MDT = 14:00 UTC; 3:30 PM MDT = 21:30 UTC.
 
 -- 0. Ensure prerequisite columns/tables exist on databases missing newer migrations
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -316,8 +316,8 @@ VALUES (
   'Southern Alberta Institute of Technology',
   '1301 16 Ave NW, Calgary, AB T2M 0L4, Canada',
   '/nw-sait-heritage-hall-winter-730x485.jpg',
-  '2026-05-23T15:00:00Z',   -- 9:00 AM MDT May 23
-  '2026-05-24T20:00:00Z',   -- 2:00 PM MDT May 24
+  '2026-05-23T14:00:00Z',   -- 8:00 AM MDT May 23
+  '2026-05-24T21:30:00Z',   -- 3:30 PM MDT May 24
   'America/Edmonton',
   'published',
   150,
@@ -348,11 +348,11 @@ SELECT
   'Cursor Calgary Hackathon - SAIT',
   '2026-05-23',
   '2026-05-24',
-  '09:00',
-  '14:00',
+  '08:00',
+  '15:30',
   e.venue,
   e.address,
-  '24-hour SAIT hackathon. Teams of 3-4 build from a fixed prompt using Cursor; participants receive $50 credits.',
+  'Two-day SAIT hackathon. Teams of 3-4 build from a fixed prompt using Cursor; participants receive $50 credits.',
   true,
   'Calgary',
   e.id
@@ -367,11 +367,11 @@ WHERE e.slug = 'calgary-hackathon-sait-may-2026'
 UPDATE public.planned_events pe
 SET
   end_date = '2026-05-24',
-  start_time = '09:00',
-  end_time = '14:00',
+  start_time = '08:00',
+  end_time = '15:30',
   venue = e.venue,
   address = e.address,
-  notes = '24-hour SAIT hackathon. Teams of 3-4 build from a fixed prompt using Cursor; participants receive $50 credits.',
+  notes = 'Two-day SAIT hackathon. Teams of 3-4 build from a fixed prompt using Cursor; participants receive $50 credits.',
   confirmed = true,
   city = 'Calgary',
   linked_event_id = e.id,
@@ -395,10 +395,10 @@ INSERT INTO public.hackathon_settings (
 SELECT
   e.id,
   true,
-  '2026-05-23T15:00:00Z',   -- 9:00 AM MDT Saturday
-  '2026-05-23T16:00:00Z',   -- 10:00 AM MDT Saturday, official build start
-  '2026-05-24T16:00:00Z',   -- 10:00 AM MDT Sunday, 24-hour build deadline
-  '2026-05-24T17:00:00Z',   -- 11:00 AM MDT Sunday
+  NULL,                     -- team forming is open before the event; formal formation starts at 10:10 AM MDT Saturday
+  '2026-05-23T16:40:00Z',   -- 10:40 AM MDT Saturday, team formation ends
+  '2026-05-24T17:00:00Z',   -- 11:00 AM MDT Sunday, submission deadline
+  '2026-05-24T18:15:00Z',   -- 12:15 PM MDT Sunday, final demos and judging start
   3,
   4,
   false
@@ -412,10 +412,10 @@ WHERE e.slug = 'calgary-hackathon-sait-may-2026'
 UPDATE public.hackathon_settings hs
 SET
   team_formation_enabled = true,
-  team_formation_opens_at = '2026-05-23T15:00:00Z',
-  team_formation_closes_at = '2026-05-23T16:00:00Z',
-  submission_deadline = '2026-05-24T16:00:00Z',
-  judging_starts_at = '2026-05-24T17:00:00Z',
+  team_formation_opens_at = NULL,
+  team_formation_closes_at = '2026-05-23T16:40:00Z',
+  submission_deadline = '2026-05-24T17:00:00Z',
+  judging_starts_at = '2026-05-24T18:15:00Z',
   min_team_size = 3,
   max_team_size = 4,
   leaderboard_visible = false,
@@ -450,53 +450,123 @@ FROM public.events e
 CROSS JOIN (
   VALUES
     (
-      'Check-in and Team Formation',
-      'Arrive at SAIT, check in, meet other participants, and finalize teams of 3-4.',
+      'Setup',
+      'Organizers prepare the venue, check-in flow, and hackathon stations.',
+      '2026-05-23T14:00:00Z',
       '2026-05-23T15:00:00Z',
-      '2026-05-23T15:30:00Z',
       0
     ),
     (
-      'Welcome, Rules, and Prompt Briefing',
-      'Organizers introduce the fixed challenge prompt, weekend rules, judging criteria, and Cursor credit flow.',
+      'Check-in',
+      'Participants arrive at SAIT, check in, and get settled for the hackathon.',
+      '2026-05-23T15:00:00Z',
       '2026-05-23T15:30:00Z',
-      '2026-05-23T16:00:00Z',
       1
     ),
     (
-      'Official Build Start',
-      'The 24-hour build period begins. Teams work against the same official prompt using Cursor.',
-      '2026-05-23T16:00:00Z',
-      '2026-05-24T16:00:00Z',
+      'Welcome & Framing',
+      'Organizers welcome participants and frame the goals for the weekend.',
+      '2026-05-23T15:30:00Z',
+      '2026-05-23T15:40:00Z',
       2
     ),
     (
-      'Submission Deadline',
-      'Teams submit their project materials for screening and judging.',
-      '2026-05-24T16:00:00Z',
-      '2026-05-24T16:15:00Z',
+      'Day One Speaker',
+      'Featured speaker session for day one of the hackathon.',
+      '2026-05-23T15:40:00Z',
+      '2026-05-23T16:10:00Z',
       3
     ),
     (
-      'Screening Round',
-      'Organizers and judges review submissions and select finalists for live demos.',
-      '2026-05-24T16:15:00Z',
-      '2026-05-24T17:00:00Z',
+      'Team Formation',
+      'Participants form teams of 3-4 before the prompt briefing begins.',
+      '2026-05-23T16:10:00Z',
+      '2026-05-23T16:40:00Z',
       4
     ),
     (
-      'Finalist Demos and Judging',
-      'Finalist teams present live. Judges evaluate problem relevance, execution, product quality, and meaningful use of Cursor.',
-      '2026-05-24T17:00:00Z',
-      '2026-05-24T19:00:00Z',
+      'Prompt Briefing & Rules',
+      'Organizers introduce the fixed challenge prompt, weekend rules, judging criteria, and Cursor credit flow.',
+      '2026-05-23T16:40:00Z',
+      '2026-05-23T17:00:00Z',
       5
     ),
     (
-      'Awards and Closing',
-      'Winning teams are announced and the $1,000 USD Cursor credit prize pool is distributed across the top 3 teams.',
-      '2026-05-24T19:00:00Z',
-      '2026-05-24T20:00:00Z',
+      'Building',
+      'Teams build against the official prompt using Cursor.',
+      '2026-05-23T17:00:00Z',
+      '2026-05-23T21:45:00Z',
       6
+    ),
+    (
+      'Closing Remarks',
+      'Organizers close day one and share reminders for Sunday submissions.',
+      '2026-05-23T21:45:00Z',
+      '2026-05-23T22:00:00Z',
+      7
+    ),
+    (
+      'Setup',
+      'Organizers prepare for day two demos, screening, awards, and networking.',
+      '2026-05-24T15:45:00Z',
+      '2026-05-24T16:00:00Z',
+      8
+    ),
+    (
+      'Participants Show Up',
+      'Participants return to SAIT, prepare final materials, and get ready for screening.',
+      '2026-05-24T16:00:00Z',
+      '2026-05-24T18:15:00Z',
+      9
+    ),
+    (
+      'Submission Deadline',
+      'Teams submit their project materials by 11:00 AM.',
+      '2026-05-24T17:00:00Z',
+      '2026-05-24T17:00:00Z',
+      10
+    ),
+    (
+      'AI Screening Round',
+      'Organizers and judges review submissions and select finalists for live demos.',
+      '2026-05-24T17:00:00Z',
+      '2026-05-24T18:15:00Z',
+      11
+    ),
+    (
+      'Final Demos and Judging',
+      'Finalist teams present live. Judges evaluate problem relevance, execution, product quality, and meaningful use of Cursor.',
+      '2026-05-24T18:15:00Z',
+      '2026-05-24T19:35:00Z',
+      12
+    ),
+    (
+      'Day Two Speaker',
+      'Featured speaker session for day two of the hackathon.',
+      '2026-05-24T19:35:00Z',
+      '2026-05-24T19:50:00Z',
+      13
+    ),
+    (
+      'Awards and Recognition',
+      'Winning teams are announced and recognized.',
+      '2026-05-24T19:50:00Z',
+      '2026-05-24T20:10:00Z',
+      14
+    ),
+    (
+      'Closing Remarks',
+      'Organizers close the formal hackathon program.',
+      '2026-05-24T20:10:00Z',
+      '2026-05-24T20:20:00Z',
+      15
+    ),
+    (
+      'Networking Time',
+      'Participants, organizers, and judges connect after the awards.',
+      '2026-05-24T20:20:00Z',
+      '2026-05-24T21:30:00Z',
+      16
     )
 ) AS v(title, description, start_time, end_time, sort_order)
 WHERE e.slug = 'calgary-hackathon-sait-may-2026';
@@ -515,12 +585,12 @@ INSERT INTO public.competitions (
 SELECT
   e.id,
   'Cursor Calgary Hackathon - SAIT Build Challenge',
-  'Teams receive one fixed prompt from organizers and build a working solution with Cursor during the 24-hour SAIT hackathon.',
-  E'1. Teams must have 3-4 people.\n2. All teams build against the same official prompt.\n3. Projects must be built during the official 24-hour build period.\n4. Submit the repo URL and any required demo materials before the Sunday deadline.\n5. Finalists demo live on Sunday.\n6. Judging criteria: problem relevance, execution, product quality, and meaningful use of Cursor.',
+  'Teams receive one fixed prompt from organizers and build a working solution with Cursor during the SAIT hackathon.',
+  E'1. Teams must have 3-4 people.\n2. All teams build against the same official prompt.\n3. Projects must be built during the official hackathon build window.\n4. Submit the repo URL and any required demo materials before the 11:00 AM Sunday deadline.\n5. Finalists demo live on Sunday.\n6. Judging criteria: problem relevance, execution, product quality, and meaningful use of Cursor.',
   'draft',
   'judges',
-  '2026-05-23T16:00:00Z',   -- official build start
-  '2026-05-24T16:00:00Z'    -- submission deadline
+  '2026-05-23T17:00:00Z',   -- 11:00 AM MDT Saturday, building starts
+  '2026-05-24T17:00:00Z'    -- 11:00 AM MDT Sunday, submission deadline
 FROM public.events e
 WHERE e.slug = 'calgary-hackathon-sait-may-2026'
   AND NOT EXISTS (
@@ -528,6 +598,17 @@ WHERE e.slug = 'calgary-hackathon-sait-may-2026'
     WHERE c.event_id = e.id
       AND c.title = 'Cursor Calgary Hackathon - SAIT Build Challenge'
   );
+
+UPDATE public.competitions c
+SET
+  description = 'Teams receive one fixed prompt from organizers and build a working solution with Cursor during the SAIT hackathon.',
+  rules = E'1. Teams must have 3-4 people.\n2. All teams build against the same official prompt.\n3. Projects must be built during the official hackathon build window.\n4. Submit the repo URL and any required demo materials before the 11:00 AM Sunday deadline.\n5. Finalists demo live on Sunday.\n6. Judging criteria: problem relevance, execution, product quality, and meaningful use of Cursor.',
+  starts_at = '2026-05-23T17:00:00Z',
+  ends_at = '2026-05-24T17:00:00Z'
+FROM public.events e
+WHERE e.slug = 'calgary-hackathon-sait-may-2026'
+  AND c.event_id = e.id
+  AND c.title = 'Cursor Calgary Hackathon - SAIT Build Challenge';
 
 -- 6. Make SAIT selectable/active from attendee entry points immediately after seeding
 INSERT INTO public.app_settings (key, value, updated_at)

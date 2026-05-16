@@ -14,7 +14,6 @@ import {
   getPublishedCompetitionJudgingResults,
 } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { getIntakeStatus } from "@/lib/actions/intake";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { HackathonClient } from "@/components/hackathon/HackathonClient";
 
@@ -32,11 +31,6 @@ export default async function HackathonPage({ params }: Props) {
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
-  }
-
-  const intakeStatus = await getIntakeStatus(event.id, session.userId);
-  if (!intakeStatus.completed && !intakeStatus.skipped) {
-    redirect(`/${eventSlug}/intake`);
   }
 
   // Ensure default channels exist (idempotent)
