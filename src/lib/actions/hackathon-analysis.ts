@@ -225,19 +225,17 @@ export async function pushTopAIToFinalRound(
     if (primaryUserId) primaryUserByTeam.set(teamId, primaryUserId);
   }
 
-  // Match existing entries by normalized repo URL or by the team's primary user.
+  // Match existing entries by project identity. Several seeded hackathon teams can share
+  // the same organizer account, so user_id is not a safe finalist-entry key here.
   const { data: entries } = await supabase
     .from("competition_entries")
-    .select("id, user_id, repo_url")
+    .select("id, repo_url")
     .eq("competition_id", competitionId);
 
   const entryByRepo = new Map(
     (entries ?? [])
       .map((entry: { id: string; repo_url: string | null }) => [normalizeRepoUrl(entry.repo_url), entry.id] as const)
       .filter(([repo]) => repo)
-  );
-  const entryByUser = new Map(
-    (entries ?? []).map((entry: { id: string; user_id: string }) => [entry.user_id, entry.id])
   );
 
   // Build ordered list of entry IDs for the top teams
@@ -250,7 +248,7 @@ export async function pushTopAIToFinalRound(
     if (!primaryUserId) continue;
 
     const normalizedRepo = normalizeRepoUrl(project.repo_url);
-    let entryId = entryByRepo.get(normalizedRepo) ?? entryByUser.get(primaryUserId);
+    let entryId = entryByRepo.get(normalizedRepo);
 
     if (!entryId) {
       const { data: inserted, error: insertError } = await supabase

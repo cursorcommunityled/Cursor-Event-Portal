@@ -44,10 +44,15 @@ import type {
 } from "@/types";
 
 const DIRECT_CHANNEL_PREFIX = "dm:";
+const NON_FINAL_ROUND_JUDGING_TITLES = new Set(["audience favourite", "audience favorite"]);
 
 function getDirectChannelUserIds(name: string) {
   if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
   return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
+}
+
+function isFinalRoundJudgingCompetition(competition: CompetitionWithEntries) {
+  return !NON_FINAL_ROUND_JUDGING_TITLES.has(competition.title.trim().toLowerCase());
 }
 
 // Event queries
@@ -1526,7 +1531,7 @@ export async function getCompetitionJudgingData(
   eventId: string
 ): Promise<CompetitionJudgingCompetition[]> {
   noStore();
-  const competitions = await getAllCompetitions(eventId);
+  const competitions = (await getAllCompetitions(eventId)).filter(isFinalRoundJudgingCompetition);
   if (competitions.length === 0) return [];
 
   const supabase = await createServiceClient();
