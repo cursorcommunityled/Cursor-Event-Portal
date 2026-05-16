@@ -111,9 +111,19 @@ async function audienceWinnerAlreadyApproved(
 }
 
 export async function getPendingAudienceVoteWinner(
-  eventId: string
+  eventId: string,
+  adminCode: string
 ): Promise<AudienceVoteWinnerPrompt | null> {
   const supabase = await createServiceClient();
+
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return null;
+
   const { data: polls } = await supabase
     .from("polls")
     .select("id, event_id, options, created_at, votes:poll_votes(option_index)")

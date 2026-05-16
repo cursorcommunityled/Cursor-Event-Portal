@@ -63,7 +63,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
       .eq("hackathon_audience_vote", true)
       .eq("is_active", true)
       .maybeSingle(),
-    getPendingAudienceVoteWinner(event.id),
+    getPendingAudienceVoteWinner(event.id, adminCode),
   ]);
   const activeAudienceVote = activeAudienceVoteRow as {
     id: string;

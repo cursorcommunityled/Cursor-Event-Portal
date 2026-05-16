@@ -1900,15 +1900,7 @@ export function HackathonAdminClient({
                         onClick={approveAudienceWinner}
                         className="inline-flex items-center gap-2 rounded-2xl border border-yellow-400/50 bg-yellow-400/20 px-4 py-2.5 text-[12px] font-black uppercase tracking-wider text-yellow-100 transition-all hover:bg-yellow-400/30 disabled:opacity-50"
                       >
-                        <Sparkles className="h-3.5 w-3.5" />
                         {voteStatus === "pending" ? "Publishing..." : "Approve + Announce"}
-                      </button>
-                      <button
-                        disabled={voteStatus === "pending"}
-                        onClick={() => setAudienceVoteWinner(null)}
-                        className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold text-gray-400 transition-all hover:border-white/20 hover:text-white disabled:opacity-50"
-                      >
-                        Not Now
                       </button>
                     </div>
                   </div>
@@ -1916,18 +1908,20 @@ export function HackathonAdminClient({
               )}
 
               <div className="relative flex flex-wrap gap-3">
-                <button
-                  disabled={voteStatus === "pending" || (audienceVoteSelectedCount === 0 && submittedTeams.length === 0)}
-                  onClick={launchAudienceVote}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-yellow-500/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
-                >
-                  <Trophy className="w-3.5 h-3.5" />
-                  {voteStatus === "pending"
-                    ? "Launching..."
-                    : audienceVoteSelectedCount > 0
-                      ? `Launch Selected (${audienceVoteSelectedCount})`
-                      : "Launch Submitted Teams"}
-                </button>
+                {!audienceVote && (
+                  <button
+                    disabled={voteStatus === "pending" || (audienceVoteSelectedCount === 0 && submittedTeams.length === 0)}
+                    onClick={launchAudienceVote}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-yellow-500/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
+                  >
+                    <Trophy className="w-3.5 h-3.5" />
+                    {voteStatus === "pending"
+                      ? "Launching..."
+                      : audienceVoteSelectedCount > 0
+                        ? `Launch Selected (${audienceVoteSelectedCount})`
+                        : "Launch Submitted Teams"}
+                  </button>
+                )}
                 <button
                   disabled={voteStatus === "pending" || !audienceVote}
                   onClick={closeAudienceVote}
