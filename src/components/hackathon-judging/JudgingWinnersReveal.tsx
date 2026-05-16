@@ -100,6 +100,7 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
 
   const competitionTitle = activeResults[0]?.competition?.title ?? "Hackathon";
   const winner = activeResults.find((result) => result.placement === 1) ?? activeResults[0];
+  const podiumPlacements = activeResults.length === 1 ? [winner.placement] : [2, 1, 3];
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 transition-opacity">
@@ -136,10 +137,23 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
           )}
         </div>
 
-        <div className="relative mt-12 grid gap-4 md:grid-cols-3 md:items-end">
-          {[2, 1, 3].map((placement) => {
+        <div className={cn(
+          "relative mt-12 grid gap-4 md:items-end",
+          activeResults.length === 1 ? "mx-auto w-full max-w-xs md:grid-cols-1" : "md:grid-cols-3"
+        )}>
+          {podiumPlacements.map((placement) => {
             const result = activeResults.find((row) => row.placement === placement);
-            if (!result) return <div key={placement} className="hidden md:block" />;
+            if (!result) {
+              return (
+                <div
+                  key={placement}
+                  className={cn(
+                    "hidden md:block",
+                    placement === 1 ? "md:order-2" : placement === 2 ? "md:order-1" : "md:order-3"
+                  )}
+                />
+              );
+            }
             return (
               <div
                 key={result.id}
