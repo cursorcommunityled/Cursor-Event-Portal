@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS polls (
   ends_at TIMESTAMPTZ,
   is_active BOOLEAN NOT NULL DEFAULT FALSE,
   show_results BOOLEAN NOT NULL DEFAULT FALSE,
+  hackathon_audience_vote BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -23,6 +24,9 @@ CREATE TABLE IF NOT EXISTS poll_votes (
 -- Indexes for polls
 CREATE INDEX IF NOT EXISTS idx_polls_event_id ON polls(event_id);
 CREATE INDEX IF NOT EXISTS idx_polls_is_active ON polls(is_active);
+CREATE INDEX IF NOT EXISTS idx_polls_hackathon_audience_vote
+  ON polls(event_id, hackathon_audience_vote, is_active)
+  WHERE hackathon_audience_vote = true;
 CREATE INDEX IF NOT EXISTS idx_poll_votes_poll_id ON poll_votes(poll_id);
 CREATE INDEX IF NOT EXISTS idx_poll_votes_user_id ON poll_votes(user_id);
 

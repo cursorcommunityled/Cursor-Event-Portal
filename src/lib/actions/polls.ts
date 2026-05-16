@@ -5,8 +5,132 @@ import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
 import { fanOutNotification } from "@/lib/notifications";
 
+export type AudienceVoteWinnerPrompt = {
+  pollId: string;
+  optionIndex: number;
+  option: string;
+  voteCount: number;
+  totalVotes: number;
+  tiedOptions: string[];
+  createdAt: string | null;
+};
+
+type AudienceVotePollRow = {
+  id: string;
+  event_id: string;
+  options: unknown;
+  created_at: string | null;
+  votes?: { option_index: number | null }[] | null;
+};
+
+const AUDIENCE_FAVOURITE_COMPETITION_TITLE = "Audience Favourite";
+
 function getAdminPollsPath(eventSlug: string, adminCode?: string) {
   return adminCode ? `/admin/${eventSlug}/${adminCode}/polls` : `/admin/${eventSlug}/polls`;
+}
+
+function normalizeAudienceOption(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function getAudienceVoteOptions(options: unknown): string[] {
+  if (Array.isArray(options)) {
+    return options.map((option) => String(option)).filter(Boolean);
+  }
+  if (typeof options === "string") {
+    try {
+      const parsed = JSON.parse(options);
+      return Array.isArray(parsed) ? parsed.map((option) => String(option)).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function calculateAudienceVoteWinner(poll: AudienceVotePollRow): AudienceVoteWinnerPrompt | null {
+  const options = getAudienceVoteOptions(poll.options);
+  if (options.length === 0) return null;
+
+  const voteCounts = options.map(() => 0);
+  for (const vote of poll.votes ?? []) {
+    const optionIndex = Number(vote.option_index);
+    if (Number.isInteger(optionIndex) && optionIndex >= 0 && optionIndex < voteCounts.length) {
+      voteCounts[optionIndex] += 1;
+    }
+  }
+
+  const totalVotes = voteCounts.reduce((sum, count) => sum + count, 0);
+  if (totalVotes === 0) return null;
+
+  const voteCount = Math.max(...voteCounts);
+  const winningIndexes = voteCounts
+    .map((count, index) => ({ count, index }))
+    .filter((item) => item.count === voteCount)
+    .map((item) => item.index);
+  const optionIndex = winningIndexes[0];
+
+  return {
+    pollId: poll.id,
+    optionIndex,
+    option: options[optionIndex],
+    voteCount,
+    totalVotes,
+    tiedOptions: winningIndexes.map((index) => options[index]),
+    createdAt: poll.created_at ?? null,
+  };
+}
+
+async function audienceWinnerAlreadyApproved(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  eventId: string,
+  pollCreatedAt: string | null
+) {
+  if (!pollCreatedAt) return false;
+
+  const { data: competition } = await supabase
+    .from("competitions")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("title", AUDIENCE_FAVOURITE_COMPETITION_TITLE)
+    .maybeSingle();
+
+  if (!competition?.id) return false;
+
+  const { data: result } = await supabase
+    .from("competition_judging_results")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("competition_id", competition.id)
+    .eq("is_published", true)
+    .gte("published_at", pollCreatedAt)
+    .limit(1)
+    .maybeSingle();
+
+  return Boolean(result);
+}
+
+export async function getPendingAudienceVoteWinner(
+  eventId: string
+): Promise<AudienceVoteWinnerPrompt | null> {
+  const supabase = await createServiceClient();
+  const { data: polls } = await supabase
+    .from("polls")
+    .select("id, event_id, options, created_at, votes:poll_votes(option_index)")
+    .eq("event_id", eventId)
+    .eq("hackathon_audience_vote", true)
+    .eq("is_active", false)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  for (const poll of (polls ?? []) as AudienceVotePollRow[]) {
+    const winner = calculateAudienceVoteWinner(poll);
+    if (!winner) continue;
+    if (await audienceWinnerAlreadyApproved(supabase, eventId, poll.created_at)) continue;
+    return winner;
+  }
+
+  return null;
 }
 
 async function validateAdminAccess(
@@ -464,7 +588,7 @@ export async function closeAudienceVotePoll(
   adminCode: string,
   eventId: string,
   eventSlug: string
-): Promise<{ success?: true; error?: string }> {
+): Promise<{ success?: true; winner?: AudienceVoteWinnerPrompt | null; error?: string }> {
   const supabase = await createServiceClient();
 
   const { data: adminEvent } = await supabase
@@ -474,6 +598,16 @@ export async function closeAudienceVotePoll(
     .eq("id", eventId)
     .maybeSingle();
   if (!adminEvent) return { error: "Not authorized" };
+
+  const { data: activePoll } = await supabase
+    .from("polls")
+    .select("id, event_id, options, created_at, votes:poll_votes(option_index)")
+    .eq("event_id", eventId)
+    .eq("hackathon_audience_vote", true)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("polls")
@@ -485,5 +619,232 @@ export async function closeAudienceVotePoll(
 
   revalidatePath(`/${eventSlug}/hackathon`);
   revalidatePath(`/admin/${adminCode}/hackathon`);
-  return { success: true };
+  return {
+    success: true,
+    winner: activePoll ? calculateAudienceVoteWinner(activePoll as AudienceVotePollRow) : null,
+  };
+}
+
+async function ensureAudienceFavouriteCompetition(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  eventId: string
+) {
+  const { data: existing } = await supabase
+    .from("competitions")
+    .select("id, title")
+    .eq("event_id", eventId)
+    .eq("title", AUDIENCE_FAVOURITE_COMPETITION_TITLE)
+    .maybeSingle();
+
+  if (existing?.id) return existing as { id: string; title: string };
+
+  const { data, error } = await supabase
+    .from("competitions")
+    .insert({
+      event_id: eventId,
+      title: AUDIENCE_FAVOURITE_COMPETITION_TITLE,
+      description: "$250 cash prize winner selected by the audience vote.",
+      rules: "One vote per attendee. Admin approval publishes the final audience favourite.",
+      status: "ended",
+      voting_mode: "judges",
+    })
+    .select("id, title")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "Could not create audience favourite competition");
+  return data as { id: string; title: string };
+}
+
+async function resolveAudienceWinnerProject(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  eventId: string,
+  option: string
+) {
+  const normalizedOption = normalizeAudienceOption(option);
+  const [{ data: projects }, { data: teams }] = await Promise.all([
+    supabase
+      .from("hackathon_projects")
+      .select("id, team_id, name, description, repo_url, demo_url")
+      .eq("event_id", eventId),
+    supabase
+      .from("hackathon_teams")
+      .select("id, name")
+      .eq("event_id", eventId),
+  ]);
+
+  const teamById = new Map((teams ?? []).map((team: { id: string; name: string }) => [team.id, team]));
+  const project = (projects ?? []).find((candidate: { name: string; team_id: string }) => {
+    const teamName = teamById.get(candidate.team_id)?.name ?? "";
+    return normalizeAudienceOption(candidate.name) === normalizedOption
+      || normalizeAudienceOption(teamName) === normalizedOption;
+  }) as {
+    team_id: string;
+    name: string;
+    description: string | null;
+    repo_url: string | null;
+    demo_url: string | null;
+  } | undefined;
+
+  const team = project
+    ? teamById.get(project.team_id)
+    : (teams ?? []).find((candidate: { name: string }) => (
+        normalizeAudienceOption(candidate.name) === normalizedOption
+      ));
+
+  return { project, teamId: project?.team_id ?? team?.id ?? null };
+}
+
+async function getCompetitionEntryUserId(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  teamId: string | null
+) {
+  if (teamId) {
+    const { data: member } = await supabase
+      .from("hackathon_team_members")
+      .select("user_id")
+      .eq("team_id", teamId)
+      .order("role", { ascending: true })
+      .order("joined_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (member?.user_id) return member.user_id as string;
+  }
+
+  const session = await getSession();
+  return session?.userId ?? null;
+}
+
+async function upsertAudienceWinnerEntry(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  competitionId: string,
+  eventId: string,
+  winner: AudienceVoteWinnerPrompt
+) {
+  const { project, teamId } = await resolveAudienceWinnerProject(supabase, eventId, winner.option);
+  const userId = await getCompetitionEntryUserId(supabase, teamId);
+  if (!userId) {
+    throw new Error("Could not link the winning option to a team member. Add a team member or sign in as admin, then try again.");
+  }
+
+  const title = project?.name ?? winner.option;
+  const repoUrl = project?.repo_url ?? project?.demo_url ?? "https://cursor.com";
+  const projectUrl = project?.demo_url ?? project?.repo_url ?? null;
+  const existingEntries = await supabase
+    .from("competition_entries")
+    .select("id, title, user_id")
+    .eq("competition_id", competitionId);
+
+  const normalizedTitle = normalizeAudienceOption(title);
+  const existingEntry = (existingEntries.data ?? []).find((entry: { title: string; user_id: string }) => (
+    normalizeAudienceOption(entry.title) === normalizedTitle || entry.user_id === userId
+  )) as { id: string } | undefined;
+
+  if (existingEntry?.id) {
+    const { data, error } = await supabase
+      .from("competition_entries")
+      .update({
+        user_id: userId,
+        title,
+        description: project?.description ?? null,
+        repo_url: repoUrl,
+        project_url: projectUrl,
+      })
+      .eq("id", existingEntry.id)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Could not update audience favourite entry");
+    return data.id as string;
+  }
+
+  const { data, error } = await supabase
+    .from("competition_entries")
+    .insert({
+      competition_id: competitionId,
+      user_id: userId,
+      title,
+      description: project?.description ?? null,
+      repo_url: repoUrl,
+      project_url: projectUrl,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) throw new Error(error?.message ?? "Could not create audience favourite entry");
+  return data.id as string;
+}
+
+export async function approveAudienceVoteWinner(
+  adminCode: string,
+  eventId: string,
+  eventSlug: string,
+  pollId: string
+): Promise<{ success?: true; winner?: AudienceVoteWinnerPrompt; error?: string }> {
+  const supabase = await createServiceClient();
+
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return { error: "Not authorized" };
+
+  const { data: poll } = await supabase
+    .from("polls")
+    .select("id, event_id, options, created_at, votes:poll_votes(option_index)")
+    .eq("id", pollId)
+    .eq("event_id", eventId)
+    .eq("hackathon_audience_vote", true)
+    .maybeSingle();
+
+  if (!poll) return { error: "Audience vote not found" };
+
+  const winner = calculateAudienceVoteWinner(poll as AudienceVotePollRow);
+  if (!winner) return { error: "No audience votes were cast, so there is no winner to approve." };
+  if (winner.tiedOptions.length > 1) {
+    return { error: `Audience vote is tied between ${winner.tiedOptions.join(", ")}. Break the tie before approving.` };
+  }
+
+  try {
+    const competition = await ensureAudienceFavouriteCompetition(supabase, eventId);
+    const entryId = await upsertAudienceWinnerEntry(supabase, competition.id, eventId, winner);
+    const now = new Date().toISOString();
+
+    const { error: deleteError } = await supabase
+      .from("competition_judging_results")
+      .delete()
+      .eq("competition_id", competition.id);
+    if (deleteError) return { error: deleteError.message };
+
+    const { error: insertError } = await supabase
+      .from("competition_judging_results")
+      .insert({
+        event_id: eventId,
+        competition_id: competition.id,
+        entry_id: entryId,
+        placement: 1,
+        final_score: winner.voteCount,
+        max_score: Math.max(winner.totalVotes, 1),
+        judge_count: winner.totalVotes,
+        is_published: true,
+        published_at: now,
+      });
+    if (insertError) return { error: insertError.message };
+
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    await supabase.from("announcements").insert({
+      event_id: eventId,
+      content: `Audience Favourite winner announced: ${winner.option} with ${winner.voteCount} of ${winner.totalVotes} votes.`,
+      priority: 10,
+      published_at: now,
+      expires_at: expiresAt,
+    });
+
+    revalidatePath(`/${eventSlug}/hackathon`);
+    revalidatePath(`/${eventSlug}`);
+    revalidatePath(`/admin/${adminCode}/hackathon`);
+    return { success: true, winner };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to approve audience favourite winner" };
+  }
 }
