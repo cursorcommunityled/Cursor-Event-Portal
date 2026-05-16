@@ -263,21 +263,27 @@ export function HackathonJudgingAdminPanel({
             <h3 className="text-2xl font-black tracking-tight text-white mt-1">Score Finalists</h3>
             <p className="text-[12px] font-medium text-gray-400 mt-1">AI pre-screen scores shown above each entry for reference. Add your own scores below.</p>
           </div>
-          <select
-            value={competition.id}
-            onChange={(e) => {
-              setSelectedCompetitionId(e.target.value);
-              setSavedEntryId(null);
-              setError(null);
-            }}
-            className="bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-bold text-white focus:outline-none focus:border-red-500/50 shadow-inner [&_option]:bg-black [&_option]:text-white"
-          >
-            {competitions.map((comp) => (
-              <option key={comp.id} value={comp.id}>
-                {comp.title}
-              </option>
-            ))}
-          </select>
+          {competitions.length > 1 ? (
+            <select
+              value={competition.id}
+              onChange={(e) => {
+                setSelectedCompetitionId(e.target.value);
+                setSavedEntryId(null);
+                setError(null);
+              }}
+              className="bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-bold text-white focus:outline-none focus:border-red-500/50 shadow-inner [&_option]:bg-black [&_option]:text-white"
+            >
+              {competitions.map((comp) => (
+                <option key={comp.id} value={comp.id}>
+                  {comp.title}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-[14px] font-bold text-white shadow-inner">
+              {competition.title}
+            </div>
+          )}
         </div>
 
         <div className="relative grid grid-cols-3 gap-4 text-center">
