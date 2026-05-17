@@ -24,6 +24,8 @@ import {
   approveAudienceVoteWinner,
   closeAudienceVotePoll,
   createAudienceVotePoll,
+  hideAudienceVoteWinnerAnnouncement,
+  type PublishedAudienceVoteAnnouncement,
   type AudienceVoteWinnerPrompt,
 } from "@/lib/actions/polls";
 import {
@@ -71,6 +73,7 @@ interface Props {
   initialRepoSubmissionBackups: HackathonRepoSubmissionBackup[];
   initialAudienceVote: AudienceVoteSummary | null;
   initialAudienceVoteWinner: AudienceVoteWinnerPrompt | null;
+  initialPublishedAudienceWinner: PublishedAudienceVoteAnnouncement | null;
 }
 
 type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
@@ -395,7 +398,7 @@ export function HackathonAdminClient({
   event, adminCode, activeTab: initialTab, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
   judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
-  initialAudienceVoteWinner,
+  initialAudienceVoteWinner, initialPublishedAudienceWinner,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -446,6 +449,9 @@ export function HackathonAdminClient({
   // Audience vote
   const [audienceVote, setAudienceVote] = useState<AudienceVoteSummary | null>(initialAudienceVote);
   const [audienceVoteWinner, setAudienceVoteWinner] = useState<AudienceVoteWinnerPrompt | null>(initialAudienceVoteWinner);
+  const [publishedAudienceWinner, setPublishedAudienceWinner] = useState<PublishedAudienceVoteAnnouncement | null>(
+    initialPublishedAudienceWinner
+  );
   const [voteStatus, setVoteStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [voteError, setVoteError] = useState<string | null>(null);
   const [selectedVoteTeams, setSelectedVoteTeams] = useState<Set<string>>(new Set());
@@ -513,7 +519,8 @@ export function HackathonAdminClient({
   useEffect(() => {
     setAudienceVote(initialAudienceVote);
     setAudienceVoteWinner(initialAudienceVoteWinner);
-  }, [initialAudienceVote, initialAudienceVoteWinner]);
+    setPublishedAudienceWinner(initialPublishedAudienceWinner);
+  }, [initialAudienceVote, initialAudienceVoteWinner, initialPublishedAudienceWinner]);
 
   useEffect(() => {
     const storedItems = window.localStorage.getItem(simonTodoItemsStorageKey(event.id));
@@ -792,6 +799,28 @@ export function HackathonAdminClient({
     }
 
     setAudienceVoteWinner(null);
+    setPublishedAudienceWinner({
+      title: audienceVoteWinner.option,
+      voteCount: audienceVoteWinner.voteCount,
+      totalVotes: audienceVoteWinner.totalVotes,
+      publishedAt: new Date().toISOString(),
+    });
+    setVoteStatus("idle");
+    refresh();
+  };
+
+  const hidePublishedAudienceWinner = async () => {
+    setVoteStatus("pending");
+    setVoteError(null);
+
+    const res = await hideAudienceVoteWinnerAnnouncement(adminCode, event.id, event.slug);
+    if (res.error) {
+      setVoteStatus("error");
+      setVoteError(res.error);
+      return;
+    }
+
+    setPublishedAudienceWinner(null);
     setVoteStatus("idle");
     refresh();
   };
@@ -1861,6 +1890,38 @@ export function HackathonAdminClient({
 
               {voteError && <p className="relative text-[11px] text-red-400">{voteError}</p>}
               {voteStatus === "done" && <p className="relative text-[11px] text-green-400">Vote launched — attendees can now vote on the hackathon page.</p>}
+
+              {publishedAudienceWinner && (
+                <div className="relative overflow-hidden rounded-[24px] border border-orange-500/30 bg-orange-500/10 p-5 shadow-[0_0_30px_rgba(249,115,22,0.10)]">
+                  <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-orange-400/20 blur-[35px]" />
+                  <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-orange-300">
+                        Audience Favourite Published
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-2xl font-black tracking-tight text-white">
+                          {publishedAudienceWinner.title}
+                        </p>
+                        <span className="rounded-full border border-orange-500/40 bg-orange-500/15 px-3 py-1 text-[11px] font-bold text-orange-100">
+                          {publishedAudienceWinner.voteCount}/{publishedAudienceWinner.totalVotes} votes
+                        </span>
+                      </div>
+                      <p className="text-[12px] font-medium text-orange-100/80">
+                        This is currently visible to attendees as the published winners card.
+                      </p>
+                    </div>
+                    <button
+                      disabled={voteStatus === "pending"}
+                      onClick={hidePublishedAudienceWinner}
+                      className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-orange-400/45 bg-orange-400/15 px-4 py-2.5 text-[12px] font-black uppercase tracking-wider text-orange-100 transition-all hover:bg-orange-400/25 disabled:opacity-50"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      {voteStatus === "pending" ? "Hiding..." : "Hide Announcement"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {audienceVoteWinner && (
                 <div className="relative overflow-hidden rounded-[24px] border border-yellow-500/35 bg-yellow-500/10 p-5 shadow-[0_0_30px_rgba(234,179,8,0.12)]">

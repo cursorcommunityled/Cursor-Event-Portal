@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { EventTimer } from "@/components/timer/EventTimer";
 import { createClient } from "@/lib/supabase/client";
 import { hasUserSeenItem, markItemAsSeen } from "@/lib/supabase/seenItems";
-import { logout as logoutAttendee } from "@/lib/actions/auth";
+import { logoutAttendee } from "@/lib/actions/logout";
 import { LogOut, MapPin } from "lucide-react";
 import { DemoStatusBadge } from "@/components/demos/DemoStatusBadge";
 import { NotificationBell } from "@/components/notifications/NotificationBell";

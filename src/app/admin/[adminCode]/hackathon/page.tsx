@@ -10,7 +10,7 @@ import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { getSession } from "@/lib/actions/registration";
 import { getTeamAnalyses } from "@/lib/actions/hackathon-analysis";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getPendingAudienceVoteWinner } from "@/lib/actions/polls";
+import { getPendingAudienceVoteWinner, getPublishedAudienceVoteAnnouncement } from "@/lib/actions/polls";
 import { HackathonAdminClient } from "@/app/admin/_clients/[adminCode]/hackathon/HackathonAdminClient";
 
 interface Props {
@@ -60,7 +60,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
     : [];
 
   const supabase = await createServiceClient();
-  const [{ data: activeAudienceVoteRow }, pendingAudienceVoteWinner] = await Promise.all([
+  const [{ data: activeAudienceVoteRow }, pendingAudienceVoteWinner, publishedAudienceWinner] = await Promise.all([
     supabase
       .from("polls")
       .select("id, options, is_active, votes:poll_votes(id)")
@@ -69,6 +69,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
       .eq("is_active", true)
       .maybeSingle(),
     getPendingAudienceVoteWinner(event.id, adminCode),
+    getPublishedAudienceVoteAnnouncement(event.id, adminCode),
   ]);
   const activeAudienceVote = activeAudienceVoteRow as {
     id: string;
@@ -95,6 +96,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
       initialOpenPool={openPool}
       initialRepoSubmissionBackups={repoSubmissionBackups}
       initialAudienceVoteWinner={pendingAudienceVoteWinner}
+      initialPublishedAudienceWinner={publishedAudienceWinner}
       initialAudienceVote={activeAudienceVote ? {
         id: activeAudienceVote.id,
         options: activeAudienceVote.options ?? [],

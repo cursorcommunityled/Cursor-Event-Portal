@@ -64,12 +64,15 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
         .eq("is_published", true)
         .order("placement", { ascending: true });
 
-      if (!data?.length) return;
       const next = data as unknown as CompetitionJudgingResult[];
       setResults((prev) => [
         ...prev.filter((result) => result.competition_id !== competitionId),
         ...next,
       ]);
+      if (next.length === 0) {
+        setActiveResults((prev) => prev.some((result) => result.competition_id === competitionId) ? [] : prev);
+        return;
+      }
       const key = groupKey(next);
       if (!window.localStorage.getItem(`judging-reveal:${key}`)) {
         setActiveResults(next);
