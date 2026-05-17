@@ -179,7 +179,13 @@ export async function createPasscodeSession(userId: string, eventId: string) {
 
 export async function logout() {
   const cookieStore = await cookies();
-  cookieStore.delete("portal_session");
+  cookieStore.set("portal_session", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    expires: new Date(0),
+    path: "/",
+  });
   return { success: true };
 }
 

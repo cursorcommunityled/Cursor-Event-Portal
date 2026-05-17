@@ -15,6 +15,13 @@ export type AudienceVoteWinnerPrompt = {
   createdAt: string | null;
 };
 
+export type PublishedAudienceVoteAnnouncement = {
+  title: string;
+  voteCount: number;
+  totalVotes: number;
+  publishedAt: string | null;
+};
+
 type AudienceVotePollRow = {
   id: string;
   event_id: string;
@@ -102,7 +109,7 @@ async function audienceWinnerAlreadyApproved(
     .select("id")
     .eq("event_id", eventId)
     .eq("competition_id", competition.id)
-    .eq("is_published", true)
+    .not("published_at", "is", null)
     .gte("published_at", pollCreatedAt)
     .limit(1)
     .maybeSingle();
@@ -141,6 +148,50 @@ export async function getPendingAudienceVoteWinner(
   }
 
   return null;
+}
+
+export async function getPublishedAudienceVoteAnnouncement(
+  eventId: string,
+  adminCode: string
+): Promise<PublishedAudienceVoteAnnouncement | null> {
+  const supabase = await createServiceClient();
+
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return null;
+
+  const { data: competition } = await supabase
+    .from("competitions")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("title", AUDIENCE_FAVOURITE_COMPETITION_TITLE)
+    .maybeSingle();
+
+  if (!competition?.id) return null;
+
+  const { data: result } = await supabase
+    .from("competition_judging_results")
+    .select("final_score, max_score, published_at, entry:competition_entries!competition_judging_results_entry_id_fkey(title)")
+    .eq("event_id", eventId)
+    .eq("competition_id", competition.id)
+    .eq("is_published", true)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!result) return null;
+
+  const entry = result.entry as { title?: string | null } | null;
+  return {
+    title: entry?.title ?? AUDIENCE_FAVOURITE_COMPETITION_TITLE,
+    voteCount: Number(result.final_score ?? 0),
+    totalVotes: Number(result.max_score ?? 0),
+    publishedAt: result.published_at ?? null,
+  };
 }
 
 async function validateAdminAccess(
@@ -633,6 +684,58 @@ export async function closeAudienceVotePoll(
     success: true,
     winner: activePoll ? calculateAudienceVoteWinner(activePoll as AudienceVotePollRow) : null,
   };
+}
+
+export async function hideAudienceVoteWinnerAnnouncement(
+  adminCode: string,
+  eventId: string,
+  eventSlug: string
+): Promise<{ success?: true; hidden?: boolean; error?: string }> {
+  const supabase = await createServiceClient();
+
+  const { data: adminEvent } = await supabase
+    .from("events")
+    .select("id")
+    .eq("admin_code", adminCode)
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!adminEvent) return { error: "Not authorized" };
+
+  const { data: competition } = await supabase
+    .from("competitions")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("title", AUDIENCE_FAVOURITE_COMPETITION_TITLE)
+    .maybeSingle();
+
+  const now = new Date().toISOString();
+  let hidden = false;
+
+  if (competition?.id) {
+    const { data: hiddenResults, error: updateError } = await supabase
+      .from("competition_judging_results")
+      .update({ is_published: false })
+      .eq("event_id", eventId)
+      .eq("competition_id", competition.id)
+      .eq("is_published", true)
+      .select("id");
+
+    if (updateError) return { error: updateError.message };
+    hidden = (hiddenResults?.length ?? 0) > 0;
+  }
+
+  const { error: announcementError } = await supabase
+    .from("announcements")
+    .update({ expires_at: now })
+    .eq("event_id", eventId)
+    .ilike("content", "Audience Favourite winner announced:%");
+
+  if (announcementError) return { error: announcementError.message };
+
+  revalidatePath(`/${eventSlug}/hackathon`);
+  revalidatePath(`/${eventSlug}`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true, hidden };
 }
 
 async function ensureAudienceFavouriteCompetition(
