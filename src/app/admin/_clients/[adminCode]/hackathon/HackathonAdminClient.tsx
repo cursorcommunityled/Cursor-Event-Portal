@@ -27,7 +27,7 @@ import {
   type AudienceVoteWinnerPrompt,
 } from "@/lib/actions/polls";
 import {
-  Swords, Settings, Users, Trophy, BarChart3,
+  Swords, Settings, Users, Trophy,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
   ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award, Megaphone,
   FileText,
@@ -73,7 +73,7 @@ interface Props {
   initialAudienceVoteWinner: AudienceVoteWinnerPrompt | null;
 }
 
-type Tab = "settings" | "teams" | "submissions" | "scoring" | "leaderboard" | "judging" | "chat";
+type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
 type SimonTodoItem = { id: string; text: string };
 type SimonTodoTarget = string | number;
 type SimonTodoConsoleApi = {
@@ -803,8 +803,7 @@ export function HackathonAdminClient({
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
     { id: "teams", label: `Teams (${teams.length})`, icon: <Users className="w-4 h-4" /> },
-    { id: "submissions", label: `Submissions (${submittedTeams.length}/${teams.length})`, icon: <BarChart3 className="w-4 h-4" /> },
-    { id: "scoring", label: "AI Screen", icon: <Cpu className="w-4 h-4" /> },
+    { id: "scoring", label: `AI Screen (${submittedTeams.length}/${teams.length})`, icon: <Cpu className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
     { id: "judging", label: "Final Round", icon: <Award className="w-4 h-4" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
@@ -1469,8 +1468,8 @@ export function HackathonAdminClient({
           </div>
         )}
 
-        {/* Submissions tab */}
-        {tab === "submissions" && (
+        {/* AI Screening tab */}
+        {tab === "scoring" && (
           <div className="space-y-4 animate-slide-up">
             <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:22px_22px]" />
@@ -1557,8 +1556,8 @@ export function HackathonAdminClient({
               <div className="rounded-[28px] border border-green-500/20 bg-green-500/[0.04] p-5">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-green-300">Submitted</p>
-                    <p className="mt-1 text-sm text-gray-500">Teams ready for screening and judging.</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-green-300">Ready For AI Screening</p>
+                    <p className="mt-1 text-sm text-gray-500">Submitted projects with repo/demo links.</p>
                   </div>
                   <span className="rounded-full border border-green-400/30 bg-green-500/10 px-3 py-1 text-sm font-black text-green-200 tabular-nums">
                     {submittedTeams.length}
@@ -1611,12 +1610,7 @@ export function HackathonAdminClient({
                 )}
               </div>
             </div>
-          </div>
-        )}
 
-        {/* AI Screening tab */}
-        {tab === "scoring" && (
-          <div className="space-y-4 animate-slide-up">
             {/* Flow explanation + push button */}
             <div className="relative overflow-hidden rounded-[28px] border border-red-500/20 bg-black/40 p-5 shadow-2xl backdrop-blur-xl">
               <div className="absolute inset-0 bg-grid-red opacity-5" />

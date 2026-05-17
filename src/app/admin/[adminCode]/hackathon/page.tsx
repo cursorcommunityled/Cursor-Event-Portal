@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getEventForAdmin } from "@/lib/utils/admin";
 import {
   getHackathonSettings, getHackathonTeamsWithMembers, getHackathonScores,
@@ -20,12 +21,16 @@ interface Props {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const VALID_TABS = ["settings", "teams", "submissions", "scoring", "leaderboard", "judging", "chat"] as const;
+const VALID_TABS = ["settings", "teams", "scoring", "leaderboard", "judging", "chat"] as const;
 type Tab = typeof VALID_TABS[number];
 
 export default async function HackathonAdminPage({ params, searchParams }: Props) {
   const { adminCode } = await params;
   const { tab } = await searchParams;
+  if (tab === "submissions") {
+    redirect(`/admin/${adminCode}/hackathon?tab=scoring`);
+  }
+
   const activeTab: Tab = VALID_TABS.includes(tab as Tab) ? (tab as Tab) : "settings";
   const event = await getEventForAdmin(adminCode);
 
