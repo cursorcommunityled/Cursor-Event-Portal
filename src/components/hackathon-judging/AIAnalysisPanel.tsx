@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { triggerAnalysis, applyAIScores } from "@/lib/actions/hackathon-analysis";
+import { triggerAnalysis } from "@/lib/actions/hackathon-analysis";
 import { createClient } from "@/lib/supabase/client";
 import {
   Cpu, ChevronDown, ChevronUp, Check, AlertCircle, Loader2,
@@ -94,7 +94,6 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
   const [expanded, setExpanded] = useState(false);
   const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [applyDone, setApplyDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [optimisticStarted, setOptimisticStarted] = useState(false);
 
@@ -163,7 +162,7 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
     : isRunning && runningPass
       ? `Running ${PASS_LABELS[runningPass]} (${completedCount}/6 complete)`
       : allDone
-        ? "Analysis complete. Review the synthesis or apply scores."
+        ? "Analysis complete. Review the synthesis."
         : hasStarted
           ? `Analysis queued (${completedCount}/6 complete)`
           : null;
@@ -235,29 +234,6 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
             >
               Retry
             </button>
-          )}
-
-          {allDone && !applyDone && (
-            <button
-              disabled={isPending}
-              onClick={() => {
-                startTransition(async () => {
-                  const res = await applyAIScores(adminCode, teamId, eventId);
-                  if (res.error) setError(res.error);
-                  else setApplyDone(true);
-                });
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-green-500/40 bg-green-500/20 text-green-300 hover:bg-green-500/30 hover:border-green-500/60 transition-all disabled:opacity-40 shadow-neon-green"
-            >
-              <Check className="w-3.5 h-3.5" />
-              {isPending ? "Applying…" : "Apply Scores"}
-            </button>
-          )}
-
-          {applyDone && (
-            <span className="text-[11px] font-bold uppercase tracking-wider text-green-400 flex items-center gap-1.5 bg-green-500/10 px-3 py-1.5 rounded-xl border border-green-500/20">
-              <Check className="w-3.5 h-3.5" /> Applied
-            </span>
           )}
 
           {allDone && (

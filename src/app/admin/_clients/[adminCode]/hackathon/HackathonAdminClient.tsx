@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useState, useTransition, useEffect, useCallback, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -13,7 +12,6 @@ import {
   toggleLeaderboard,
   adminSetTeamLock,
   adminReviewTeamIcon,
-  saveHackathonScore,
   adminRemoveTeamMember,
   adminDissolveTeam,
   adminCreateTeam,
@@ -93,143 +91,12 @@ type WindowWithSimonTodo = Window & { simonTodo?: SimonTodoConsoleApi };
 
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 
-function formatCriteriaLabel(criteriaKey: string) {
-  return HACKATHON_SCORE_CATEGORIES.find((criterion) => criterion.key === criteriaKey)?.label
-    ?? criteriaKey.replace(/_/g, " ");
-}
-
 function getCompletedPass6(analyses: HackathonAIAnalysis[]) {
   const pass6Row = analyses.find((analysis) => (
     analysis.pass_name === "pass6_synthesis" && analysis.status === "complete"
   ));
 
   return (pass6Row?.result as Pass6Result | null) ?? null;
-}
-
-function ScoreNotesTextarea({
-  noteId,
-  value,
-  onChange,
-  criteriaFeedback = [],
-}: {
-  noteId: string;
-  value: string;
-  onChange: (value: string) => void;
-  criteriaFeedback?: Pass6Result["criteria_scores"];
-}) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const trimmedValue = value.trim();
-  const hasPopupContent = Boolean(trimmedValue || criteriaFeedback.length > 0);
-  const isOpen = hasPopupContent && (isHovered || isPinned);
-  const popupId = `${noteId}-notes-popup`;
-
-  const cancelClose = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
-
-  const openPopup = () => {
-    cancelClose();
-    setIsHovered(true);
-  };
-
-  const scheduleClose = () => {
-    cancelClose();
-    closeTimerRef.current = setTimeout(() => setIsHovered(false), 120);
-  };
-
-  useEffect(() => () => cancelClose(), []);
-
-  const popup = (
-    <div
-      id={popupId}
-      role="dialog"
-      aria-label="Full judge note and criteria feedback"
-      onMouseEnter={openPopup}
-      onMouseLeave={scheduleClose}
-      className="fixed left-1/2 top-1/2 z-[9999] flex max-h-[86vh] w-[min(92vw,1120px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[30px] border border-red-500/35 bg-zinc-950/95 p-6 text-left shadow-2xl shadow-red-950/50 backdrop-blur-xl"
-    >
-      <div className="mb-4 flex items-center justify-between gap-4 border-b border-white/10 pb-4">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-red-300">Judge Feedback</p>
-          <p className="mt-1 text-[12px] font-medium text-gray-500">Full assessment and criteria notes</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setIsPinned(false);
-            setIsHovered(false);
-          }}
-          className="rounded-full p-2 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
-          aria-label="Close note popup"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-2">
-        {trimmedValue && (
-          <p className="whitespace-pre-wrap rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-[15px] font-medium leading-relaxed text-white">
-            {trimmedValue}
-          </p>
-        )}
-
-        {criteriaFeedback.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">
-              Criteria Feedback
-            </p>
-            <div className="grid gap-3 md:grid-cols-2">
-              {criteriaFeedback.map((criterion) => (
-                <div key={criterion.criteria_key} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-gray-300">
-                      {formatCriteriaLabel(criterion.criteria_key)}
-                    </p>
-                    <span className="shrink-0 text-[13px] font-black tabular-nums text-white">
-                      {criterion.score.toFixed(1)}/10
-                    </span>
-                  </div>
-                  <p className="text-[13px] font-medium leading-relaxed text-gray-400">
-                    {criterion.reasoning}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      {!isPinned && (
-        <p className="mt-4 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
-          Click the note to keep this open
-        </p>
-      )}
-    </div>
-  );
-
-  return (
-    <div
-      className="relative"
-      onMouseEnter={openPopup}
-      onMouseLeave={scheduleClose}
-    >
-      {isOpen && typeof document !== "undefined" && createPortal(popup, document.body)}
-
-      <textarea
-        placeholder="Judge notes..."
-        rows={2}
-        value={value}
-        aria-describedby={isOpen ? popupId : undefined}
-        onClick={() => setIsPinned(hasPopupContent)}
-        onFocus={() => setIsPinned(hasPopupContent)}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-[13px] font-medium text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 resize-none transition-colors"
-      />
-    </div>
-  );
 }
 
 const DEFAULT_SIMON_TODO_ITEMS: SimonTodoItem[] = [
@@ -339,32 +206,23 @@ function formatAdminDateTime(value: string | null | undefined, timezone?: string
   });
 }
 
-function buildScoreInputs(
-  teams: HackathonTeamWithMembers[],
+function getTeamScoreValues(
   scores: HackathonScore[],
+  teamId: string,
   judgeId: string | null
-): Record<string, Partial<Record<HackathonScoreCategoryKey, number | null>>> {
-  const init: Record<string, Partial<Record<HackathonScoreCategoryKey, number | null>>> = {};
-  for (const team of teams) {
-    const myScores = judgeId
-      ? scores.filter((s) => s.team_id === team.id && s.judge_id === judgeId)
-      : scores.filter((s) => s.team_id === team.id);
-    const merged: Partial<Record<HackathonScoreCategoryKey, number | null>> = {};
-    for (const s of myScores) {
-      for (const cat of HACKATHON_SCORE_CATEGORIES) {
-        if (s[cat.key] != null) merged[cat.key] = s[cat.key];
-      }
-    }
-    init[team.id] = merged;
-  }
-  return init;
-}
+): Partial<Record<HackathonScoreCategoryKey, number | null>> {
+  const teamScores = judgeId
+    ? scores.filter((score) => score.team_id === teamId && score.judge_id === judgeId)
+    : scores.filter((score) => score.team_id === teamId);
+  const merged: Partial<Record<HackathonScoreCategoryKey, number | null>> = {};
 
-function buildScoreNotes(scores: HackathonScore[], judgeId: string | null): Record<string, string> {
-  const init: Record<string, string> = {};
-  const relevant = judgeId ? scores.filter((s) => s.judge_id === judgeId) : scores;
-  for (const s of relevant) init[s.team_id] = s.notes ?? "";
-  return init;
+  for (const score of teamScores) {
+    for (const category of HACKATHON_SCORE_CATEGORIES) {
+      if (score[category.key] != null) merged[category.key] = score[category.key];
+    }
+  }
+
+  return merged;
 }
 
 function buildRepoSubmissionMasterFile(backups: HackathonRepoSubmissionBackup[]) {
@@ -426,14 +284,6 @@ export function HackathonAdminClient({
   const [formMaxSize, setFormMaxSize] = useState(initialSettings?.max_team_size ?? 4);
   const [formPrompt, setFormPrompt] = useState(initialSettings?.prompt_text ?? DEFAULT_HACKATHON_PROMPT);
   const [repoSubmissionBackups, setRepoSubmissionBackups] = useState(initialRepoSubmissionBackups);
-
-  // Scoring state: { [teamId]: { [category]: score } }
-  const [scoreInputs, setScoreInputs] = useState<Record<string, Partial<Record<HackathonScoreCategoryKey, number | null>>>>(() =>
-    buildScoreInputs(initialTeams, initialScores, adminUserId)
-  );
-  const [scoreNotes, setScoreNotes] = useState<Record<string, string>>(() =>
-    buildScoreNotes(initialScores, adminUserId)
-  );
 
   // Team match suggestions state
   const [suggestStatus, setSuggestStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
@@ -512,8 +362,6 @@ export function HackathonAdminClient({
   useEffect(() => {
     setTeams(initialTeams);
     setScores(initialScores);
-    setScoreInputs(buildScoreInputs(initialTeams, initialScores, adminUserId));
-    setScoreNotes(buildScoreNotes(initialScores, adminUserId));
   }, [initialTeams, initialScores]);
 
   useEffect(() => {
@@ -674,8 +522,7 @@ export function HackathonAdminClient({
   const completedTodoCount = todoItems.filter((item) => checkedTodoIds.has(item.id)).length;
 
   function totalScore(teamId: string): number {
-    const cats = scoreInputs[teamId] ?? {};
-    return calculateHackathonWeightedScore(cats);
+    return calculateHackathonWeightedScore(getTeamScoreValues(scores, teamId, adminUserId));
   }
 
   const submittedTeams = teams.filter((team) => Boolean(team.project?.submitted_at));
@@ -1734,85 +1581,79 @@ export function HackathonAdminClient({
             </div>
             {teams.length === 0 && (
               <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
-                No teams to score yet
+                No teams to screen yet
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {teams.map((team) => (
-                <div key={team.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] flex flex-col gap-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-bold tracking-tight text-white truncate">{team.name}</h3>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1 truncate">
-                        {team.members.map((m) => m.user?.name).join(" · ")}
-                      </p>
-                    </div>
-                    <div className="text-2xl font-black tabular-nums text-white drop-shadow-md shrink-0">
-                      {totalScore(team.id)}<span className="text-xs font-bold text-gray-500">/{HACKATHON_SCORE_MAX}</span>
-                    </div>
-                  </div>
+              {teams.map((team) => {
+                const pass6 = getCompletedPass6(aiAnalyses[team.id] ?? []);
+                const aiScore = pass6 ? Math.round(pass6.overall_score * 10) : null;
 
-                  <div className="space-y-3">
-                    {HACKATHON_SCORE_CATEGORIES.map((cat) => (
-                      <div key={cat.key} className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">{cat.label}</span>
-                          <span className="text-[12px] font-bold tabular-nums text-white">
-                            {scoreInputs[team.id]?.[cat.key] ?? "—"}/10 · {cat.weight}%
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min={0}
-                          max={10}
-                          step={1}
-                          value={scoreInputs[team.id]?.[cat.key] ?? 0}
-                          onChange={(e) => setScoreInputs((prev) => ({
-                            ...prev,
-                            [team.id]: { ...(prev[team.id] ?? {}), [cat.key]: Number(e.target.value) },
-                          }))}
-                          className="w-full accent-red-500"
-                        />
+                return (
+                  <div key={team.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] flex flex-col gap-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-bold tracking-tight text-white truncate">{team.name}</h3>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1 truncate">
+                          {team.members.map((m) => m.user?.name).join(" · ")}
+                        </p>
+                        <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-red-300">
+                          AI screening only · judge scores open in Final Round
+                        </p>
                       </div>
-                    ))}
+                      <div className="text-2xl font-black tabular-nums text-white drop-shadow-md shrink-0">
+                        {aiScore ?? "—"}<span className="text-xs font-bold text-gray-500">/{HACKATHON_SCORE_MAX}</span>
+                      </div>
+                    </div>
+
+                    {pass6 ? (
+                      <div className="space-y-3">
+                        {HACKATHON_SCORE_CATEGORIES.map((cat) => {
+                          const aiCriterion = pass6.criteria_scores.find((criterion) => criterion.criteria_key === cat.key);
+                          const score = aiCriterion?.score ?? null;
+                          const percentage = score == null ? 0 : (score / 10) * 100;
+
+                          return (
+                            <div key={cat.key} className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">{cat.label}</span>
+                                <span className="text-[12px] font-bold tabular-nums text-white">
+                                  {score == null ? "—" : score.toFixed(1)}/10 · {cat.weight}%
+                                </span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                                <div
+                                  className={cn(
+                                    "h-full rounded-full transition-all",
+                                    score != null && score >= 8 ? "bg-green-400" :
+                                      score != null && score >= 6 ? "bg-red-400" :
+                                        score != null && score >= 4 ? "bg-yellow-400" :
+                                          "bg-red-400"
+                                  )}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 text-[12px] font-medium leading-relaxed text-gray-500">
+                        Run AI analysis to generate the screening score. Manual judging happens in the Final Round tab.
+                      </div>
+                    )}
+
+                    <AIAnalysisPanel
+                      teamId={team.id}
+                      teamName={team.name}
+                      eventId={event.id}
+                      adminCode={adminCode}
+                      analyses={aiAnalyses[team.id] ?? []}
+                      hasRepo={!!team.project?.repo_url}
+                    />
                   </div>
-
-                  <ScoreNotesTextarea
-                    noteId={`team-${team.id}`}
-                    value={scoreNotes[team.id] ?? ""}
-                    onChange={(value) => setScoreNotes((prev) => ({ ...prev, [team.id]: value }))}
-                    criteriaFeedback={getCompletedPass6(aiAnalyses[team.id] ?? [])?.criteria_scores}
-                  />
-
-                  <button
-                    disabled={isPending}
-                    onClick={() => startTransition(async () => {
-                      const cats = scoreInputs[team.id] ?? {};
-                      const scorePayload: Partial<Record<HackathonScoreCategoryKey, number | null>> = {};
-                      for (const cat of HACKATHON_SCORE_CATEGORIES) {
-                        scorePayload[cat.key] = cats[cat.key] ?? null;
-                      }
-                      const res = await saveHackathonScore(adminCode, team.id, {
-                        ...scorePayload,
-                        notes: scoreNotes[team.id] || null,
-                      });
-                      showFeedback(res.error);
-                    })}
-                    className="w-full py-2.5 rounded-xl bg-white/10 border border-white/10 text-[12px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50 mt-auto"
-                  >
-                    Save Score
-                  </button>
-
-                  <AIAnalysisPanel
-                    teamId={team.id}
-                    teamName={team.name}
-                    eventId={event.id}
-                    adminCode={adminCode}
-                    analyses={aiAnalyses[team.id] ?? []}
-                    hasRepo={!!team.project?.repo_url}
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

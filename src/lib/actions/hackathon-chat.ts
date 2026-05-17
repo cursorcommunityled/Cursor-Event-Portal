@@ -2,18 +2,23 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
-import type { HackathonChatChannel, HackathonChatMessage } from "@/types";
+import type { HackathonChatMessage } from "@/types";
 import { getHackathonChatMessages } from "@/lib/supabase/queries";
 
-const DIRECT_CHANNEL_PREFIX = "dm:";
+async function isCheckedInForEvent(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  eventId: string,
+  userId: string
+) {
+  const { data } = await supabase
+    .from("registrations")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("user_id", userId)
+    .not("checked_in_at", "is", null)
+    .maybeSingle();
 
-function getDirectChannelName(userIdA: string, userIdB: string) {
-  return `${DIRECT_CHANNEL_PREFIX}${[userIdA, userIdB].sort().join(":")}`;
-}
-
-function getDirectChannelUserIds(name: string) {
-  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
-  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
+  return Boolean(data);
 }
 
 // Auto-provision the three default channels for a hackathon event
@@ -80,61 +85,6 @@ export async function ensureTeamChannel(eventId: string, teamId: string, teamNam
   return data?.id ?? null;
 }
 
-export async function ensureDirectChannel(
-  eventId: string,
-  targetUserId: string
-): Promise<{ error?: string; channel?: HackathonChatChannel }> {
-  const session = await getSession();
-  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
-  if (session.userId === targetUserId) return { error: "You cannot DM yourself" };
-
-  const supabase = await createServiceClient();
-
-  const { data: targetRegistration } = await supabase
-    .from("registrations")
-    .select("id")
-    .eq("event_id", eventId)
-    .eq("user_id", targetUserId)
-    .maybeSingle();
-
-  if (!targetRegistration) return { error: "User is not registered for this event" };
-
-  const name = getDirectChannelName(session.userId, targetUserId);
-  const { data: existing } = await supabase
-    .from("hackathon_chat_channels")
-    .select("*")
-    .eq("event_id", eventId)
-    .eq("name", name)
-    .maybeSingle();
-
-  if (existing) return { channel: existing as HackathonChatChannel };
-
-  const { data: channel, error } = await supabase
-    .from("hackathon_chat_channels")
-    .insert({
-      event_id: eventId,
-      name,
-      channel_type: "dm",
-      position: 1000,
-    })
-    .select("*")
-    .single();
-
-  if (error) {
-    const { data: racedChannel } = await supabase
-      .from("hackathon_chat_channels")
-      .select("*")
-      .eq("event_id", eventId)
-      .eq("name", name)
-      .maybeSingle();
-
-    if (racedChannel) return { channel: racedChannel as HackathonChatChannel };
-    return { error: error.message };
-  }
-
-  return { channel: channel as HackathonChatChannel };
-}
-
 export async function sendChatMessage(
   channelId: string,
   eventId: string,
@@ -152,6 +102,9 @@ export async function sendChatMessage(
 
   const supabase = await createServiceClient();
 
+  const currentUserCheckedIn = await isCheckedInForEvent(supabase, eventId, session.userId);
+  if (!currentUserCheckedIn) return { error: "You must be checked in before using chat" };
+
   // Verify the user can access this channel
   const { data: channel } = await supabase
     .from("hackathon_chat_channels")
@@ -162,12 +115,7 @@ export async function sendChatMessage(
 
   if (!channel) return { error: "Channel not found" };
 
-  if (channel.channel_type === "dm") {
-    const participantIds = getDirectChannelUserIds(channel.name);
-    if (!participantIds.includes(session.userId)) {
-      return { error: "You are not a participant in this DM" };
-    }
-  }
+  if (channel.channel_type === "dm") return { error: "Direct messages are disabled" };
 
   // For team channels, verify membership
   if (channel.team_id) {

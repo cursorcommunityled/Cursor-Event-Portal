@@ -43,13 +43,7 @@ import type {
   ChatMember,
 } from "@/types";
 
-const DIRECT_CHANNEL_PREFIX = "dm:";
 const NON_FINAL_ROUND_JUDGING_TITLES = new Set(["audience favourite", "audience favorite"]);
-
-function getDirectChannelUserIds(name: string) {
-  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
-  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
-}
 
 function isFinalRoundJudgingCompetition(competition: CompetitionWithEntries) {
   return !NON_FINAL_ROUND_JUDGING_TITLES.has(competition.title.trim().toLowerCase());
@@ -2308,7 +2302,7 @@ export async function getHackathonScores(eventId: string): Promise<HackathonScor
 export async function getHackathonChatChannels(
   eventId: string,
   teamId?: string | null,
-  userId?: string | null
+  _userId?: string | null
 ): Promise<HackathonChatChannel[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -2324,36 +2318,30 @@ export async function getHackathonChatChannels(
     return [];
   }
 
-  const rows = (data ?? []) as HackathonChatChannel[];
+  const rows = ((data ?? []) as HackathonChatChannel[]).filter((ch) => ch.channel_type !== "dm");
 
-  // Admin/fallback: return all non-dm channels + user's DMs
+  // Admin/fallback: return all shared channels
   if (teamId === undefined) {
-    return rows.filter(
-      (ch) =>
-        ch.channel_type !== "dm" ||
-        (userId != null && getDirectChannelUserIds(ch.name).includes(userId))
-    );
+    return rows;
   }
 
-  // No team: Spawn Point + announcements + resources + user's DMs (NOT general)
+  // No team: Spawn Point + announcements + resources (NOT general)
   if (teamId === null) {
     return rows.filter(
       (ch) =>
         ch.channel_type === "spawn_point" ||
         ch.channel_type === "announcements" ||
-        ch.channel_type === "resources" ||
-        (ch.channel_type === "dm" && userId != null && getDirectChannelUserIds(ch.name).includes(userId))
+        ch.channel_type === "resources"
     );
   }
 
-  // Has team: general + announcements + resources + their team channel + DMs (NOT spawn_point)
+  // Has team: general + announcements + resources + their team channel (NOT spawn_point)
   return rows.filter(
     (ch) =>
       ch.channel_type === "general" ||
       ch.channel_type === "announcements" ||
       ch.channel_type === "resources" ||
-      ch.team_id === teamId ||
-      (ch.channel_type === "dm" && userId != null && getDirectChannelUserIds(ch.name).includes(userId))
+      ch.team_id === teamId
   );
 }
 
@@ -2436,11 +2424,12 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
   noStore();
   const supabase = await createClient();
 
-  // Get all registrations with user info
+  // Chat roster should only include people who are actually present.
   const { data: regs, error } = await supabase
     .from("registrations")
     .select("user_id, user:users!registrations_user_id_fkey(id, name, role)")
-    .eq("event_id", eventId);
+    .eq("event_id", eventId)
+    .not("checked_in_at", "is", null);
 
   if (error || !regs) return [];
 
