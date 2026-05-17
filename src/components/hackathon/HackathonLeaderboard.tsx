@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore } from "@/types";
 import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore } from "@/lib/hackathon-rubric";
+import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 
 interface Props {
   event: Event;
@@ -85,6 +86,9 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.15)_0,transparent_70%)]" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10" />
+        <div className="absolute right-5 top-5 z-20 sm:right-8 sm:top-8">
+          <HackathonRulesButton compact />
+        </div>
 
         <div className="relative flex flex-col items-center gap-8 text-center px-8">
           <img src="/cursor-logo.svg" alt="Cursor" className="w-16 h-16 drop-shadow-[0_0_24px_rgba(255,255,255,0.6)] brightness-200 animate-pulse" />
@@ -129,6 +133,7 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
         </div>
 
         <div className="flex items-center gap-6">
+          <HackathonRulesButton compact />
           <div className="text-right">
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-600">Live Scores</p>
             <p className="text-[13px] font-bold text-gray-400"><Clock /></p>

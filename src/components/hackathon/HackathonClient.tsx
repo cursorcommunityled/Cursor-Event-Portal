@@ -28,6 +28,7 @@ import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
+import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 import type { PollWithVotes } from "@/types";
 import {
   HACKATHON_SCORE_CATEGORIES,
@@ -551,7 +552,9 @@ export function HackathonClient({
           </div>
         </div>
         
-        <div className="flex items-center gap-4 self-start sm:self-center bg-black/40 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
+        <div className="flex flex-wrap items-center gap-3 self-start rounded-2xl border border-white/10 bg-black/40 p-3 backdrop-blur-md sm:self-center">
+          <HackathonRulesButton compact />
+          <div className="hidden h-10 w-px bg-white/10 sm:block" />
           <div className="relative w-24 h-10 sm:w-28 sm:h-12 opacity-80 hover:opacity-100 transition-opacity mix-blend-screen filter brightness-125">
             <Image src="/sait.jpeg" alt="SAIT" fill className="object-contain object-right" />
           </div>

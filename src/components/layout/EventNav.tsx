@@ -331,9 +331,12 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
       if (item.href === "sessions" && !sessionsEnabled) return null;
       // Hide Hackathon when not in hackathon mode
       if ((item as { hackathonOnly?: boolean }).hackathonOnly && !event?.is_hackathon) return null;
+      // Hide Compete when in hackathon mode (since Hackathon tab replaces it)
+      if (item.href === "competitions" && event?.is_hackathon) return null;
 
       const isActive = pathname.includes(`/${eventSlug}/${item.href}`);
       const Icon = item.icon;
+      const itemLabel = item.href === "socials" && event?.is_hackathon ? "Help" : item.label;
       const showPollAlert =
         item.hasAlert && hasActivePolls && pollAlertVisible && !isActive;
       const showHelpCount = item.href === "socials" && helpWaitingCount > 0;
@@ -356,7 +359,7 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
             <span
               className="text-[8px] font-bold uppercase tracking-[0.15em] transition-all duration-300 whitespace-nowrap mt-1 opacity-0 group-hover:opacity-40 translate-y-1 group-hover:translate-y-0"
             >
-              {item.label}
+              {itemLabel}
             </span>
           </div>
         );
@@ -377,7 +380,7 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
                 "text-[8px] font-bold uppercase tracking-[0.15em] transition-all duration-300 whitespace-nowrap mt-1 opacity-0 group-hover:opacity-40 translate-y-1 group-hover:translate-y-0"
               )}
             >
-              {item.label}
+              {itemLabel}
             </span>
             {/* Tooltip on hover */}
             <div className="absolute left-full ml-3 px-2 py-1 bg-black/90 border border-white/10 rounded-lg text-[9px] text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -426,7 +429,7 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
               isActive ? "opacity-100 translate-y-0" : "opacity-0 group-hover:opacity-60 translate-y-1 group-hover:translate-y-0"
             )}
           >
-            {item.label}
+            {itemLabel}
           </span>
 
           {isActive && (
@@ -460,33 +463,37 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
             <div className="flex flex-col items-center gap-4">
               {renderNavItems()}
 
-              <div className="w-8 h-px bg-white/10" />
+              {!event?.is_hackathon && (
+                <>
+                  <div className="w-8 h-px bg-white/10" />
 
-              {/* Idea Generator button */}
-              <div className="relative group flex flex-col items-center justify-center py-2 w-full">
-                <a
-                  href="https://build-idea-generator.onrender.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)] hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all duration-200 hover:scale-110 active:scale-95"
-                >
-                  <Lightbulb className="w-4 h-4 text-black stroke-[2px]" />
-                </a>
-                {/* Hover tooltip with preview */}
-                <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 translate-x-1 group-hover:translate-x-0">
-                  <div className="bg-black/95 border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] w-52">
-                    <img
-                      src="/idea-generator-preview.png"
-                      alt="Build Idea Generator"
-                      className="w-full h-28 object-cover object-top"
-                    />
-                    <div className="px-3 py-2">
-                      <p className="text-white text-[11px] font-semibold">Build Idea Generator</p>
-                      <p className="text-gray-400 text-[9px] mt-0.5 leading-tight">Generate AI business ideas tailored to your strengths</p>
+                  {/* Idea Generator button */}
+                  <div className="relative group flex flex-col items-center justify-center py-2 w-full">
+                    <a
+                      href="https://build-idea-generator.onrender.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)] hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all duration-200 hover:scale-110 active:scale-95"
+                    >
+                      <Lightbulb className="w-4 h-4 text-black stroke-[2px]" />
+                    </a>
+                    {/* Hover tooltip with preview */}
+                    <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-50 translate-x-1 group-hover:translate-x-0">
+                      <div className="bg-black/95 border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.8)] w-52">
+                        <img
+                          src="/idea-generator-preview.png"
+                          alt="Build Idea Generator"
+                          className="w-full h-28 object-cover object-top"
+                        />
+                        <div className="px-3 py-2">
+                          <p className="text-white text-[11px] font-semibold">Build Idea Generator</p>
+                          <p className="text-gray-400 text-[9px] mt-0.5 leading-tight">Generate AI business ideas tailored to your strengths</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -510,21 +517,25 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
               <div className="flex flex-col items-center gap-2">
                 {renderNavItems()}
 
-                <div className="w-8 h-px bg-white/10" />
+                {!event?.is_hackathon && (
+                  <>
+                    <div className="w-8 h-px bg-white/10" />
 
-                {/* Idea Generator button - mobile */}
-                <a
-                  href="https://build-idea-generator.onrender.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleNavClick}
-                  className="flex flex-col items-center justify-center gap-1.5 py-3 w-full group"
-                >
-                  <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)] transition-all duration-200 group-active:scale-95">
-                    <Lightbulb className="w-4 h-4 text-black stroke-[2px]" />
-                  </div>
-                  <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-gray-400 whitespace-nowrap mt-1">Ideas</span>
-                </a>
+                    {/* Idea Generator button - mobile */}
+                    <a
+                      href="https://build-idea-generator.onrender.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={handleNavClick}
+                      className="flex flex-col items-center justify-center gap-1.5 py-3 w-full group"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-[0_0_12px_rgba(255,255,255,0.3)] transition-all duration-200 group-active:scale-95">
+                        <Lightbulb className="w-4 h-4 text-black stroke-[2px]" />
+                      </div>
+                      <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-gray-400 whitespace-nowrap mt-1">Ideas</span>
+                    </a>
+                  </>
+                )}
               </div>
             </div>
           </div>

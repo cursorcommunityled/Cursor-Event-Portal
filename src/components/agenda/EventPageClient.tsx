@@ -96,7 +96,7 @@ export function EventPageClient({
 
       {/* Sub-nav */}
       <div className="animate-slide-up" style={{ animationDelay: "250ms" }}>
-        <EventSubNav activeTab={activeTab} onTabChange={handleTabChange} />
+        <EventSubNav activeTab={activeTab} onTabChange={handleTabChange} isHackathon={event.is_hackathon} />
       </div>
 
       {/* Tab content */}
