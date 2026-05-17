@@ -156,6 +156,7 @@ export function AgendaAdminClient({
     <div className="min-h-screen bg-black-gradient text-white pb-20">
       <AdminHeader 
         eventSlug={eventSlug} 
+        title={event.name}
         subtitle="Agenda Management"
         rightElement={
           <div className="flex items-center gap-3">
