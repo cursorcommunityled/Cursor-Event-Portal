@@ -194,54 +194,79 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
   );
 }
 
-export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingResult[] }) {
-  const latestResults = groupLatestResults(results);
-  if (latestResults.length === 0) return null;
+function groupAllPublishedResults(results: CompetitionJudgingResult[]) {
+  const publishedGroups = new Map<string, CompetitionJudgingResult[]>();
+  for (const result of results.filter((row) => row.is_published)) {
+    const key = `${result.competition_id}:${result.published_at ?? result.created_at}`;
+    const existing = publishedGroups.get(key) ?? [];
+    existing.push(result);
+    publishedGroups.set(key, existing);
+  }
 
-  const competitionTitle = latestResults[0]?.competition?.title ?? "Hackathon";
+  return Array.from(publishedGroups.values())
+    .sort((a, b) => {
+      const bTime = new Date(b[0]?.published_at ?? b[0]?.created_at ?? 0).getTime();
+      const aTime = new Date(a[0]?.published_at ?? a[0]?.created_at ?? 0).getTime();
+      return bTime - aTime;
+    })
+    .map((group) => group.sort((a, b) => a.placement - b.placement));
+}
+
+export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingResult[] }) {
+  const allGroups = groupAllPublishedResults(results);
+  if (allGroups.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-[34px] border border-yellow-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
-      <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[50px]" />
-      
-      <div className="relative flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-yellow-500/40 bg-white text-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.4)] relative overflow-hidden">
-          <div className="absolute inset-0 bg-yellow-500/10 animate-pulse" />
-          <img src="/trophy.jpeg" alt="Trophy" className="w-full h-full object-cover relative z-10 scale-[1.15]" style={{ mixBlendMode: 'multiply' }} />
-        </div>
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-400/80">Published Winners</p>
-          <h2 className="text-2xl font-black tracking-tight text-white">{competitionTitle}</h2>
-        </div>
-      </div>
-      <div className="relative grid gap-4 sm:grid-cols-3">
-        {latestResults.slice(0, 3).map((result) => (
-          <div key={result.id} className={cn(
-            "rounded-[24px] border p-5 transition-all hover:scale-[1.02]",
-            result.placement === 1 ? "border-yellow-500/40 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)]" :
-            result.placement === 2 ? "border-gray-400/30 bg-gray-400/10" :
-            "border-orange-500/30 bg-orange-500/10"
-          )}>
-            <div className="flex items-center justify-between mb-3">
-              <p className={cn(
-                "text-[10px] font-bold uppercase tracking-[0.2em]",
-                result.placement === 1 ? "text-yellow-400" :
-                result.placement === 2 ? "text-gray-400" :
-                "text-orange-400"
-              )}>Place {result.placement}</p>
-              <Medal className={cn(
-                "w-4 h-4",
-                result.placement === 1 ? "text-yellow-400" :
-                result.placement === 2 ? "text-gray-400" :
-                "text-orange-400"
-              )} />
+    <div className="space-y-6">
+      {allGroups.map((group) => {
+        const competitionTitle = group[0]?.competition?.title ?? "Hackathon";
+        const key = `${group[0]?.competition_id}:${group[0]?.published_at ?? group[0]?.created_at}`;
+
+        return (
+          <div key={key} className="relative overflow-hidden rounded-[34px] border border-yellow-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+            <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[50px]" />
+            
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-yellow-500/40 bg-white text-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.4)] relative overflow-hidden">
+                <div className="absolute inset-0 bg-yellow-500/10 animate-pulse" />
+                <img src="/trophy.jpeg" alt="Trophy" className="w-full h-full object-cover relative z-10 scale-[1.15]" style={{ mixBlendMode: 'multiply' }} />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-400/80">Published Winners</p>
+                <h2 className="text-2xl font-black tracking-tight text-white">{competitionTitle}</h2>
+              </div>
             </div>
-            <p className="text-[15px] font-bold text-white">{result.entry?.title ?? "Project"}</p>
-            <p className="text-[12px] font-medium text-gray-400 mt-1">{result.entry?.user?.name ?? "Team"}</p>
+            <div className="relative grid gap-4 sm:grid-cols-3">
+              {group.slice(0, 3).map((result) => (
+                <div key={result.id} className={cn(
+                  "rounded-[24px] border p-5 transition-all hover:scale-[1.02]",
+                  result.placement === 1 ? "border-yellow-500/40 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)]" :
+                  result.placement === 2 ? "border-gray-400/30 bg-gray-400/10" :
+                  "border-orange-500/30 bg-orange-500/10"
+                )}>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className={cn(
+                      "text-[10px] font-bold uppercase tracking-[0.2em]",
+                      result.placement === 1 ? "text-yellow-400" :
+                      result.placement === 2 ? "text-gray-400" :
+                      "text-orange-400"
+                    )}>Place {result.placement}</p>
+                    <Medal className={cn(
+                      "w-4 h-4",
+                      result.placement === 1 ? "text-yellow-400" :
+                      result.placement === 2 ? "text-gray-400" :
+                      "text-orange-400"
+                    )} />
+                  </div>
+                  <p className="text-[15px] font-bold text-white">{result.entry?.title ?? "Project"}</p>
+                  <p className="text-[12px] font-medium text-gray-400 mt-1">{result.entry?.user?.name ?? "Team"}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
