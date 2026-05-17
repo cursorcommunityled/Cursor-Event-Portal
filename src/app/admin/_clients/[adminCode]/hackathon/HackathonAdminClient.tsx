@@ -20,6 +20,7 @@ import {
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
 import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
+import { unpublishCompetitionJudgingResults } from "@/lib/actions/competition-judging";
 import {
   approveAudienceVoteWinner,
   closeAudienceVotePoll,
@@ -455,6 +456,9 @@ export function HackathonAdminClient({
   const [voteStatus, setVoteStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [voteError, setVoteError] = useState<string | null>(null);
   const [selectedVoteTeams, setSelectedVoteTeams] = useState<Set<string>>(new Set());
+  const [hiddenJudgingWinnerIds, setHiddenJudgingWinnerIds] = useState<Set<string>>(new Set());
+  const [judgingWinnerStatus, setJudgingWinnerStatus] = useState<"idle" | "pending" | "error">("idle");
+  const [judgingWinnerError, setJudgingWinnerError] = useState<string | null>(null);
 
   // Submission broadcast state
   const [nudgeStatus, setNudgeStatus] = useState<"idle" | "pending" | "sent" | "error">("idle");
@@ -824,6 +828,32 @@ export function HackathonAdminClient({
     setVoteStatus("idle");
     refresh();
   };
+
+  const hidePublishedJudgingWinners = async (competitionId: string) => {
+    if (!confirm("Hide these published winners from attendees?")) return;
+    setJudgingWinnerStatus("pending");
+    setJudgingWinnerError(null);
+
+    const res = await unpublishCompetitionJudgingResults(competitionId, event.slug, adminCode);
+    if (res.error) {
+      setJudgingWinnerStatus("error");
+      setJudgingWinnerError(res.error);
+      return;
+    }
+
+    setHiddenJudgingWinnerIds((prev) => new Set(prev).add(competitionId));
+    setJudgingWinnerStatus("idle");
+    refresh();
+  };
+
+  const publishedJudgingWinnerGroups = judgingCompetitions
+    .map((competition) => ({
+      competition,
+      results: competition.results
+        .filter((result) => result.is_published)
+        .sort((a, b) => a.placement - b.placement),
+    }))
+    .filter(({ competition, results }) => results.length > 0 && !hiddenJudgingWinnerIds.has(competition.id));
 
   const rankedTeams = [...teams]
     .filter((t) => scores.some((s) => s.team_id === t.id))
@@ -1819,6 +1849,54 @@ export function HackathonAdminClient({
                 )} />
               </button>
             </div>
+
+            {judgingWinnerError && <p className="text-[11px] text-red-400">{judgingWinnerError}</p>}
+
+            {publishedJudgingWinnerGroups.map(({ competition, results }) => (
+              <div key={competition.id} className="relative overflow-hidden rounded-[28px] border border-yellow-500/25 bg-black/40 p-6 backdrop-blur-xl space-y-4">
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-yellow-500/10 blur-[40px]" />
+                <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <Trophy className="w-4 h-4 text-yellow-400" />
+                      <p className="text-[13px] font-bold text-white">Final Round Winners Published</p>
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      {competition.title} is currently visible to attendees as the Published Winners card.
+                    </p>
+                  </div>
+                  <button
+                    disabled={judgingWinnerStatus === "pending"}
+                    onClick={() => hidePublishedJudgingWinners(competition.id)}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-orange-400/45 bg-orange-400/15 px-4 py-2.5 text-[12px] font-black uppercase tracking-wider text-orange-100 transition-all hover:bg-orange-400/25 disabled:opacity-50"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    {judgingWinnerStatus === "pending" ? "Hiding..." : "Hide Winners"}
+                  </button>
+                </div>
+                <div className="relative grid gap-3 md:grid-cols-3">
+                  {results.slice(0, 3).map((result) => (
+                    <div
+                      key={result.id}
+                      className={cn(
+                        "rounded-2xl border px-4 py-3",
+                        result.placement === 1
+                          ? "border-yellow-500/35 bg-yellow-500/10"
+                          : result.placement === 2
+                            ? "border-gray-400/25 bg-gray-400/10"
+                            : "border-orange-500/25 bg-orange-500/10"
+                      )}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-400">
+                        Place {result.placement}
+                      </p>
+                      <p className="mt-1 truncate text-[14px] font-bold text-white">{result.entry?.title ?? "Project"}</p>
+                      <p className="mt-0.5 truncate text-[11px] font-medium text-gray-500">{result.entry?.user?.name ?? "Team"}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
 
             {/* Audience Vote */}
             <div className="relative overflow-hidden rounded-[28px] border border-yellow-500/25 bg-black/40 p-6 backdrop-blur-xl space-y-4">
