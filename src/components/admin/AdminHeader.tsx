@@ -19,7 +19,7 @@ interface AdminHeaderProps {
 export function AdminHeader({
   adminCode,
   eventSlug,
-  title = "Calgary Cursor Meetup",
+  title = "Cursor",
   subtitle,
   rightElement,
   showBackArrow = true,

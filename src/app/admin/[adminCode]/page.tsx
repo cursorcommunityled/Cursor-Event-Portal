@@ -74,7 +74,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
       <AdminHeader
         adminCode={adminCode}
-        title="Calgary Cursor Meetup"
+        title={event.name}
         subtitle="Admin Dashboard"
         showBackArrow={false}
       />

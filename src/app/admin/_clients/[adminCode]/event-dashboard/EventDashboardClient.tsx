@@ -161,6 +161,7 @@ export function EventDashboardClient({
       <AdminHeader
         eventSlug={eventSlug}
         adminCode={adminCode}
+        title={event.name}
         subtitle="Program"
         showBackArrow={true}
       />
