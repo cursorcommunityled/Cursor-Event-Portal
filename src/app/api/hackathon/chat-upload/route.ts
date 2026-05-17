@@ -8,13 +8,6 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
 ]);
 
-const DIRECT_CHANNEL_PREFIX = "dm:";
-
-function getDirectChannelUserIds(name: string) {
-  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
-  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
-}
-
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
@@ -40,6 +33,18 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createServiceClient();
+
+    const { data: checkedInRegistration } = await supabase
+      .from("registrations")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("user_id", session.userId)
+      .not("checked_in_at", "is", null)
+      .maybeSingle();
+
+    if (!checkedInRegistration) {
+      return NextResponse.json({ error: "You must be checked in before using chat" }, { status: 403 });
+    }
 
     // Verify user can access this channel
     const { data: channel } = await supabase
@@ -76,10 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (channel.channel_type === "dm") {
-      const participantIds = getDirectChannelUserIds(channel.name);
-      if (!participantIds.includes(session.userId)) {
-        return NextResponse.json({ error: "Not a DM participant" }, { status: 403 });
-      }
+      return NextResponse.json({ error: "Direct messages are disabled" }, { status: 403 });
     }
 
     const isImage = ALLOWED_IMAGE_TYPES.has(file.type);

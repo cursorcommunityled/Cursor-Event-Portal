@@ -9,14 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 import {
   sendChatMessage, deleteChatMessage, pinChatMessage,
   toggleChatReaction, markChannelRead, loadMoreMessages, fetchChannelMessages,
-  ensureDirectChannel,
 } from "@/lib/actions/hackathon-chat";
 import { sendTeamInvite } from "@/lib/actions/hackathon";
 import { cn } from "@/lib/utils";
 import {
   Hash, Lock, Megaphone, BookOpen, Users, X, Send,
   Paperclip, Smile, Pin, Trash2, ChevronUp, Shield,
-  Star, ImageIcon, FileText, Download, AlertCircle, MessageCircle, Zap, UserPlus,
+  Star, ImageIcon, FileText, Download, AlertCircle, Zap, UserPlus,
   Linkedin,
 } from "lucide-react";
 import { getTeamRecommendations, type TeamRecommendation } from "@/lib/actions/hackathon-profiles";
@@ -26,12 +25,6 @@ import type {
 } from "@/types";
 
 const QUICK_EMOJIS = ["👍", "🔥", "🚀", "💡", "❤️", "😂", "🎉", "⚡"];
-const DIRECT_CHANNEL_PREFIX = "dm:";
-
-function getDirectChannelUserIds(name: string) {
-  if (!name.startsWith(DIRECT_CHANNEL_PREFIX)) return [];
-  return name.slice(DIRECT_CHANNEL_PREFIX.length).split(":").filter(Boolean);
-}
 
 interface Props {
   event: Event;
@@ -386,7 +379,6 @@ function ChannelIcon({ type, className }: { type: string; className?: string }) 
   if (type === "announcements") return <Megaphone className={cls} />;
   if (type === "team") return <Lock className={cls} />;
   if (type === "resources") return <BookOpen className={cls} />;
-  if (type === "dm") return <MessageCircle className={cls} />;
   return <Hash className={cls} />;
 }
 
@@ -680,20 +672,15 @@ export function HackathonChat({
   }, [members]);
 
   const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
-    if (channel.channel_type === "dm") {
-      return getDirectChannelUserIds(channel.name).includes(userId);
-    }
+    if (channel.channel_type === "dm") return false;
     return !channel.team_id || channel.team_id === myTeamId || isAdmin;
-  }, [isAdmin, myTeamId, userId]);
+  }, [isAdmin, myTeamId]);
 
   const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
     if (!channel) return "";
     if (channel.channel_type === "spawn_point") return "Spawn Point";
-    if (channel.channel_type !== "dm") return channel.name;
-
-    const otherUserId = getDirectChannelUserIds(channel.name).find((id) => id !== userId);
-    return otherUserId ? memberMap.get(otherUserId)?.name ?? "Direct message" : "Direct message";
-  }, [memberMap, userId]);
+    return channel.name;
+  }, []);
 
   // Group members by team for the sidebar
   const membersByTeam = useMemo(() => {
@@ -721,9 +708,7 @@ export function HackathonChat({
   const canPost = useMemo(() => {
     // No channel loaded yet — don't block, channels may still be initialising
     if (!currentChannel) return channels.length === 0 ? false : true;
-    if (currentChannel.channel_type === "dm") {
-      return getDirectChannelUserIds(currentChannel.name).includes(userId);
-    }
+    if (currentChannel.channel_type === "dm") return false;
     if (currentChannel.channel_type === "announcements") return isAdmin;
     // Spawn Point: only unassigned members (no team yet) can post
     if (currentChannel.channel_type === "spawn_point") return !myTeamId || isAdmin;
@@ -873,23 +858,6 @@ export function HackathonChat({
       setHasMore(msgs.length >= 60);
       setLoadingChannel(false);
     }
-  };
-
-  const openDirectMessage = async (targetUserId: string) => {
-    if (targetUserId === userId) return;
-
-    const result = await ensureDirectChannel(event.id, targetUserId);
-    if (result.error || !result.channel) {
-      toast.error(result.error ?? "Could not open DM");
-      return;
-    }
-
-    setChannels((prev) =>
-      prev.some((channel) => channel.id === result.channel!.id)
-        ? prev
-        : [...prev, result.channel!]
-    );
-    await switchChannel(result.channel.id);
   };
 
   const handleLoadMore = async () => {
@@ -1163,9 +1131,6 @@ export function HackathonChat({
             {currentChannel?.channel_type === "team" && (
               <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 bg-red-500/20 px-2.5 py-1 rounded-full ml-1 border border-red-500/30">Private Team</span>
             )}
-            {currentChannel?.channel_type === "dm" && (
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-green-300 bg-green-500/20 px-2.5 py-1 rounded-full ml-1 border border-green-500/30">Direct</span>
-            )}
             <span className="ml-auto hidden text-[12px] font-bold uppercase tracking-wider text-gray-500 sm:inline">
               {messages.length} message{messages.length === 1 ? "" : "s"}
             </span>
@@ -1304,9 +1269,7 @@ export function HackathonChat({
                         ? `Message your team…`
                         : currentChannel?.channel_type === "spawn_point"
                           ? `Introduce yourself in Spawn Point…`
-                          : currentChannel?.channel_type === "dm"
-                            ? `Message ${getChannelLabel(currentChannel)}…`
-                            : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
+                          : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
                     }
                     rows={1}
                     className="min-w-0 flex-1 resize-none bg-transparent text-[16px] font-medium leading-relaxed text-white placeholder-gray-500 focus:outline-none max-h-32 py-1"
@@ -1385,8 +1348,6 @@ export function HackathonChat({
                       <MemberRow
                         key={m.id}
                         member={m}
-                        canMessage={m.id !== userId}
-                        onDirectMessage={() => openDirectMessage(m.id)}
                       />
                     ))}
                 </div>
@@ -1412,8 +1373,6 @@ export function HackathonChat({
                       <MemberRow
                         key={m.id}
                         member={m}
-                        canMessage={m.id !== userId}
-                        onDirectMessage={() => openDirectMessage(m.id)}
                       />
                     ))}
                   </div>
@@ -1430,8 +1389,6 @@ export function HackathonChat({
                       <MemberRow
                         key={m.id}
                         member={m}
-                        canMessage={m.id !== userId}
-                        onDirectMessage={() => openDirectMessage(m.id)}
                       />
                     ))}
                 </div>
@@ -1447,11 +1404,9 @@ export function HackathonChat({
 // ─── Member row in sidebar ────────────────────────────────────────────────────
 
 function MemberRow({
-  member, canMessage, onDirectMessage,
+  member,
 }: {
   member: ChatMember;
-  canMessage: boolean;
-  onDirectMessage: () => void;
 }) {
   const [showCard, setShowCard] = useState(false);
 
@@ -1472,18 +1427,6 @@ function MemberRow({
       </div>
       {(member.role === "admin" || member.role === "staff" || member.role === "facilitator") && (
         <Shield className="w-4 h-4 text-red-200 shrink-0 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-      )}
-      {canMessage && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDirectMessage();
-          }}
-          className="p-2 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-all duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
-          title={`DM ${member.name}`}
-        >
-          <MessageCircle className="w-4 h-4" />
-        </button>
       )}
       {showCard && (
         <div className="absolute left-full top-0 ml-2 z-50 pointer-events-none">

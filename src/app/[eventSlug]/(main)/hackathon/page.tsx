@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
+import { createServiceClient } from "@/lib/supabase/server";
 import { HackathonClient } from "@/components/hackathon/HackathonClient";
 
 interface Props {
@@ -30,6 +31,18 @@ export default async function HackathonPage({ params }: Props) {
 
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
+    redirect(`/${eventSlug}`);
+  }
+
+  const supabase = await createServiceClient();
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("checked_in_at")
+    .eq("event_id", event.id)
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (!registration?.checked_in_at) {
     redirect(`/${eventSlug}`);
   }
 
@@ -53,28 +66,25 @@ export default async function HackathonPage({ params }: Props) {
     : [];
 
   // Load team's existing screenshots + AI analysis status (status only, no scores)
-  const { createServiceClient } = await import("@/lib/supabase/server");
-  const _supa = await createServiceClient();
-
   const [{ data: screenshotRows }, { data: analysisRows }] = await Promise.all([
     myTeam
-      ? _supa.from("hackathon_project_screenshots").select("id, file_url").eq("team_id", myTeam.id).order("sort_order")
+      ? supabase.from("hackathon_project_screenshots").select("id, file_url").eq("team_id", myTeam.id).order("sort_order")
       : Promise.resolve({ data: [] }),
     myTeam
-      ? _supa.from("hackathon_ai_analyses").select("id, pass_name, status, updated_at").eq("team_id", myTeam.id)
+      ? supabase.from("hackathon_ai_analyses").select("id, pass_name, status, updated_at").eq("team_id", myTeam.id)
       : Promise.resolve({ data: [] }),
   ]);
 
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
   const [{ data: hackathonProfile }, { data: audienceVoteRow }] = await Promise.all([
-    _supa
+    supabase
       .from("hackathon_profiles")
       .select("needs_team")
       .eq("event_id", event.id)
       .eq("user_id", session.userId)
       .maybeSingle(),
-    _supa
+    supabase
       .from("polls")
       .select("*, votes:poll_votes(*)")
       .eq("event_id", event.id)
