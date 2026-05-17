@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   ExternalLink,
   Medal,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   publishCompetitionJudgingResults,
+  resetCompetitionFinalRound,
   saveCompetitionJudgingScorecard,
   unpublishCompetitionJudgingResults,
 } from "@/lib/actions/competition-judging";
@@ -163,6 +165,7 @@ export function HackathonJudgingAdminPanel({
   teams = [],
   aiAnalyses = {},
 }: Props) {
+  const router = useRouter();
   const [selectedCompetitionId, setSelectedCompetitionId] = useState(competitions[0]?.id ?? "");
   const [scoreDrafts, setScoreDrafts] = useState<ScoreDraft>({});
   const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>({});
@@ -208,6 +211,7 @@ export function HackathonJudgingAdminPanel({
 
   const maxScore = competition.criteria.reduce((sum, criterion) => sum + Number(criterion.max_points), 0) || 100;
   const published = competition.results.filter((result) => result.is_published);
+  const hasResettableState = competition.scorecards.length > 0 || competition.results.length > 0;
 
   const saveEntryScore = (entryId: string) => {
     setActiveEntryId(entryId);
@@ -239,15 +243,43 @@ export function HackathonJudgingAdminPanel({
     startTransition(async () => {
       const res = await publishCompetitionJudgingResults(competition.id, eventSlug, adminCode, 3);
       if (res.error) setError(res.error);
+      else router.refresh();
     });
   };
 
   const unpublishResults = () => {
-    if (!confirm("Unpublish the current judging results?")) return;
+    if (!confirm("Hide the current judging winners from attendees?")) return;
     setError(null);
     startTransition(async () => {
       const res = await unpublishCompetitionJudgingResults(competition.id, eventSlug, adminCode);
       if (res.error) setError(res.error);
+      else router.refresh();
+    });
+  };
+
+  const resetFinalRound = () => {
+    if (!confirm("Reset this Final Round? This clears judge scorecards, aggregate standings, and published winners, but keeps the selected finalists.")) return;
+    setError(null);
+    setSavedEntryId(null);
+    startTransition(async () => {
+      const res = await resetCompetitionFinalRound(competition.id, eventSlug, adminCode);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+
+      const emptyScores: ScoreDraft = {};
+      const emptyNotes: Record<string, string> = {};
+      for (const finalist of competition.finalists) {
+        emptyScores[finalist.entry_id] = {};
+        for (const criterion of competition.criteria) {
+          emptyScores[finalist.entry_id][criterion.id] = 0;
+        }
+        emptyNotes[finalist.entry_id] = "";
+      }
+      setScoreDrafts(emptyScores);
+      setNotesDrafts(emptyNotes);
+      router.refresh();
     });
   };
 
@@ -436,13 +468,20 @@ export function HackathonJudgingAdminPanel({
             <h4 className="text-xl font-black tracking-tight text-white mt-1">Calculated from judge scorecards</h4>
           </div>
           <div className="flex flex-wrap gap-3">
+            <button
+              disabled={isPending || !hasResettableState}
+              onClick={resetFinalRound}
+              className="rounded-[20px] bg-white/5 border border-white/10 px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-gray-300 hover:bg-white/10 hover:text-white disabled:opacity-50 transition-colors"
+            >
+              Reset Final Round
+            </button>
             {published.length > 0 && (
               <button
                 disabled={isPending}
                 onClick={unpublishResults}
                 className="rounded-[20px] bg-red-500/10 border border-red-500/20 px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
               >
-                Unpublish
+                Hide Winners
               </button>
             )}
             <button

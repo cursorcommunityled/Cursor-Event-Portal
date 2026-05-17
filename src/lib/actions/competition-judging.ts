@@ -367,10 +367,60 @@ export async function unpublishCompetitionJudgingResults(
 
   const { error } = await supabase
     .from("competition_judging_results")
+    .update({ is_published: false })
+    .eq("competition_id", competitionId)
+    .eq("is_published", true);
+
+  if (error) return { error: error.message };
+
+  const now = new Date().toISOString();
+  const { error: announcementError } = await supabase
+    .from("announcements")
+    .update({ expires_at: now })
+    .eq("event_id", competition.event_id)
+    .ilike("content", `Hackathon winners announced for ${competition.title}:%`);
+
+  if (announcementError) return { error: announcementError.message };
+
+  revalidateJudgingPaths(adminCode, eventSlug);
+  return { success: true };
+}
+
+export async function resetCompetitionFinalRound(
+  competitionId: string,
+  eventSlug: string,
+  adminCode: string
+): Promise<{ success?: true; error?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const supabase = await createServiceClient();
+  const competition = await getCompetition(supabase, competitionId, auth.eventId);
+  if (!competition) return { error: "Competition not found" };
+
+  const { error: resultsError } = await supabase
+    .from("competition_judging_results")
     .delete()
     .eq("competition_id", competitionId);
 
-  if (error) return { error: error.message };
+  if (resultsError) return { error: resultsError.message };
+
+  const { error: scorecardsError } = await supabase
+    .from("competition_judging_scorecards")
+    .delete()
+    .eq("competition_id", competitionId);
+
+  if (scorecardsError) return { error: scorecardsError.message };
+
+  const now = new Date().toISOString();
+  const { error: announcementError } = await supabase
+    .from("announcements")
+    .update({ expires_at: now })
+    .eq("event_id", competition.event_id)
+    .ilike("content", `Hackathon winners announced for ${competition.title}:%`);
+
+  if (announcementError) return { error: announcementError.message };
+
   revalidateJudgingPaths(adminCode, eventSlug);
   return { success: true };
 }
