@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import type { CSSProperties } from "react";
 
 interface ConfettiProps {
   duration?: number; // Duration in milliseconds
@@ -16,6 +17,12 @@ interface Particle {
   size: number;
   drift: number;
 }
+
+type CSSVars = CSSProperties & {
+  "--drift"?: string;
+  "--scale"?: number;
+  "--rotation"?: string;
+};
 
 const colors = [
   "#FFD700", // Gold
@@ -69,7 +76,7 @@ export function Confetti({ duration = 20000, particleCount = 100 }: ConfettiProp
             animationDelay: `${particle.delay}s`,
             transform: `rotate(${particle.rotation}deg)`,
             "--drift": `${particle.drift}px`,
-          } as React.CSSProperties}
+          } as CSSVars}
         />
       ))}
       <style jsx>{`
@@ -151,7 +158,7 @@ export function CreditsStream({ duration = 20000 }: { duration?: number }) {
             animationDelay: `${item.delay}s`,
             '--scale': item.scale,
             '--rotation': `${item.rotation}deg`,
-          } as React.CSSProperties}
+          } as CSSVars}
         >
           {item.type === 'coin' ? (
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 border-[3px] border-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.6),inset_0_0_10px_rgba(255,255,255,0.5)]">
