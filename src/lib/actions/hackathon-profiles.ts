@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { preferredLinkedInUrl } from "@/lib/hackathon-profile-defaults";
 import type { HackathonProfile } from "@/types";
 
 const TEAM_RECOMMENDATION_BATCH_SIZE = 3;
@@ -221,7 +222,7 @@ export async function getTeamRecommendations(
   // can go stale when admins manually move people between teams.
   const { data: checkedInRegs } = await supabase
     .from("registrations")
-    .select("user_id, user:users!registrations_user_id_fkey(id, name)")
+    .select("user_id, user:users!registrations_user_id_fkey(id, name, linkedin)")
     .eq("event_id", eventId)
     .not("checked_in_at", "is", null)
     .neq("user_id", session.userId);
@@ -229,9 +230,9 @@ export async function getTeamRecommendations(
   const checkedInUsers = (checkedInRegs ?? [])
     .map((reg) => {
       const user = Array.isArray(reg.user) ? reg.user[0] : reg.user;
-      return user as { id: string; name: string } | null;
+      return user as { id: string; name: string; linkedin: string | null } | null;
     })
-    .filter((user): user is { id: string; name: string } => !!user?.id);
+    .filter((user): user is { id: string; name: string; linkedin: string | null } => !!user?.id);
 
   if (checkedInUsers.length === 0) return { recommendations: [], needsTeam: true };
 
@@ -250,11 +251,19 @@ export async function getTeamRecommendations(
   const candidateUsers = checkedInUsers.filter((user) => !alreadyOnTeam.has(user.id) && !excludedUserIds.has(user.id));
   if (candidateUsers.length === 0) return { recommendations: [], needsTeam: true, hasMore: false };
 
-  const { data: candidateProfiles } = await supabase
-    .from("hackathon_profiles")
-    .select("user_id, occupation, is_technical, unique_skill, linkedin_url, profile_bio, project_interests, collaboration_style, looking_for_teammates")
-    .eq("event_id", eventId)
-    .in("user_id", candidateUsers.map((user) => user.id));
+  const candidateUserIds = candidateUsers.map((user) => user.id);
+  const [{ data: candidateProfiles }, { data: candidateIntakes }] = await Promise.all([
+    supabase
+      .from("hackathon_profiles")
+      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, profile_bio, project_interests, collaboration_style, looking_for_teammates")
+      .eq("event_id", eventId)
+      .in("user_id", candidateUserIds),
+    supabase
+      .from("attendee_intakes")
+      .select("user_id, linkedin")
+      .eq("event_id", eventId)
+      .in("user_id", candidateUserIds),
+  ]);
 
   const profileMap = new Map(
     (candidateProfiles ?? []).map((profile: {
@@ -269,6 +278,9 @@ export async function getTeamRecommendations(
       looking_for_teammates: string | null;
     }) => [profile.user_id, profile])
   );
+  const intakeLinkedInMap = new Map(
+    (candidateIntakes ?? []).map((intake: { user_id: string; linkedin: string | null }) => [intake.user_id, intake.linkedin])
+  );
 
   const candidates: RecommendationCandidate[] = candidateUsers.map((user) => {
     const profile = profileMap.get(user.id);
@@ -278,7 +290,7 @@ export async function getTeamRecommendations(
       occupation: profile?.occupation ?? null,
       is_technical: profile?.is_technical ?? null,
       unique_skill: profile?.unique_skill ?? null,
-      linkedin_url: profile?.linkedin_url ?? null,
+      linkedin_url: preferredLinkedInUrl(profile?.linkedin_url, intakeLinkedInMap.get(user.id), user.linkedin),
       profile_bio: profile?.profile_bio ?? null,
       project_interests: profile?.project_interests ?? null,
       collaboration_style: profile?.collaboration_style ?? null,

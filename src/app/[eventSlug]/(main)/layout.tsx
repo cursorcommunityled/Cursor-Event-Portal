@@ -7,6 +7,7 @@ import { EventNavWrapper } from "@/components/layout/EventNavWrapper";
 import { AttendeeChatWidget } from "@/components/chatbot/AttendeeChatWidget";
 import { EasterEggOverlay } from "@/components/easter/EasterEggOverlay";
 import { JudgingWinnersReveal } from "@/components/hackathon-judging/JudgingWinnersReveal";
+import { withDefaultHackathonLinkedIn } from "@/lib/hackathon-profile-defaults";
 import type { HackathonProfile } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -40,19 +41,32 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
     // Fetch user name
     const { data: userData } = await supabase
       .from("users")
-      .select("name")
+      .select("name, linkedin")
       .eq("id", userId)
       .maybeSingle();
     userName = userData?.name || "";
 
     if (event.is_hackathon) {
-      const { data } = await supabase
-        .from("hackathon_profiles")
-        .select("user_id, event_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, accessibility, profile_bio, project_interests, collaboration_style, looking_for_teammates, created_at, updated_at")
-        .eq("event_id", event.id)
-        .eq("user_id", userId)
-        .maybeSingle();
-      hackathonProfile = data;
+      const [{ data: profileData }, { data: intakeData }] = await Promise.all([
+        supabase
+          .from("hackathon_profiles")
+          .select("user_id, event_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, accessibility, profile_bio, project_interests, collaboration_style, looking_for_teammates, created_at, updated_at")
+          .eq("event_id", event.id)
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabase
+          .from("attendee_intakes")
+          .select("linkedin")
+          .eq("event_id", event.id)
+          .eq("user_id", userId)
+          .maybeSingle(),
+      ]);
+      hackathonProfile = withDefaultHackathonLinkedIn(
+        profileData as HackathonProfile | null,
+        intakeData?.linkedin ?? userData?.linkedin ?? null,
+        userId,
+        event.id
+      );
     }
   }
 
