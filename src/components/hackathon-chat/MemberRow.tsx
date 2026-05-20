@@ -17,23 +17,23 @@ export function MemberRow({
   onStartDM?: (userId: string) => void;
 }) {
   const [showCard, setShowCard] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
   const [cardPos, setCardPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
-    if (showCard && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
+    if (showCard && rowRef.current) {
+      const rect = rowRef.current.getBoundingClientRect();
       const cardWidth = 256; // w-64
       const cardHeight = 240; // estimated max height
-      
+
       // Sidebar is on the right, so open to the left by default
       let left = rect.left - cardWidth - 12;
-      
+
       // Fallback if not enough space on left
       if (left < 16) {
         left = rect.right + 12;
       }
-      
+
       let top = rect.top;
       // Adjust if overflowing bottom
       if (top + cardHeight > window.innerHeight - 16) {
@@ -46,7 +46,7 @@ export function MemberRow({
 
   return (
     <div
-      ref={buttonRef}
+      ref={rowRef}
       className="relative flex w-full items-center gap-2 px-2 py-1.5 rounded-2xl hover:bg-white/[0.06] transition-all duration-200 group text-left"
       onMouseEnter={() => setShowCard(true)}
       onMouseLeave={() => setShowCard(false)}
@@ -86,8 +86,8 @@ export function MemberRow({
       </div>
 
       {showCard && typeof document !== "undefined" && createPortal(
-        <div 
-          className="fixed z-[100] pointer-events-none" 
+        <div
+          className="fixed z-[100] pointer-events-none"
           style={{ top: cardPos.top, left: cardPos.left }}
         >
           <MemberCard member={member} />
