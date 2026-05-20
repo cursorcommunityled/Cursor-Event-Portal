@@ -73,10 +73,15 @@ interface Props {
 
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
 
+const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "chat"]);
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const PROJECT_JUDGING_LOCK_BUFFER_MS = 5 * 60 * 1000;
+
+function isHackathonTab(value: string | null | undefined): value is Tab {
+  return Boolean(value && HACKATHON_TABS.has(value as Tab));
+}
 
 function getTeamIconValidationError(file: File): string | null {
   if (!TEAM_ICON_ALLOWED_TYPES.includes(file.type)) {
@@ -160,6 +165,7 @@ export function HackathonClient({
   const [isPending, startTransition] = useTransition();
   const [tab, setTab] = useState<Tab>("overview");
   const [now, setNow] = useState<Date | null>(null);
+  const tabStorageKey = `hackathon:${event.id}:${userId}:tab`;
 
   // Local state (updated by realtime or optimistic)
   const [myTeam, setMyTeam] = useState(initialMyTeam);
@@ -200,6 +206,27 @@ export function HackathonClient({
     setInviteLogoPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [inviteLogoFile]);
+
+  useEffect(() => {
+    const hashTab = window.location.hash.replace(/^#/, "");
+    const storedTab = window.localStorage.getItem(tabStorageKey);
+    const restoredTab = isHackathonTab(hashTab)
+      ? hashTab
+      : isHackathonTab(storedTab)
+        ? storedTab
+        : null;
+
+    if (restoredTab) setTab(restoredTab);
+  }, [tabStorageKey]);
+
+  useEffect(() => {
+    window.localStorage.setItem(tabStorageKey, tab);
+    const nextHash = tab === "overview" ? "" : `#${tab}`;
+    const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }, [tab, tabStorageKey]);
 
   useEffect(() => {
     return () => {
