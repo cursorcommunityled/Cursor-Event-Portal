@@ -40,7 +40,7 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
       {children}
 
       <EventNavWrapper eventSlug={eventSlug} event={event} userId={userId} />
-      <AttendeeChatWidget eventSlug={eventSlug} eventName={event.name} />
+      <AttendeeChatWidget eventSlug={eventSlug} eventName={event.name} userId={userId} />
       <JudgingWinnersReveal eventId={event.id} initialResults={judgingResults} />
       {eventSlug === "calgary-march-2026" && (
         <EasterEggOverlay eventSlug={eventSlug} eventId={event.id} userId={userId} />

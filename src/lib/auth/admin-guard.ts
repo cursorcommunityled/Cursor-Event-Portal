@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  parsePortalSession,
+  PORTAL_SESSION_COOKIE_NAME,
+} from "@/lib/auth/portal-session";
 
 /**
  * Shared admin authorisation guard for /api/admin/* route handlers.
@@ -10,7 +14,7 @@ import { createServiceClient } from "@/lib/supabase/server";
  *
  *   1. The request carries a valid Supabase auth session whose email is
  *      in `public.admin_emails` (or whose `users.role = 'admin'`).
- *   2. The legacy `portal_session` cookie belongs to a user with
+ *   2. The signed `portal_session` cookie belongs to a user with
  *      `role = 'admin'`.
  *   3. The request supplies the per-event `adminCode` (header
  *      `x-admin-code` / `x-event-id`, or `adminCode` + `eventId` in the
@@ -83,21 +87,19 @@ export async function requireAdmin(
     // Fall through to other auth methods.
   }
 
-  // ------- 2) Legacy portal_session cookie + users.role = 'admin' -------
+  // ------- 2) Signed portal_session cookie + users.role = 'admin' -------
   try {
     const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get("portal_session");
-    if (sessionCookie) {
-      const session = JSON.parse(sessionCookie.value) as { userId?: string; exp?: number };
-      if (session.userId && (!session.exp || session.exp > Date.now())) {
-        const { data: user } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", session.userId)
-          .maybeSingle();
-        if (user?.role === "admin") {
-          return { method: "portal_session", userId: session.userId };
-        }
+    const sessionCookie = cookieStore.get(PORTAL_SESSION_COOKIE_NAME);
+    const session = parsePortalSession(sessionCookie?.value);
+    if (session) {
+      const { data: user } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", session.userId)
+        .maybeSingle();
+      if (user?.role === "admin") {
+        return { method: "portal_session", userId: session.userId };
       }
     }
   } catch {

@@ -2348,7 +2348,8 @@ export async function getHackathonChatChannels(
 export async function getHackathonChatMessages(
   channelId: string,
   limit = 60,
-  beforeId?: string
+  beforeId?: string,
+  pinnedOnly = false
 ): Promise<HackathonChatMessage[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -2360,6 +2361,10 @@ export async function getHackathonChatMessages(
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(limit);
+
+  if (pinnedOnly) {
+    query = query.eq("is_pinned", true);
+  }
 
   if (beforeId) {
     const { data: pivot } = await supabase

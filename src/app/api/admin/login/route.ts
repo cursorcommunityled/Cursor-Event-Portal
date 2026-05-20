@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, getClientIp } from "@/lib/auth/rate-limit";
+import {
+  PORTAL_SESSION_COOKIE_NAME,
+  serializePortalSession,
+} from "@/lib/auth/portal-session";
 
 // Health check for debugging
 export async function GET() {
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    response.cookies.set("portal_session", JSON.stringify(session), {
+    response.cookies.set(PORTAL_SESSION_COOKIE_NAME, serializePortalSession(session), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

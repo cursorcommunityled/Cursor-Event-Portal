@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import {
+  parsePortalSession,
+  PORTAL_SESSION_COOKIE_NAME,
+} from "@/lib/auth/portal-session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,16 +39,10 @@ export async function POST(request: NextRequest) {
     } else {
       // Fall back to session auth
       const cookieStore = await cookies();
-      const sessionCookie = cookieStore.get("portal_session");
-      if (!sessionCookie) {
+      const sessionCookie = cookieStore.get(PORTAL_SESSION_COOKIE_NAME);
+      const session = parsePortalSession(sessionCookie?.value);
+      if (!session) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-      }
-
-      let session;
-      try {
-        session = JSON.parse(sessionCookie.value);
-      } catch {
-        return NextResponse.json({ error: "Invalid session" }, { status: 401 });
       }
 
       // Verify admin role

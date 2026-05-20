@@ -6,6 +6,10 @@ import { cookies, headers } from "next/headers";
 import { generatePasscode } from "@/lib/utils";
 import { rateLimit } from "@/lib/auth/rate-limit";
 import crypto from "crypto";
+import {
+  PORTAL_SESSION_COOKIE_NAME,
+  serializePortalSession,
+} from "@/lib/auth/portal-session";
 
 async function getActionIp(): Promise<string> {
   try {
@@ -115,7 +119,7 @@ export async function verifyMagicLink(token: string) {
     exp: Date.now() + 24 * 60 * 60 * 1000,
   };
 
-  cookieStore.set("portal_session", JSON.stringify(sessionData), {
+  cookieStore.set(PORTAL_SESSION_COOKIE_NAME, serializePortalSession(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -149,7 +153,7 @@ export async function loginWithPasscode(passcode: string, eventId: string) {
     exp: Date.now() + 24 * 60 * 60 * 1000,
   };
 
-  cookieStore.set("portal_session", JSON.stringify(sessionData), {
+  cookieStore.set(PORTAL_SESSION_COOKIE_NAME, serializePortalSession(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -179,7 +183,7 @@ export async function createPasscodeSession(userId: string, eventId: string) {
 
 export async function logout() {
   const cookieStore = await cookies();
-  cookieStore.set("portal_session", "", {
+  cookieStore.set(PORTAL_SESSION_COOKIE_NAME, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -195,6 +199,7 @@ export async function adminLogout() {
 
   // Also clear the session cookie
   const cookieStore = await cookies();
+  cookieStore.delete(PORTAL_SESSION_COOKIE_NAME);
   cookieStore.delete("sb-access-token");
   cookieStore.delete("sb-refresh-token");
 
