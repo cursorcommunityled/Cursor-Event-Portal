@@ -536,12 +536,6 @@ export function HackathonClient({
             <img src="/cursor-logo.svg" alt="Cursor" className="w-8 h-8 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-3 mb-1">
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300/90">
-                System Active
-              </p>
-              <div className="h-1.5 w-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse" />
-            </div>
             <h1 className="truncate text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-red-200 sm:text-5xl drop-shadow-lg">
               HACKATHON
             </h1>
