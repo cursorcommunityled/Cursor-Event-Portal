@@ -21,6 +21,9 @@ export default async function SocialsQAPage({ params, searchParams }: SocialsQAP
   if (!event) {
     notFound();
   }
+  if (event.is_hackathon) {
+    redirect(`/${eventSlug}/hackathon`);
+  }
 
   const session = await getSession();
   if (!session || session.eventId !== event.id) {

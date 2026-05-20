@@ -915,7 +915,9 @@ export function HackathonChat({
                 {currentChannel?.channel_type === "spawn_point" ? (
                   <>
                     <p className="text-2xl font-black tracking-tight text-white">Welcome to Spawn Point</p>
-                    <p className="text-[15px] font-medium text-gray-400 mt-2 max-w-[280px] leading-relaxed">Introduce yourself while you wait to be assigned to a team.</p>
+                    <p className="text-[15px] font-medium text-gray-400 mt-2 max-w-[320px] leading-relaxed">
+                      Introduce yourself, or type <span className="font-bold text-gray-200">help</span> if you need an admin to jump in.
+                    </p>
                   </>
                 ) : (
                   <>
@@ -1021,7 +1023,7 @@ export function HackathonChat({
                       currentChannel?.channel_type === "team"
                         ? `Message your team…`
                         : currentChannel?.channel_type === "spawn_point"
-                          ? `Introduce yourself in Spawn Point…`
+                          ? `Introduce yourself or type help…`
                           : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
                     }
                     rows={1}

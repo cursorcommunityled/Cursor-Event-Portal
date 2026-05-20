@@ -254,7 +254,10 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
 
   // Check for help requests and subscribe to changes
   useEffect(() => {
-    if (!event) return;
+    if (!event || event.is_hackathon) {
+      setHelpWaitingCount(0);
+      return;
+    }
 
     const supabase = createClient();
 
@@ -331,6 +334,8 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
       if (item.href === "sessions" && !sessionsEnabled) return null;
       // Hide Hackathon when not in hackathon mode
       if ((item as { hackathonOnly?: boolean }).hackathonOnly && !event?.is_hackathon) return null;
+      // Hackathons route attendee support through the hackathon module chat.
+      if (item.href === "socials" && event?.is_hackathon) return null;
       // Hide Compete when in hackathon mode (since Hackathon tab replaces it)
       if (item.href === "competitions" && event?.is_hackathon) return null;
 
