@@ -80,7 +80,7 @@ export default async function HackathonPage({ params }: Props) {
   const [{ data: hackathonProfile }, { data: audienceVoteRow }] = await Promise.all([
     supabase
       .from("hackathon_profiles")
-      .select("needs_team")
+      .select("user_id, event_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, accessibility, profile_bio, project_interests, collaboration_style, looking_for_teammates, created_at, updated_at")
       .eq("event_id", event.id)
       .eq("user_id", session.userId)
       .maybeSingle(),
@@ -141,6 +141,7 @@ export default async function HackathonPage({ params }: Props) {
       chatMembers={chatMembers}
       publishedJudgingResults={judgingResults}
       needsTeam={hackathonProfile?.needs_team === true}
+      hackathonProfile={hackathonProfile as import("@/types").HackathonProfile | null}
       initialScreenshots={initialScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
       audienceVotePoll={audienceVotePoll as import("@/types").PollWithVotes | null}

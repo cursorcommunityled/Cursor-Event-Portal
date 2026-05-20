@@ -115,6 +115,10 @@ export function MemberProfileModal({
             />
             <ProfileField label="Occupation" value={member.occupation} />
             <ProfileField label="Unique Skill" value={member.unique_skill} className="sm:col-span-2" />
+            <ProfileField label="Short Bio" value={member.profile_bio} className="sm:col-span-2" />
+            <ProfileField label="Project Interests" value={member.project_interests} className="sm:col-span-2" />
+            <ProfileField label="Collaboration Style" value={member.collaboration_style} />
+            <ProfileField label="Looking For" value={member.looking_for_teammates} />
           </div>
 
           {linkedinUrl && (

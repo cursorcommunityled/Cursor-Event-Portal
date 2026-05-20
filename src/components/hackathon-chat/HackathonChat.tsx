@@ -126,6 +126,10 @@ export function HackathonChat({
         member.team_role,
         member.occupation,
         member.unique_skill,
+        member.profile_bio,
+        member.project_interests,
+        member.collaboration_style,
+        member.looking_for_teammates,
         member.is_technical === null || member.is_technical === undefined
           ? null
           : member.is_technical

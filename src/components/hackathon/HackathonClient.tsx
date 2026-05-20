@@ -23,12 +23,14 @@ import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
   HackathonTeamInvite, HackathonScore, EventPhoto,
   HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingResult,
+  HackathonProfile,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
+import { HackathonProfileEditor } from "@/components/hackathon/HackathonProfileEditor";
 import type { PollWithVotes } from "@/types";
 import {
   HACKATHON_SCORE_CATEGORIES,
@@ -45,7 +47,18 @@ interface Props {
   receivedInvites: HackathonTeamInvite[];
   sentInviteUserIds: string[];
   allTeams: HackathonTeamWithMembers[];
-  openPool: { id: string; name: string; occupation: string | null; is_technical: boolean | null }[];
+  openPool: {
+    id: string;
+    name: string;
+    occupation: string | null;
+    is_technical: boolean | null;
+    unique_skill: string | null;
+    linkedin_url: string | null;
+    profile_bio: string | null;
+    project_interests: string | null;
+    collaboration_style: string | null;
+    looking_for_teammates: string | null;
+  }[];
   scores: HackathonScore[];
   chatChannels: HackathonChatChannel[];
   initialMessages: HackathonChatMessage[];
@@ -53,6 +66,7 @@ interface Props {
   chatMembers: ChatMember[];
   publishedJudgingResults: CompetitionJudgingResult[];
   needsTeam?: boolean;
+  hackathonProfile: HackathonProfile | null;
   initialScreenshots?: { id: string; file_url: string }[];
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
   audienceVotePoll?: PollWithVotes | null;
@@ -141,7 +155,7 @@ export function HackathonClient({
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
   publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
-  audienceVotePoll = null,
+  audienceVotePoll = null, hackathonProfile,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -803,6 +817,12 @@ export function HackathonClient({
             <HubMetric label="Open Slots" value={openTeamSlots} detail={`max ${maxTeamSize} per team`} muted={!formationOpen} />
           </div>
 
+          <HackathonProfileEditor
+            eventId={event.id}
+            initialProfile={hackathonProfile}
+            onSaved={refresh}
+          />
+
           <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
             <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-red-500/10 blur-[55px]" />
@@ -1374,6 +1394,25 @@ export function HackathonClient({
                             </span>
                           )}
                         </div>
+                        {(person.unique_skill || person.profile_bio || person.project_interests) && (
+                          <div className="mt-2 space-y-1">
+                            {person.unique_skill && (
+                              <p className="text-[11px] font-semibold text-red-200/80">
+                                Skill: {person.unique_skill}
+                              </p>
+                            )}
+                            {person.profile_bio && (
+                              <p className="line-clamp-2 text-[12px] leading-relaxed text-gray-400">
+                                {person.profile_bio}
+                              </p>
+                            )}
+                            {person.project_interests && (
+                              <p className="line-clamp-1 text-[11px] font-medium text-gray-500">
+                                Interested in: {person.project_interests}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     {formationOpen && (

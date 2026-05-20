@@ -995,6 +995,28 @@ export interface ChatMember {
   unique_skill?: string | null;
   linkedin_url?: string | null;
   needs_team?: boolean | null;
+  profile_bio?: string | null;
+  project_interests?: string | null;
+  collaboration_style?: string | null;
+  looking_for_teammates?: string | null;
+}
+
+export interface HackathonProfile {
+  id?: string;
+  user_id: string;
+  event_id: string;
+  occupation: string | null;
+  is_technical: boolean | null;
+  unique_skill: string | null;
+  linkedin_url: string | null;
+  needs_team: boolean;
+  accessibility?: string | null;
+  profile_bio?: string | null;
+  project_interests?: string | null;
+  collaboration_style?: string | null;
+  looking_for_teammates?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 // ─── Event Photos ─────────────────────────────────────────────────────────────

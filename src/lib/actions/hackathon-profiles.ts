@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import type { HackathonProfile } from "@/types";
 
 export interface TeamRecommendation {
   userId: string;
@@ -11,6 +12,10 @@ export interface TeamRecommendation {
   is_technical: boolean | null;
   unique_skill: string | null;
   linkedin_url: string | null;
+  profile_bio: string | null;
+  project_interests: string | null;
+  collaboration_style: string | null;
+  looking_for_teammates: string | null;
   reason: string;
 }
 
@@ -21,13 +26,87 @@ type RecommendationCandidate = {
   is_technical: boolean | null;
   unique_skill: string | null;
   linkedin_url: string | null;
+  profile_bio: string | null;
+  project_interests: string | null;
+  collaboration_style: string | null;
+  looking_for_teammates: string | null;
 };
 
 type ProfileContext = {
   occupation: string | null;
   is_technical: boolean | null;
   unique_skill: string | null;
+  profile_bio?: string | null;
+  project_interests?: string | null;
+  collaboration_style?: string | null;
+  looking_for_teammates?: string | null;
 };
+
+export type HackathonProfileFormInput = {
+  occupation?: string | null;
+  is_technical?: boolean | null;
+  unique_skill?: string | null;
+  linkedin_url?: string | null;
+  needs_team?: boolean | null;
+  profile_bio?: string | null;
+  project_interests?: string | null;
+  collaboration_style?: string | null;
+  looking_for_teammates?: string | null;
+};
+
+function cleanText(value: string | null | undefined, maxLength: number) {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) return null;
+  return trimmed.slice(0, maxLength);
+}
+
+export async function updateMyHackathonProfile(
+  eventId: string,
+  input: HackathonProfileFormInput
+): Promise<{ profile?: HackathonProfile; error?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("user_id", session.userId)
+    .not("checked_in_at", "is", null)
+    .maybeSingle();
+
+  if (!registration) return { error: "You must be checked in before editing your hackathon profile" };
+
+  const payload = {
+    user_id: session.userId,
+    event_id: eventId,
+    occupation: cleanText(input.occupation, 120),
+    is_technical: input.is_technical ?? null,
+    unique_skill: cleanText(input.unique_skill, 160),
+    linkedin_url: cleanText(input.linkedin_url, 240),
+    needs_team: Boolean(input.needs_team),
+    profile_bio: cleanText(input.profile_bio, 600),
+    project_interests: cleanText(input.project_interests, 600),
+    collaboration_style: cleanText(input.collaboration_style, 400),
+    looking_for_teammates: cleanText(input.looking_for_teammates, 400),
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from("hackathon_profiles")
+    .upsert(payload, { onConflict: "user_id,event_id" })
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("[updateMyHackathonProfile] error:", error);
+    return { error: error.message };
+  }
+
+  return { profile: data as HackathonProfile };
+}
 
 function backgroundLabel(isTechnical: boolean | null) {
   if (isTechnical === null) return null;
@@ -105,7 +184,7 @@ export async function getTeamRecommendations(
   // real gate for recommendations; `needs_team` can be stale after admin changes.
   const { data: myProfile } = await supabase
     .from("hackathon_profiles")
-    .select("occupation, is_technical, unique_skill, needs_team")
+    .select("occupation, is_technical, unique_skill, needs_team, profile_bio, project_interests, collaboration_style, looking_for_teammates")
     .eq("user_id", session.userId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -169,7 +248,7 @@ export async function getTeamRecommendations(
 
   const { data: candidateProfiles } = await supabase
     .from("hackathon_profiles")
-    .select("user_id, occupation, is_technical, unique_skill, linkedin_url")
+    .select("user_id, occupation, is_technical, unique_skill, linkedin_url, profile_bio, project_interests, collaboration_style, looking_for_teammates")
     .eq("event_id", eventId)
     .in("user_id", candidateUsers.map((user) => user.id));
 
@@ -180,6 +259,10 @@ export async function getTeamRecommendations(
       is_technical: boolean | null;
       unique_skill: string | null;
       linkedin_url: string | null;
+      profile_bio: string | null;
+      project_interests: string | null;
+      collaboration_style: string | null;
+      looking_for_teammates: string | null;
     }) => [profile.user_id, profile])
   );
 
@@ -192,6 +275,10 @@ export async function getTeamRecommendations(
       is_technical: profile?.is_technical ?? null,
       unique_skill: profile?.unique_skill ?? null,
       linkedin_url: profile?.linkedin_url ?? null,
+      profile_bio: profile?.profile_bio ?? null,
+      project_interests: profile?.project_interests ?? null,
+      collaboration_style: profile?.collaboration_style ?? null,
+      looking_for_teammates: profile?.looking_for_teammates ?? null,
     };
   });
   if (candidates.length === 0) return { recommendations: [], needsTeam: true };
@@ -203,6 +290,10 @@ export async function getTeamRecommendations(
     is_technical: candidate.is_technical,
     unique_skill: candidate.unique_skill,
     linkedin_url: candidate.linkedin_url,
+    profile_bio: candidate.profile_bio,
+    project_interests: candidate.project_interests,
+    collaboration_style: candidate.collaboration_style,
+    looking_for_teammates: candidate.looking_for_teammates,
     reason: buildConcreteReason(candidate, myProfile),
   }));
 
@@ -214,6 +305,9 @@ export async function getTeamRecommendations(
       ? `Background: ${myProfile.is_technical ? "Technical" : "Non-technical"}`
       : null,
     myProfile?.unique_skill ? `Unique skill: ${myProfile.unique_skill}` : null,
+    myProfile?.project_interests ? `Project interests: ${myProfile.project_interests}` : null,
+    myProfile?.collaboration_style ? `Collaboration style: ${myProfile.collaboration_style}` : null,
+    myProfile?.looking_for_teammates ? `Looking for: ${myProfile.looking_for_teammates}` : null,
   ]
     .filter(Boolean)
     .join(" | ");
@@ -224,6 +318,9 @@ export async function getTeamRecommendations(
     occupation: string | null;
     is_technical: boolean | null;
     unique_skill: string | null;
+    project_interests: string | null;
+    collaboration_style: string | null;
+    looking_for_teammates: string | null;
   }) => {
     return [
       `ID: ${c.user_id}`,
@@ -233,6 +330,9 @@ export async function getTeamRecommendations(
         ? `Background: ${c.is_technical ? "Technical" : "Non-technical"}`
         : null,
       c.unique_skill ? `Unique skill: ${c.unique_skill}` : null,
+      c.project_interests ? `Project interests: ${c.project_interests}` : null,
+      c.collaboration_style ? `Collaboration style: ${c.collaboration_style}` : null,
+      c.looking_for_teammates ? `Looking for: ${c.looking_for_teammates}` : null,
     ]
       .filter(Boolean)
       .join(" | ");
@@ -282,6 +382,10 @@ Mix technical and non-technical backgrounds when possible. Return only the JSON 
         is_technical: boolean | null;
         unique_skill: string | null;
         linkedin_url: string | null;
+        profile_bio: string | null;
+        project_interests: string | null;
+        collaboration_style: string | null;
+        looking_for_teammates: string | null;
       }) => [c.user_id, c])
     );
 
@@ -300,6 +404,10 @@ Mix technical and non-technical backgrounds when possible. Return only the JSON 
           is_technical: candidate.is_technical,
           unique_skill: candidate.unique_skill,
           linkedin_url: candidate.linkedin_url,
+          profile_bio: candidate.profile_bio,
+          project_interests: candidate.project_interests,
+          collaboration_style: candidate.collaboration_style,
+          looking_for_teammates: candidate.looking_for_teammates,
           reason,
         };
       });
