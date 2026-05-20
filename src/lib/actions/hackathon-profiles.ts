@@ -5,7 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
 import type { HackathonProfile } from "@/types";
 
-const TEAM_RECOMMENDATION_LIMIT = 12;
+const TEAM_RECOMMENDATION_BATCH_SIZE = 3;
 
 export interface TeamRecommendation {
   userId: string;
@@ -175,12 +175,14 @@ function reasonUsesProfileDetail(
 }
 
 export async function getTeamRecommendations(
-  eventId: string
-): Promise<{ recommendations: TeamRecommendation[]; needsTeam: boolean; error?: string }> {
+  eventId: string,
+  excludeUserIds: string[] = []
+): Promise<{ recommendations: TeamRecommendation[]; needsTeam: boolean; hasMore?: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { recommendations: [], needsTeam: false, error: "Not authenticated" };
 
   const supabase = await createServiceClient();
+  const excludedUserIds = new Set(excludeUserIds.filter(Boolean));
 
   // Check current profile for richer matching context. Team assignment is the
   // real gate for recommendations; `needs_team` can be stale after admin changes.
@@ -245,8 +247,8 @@ export async function getTeamRecommendations(
     for (const m of teamMembers ?? []) alreadyOnTeam.add((m as { user_id: string }).user_id);
   }
 
-  const candidateUsers = checkedInUsers.filter((user) => !alreadyOnTeam.has(user.id));
-  if (candidateUsers.length === 0) return { recommendations: [], needsTeam: true };
+  const candidateUsers = checkedInUsers.filter((user) => !alreadyOnTeam.has(user.id) && !excludedUserIds.has(user.id));
+  if (candidateUsers.length === 0) return { recommendations: [], needsTeam: true, hasMore: false };
 
   const { data: candidateProfiles } = await supabase
     .from("hackathon_profiles")
@@ -285,7 +287,7 @@ export async function getTeamRecommendations(
   });
   if (candidates.length === 0) return { recommendations: [], needsTeam: true };
 
-  const fallbackRecommendations = candidates.slice(0, TEAM_RECOMMENDATION_LIMIT).map((candidate) => ({
+  const fallbackRecommendations = candidates.slice(0, TEAM_RECOMMENDATION_BATCH_SIZE).map((candidate) => ({
     userId: candidate.user_id,
     name: candidate.name,
     occupation: candidate.occupation,
@@ -347,7 +349,7 @@ Current user: ${myDesc || "No survey profile fields available"}
 Other attendees also looking for a team:
 ${candidateLines.join("\n")}
 
-Return ONLY valid JSON — an array of up to ${Math.min(TEAM_RECOMMENDATION_LIMIT, candidates.length)} objects (best matches first):
+Return ONLY valid JSON — an array of up to ${Math.min(TEAM_RECOMMENDATION_BATCH_SIZE, candidates.length)} objects (best matches first):
 [{"user_id":"...","reason":"One sentence why this match makes sense (max 140 chars)"}]
 
 Rules for reasons:
@@ -359,7 +361,11 @@ Rules for reasons:
 Mix technical and non-technical backgrounds when possible. Return only the JSON array.`;
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { recommendations: fallbackRecommendations, needsTeam: true };
+    return {
+      recommendations: fallbackRecommendations,
+      needsTeam: true,
+      hasMore: candidates.length > fallbackRecommendations.length,
+    };
   }
 
   try {
@@ -373,7 +379,14 @@ Mix technical and non-technical backgrounds when possible. Return only the JSON 
     const firstBlock = response.content[0];
     const text = firstBlock?.type === "text" ? firstBlock.text : "";
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return { recommendations: fallbackRecommendations, needsTeam: true, error: "Unexpected LLM format" };
+    if (!jsonMatch) {
+      return {
+        recommendations: fallbackRecommendations,
+        needsTeam: true,
+        hasMore: candidates.length > fallbackRecommendations.length,
+        error: "Unexpected LLM format",
+      };
+    }
 
     const ranked = JSON.parse(jsonMatch[0]) as { user_id: string; reason: string }[];
     const candidateMap = new Map(
@@ -392,7 +405,7 @@ Mix technical and non-technical backgrounds when possible. Return only the JSON 
     );
 
     const recommendations: TeamRecommendation[] = ranked
-      .slice(0, TEAM_RECOMMENDATION_LIMIT)
+      .slice(0, TEAM_RECOMMENDATION_BATCH_SIZE)
       .filter((r) => candidateMap.has(r.user_id))
       .map((r) => {
         const candidate = candidateMap.get(r.user_id)!;
@@ -414,9 +427,26 @@ Mix technical and non-technical backgrounds when possible. Return only the JSON 
         };
       });
 
-    return { recommendations: recommendations.length > 0 ? recommendations : fallbackRecommendations, needsTeam: true };
+    const usedIds = new Set(recommendations.map((recommendation) => recommendation.userId));
+    for (const fallback of fallbackRecommendations) {
+      if (recommendations.length >= TEAM_RECOMMENDATION_BATCH_SIZE) break;
+      if (usedIds.has(fallback.userId)) continue;
+      recommendations.push(fallback);
+      usedIds.add(fallback.userId);
+    }
+
+    return {
+      recommendations: recommendations.length > 0 ? recommendations : fallbackRecommendations,
+      needsTeam: true,
+      hasMore: candidates.length > Math.max(recommendations.length, fallbackRecommendations.length),
+    };
   } catch (e) {
     console.error("[getTeamRecommendations] error:", e);
-    return { recommendations: fallbackRecommendations, needsTeam: true, error: "Failed to generate recommendations" };
+    return {
+      recommendations: fallbackRecommendations,
+      needsTeam: true,
+      hasMore: candidates.length > fallbackRecommendations.length,
+      error: "Failed to generate recommendations",
+    };
   }
 }

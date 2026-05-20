@@ -19,6 +19,8 @@ export function TeamFinderPanel({
 }) {
   const [recs, setRecs] = useState<TeamRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreRecommendations, setHasMoreRecommendations] = useState(true);
   const [dismissed, setDismissed] = useState<boolean | null>(null);
   const [inviteStatus, setInviteStatus] = useState<Record<string, "idle" | "pending" | "sent" | "error">>({});
   const [teamNameInputs, setTeamNameInputs] = useState<Record<string, string>>({});
@@ -41,6 +43,7 @@ export function TeamFinderPanel({
     getTeamRecommendations(eventId).then((res) => {
       setRecs(res.recommendations);
       setPageIndex(0);
+      setHasMoreRecommendations(Boolean(res.hasMore));
       setLoading(false);
     });
   }, [dismissed, eventId]);
@@ -53,6 +56,34 @@ export function TeamFinderPanel({
 
   const canGoBack = pageIndex > 0;
   const canGoForward = pageIndex < pageCount - 1;
+  const canLoadMore = hasMoreRecommendations && !loadingMore;
+
+  const loadMoreRecommendations = async () => {
+    if (!canLoadMore) return;
+
+    setLoadingMore(true);
+    const seenUserIds = recs.map((rec) => rec.userId);
+    const res = await getTeamRecommendations(eventId, seenUserIds);
+    const existingIds = new Set(seenUserIds);
+    const nextRecs = res.recommendations.filter((rec) => !existingIds.has(rec.userId));
+
+    if (nextRecs.length > 0) {
+      setRecs((prev) => [...prev, ...nextRecs]);
+      setPageIndex(Math.floor(recs.length / PAGE_SIZE));
+    }
+
+    setHasMoreRecommendations(Boolean(res.hasMore) && nextRecs.length > 0);
+    setLoadingMore(false);
+  };
+
+  const handleNextPage = () => {
+    if (canGoForward) {
+      setPageIndex((page) => Math.min(pageCount - 1, page + 1));
+      return;
+    }
+
+    loadMoreRecommendations();
+  };
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -242,7 +273,7 @@ export function TeamFinderPanel({
                   })}
                 </div>
 
-                {pageCount > 1 && (
+                {(pageCount > 1 || hasMoreRecommendations || loadingMore) && (
                   <div className="flex items-center justify-between gap-3 sm:justify-center">
                     <button
                       type="button"
@@ -254,16 +285,16 @@ export function TeamFinderPanel({
                       Prev
                     </button>
                     <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-600">
-                      {pageIndex + 1} / {pageCount}
+                      {loadingMore ? "Loading next matches..." : `${pageIndex + 1} / ${pageCount}${hasMoreRecommendations ? "+" : ""}`}
                     </span>
                     <button
                       type="button"
-                      onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}
-                      disabled={!canGoForward}
+                      onClick={handleNextPage}
+                      disabled={!canGoForward && !canLoadMore}
                       className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-red-500/30 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
                     >
-                      Next
-                      <ChevronRight className="h-3.5 w-3.5" />
+                      {loadingMore ? "Loading" : "Next"}
+                      {!loadingMore && <ChevronRight className="h-3.5 w-3.5" />}
                     </button>
                   </div>
                 )}
@@ -271,12 +302,16 @@ export function TeamFinderPanel({
 
               <button
                 type="button"
-                onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}
-                disabled={!canGoForward}
-                aria-label="Next team matches"
+                onClick={handleNextPage}
+                disabled={!canGoForward && !canLoadMore}
+                aria-label={canGoForward ? "Next team matches" : "Load more team matches"}
                 className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
               >
-                <ChevronRight className="h-4 w-4" />
+                {loadingMore ? (
+                  <span className="h-4 w-4 animate-pulse rounded-full bg-red-300/60" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
               </button>
             </div>
           )}
