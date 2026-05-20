@@ -14,6 +14,15 @@ export interface TeamRecommendation {
   reason: string;
 }
 
+type RecommendationCandidate = {
+  user_id: string;
+  name: string;
+  occupation: string | null;
+  is_technical: boolean | null;
+  unique_skill: string | null;
+  linkedin_url: string | null;
+};
+
 export async function getTeamRecommendations(
   eventId: string
 ): Promise<{ recommendations: TeamRecommendation[]; needsTeam: boolean; error?: string }> {
@@ -55,42 +64,81 @@ export async function getTeamRecommendations(
     .eq("id", session.userId)
     .maybeSingle();
 
-  // Get other people marked as needing a team.
-  const { data: others } = await supabase
-    .from("hackathon_profiles")
-    .select("user_id, occupation, is_technical, unique_skill, linkedin_url")
+  // Suggest from the actual checked-in chat roster, not a profile flag that
+  // can go stale when admins manually move people between teams.
+  const { data: checkedInRegs } = await supabase
+    .from("registrations")
+    .select("user_id, user:users!registrations_user_id_fkey(id, name)")
     .eq("event_id", eventId)
-    .eq("needs_team", true)
+    .not("checked_in_at", "is", null)
     .neq("user_id", session.userId);
 
-  if (!others || others.length === 0) return { recommendations: [], needsTeam: true };
+  const checkedInUsers = (checkedInRegs ?? [])
+    .map((reg) => {
+      const user = Array.isArray(reg.user) ? reg.user[0] : reg.user;
+      return user as { id: string; name: string } | null;
+    })
+    .filter((user): user is { id: string; name: string } => !!user?.id);
 
-  // Filter out anyone already on a team
-  const otherUserIds = others.map((p: { user_id: string }) => p.user_id);
+  if (checkedInUsers.length === 0) return { recommendations: [], needsTeam: true };
+
+  // Filter out anyone already on a team.
+  const checkedInUserIds = checkedInUsers.map((user) => user.id);
   const alreadyOnTeam = new Set<string>();
   if (teamIds.length > 0) {
     const { data: teamMembers } = await supabase
       .from("hackathon_team_members")
       .select("user_id")
       .in("team_id", teamIds)
-      .in("user_id", otherUserIds);
+      .in("user_id", checkedInUserIds);
     for (const m of teamMembers ?? []) alreadyOnTeam.add((m as { user_id: string }).user_id);
   }
 
-  const candidates = others.filter(
-    (p: { user_id: string }) => !alreadyOnTeam.has(p.user_id)
+  const candidateUsers = checkedInUsers.filter((user) => !alreadyOnTeam.has(user.id));
+  if (candidateUsers.length === 0) return { recommendations: [], needsTeam: true };
+
+  const { data: candidateProfiles } = await supabase
+    .from("hackathon_profiles")
+    .select("user_id, occupation, is_technical, unique_skill, linkedin_url")
+    .eq("event_id", eventId)
+    .in("user_id", candidateUsers.map((user) => user.id));
+
+  const profileMap = new Map(
+    (candidateProfiles ?? []).map((profile: {
+      user_id: string;
+      occupation: string | null;
+      is_technical: boolean | null;
+      unique_skill: string | null;
+      linkedin_url: string | null;
+    }) => [profile.user_id, profile])
   );
+
+  const candidates: RecommendationCandidate[] = candidateUsers.map((user) => {
+    const profile = profileMap.get(user.id);
+    return {
+      user_id: user.id,
+      name: user.name,
+      occupation: profile?.occupation ?? null,
+      is_technical: profile?.is_technical ?? null,
+      unique_skill: profile?.unique_skill ?? null,
+      linkedin_url: profile?.linkedin_url ?? null,
+    };
+  });
   if (candidates.length === 0) return { recommendations: [], needsTeam: true };
 
-  // Fetch candidate names
-  const { data: candidateUsers } = await supabase
-    .from("users")
-    .select("id, name")
-    .in("id", candidates.map((c: { user_id: string }) => c.user_id));
-
-  const nameMap = new Map(
-    (candidateUsers ?? []).map((u: { id: string; name: string }) => [u.id, u.name])
-  );
+  const fallbackRecommendations = candidates.slice(0, 3).map((candidate) => ({
+    userId: candidate.user_id,
+    name: candidate.name,
+    occupation: candidate.occupation,
+    is_technical: candidate.is_technical,
+    unique_skill: candidate.unique_skill,
+    linkedin_url: candidate.linkedin_url,
+    reason: candidate.unique_skill
+      ? `Can contribute ${candidate.unique_skill}.`
+      : candidate.occupation
+        ? `Also unassigned, with ${candidate.occupation} experience.`
+        : "Also unassigned and available to team up.",
+  }));
 
   // Build prompt
   const myDesc = [
@@ -106,14 +154,14 @@ export async function getTeamRecommendations(
 
   const candidateLines = candidates.map((c: {
     user_id: string;
+    name: string;
     occupation: string | null;
     is_technical: boolean | null;
     unique_skill: string | null;
   }) => {
-    const name = nameMap.get(c.user_id) ?? "Unknown";
     return [
       `ID: ${c.user_id}`,
-      `Name: ${name}`,
+      `Name: ${c.name}`,
       c.occupation ? `Occupation: ${c.occupation}` : null,
       c.is_technical !== null
         ? `Background: ${c.is_technical ? "Technical" : "Non-technical"}`
@@ -136,6 +184,10 @@ Return ONLY valid JSON — an array of up to 3 objects (best matches first):
 
 Mix technical and non-technical backgrounds when possible. Reasons should be specific to their listed skill or occupation. Return only the JSON array.`;
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return { recommendations: fallbackRecommendations, needsTeam: true };
+  }
+
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const response = await anthropic.messages.create({
@@ -150,9 +202,10 @@ Mix technical and non-technical backgrounds when possible. Reasons should be spe
     if (!jsonMatch) return { recommendations: [], needsTeam: true, error: "Unexpected LLM format" };
 
     const ranked = JSON.parse(jsonMatch[0]) as { user_id: string; reason: string }[];
-    const profileMap = new Map(
+    const candidateMap = new Map(
       candidates.map((c: {
         user_id: string;
+        name: string;
         occupation: string | null;
         is_technical: boolean | null;
         unique_skill: string | null;
@@ -162,23 +215,23 @@ Mix technical and non-technical backgrounds when possible. Reasons should be spe
 
     const recommendations: TeamRecommendation[] = ranked
       .slice(0, 3)
-      .filter((r) => profileMap.has(r.user_id))
+      .filter((r) => candidateMap.has(r.user_id))
       .map((r) => {
-        const profile = profileMap.get(r.user_id)!;
+        const candidate = candidateMap.get(r.user_id)!;
         return {
           userId: r.user_id,
-          name: nameMap.get(r.user_id) ?? "Unknown",
-          occupation: profile.occupation,
-          is_technical: profile.is_technical,
-          unique_skill: profile.unique_skill,
-          linkedin_url: profile.linkedin_url,
+          name: candidate.name,
+          occupation: candidate.occupation,
+          is_technical: candidate.is_technical,
+          unique_skill: candidate.unique_skill,
+          linkedin_url: candidate.linkedin_url,
           reason: r.reason,
         };
       });
 
-    return { recommendations, needsTeam: true };
+    return { recommendations: recommendations.length > 0 ? recommendations : fallbackRecommendations, needsTeam: true };
   } catch (e) {
     console.error("[getTeamRecommendations] error:", e);
-    return { recommendations: [], needsTeam: true, error: "Failed to generate recommendations" };
+    return { recommendations: fallbackRecommendations, needsTeam: true, error: "Failed to generate recommendations" };
   }
 }

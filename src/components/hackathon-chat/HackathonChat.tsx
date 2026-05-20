@@ -1269,7 +1269,7 @@ export function HackathonChat({
             </span>
           </div>
 
-          {currentChannel?.channel_type === "spawn_point" && !myTeamId && !isAdmin && (
+          {currentChannel?.channel_type === "spawn_point" && !myTeamId && (
             <TeamFinderPanel eventId={event.id} myTeamId={myTeamId} />
           )}
 
