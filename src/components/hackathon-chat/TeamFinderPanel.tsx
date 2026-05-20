@@ -123,6 +123,10 @@ export function TeamFinderPanel({
                   unique_skill: rec.unique_skill,
                   linkedin_url: rec.linkedin_url,
                   needs_team: true,
+                  profile_bio: rec.profile_bio,
+                  project_interests: rec.project_interests,
+                  collaboration_style: rec.collaboration_style,
+                  looking_for_teammates: rec.looking_for_teammates,
                 };
                 return (
                   <div

@@ -325,12 +325,15 @@ export async function searchRegistrations(
   query: string
 ): Promise<Registration[]> {
   const supabase = await createClient();
+  // Strip characters that could break the PostgREST filter string
+  const safeQuery = query.replace(/[%,().\\"']/g, " ").trim().slice(0, 100);
+  if (!safeQuery) return [];
   const { data, error } = await supabase
     .from("registrations")
     .select("*, user:users(*, intakes:attendee_intakes(*))")
     .eq("event_id", eventId)
     .eq("user.intakes.event_id", eventId)
-    .or(`user.name.ilike.%${query}%,user.email.ilike.%${query}%`);
+    .or(`user.name.ilike.%${safeQuery}%,user.email.ilike.%${safeQuery}%`);
 
   if (error) return [];
   return data;
@@ -929,19 +932,13 @@ export async function getDisplayPageData(eventId: string): Promise<DisplayPageDa
 // Poll queries
 export async function getActivePolls(eventId: string): Promise<Poll[]> {
   const supabase = await createClient();
-  
-  // First, deactivate any expired polls
-  const { deactivateExpiredPolls } = await import("@/lib/actions/polls");
-  await deactivateExpiredPolls(eventId);
-  
   const now = new Date().toISOString();
-  // Query active polls that either have no end time or haven't ended yet
   const { data, error } = await supabase
     .from("polls")
     .select("*")
     .eq("event_id", eventId)
     .eq("is_active", true)
-    .or(`ends_at.is.null,ends_at.gt."${now}"`) // Only include polls that haven't ended
+    .or(`ends_at.is.null,ends_at.gt."${now}"`)
     .order("created_at", { ascending: false });
 
   if (error) return [];
@@ -950,11 +947,6 @@ export async function getActivePolls(eventId: string): Promise<Poll[]> {
 
 export async function getAllPolls(eventId: string): Promise<Poll[]> {
   const supabase = await createClient();
-  
-  // First, deactivate any expired polls
-  const { deactivateExpiredPolls } = await import("@/lib/actions/polls");
-  await deactivateExpiredPolls(eventId);
-  
   const { data, error } = await supabase
     .from("polls")
     .select("*")
@@ -1009,51 +1001,42 @@ export async function getActivePollsWithVotes(
   userId?: string
 ): Promise<PollWithVotes[]> {
   const supabase = await createClient();
-
-  // First, deactivate any expired polls
-  const { deactivateExpiredPolls } = await import("@/lib/actions/polls");
-  await deactivateExpiredPolls(eventId);
-
   const now = new Date().toISOString();
-  // Query active polls that either have no end time or haven't ended yet
+
   const { data: polls, error } = await supabase
     .from("polls")
     .select("*")
     .eq("event_id", eventId)
     .eq("is_active", true)
-    .or(`ends_at.is.null,ends_at.gt."${now}"`) // Only include polls that haven't ended
+    .or(`ends_at.is.null,ends_at.gt."${now}"`)
     .order("created_at", { ascending: false });
 
-  if (error || !polls) return [];
+  if (error || !polls || polls.length === 0) return [];
 
-  const pollsWithVotes = await Promise.all(
-    polls.map(async (poll) => {
-      const { data: votes } = await supabase
-        .from("poll_votes")
-        .select("*")
-        .eq("poll_id", poll.id);
+  // Single query for all votes across all active polls
+  const pollIds = polls.map((p) => p.id);
+  const { data: allVotesRaw } = await supabase
+    .from("poll_votes")
+    .select("*")
+    .in("poll_id", pollIds);
 
-      const allVotes = votes || [];
-      const userVote = userId
-        ? allVotes.find((v) => v.user_id === userId) || null
-        : null;
+  const allVotesFlat = allVotesRaw || [];
 
-      const optionsArray = poll.options as string[];
-      const voteCounts = optionsArray.map(
-        (_, index) => allVotes.filter((v) => v.option_index === index).length
-      );
-
-      return {
-        ...poll,
-        votes: allVotes,
-        user_vote: userVote,
-        vote_counts: voteCounts,
-        total_votes: allVotes.length,
-      };
-    })
-  );
-
-  return pollsWithVotes;
+  return polls.map((poll) => {
+    const pollVotes = allVotesFlat.filter((v) => v.poll_id === poll.id);
+    const userVote = userId ? pollVotes.find((v) => v.user_id === userId) ?? null : null;
+    const optionsArray = poll.options as string[];
+    const voteCounts = optionsArray.map(
+      (_, index) => pollVotes.filter((v) => v.option_index === index).length
+    );
+    return {
+      ...poll,
+      votes: pollVotes,
+      user_vote: userVote,
+      vote_counts: voteCounts,
+      total_votes: pollVotes.length,
+    };
+  });
 }
 
 // Analytics queries
@@ -2219,7 +2202,18 @@ export async function getMySentHackathonInviteUserIds(
 export async function getCheckedInAttendeesWithoutTeams(
   eventId: string,
   excludeUserId: string
-): Promise<{ id: string; name: string; occupation: string | null; is_technical: boolean | null }[]> {
+): Promise<{
+  id: string;
+  name: string;
+  occupation: string | null;
+  is_technical: boolean | null;
+  unique_skill: string | null;
+  linkedin_url: string | null;
+  profile_bio: string | null;
+  project_interests: string | null;
+  collaboration_style: string | null;
+  looking_for_teammates: string | null;
+}[]> {
   noStore();
   const supabase = await createServiceClient();
 
@@ -2250,14 +2244,36 @@ export async function getCheckedInAttendeesWithoutTeams(
     .eq("event_id", eventId)
     .not("checked_in_at", "is", null);
 
-  const result: { id: string; name: string; occupation: string | null; is_technical: boolean | null }[] = [];
+  const result: {
+    id: string;
+    name: string;
+    occupation: string | null;
+    is_technical: boolean | null;
+    unique_skill: string | null;
+    linkedin_url: string | null;
+    profile_bio: string | null;
+    project_interests: string | null;
+    collaboration_style: string | null;
+    looking_for_teammates: string | null;
+  }[] = [];
   const seen = new Set<string>();
   for (const reg of regs ?? []) {
     if (!reg.user_id || teamUserIds.has(reg.user_id) || seen.has(reg.user_id)) continue;
     seen.add(reg.user_id);
     const u = Array.isArray(reg.user) ? reg.user[0] : reg.user;
     if (u && typeof u === "object") {
-      result.push({ id: String(u.id), name: String(u.name), occupation: null, is_technical: null });
+      result.push({
+        id: String(u.id),
+        name: String(u.name),
+        occupation: null,
+        is_technical: null,
+        unique_skill: null,
+        linkedin_url: null,
+        profile_bio: null,
+        project_interests: null,
+        collaboration_style: null,
+        looking_for_teammates: null,
+      });
     }
   }
 
@@ -2265,12 +2281,22 @@ export async function getCheckedInAttendeesWithoutTeams(
   if (result.length > 0) {
     const { data: profiles } = await supabase
       .from("hackathon_profiles")
-      .select("user_id, occupation, is_technical")
+      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, profile_bio, project_interests, collaboration_style, looking_for_teammates")
       .eq("event_id", eventId)
       .in("user_id", result.map((u) => u.id));
 
     const profileMap = new Map(
-      (profiles ?? []).map((p: { user_id: string; occupation: string | null; is_technical: boolean | null }) => [p.user_id, p])
+      (profiles ?? []).map((p: {
+        user_id: string;
+        occupation: string | null;
+        is_technical: boolean | null;
+        unique_skill: string | null;
+        linkedin_url: string | null;
+        profile_bio: string | null;
+        project_interests: string | null;
+        collaboration_style: string | null;
+        looking_for_teammates: string | null;
+      }) => [p.user_id, p])
     );
 
     for (const person of result) {
@@ -2278,6 +2304,12 @@ export async function getCheckedInAttendeesWithoutTeams(
       if (profile) {
         person.occupation = profile.occupation;
         person.is_technical = profile.is_technical;
+        person.unique_skill = profile.unique_skill;
+        person.linkedin_url = profile.linkedin_url;
+        person.profile_bio = profile.profile_bio;
+        person.project_interests = profile.project_interests;
+        person.collaboration_style = profile.collaboration_style;
+        person.looking_for_teammates = profile.looking_for_teammates;
       }
     }
   }
@@ -2448,7 +2480,7 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
   const { data: profiles } = registeredUserIds.length > 0
     ? await supabase
       .from("hackathon_profiles")
-      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, needs_team")
+      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, profile_bio, project_interests, collaboration_style, looking_for_teammates")
       .eq("event_id", eventId)
       .in("user_id", registeredUserIds)
     : { data: [] };
@@ -2461,6 +2493,10 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
       unique_skill: string | null;
       linkedin_url: string | null;
       needs_team: boolean | null;
+      profile_bio: string | null;
+      project_interests: string | null;
+      collaboration_style: string | null;
+      looking_for_teammates: string | null;
     }) => [profile.user_id, profile])
   );
 
@@ -2519,6 +2555,10 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
       unique_skill: profile?.unique_skill ?? null,
       linkedin_url: profile?.linkedin_url ?? null,
       needs_team: profile?.needs_team ?? null,
+      profile_bio: profile?.profile_bio ?? null,
+      project_interests: profile?.project_interests ?? null,
+      collaboration_style: profile?.collaboration_style ?? null,
+      looking_for_teammates: profile?.looking_for_teammates ?? null,
     });
   }
   return result;
