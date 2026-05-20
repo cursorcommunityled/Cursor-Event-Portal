@@ -196,7 +196,8 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
             </div>
 
             <p className="text-[11px] text-gray-700 font-light leading-relaxed">
-              Tips: Make your repo public before submission. Upload screenshots — they directly affect your visual score. Keep your pitch text concise and clear about what problem you're solving.
+              Tips: <strong className="font-black text-gray-300">MAKE YOUR REPO PUBLIC BEFORE SUBMISSION.</strong>{" "}
+              Upload screenshots — they directly affect your visual score. Keep your pitch text concise and clear about what problem you're solving.
             </p>
           </div>
         </div>
