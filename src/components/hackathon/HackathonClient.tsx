@@ -416,7 +416,7 @@ export function HackathonClient({
       const res = await acceptTeamInvite(inviteId);
       if (res.error) { showMsg(res.error, true); return; }
       setReceivedInvites((prev) => prev.filter((i) => i.id !== inviteId));
-      setTab("my-team");
+      setTab("all-teams");
       refresh();
     });
   };
@@ -511,7 +511,6 @@ export function HackathonClient({
 
   const tabs: { id: Tab; label: string; count?: number; icon?: React.ReactNode }[] = [
     { id: "overview", label: "Hub", icon: <Swords className="w-3.5 h-3.5" /> },
-    { id: "my-team", label: "My Team" },
     { id: "all-teams", label: "Teams", count: allTeams.length },
     { id: "open-pool", label: "Pool", count: pool.length },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
@@ -850,7 +849,7 @@ export function HackathonClient({
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
                 <button
-                  onClick={() => setTab(myTeam ? "my-team" : "open-pool")}
+                  onClick={() => setTab(myTeam ? "all-teams" : "open-pool")}
                   className="group relative overflow-hidden rounded-2xl bg-white px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.15em] text-black transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -912,8 +911,8 @@ export function HackathonClient({
         </div>
       )}
 
-      {/* My Team tab */}
-      {tab === "my-team" && (
+      {/* Teams tab */}
+      {(tab === "my-team" || tab === "all-teams") && (
         <div className="space-y-4 animate-slide-up">
           {!myTeam ? (
             <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
@@ -1282,12 +1281,18 @@ export function HackathonClient({
               )}
             </>
           )}
-        </div>
-      )}
 
-      {/* All Teams tab */}
-      {tab === "all-teams" && (
-        <div className="space-y-4 animate-slide-up">
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-gray-500">All Teams</p>
+                <p className="mt-1 text-sm font-medium text-gray-400">Browse every team while keeping your team controls in one place.</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                {plural(allTeams.length, "team")}
+              </span>
+            </div>
+
           {allTeams.length === 0 && (
             <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
@@ -1309,6 +1314,7 @@ export function HackathonClient({
                 <TeamCard key={team.id} team={team} rank={null} score={null} formationOpen={formationOpen} />
               ))
             }
+          </div>
           </div>
         </div>
       )}
