@@ -343,10 +343,12 @@ function SuggestionCard({
 // ─── Team Finder Panel ────────────────────────────────────────────────────────
 
 function TeamFinderPanel({
-  eventId, myTeamId,
+  eventId, myTeamId, members, onOpenProfile,
 }: {
   eventId: string;
   myTeamId: string | null;
+  members: ChatMember[];
+  onOpenProfile: (member: ChatMember) => void;
 }) {
   const [recs, setRecs] = useState<TeamRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -424,13 +426,31 @@ function TeamFinderPanel({
               {recs.map((rec) => {
                 const status = inviteStatus[rec.userId] ?? "idle";
                 const teamName = teamNameInputs[rec.userId] ?? "";
+                const profileMember = members.find((member) => member.id === rec.userId) ?? {
+                  id: rec.userId,
+                  name: rec.name,
+                  role: "attendee" as ChatMember["role"],
+                  team: null,
+                  team_role: null,
+                  occupation: rec.occupation,
+                  is_technical: rec.is_technical,
+                  unique_skill: rec.unique_skill,
+                  linkedin_url: rec.linkedin_url,
+                  needs_team: true,
+                };
                 return (
                   <div
                     key={rec.userId}
                     className="flex-1 rounded-2xl border border-white/[0.06] bg-black/30 p-3.5 space-y-2"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-[14px] font-bold text-white leading-tight">{rec.name}</p>
+                      <button
+                        type="button"
+                        onClick={() => onOpenProfile(profileMember)}
+                        className="text-left text-[14px] font-bold text-white leading-tight hover:text-red-200 hover:underline decoration-red-500/40 underline-offset-4 transition-colors"
+                      >
+                        {rec.name}
+                      </button>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {rec.is_technical !== null && (
                           <span className={`text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
@@ -455,6 +475,11 @@ function TeamFinderPanel({
                     </div>
                     {rec.occupation && (
                       <p className="text-[10px] text-gray-500 font-medium leading-snug">{rec.occupation}</p>
+                    )}
+                    {rec.unique_skill && (
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-red-200/80 leading-snug">
+                        Skill: {rec.unique_skill}
+                      </p>
                     )}
                     <p className="text-[12px] text-gray-300 leading-snug">{rec.reason}</p>
 
@@ -1270,7 +1295,12 @@ export function HackathonChat({
           </div>
 
           {currentChannel?.channel_type === "spawn_point" && !myTeamId && (
-            <TeamFinderPanel eventId={event.id} myTeamId={myTeamId} />
+            <TeamFinderPanel
+              eventId={event.id}
+              myTeamId={myTeamId}
+              members={members}
+              onOpenProfile={setProfileMember}
+            />
           )}
 
           {/* Message list */}

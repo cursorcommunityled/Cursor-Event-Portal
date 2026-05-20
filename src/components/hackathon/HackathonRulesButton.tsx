@@ -10,7 +10,7 @@ const JUDGING_PHASES = [
     label: "Phase 1",
     title: "Submit Your Project",
     points: [
-      "Go to Hackathon -> My Team -> Submit Project.",
+      "Go to Hackathon -> Teams -> Submit Project.",
       "Add your project name, description, and public GitHub repo URL.",
       "Upload up to 5 screenshots. These are used for AI visual review.",
       "Add a demo URL if you have one.",

@@ -23,6 +23,63 @@ type RecommendationCandidate = {
   linkedin_url: string | null;
 };
 
+type ProfileContext = {
+  occupation: string | null;
+  is_technical: boolean | null;
+  unique_skill: string | null;
+};
+
+function backgroundLabel(isTechnical: boolean | null) {
+  if (isTechnical === null) return null;
+  return isTechnical ? "technical" : "non-technical";
+}
+
+function buildConcreteReason(candidate: RecommendationCandidate, myProfile: ProfileContext | null) {
+  const mySkill = myProfile?.unique_skill;
+  const myOccupation = myProfile?.occupation;
+  const myBackground = backgroundLabel(myProfile?.is_technical ?? null);
+  const candidateBackground = backgroundLabel(candidate.is_technical);
+
+  if (candidate.unique_skill) {
+    return mySkill
+      ? `${candidate.name}'s ${candidate.unique_skill} pairs with your ${mySkill}.`
+      : `${candidate.name}'s ${candidate.unique_skill} is a concrete skill your team can use.`;
+  }
+
+  if (candidate.occupation) {
+    return myOccupation
+      ? `${candidate.name}'s ${candidate.occupation} experience complements your ${myOccupation} background.`
+      : `${candidate.name}'s ${candidate.occupation} experience gives the team a clear role to build around.`;
+  }
+
+  if (candidateBackground) {
+    return myBackground && myBackground !== candidateBackground
+      ? `${candidate.name} adds a ${candidateBackground} perspective to balance your ${myBackground} background.`
+      : `${candidate.name} brings another ${candidateBackground} builder into the unassigned pool.`;
+  }
+
+  return `${candidate.name} is checked in and unassigned, so they are available to team up now.`;
+}
+
+function reasonUsesProfileDetail(
+  reason: string,
+  candidate: RecommendationCandidate,
+  myProfile: ProfileContext | null
+) {
+  const normalized = reason.toLowerCase();
+  const concreteDetails = [
+    candidate.occupation,
+    candidate.unique_skill,
+    myProfile?.occupation,
+    myProfile?.unique_skill,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .map((value) => value.toLowerCase());
+
+  if (concreteDetails.length === 0) return !/\b(background|perspective|skills|capabilities|well-rounded|strengthen|balance)\b/i.test(reason);
+  return concreteDetails.some((detail) => normalized.includes(detail));
+}
+
 export async function getTeamRecommendations(
   eventId: string
 ): Promise<{ recommendations: TeamRecommendation[]; needsTeam: boolean; error?: string }> {
@@ -133,11 +190,7 @@ export async function getTeamRecommendations(
     is_technical: candidate.is_technical,
     unique_skill: candidate.unique_skill,
     linkedin_url: candidate.linkedin_url,
-    reason: candidate.unique_skill
-      ? `Can contribute ${candidate.unique_skill}.`
-      : candidate.occupation
-        ? `Also unassigned, with ${candidate.occupation} experience.`
-        : "Also unassigned and available to team up.",
+    reason: buildConcreteReason(candidate, myProfile),
   }));
 
   // Build prompt
@@ -174,15 +227,21 @@ export async function getTeamRecommendations(
 
   const prompt = `You are a hackathon team matchmaker. An attendee needs help finding teammates.
 
-Current user: ${myDesc}
+Current user: ${myDesc || "No survey profile fields available"}
 
 Other attendees also looking for a team:
 ${candidateLines.join("\n")}
 
 Return ONLY valid JSON — an array of up to 3 objects (best matches first):
-[{"user_id":"...","reason":"One sentence why they'd complement this person (max 100 chars)"}]
+[{"user_id":"...","reason":"One sentence why this match makes sense (max 140 chars)"}]
 
-Mix technical and non-technical backgrounds when possible. Reasons should be specific to their listed skill or occupation. Return only the JSON array.`;
+Rules for reasons:
+- Mention at least one exact listed occupation or unique skill from the current user or candidate.
+- If no occupation or unique skill exists, mention the technical/non-technical background explicitly.
+- Do NOT use vague phrases like "background could complement", "diverse perspective", "strong technical edge", or "strengthen the project" unless tied to a specific listed field.
+- Prefer practical team-role fit over generic praise.
+
+Mix technical and non-technical backgrounds when possible. Return only the JSON array.`;
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return { recommendations: fallbackRecommendations, needsTeam: true };
@@ -199,7 +258,7 @@ Mix technical and non-technical backgrounds when possible. Reasons should be spe
     const firstBlock = response.content[0];
     const text = firstBlock?.type === "text" ? firstBlock.text : "";
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return { recommendations: [], needsTeam: true, error: "Unexpected LLM format" };
+    if (!jsonMatch) return { recommendations: fallbackRecommendations, needsTeam: true, error: "Unexpected LLM format" };
 
     const ranked = JSON.parse(jsonMatch[0]) as { user_id: string; reason: string }[];
     const candidateMap = new Map(
@@ -218,6 +277,9 @@ Mix technical and non-technical backgrounds when possible. Reasons should be spe
       .filter((r) => candidateMap.has(r.user_id))
       .map((r) => {
         const candidate = candidateMap.get(r.user_id)!;
+        const reason = typeof r.reason === "string" && reasonUsesProfileDetail(r.reason, candidate, myProfile)
+          ? r.reason
+          : buildConcreteReason(candidate, myProfile);
         return {
           userId: r.user_id,
           name: candidate.name,
@@ -225,7 +287,7 @@ Mix technical and non-technical backgrounds when possible. Reasons should be spe
           is_technical: candidate.is_technical,
           unique_skill: candidate.unique_skill,
           linkedin_url: candidate.linkedin_url,
-          reason: r.reason,
+          reason,
         };
       });
 
