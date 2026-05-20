@@ -384,7 +384,7 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
           </div>
 
           {/* Right-side badges */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-start gap-4">
             {/* Notification Bell */}
             {userId && (
               <div className="flex flex-col items-center gap-1 mt-0">
