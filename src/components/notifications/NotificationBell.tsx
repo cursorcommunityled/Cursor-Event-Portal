@@ -114,10 +114,10 @@ export function NotificationBell({ userId, eventId, eventSlug }: NotificationBel
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "relative flex items-center justify-center w-10 h-10 rounded-2xl border transition-all",
+          "relative flex items-center justify-center w-10 h-10 rounded-[14px] border transition-all duration-300",
           open
-            ? "bg-white/10 border-white/20 text-white"
-            : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06]"
+            ? "bg-white/10 text-white shadow-inner border-white/20"
+            : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
         )}
         aria-label="Notifications"
       >

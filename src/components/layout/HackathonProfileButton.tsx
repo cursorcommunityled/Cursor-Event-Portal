@@ -49,10 +49,10 @@ export function HackathonProfileButton({ eventId, eventSlug, initialProfile, use
         <button
           onClick={() => setOpen(!open)}
           className={cn(
-            "relative flex items-center justify-center w-10 h-10 rounded-2xl transition-all duration-300",
+            "relative flex items-center justify-center w-10 h-10 rounded-[14px] border transition-all duration-300",
             open
-              ? "bg-white/10 text-white shadow-inner border border-white/20"
-              : "bg-black/40 border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 hover:border-white/20 backdrop-blur-md"
+              ? "bg-white/10 text-white shadow-inner border-white/20"
+              : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.06] backdrop-blur-md"
           )}
           title="My Profile"
         >
