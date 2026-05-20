@@ -26,6 +26,8 @@ import type {
   HackathonProfile,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
+import { MemberProfileModal } from "@/components/hackathon-chat/MemberProfileModal";
+import { TeamFinderPanel } from "@/components/hackathon-chat/TeamFinderPanel";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
@@ -176,6 +178,7 @@ export function HackathonClient({
 
   // Invite modal
   const [inviteTarget, setInviteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [teamFinderProfileMember, setTeamFinderProfileMember] = useState<ChatMember | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
   const [inviteLogoFile, setInviteLogoFile] = useState<File | null>(null);
   const [inviteLogoPreviewUrl, setInviteLogoPreviewUrl] = useState<string | null>(null);
@@ -555,6 +558,22 @@ export function HackathonClient({
     { id: "open-pool", label: "Pool", count: pool.length },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
+  const showTeamFinder = !myTeam && tab !== "overview";
+  const teamFinder = showTeamFinder ? (
+    <TeamFinderPanel
+      eventId={event.id}
+      userId={userId}
+      myTeamId={null}
+      members={chatMembers}
+      onOpenProfile={setTeamFinderProfileMember}
+    />
+  ) : null;
+  const teamFinderProfileModal = teamFinderProfileMember ? (
+    <MemberProfileModal
+      member={teamFinderProfileMember}
+      onClose={() => setTeamFinderProfileMember(null)}
+    />
+  ) : null;
 
   const header = (
     <div className="relative overflow-hidden rounded-[34px] border border-white/15 bg-black/40 px-5 py-6 shadow-2xl backdrop-blur-3xl sm:px-8 sm:py-8 group">
@@ -642,6 +661,11 @@ export function HackathonClient({
             </button>
           ))}
         </div>
+        {teamFinder && (
+          <div className="mx-auto mb-5 max-w-5xl">
+            {teamFinder}
+          </div>
+        )}
         <HackathonChat
           event={event}
           userId={userId}
@@ -653,6 +677,7 @@ export function HackathonClient({
           myTeamId={myTeam?.id ?? null}
           needsTeam={needsTeam}
         />
+        {teamFinderProfileModal}
       </main>
     );
   }
@@ -765,6 +790,8 @@ export function HackathonClient({
           </button>
         ))}
       </div>
+
+      {teamFinder}
 
       {/* Overview tab */}
       {tab === "overview" && (
@@ -1573,6 +1600,7 @@ export function HackathonClient({
           </div>
         </div>
       )}
+      {teamFinderProfileModal}
     </main>
   );
 }

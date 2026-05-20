@@ -27,7 +27,6 @@ import type {
 import type { LocalHackathonChatMessage } from "./types";
 import { MemberProfileModal } from "./MemberProfileModal";
 import { SuggestionCard } from "./SuggestionCard";
-import { TeamFinderPanel } from "./TeamFinderPanel";
 import { ChannelIcon } from "./ChannelIcon";
 import { ChatMsg } from "./ChatMsg";
 import { MemberRow } from "./MemberRow";
@@ -936,16 +935,6 @@ export function HackathonChat({
               loading={loadingPinned}
               memberMap={memberMap}
               onJump={handlePinnedJump}
-            />
-          )}
-
-          {currentChannel?.channel_type === "spawn_point" && !myTeamId && (
-            <TeamFinderPanel
-              eventId={event.id}
-              userId={userId}
-              myTeamId={myTeamId}
-              members={members}
-              onOpenProfile={setProfileMember}
             />
           )}
 
