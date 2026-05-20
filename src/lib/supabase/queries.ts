@@ -2433,6 +2433,32 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
 
   if (error || !regs) return [];
 
+  const registeredUserIds = (regs ?? [])
+    .map((r) => {
+      const u = Array.isArray(r.user) ? r.user[0] : r.user;
+      return (u as { id?: string } | null)?.id;
+    })
+    .filter((id): id is string => !!id);
+
+  const { data: profiles } = registeredUserIds.length > 0
+    ? await supabase
+      .from("hackathon_profiles")
+      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, needs_team")
+      .eq("event_id", eventId)
+      .in("user_id", registeredUserIds)
+    : { data: [] };
+
+  const profileMap = new Map(
+    (profiles ?? []).map((profile: {
+      user_id: string;
+      occupation: string | null;
+      is_technical: boolean | null;
+      unique_skill: string | null;
+      linkedin_url: string | null;
+      needs_team: boolean | null;
+    }) => [profile.user_id, profile])
+  );
+
   // Get all team memberships for this event
   const { data: teamMembers } = await supabase
     .from("hackathon_team_members")
@@ -2476,12 +2502,18 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
     const u = (Array.isArray(r.user) ? r.user[0] : r.user) as RawUser | null;
     if (!u) continue;
     const membership = membershipMap[u.id];
+    const profile = profileMap.get(u.id);
     result.push({
       id: u.id,
       name: u.name,
       role: u.role as UserRole,
       team: membership?.team ?? null,
       team_role: (membership?.team_role ?? null) as import("@/types").HackathonTeamRole | null,
+      occupation: profile?.occupation ?? null,
+      is_technical: profile?.is_technical ?? null,
+      unique_skill: profile?.unique_skill ?? null,
+      linkedin_url: profile?.linkedin_url ?? null,
+      needs_team: profile?.needs_team ?? null,
     });
   }
   return result;

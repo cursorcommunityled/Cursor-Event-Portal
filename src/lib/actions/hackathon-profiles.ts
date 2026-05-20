@@ -22,15 +22,14 @@ export async function getTeamRecommendations(
 
   const supabase = await createServiceClient();
 
-  // Check if current user has a hackathon profile and needs a team
+  // Check current profile for richer matching context. Team assignment is the
+  // real gate for recommendations; `needs_team` can be stale after admin changes.
   const { data: myProfile } = await supabase
     .from("hackathon_profiles")
     .select("occupation, is_technical, unique_skill, needs_team")
     .eq("user_id", session.userId)
     .eq("event_id", eventId)
     .maybeSingle();
-
-  if (!myProfile?.needs_team) return { recommendations: [], needsTeam: false };
 
   // Check if already on a team — if so, don't recommend
   const { data: eventTeams } = await supabase
@@ -56,7 +55,7 @@ export async function getTeamRecommendations(
     .eq("id", session.userId)
     .maybeSingle();
 
-  // Get other needs_team=true profiles
+  // Get other people marked as needing a team.
   const { data: others } = await supabase
     .from("hackathon_profiles")
     .select("user_id, occupation, is_technical, unique_skill, linkedin_url")
@@ -96,11 +95,11 @@ export async function getTeamRecommendations(
   // Build prompt
   const myDesc = [
     `Name: ${myUser?.name ?? "Me"}`,
-    myProfile.occupation ? `Occupation: ${myProfile.occupation}` : null,
-    myProfile.is_technical !== null
+    myProfile?.occupation ? `Occupation: ${myProfile.occupation}` : null,
+    myProfile?.is_technical !== null && myProfile?.is_technical !== undefined
       ? `Background: ${myProfile.is_technical ? "Technical" : "Non-technical"}`
       : null,
-    myProfile.unique_skill ? `Unique skill: ${myProfile.unique_skill}` : null,
+    myProfile?.unique_skill ? `Unique skill: ${myProfile.unique_skill}` : null,
   ]
     .filter(Boolean)
     .join(" | ");

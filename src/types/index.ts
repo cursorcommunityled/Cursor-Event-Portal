@@ -990,6 +990,11 @@ export interface ChatMember {
   role: UserRole;
   team?: { id: string; name: string; icon_photo?: EventPhoto | null } | null;
   team_role?: HackathonTeamRole | null;
+  occupation?: string | null;
+  is_technical?: boolean | null;
+  unique_skill?: string | null;
+  linkedin_url?: string | null;
+  needs_team?: boolean | null;
 }
 
 // ─── Event Photos ─────────────────────────────────────────────────────────────
