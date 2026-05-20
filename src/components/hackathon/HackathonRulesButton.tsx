@@ -228,7 +228,8 @@ function HackathonRulesModal({ onClose }: { onClose: () => void }) {
               Tips
             </p>
             <p className="text-sm leading-6 text-gray-300">
-              Make your repo public before submission. Upload screenshots because they directly affect
+              <strong className="font-black text-white">MAKE YOUR REPO PUBLIC BEFORE SUBMISSION.</strong>{" "}
+              Upload screenshots because they directly affect
               your visual score. Keep your pitch text concise and clear about what problem you are solving.
             </p>
           </div>

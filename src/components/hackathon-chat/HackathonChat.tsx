@@ -61,6 +61,10 @@ function getMentionedUserIds(text: string, members: ChatMember[], currentUserId:
   return [...mentioned];
 }
 
+function isClosableChannel(channel: HackathonChatChannel) {
+  return channel.channel_type === "dm" || channel.channel_type === "team";
+}
+
 // ─── Main HackathonChat component ─────────────────────────────────────────────
 
 export function HackathonChat({
@@ -503,6 +507,26 @@ export function HackathonChat({
     }
   };
 
+  const closeChannelTab = async (channelId: string) => {
+    const channel = channels.find((ch) => ch.id === channelId);
+    if (!channel || !isClosableChannel(channel)) return;
+
+    const closedIndex = channels.findIndex((ch) => ch.id === channelId);
+    const remainingChannels = channels.filter((ch) => ch.id !== channelId);
+    setChannels(remainingChannels);
+
+    if (channelId !== resolvedChannelId) return;
+
+    const fallbackChannel =
+      remainingChannels[Math.min(closedIndex, remainingChannels.length - 1)] ?? remainingChannels[0];
+
+    if (fallbackChannel) {
+      await switchChannel(fallbackChannel.id);
+    } else {
+      setActiveChannelId("");
+    }
+  };
+
   const handleLoadMore = async () => {
     const oldest = messages[0];
     if (!oldest || loadingMore) return;
@@ -844,29 +868,56 @@ export function HackathonChat({
       <div className="relative flex items-center gap-2 border-b border-white/10 bg-black/40 px-3 pt-3 pb-2.5 shrink-0 sm:px-4 z-10 backdrop-blur-md">
         <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
           <div className="flex w-max flex-nowrap gap-2 pr-1">
-            {channels.map((ch) => (
-              <button
-                key={ch.id}
-                onClick={() => switchChannel(ch.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border",
-                  ch.id === resolvedChannelId
-                    ? "bg-white/10 text-white border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)] scale-105"
-                    : "bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-white/5 hover:border-white/10"
-                )}
-              >
-                <ChannelIcon type={ch.channel_type} className={cn(
-                  "transition-colors duration-300",
-                  ch.id === resolvedChannelId ? "text-white" : "text-gray-500"
-                )} />
-                {getChannelLabel(ch)}
-                {(ch.unread_count && ch.unread_count > 0 && ch.id !== resolvedChannelId) ? (
-                  <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500 text-white rounded-full leading-none shrink-0 font-bold min-w-[1.25rem] text-center flex items-center justify-center">
-                    {ch.unread_count > 99 ? "99+" : ch.unread_count}
-                  </span>
-                ) : null}
-              </button>
-            ))}
+            {channels.map((ch) => {
+              const isActiveChannel = ch.id === resolvedChannelId;
+              const canCloseChannel = isClosableChannel(ch);
+              const channelLabel = getChannelLabel(ch);
+
+              return (
+                <div
+                  key={ch.id}
+                  className={cn(
+                    "group flex items-center rounded-full text-[13px] font-bold uppercase tracking-wider whitespace-nowrap transition-all duration-300 border",
+                    isActiveChannel
+                      ? "bg-white/10 text-white border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.1)] scale-105"
+                      : "bg-transparent text-gray-400 border-transparent hover:text-white hover:bg-white/5 hover:border-white/10"
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => switchChannel(ch.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 py-2",
+                      canCloseChannel ? "pl-4 pr-1" : "px-4"
+                    )}
+                  >
+                    <ChannelIcon type={ch.channel_type} className={cn(
+                      "transition-colors duration-300",
+                      isActiveChannel ? "text-white" : "text-gray-500 group-hover:text-gray-300"
+                    )} />
+                    {channelLabel}
+                    {(ch.unread_count && ch.unread_count > 0 && !isActiveChannel) ? (
+                      <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500 text-white rounded-full leading-none shrink-0 font-bold min-w-[1.25rem] text-center flex items-center justify-center">
+                        {ch.unread_count > 99 ? "99+" : ch.unread_count}
+                      </span>
+                    ) : null}
+                  </button>
+                  {canCloseChannel && (
+                    <button
+                      type="button"
+                      aria-label={`Close ${channelLabel} chat`}
+                      onClick={() => closeChannelTab(ch.id)}
+                      className={cn(
+                        "mr-2 flex h-5 w-5 items-center justify-center rounded-full text-gray-500 opacity-70 transition-all duration-200 hover:bg-white/10 hover:text-white hover:opacity-100 hover:brightness-150",
+                        isActiveChannel ? "text-gray-300 opacity-90" : "group-hover:text-gray-300"
+                      )}
+                    >
+                      <X className="h-3 w-3 stroke-[2.5]" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="shrink-0">
