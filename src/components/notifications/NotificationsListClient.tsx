@@ -13,6 +13,8 @@ const TYPE_ICONS: Record<string, string> = {
   demo_slot_available:  "🎯",
   survey_live:          "📋",
   announcement:         "📣",
+  team_invite:          "👥",
+  chat_mention:         "@",
 };
 
 interface Props {

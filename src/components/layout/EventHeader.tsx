@@ -14,11 +14,16 @@ import { LogOut, MapPin } from "lucide-react";
 import { DemoStatusBadge } from "@/components/demos/DemoStatusBadge";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
+import { HackathonProfileButton } from "@/components/layout/HackathonProfileButton";
+import type { HackathonProfile } from "@/types";
+
 interface EventHeaderProps {
   event: Event;
   announcement?: Announcement | null;
   showTimer?: boolean;
   userId?: string;
+  userName?: string;
+  hackathonProfile?: HackathonProfile | null;
 }
 
 interface TableAssignment {
@@ -26,7 +31,7 @@ interface TableAssignment {
   tableNumber: number;
 }
 
-export function EventHeader({ event, announcement: initialAnnouncement, showTimer = true, userId }: EventHeaderProps) {
+export function EventHeader({ event, announcement: initialAnnouncement, showTimer = true, userId, userName, hackathonProfile }: EventHeaderProps) {
   const router = useRouter();
   const [announcement, setAnnouncement] = useState<Announcement | null>(initialAnnouncement || null);
   const [tableAssignment, setTableAssignment] = useState<TableAssignment | null>(null);
@@ -379,27 +384,40 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
           </div>
 
           {/* Right-side badges */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {/* Notification Bell */}
             {userId && (
-              <div className="flex flex-col items-center gap-1">
+              <div className="flex flex-col items-center gap-1 mt-0">
                 <NotificationBell
                   userId={userId}
                   eventId={event.id}
                   eventSlug={event.slug}
                 />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="flex items-center gap-1 text-[8px] uppercase tracking-[0.18em] text-gray-700 hover:text-gray-400 transition-colors disabled:opacity-40 disabled:cursor-wait"
-                  title="Sign out"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="w-2.5 h-2.5" />
-                  Logout
-                </button>
               </div>
+            )}
+
+            {/* Hackathon Profile (Only for Hackathons) */}
+            {userId && event.is_hackathon && (
+              <HackathonProfileButton
+                eventId={event.id}
+                eventSlug={event.slug}
+                initialProfile={hackathonProfile ?? null}
+                userName={userName}
+              />
+            )}
+
+            {userId && !event.is_hackathon && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex items-center gap-1 text-[8px] uppercase tracking-[0.18em] text-gray-700 hover:text-gray-400 transition-colors disabled:opacity-40 disabled:cursor-wait mt-1"
+                title="Sign out"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-2.5 h-2.5" />
+                Logout
+              </button>
             )}
 
             {tableAssignment && (

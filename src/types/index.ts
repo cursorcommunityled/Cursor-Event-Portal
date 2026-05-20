@@ -704,6 +704,11 @@ export type NotificationType =
   | 'survey_live'
   | 'announcement';
 
+export type InAppNotificationType =
+  | NotificationType
+  | 'team_invite'
+  | 'chat_mention';
+
 export interface NotificationPreferences {
   user_id: string;
   event_id: string;
@@ -724,7 +729,7 @@ export interface InAppNotification {
   id: string;
   user_id: string;
   event_id: string;
-  type: NotificationType;
+  type: InAppNotificationType;
   title: string;
   body: string;
   action_url: string | null;

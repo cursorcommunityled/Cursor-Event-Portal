@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendChatMessage, deleteChatMessage, pinChatMessage, editChatMessage,
-  toggleChatReaction, markChannelRead, loadMoreMessages, fetchChannelMessages, fetchPinnedMessages,
+  toggleChatReaction, markChannelRead, loadMoreMessages, fetchChannelMessages, fetchPinnedMessages, getOrCreateDMChannel,
 } from "@/lib/actions/hackathon-chat";
 import { sendTeamInvite } from "@/lib/actions/hackathon";
 import { cn } from "@/lib/utils";
@@ -46,6 +46,22 @@ interface Props {
   needsTeam?: boolean;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getMentionedUserIds(text: string, members: ChatMember[], currentUserId: string) {
+  const mentioned = new Set<string>();
+  for (const member of members) {
+    if (member.id === currentUserId) continue;
+    const name = member.name.trim();
+    if (!name) continue;
+    const pattern = new RegExp(`@${escapeRegExp(name)}(?=$|[\\s.,!?;:])`, "i");
+    if (pattern.test(text)) mentioned.add(member.id);
+  }
+  return [...mentioned];
+}
+
 // ─── Main HackathonChat component ─────────────────────────────────────────────
 
 export function HackathonChat({
@@ -81,9 +97,41 @@ export function HackathonChat({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const channelsRef = useRef(channels);
   const hasAttemptedChannelRestoreRef = useRef(false);
   const [hasRestoredChannel, setHasRestoredChannel] = useState(false);
   const storageKey = `hackathon-chat:${event.id}:active-channel`;
+
+  const handleStartDM = async (otherUserId: string) => {
+    if (otherUserId === userId) return; // Can't DM yourself
+    const toastId = toast.loading("Starting chat...");
+    try {
+      const result = await getOrCreateDMChannel(event.id, otherUserId);
+      if (result.error) throw new Error(result.error);
+      if (result.channelId) {
+        // Check if channel already exists in state
+        let exists = channels.find(c => c.id === result.channelId);
+        if (!exists) {
+          const newChan: HackathonChatChannel = {
+            id: result.channelId,
+            event_id: event.id,
+            name: `dm:${userId}:${otherUserId}`, // Internal name
+            channel_type: "dm",
+            position: 1000,
+            team_id: null,
+            created_at: new Date().toISOString(),
+          };
+          setChannels(prev => [...prev, newChan]);
+        }
+        setActiveChannelId(result.channelId);
+        if (showMembers) setShowMembers(false);
+        if (profileMember) setProfileMember(null);
+        toast.dismiss(toastId);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start chat", { id: toastId });
+    }
+  };
 
   const [typingState, setTypingState] = useState<Record<string, Set<string>>>({});
   const typingBroadcastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -104,15 +152,28 @@ export function HackathonChat({
   }, [members]);
 
   const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
-    if (channel.channel_type === "dm") return false;
+    if (channel.channel_type === "dm") return channel.name.includes(userId);
     return !channel.team_id || channel.team_id === myTeamId || isAdmin;
-  }, [isAdmin, myTeamId]);
+  }, [isAdmin, myTeamId, userId]);
+
+  useEffect(() => {
+    channelsRef.current = channels;
+  }, [channels]);
 
   const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
     if (!channel) return "";
     if (channel.channel_type === "spawn_point") return "Spawn Point";
+    if (channel.channel_type === "dm") {
+      const parts = channel.name.split(":");
+      if (parts.length === 3) {
+        const otherId = parts[1] === userId ? parts[2] : parts[1];
+        const otherMember = memberMap.get(otherId);
+        return otherMember ? otherMember.name : "Direct Message";
+      }
+      return "Direct Message";
+    }
     return channel.name;
-  }, []);
+  }, [userId, memberMap]);
 
   const visibleSidebarMembers = useMemo(() => {
     const query = memberSearchQuery.trim().toLowerCase();
@@ -170,7 +231,7 @@ export function HackathonChat({
   const canPost = useMemo(() => {
     // No channel loaded yet — don't block, channels may still be initialising
     if (!currentChannel) return channels.length === 0 ? false : true;
-    if (currentChannel.channel_type === "dm") return false;
+    if (currentChannel.channel_type === "dm") return currentChannel.name.includes(userId);
     if (currentChannel.channel_type === "announcements") return isAdmin;
     // Spawn Point: only unassigned members (no team yet) can post
     if (currentChannel.channel_type === "spawn_point") return !myTeamId || isAdmin;
@@ -278,6 +339,7 @@ export function HackathonChat({
         { event: "INSERT", schema: "public", table: "hackathon_chat_messages", filter: `event_id=eq.${event.id}` },
         (payload) => {
           const newMsg = payload.new as HackathonChatMessage;
+          const mentionedMe = newMsg.user_id !== userId && newMsg.mentioned_user_ids?.includes(userId);
           setMessageMap((prev) => {
             const existing = prev[newMsg.channel_id] ?? [];
             if (existing.some((m) => m.id === newMsg.id)) return prev;
@@ -292,6 +354,14 @@ export function HackathonChat({
           }
           if (newMsg.channel_id === activeChannelId && isNearBottom()) {
             requestAnimationFrame(() => scrollToBottom(true));
+          }
+          if (mentionedMe) {
+            const senderName = memberMap.get(newMsg.user_id)?.name ?? "Someone";
+            const channelLabel = getChannelLabel(channelsRef.current.find((channel) => channel.id === newMsg.channel_id));
+            toast(`${senderName} mentioned you${channelLabel ? ` in #${channelLabel}` : ""}`, {
+              icon: "@",
+              duration: 6000,
+            });
           }
           if (newMsg.channel_id !== activeChannelId && newMsg.user_id !== userId) {
             setChannels((prev) => prev.map((ch) =>
@@ -386,7 +456,7 @@ export function HackathonChat({
       supabase.removeChannel(channel); 
       realtimeChannelRef.current = null;
     };
-  }, [event.id, activeChannelId, canSeeChannel, isNearBottom, scrollToBottom, userId]);
+  }, [event.id, activeChannelId, canSeeChannel, getChannelLabel, isNearBottom, memberMap, scrollToBottom, userId]);
 
   // Scroll to bottom on initial load
   useEffect(() => {
@@ -451,13 +521,7 @@ export function HackathonChat({
     const text = draft.trim();
     if (!text || isPending) return;
 
-    // Parse mentions from text
-    const mentioned: string[] = [];
-    for (const m of members) {
-      if (text.toLowerCase().includes(`@${m.name.toLowerCase()}`)) {
-        mentioned.push(m.id);
-      }
-    }
+    const mentioned = getMentionedUserIds(text, members, userId);
 
     const optimisticId = `opt-${Date.now()}`;
     const optimistic: HackathonChatMessage = {
@@ -1134,6 +1198,7 @@ export function HackathonChat({
                         key={m.id}
                         member={m}
                         onOpenProfile={setProfileMember}
+                        onStartDM={userId !== m.id ? handleStartDM : undefined}
                       />
                     ))}
                 </div>
@@ -1160,6 +1225,7 @@ export function HackathonChat({
                         key={m.id}
                         member={m}
                         onOpenProfile={setProfileMember}
+                        onStartDM={userId !== m.id ? handleStartDM : undefined}
                       />
                     ))}
                   </div>
@@ -1177,6 +1243,7 @@ export function HackathonChat({
                         key={m.id}
                         member={m}
                         onOpenProfile={setProfileMember}
+                        onStartDM={userId !== m.id ? handleStartDM : undefined}
                       />
                     ))}
                 </div>
@@ -1189,6 +1256,7 @@ export function HackathonChat({
         <MemberProfileModal
           member={profileMember}
           onClose={() => setProfileMember(null)}
+          onStartDM={userId !== profileMember.id ? handleStartDM : undefined}
         />
       )}
     </div>

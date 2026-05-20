@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Smile, Pin, Trash2, Pencil, Check, ImageIcon, FileText, Download, Star, Plus } from "lucide-react";
 import EmojiPicker, { Theme } from "emoji-picker-react";
@@ -11,6 +12,10 @@ import { Avatar } from "./Avatar";
 import { MemberCard } from "./MemberCard";
 
 const QUICK_EMOJIS = ["👍", "🔥", "🚀", "💡", "❤️", "😂", "🎉", "⚡"];
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 export function ChatMsg({
   msg, userId, isAdmin, members, memberMap, isGrouped, onReact, onDelete, onPin, onOpenProfile, onEdit,
@@ -103,24 +108,42 @@ export function ChatMsg({
     return Object.values(map);
   }, [msg.reactions, userId]);
 
+  const mentionRegex = useMemo(() => {
+    const names = members
+      .map((member) => member.name.trim())
+      .filter(Boolean)
+      .sort((a, b) => b.length - a.length)
+      .map(escapeRegExp);
+
+    if (names.length === 0) return null;
+    return new RegExp(`@(${names.join("|")})(?=$|[\\s.,!?;:])`, "gi");
+  }, [members]);
+
   // Render content with @mention highlighting
   const renderContent = (text: string) => {
-    const parts = text.split(/(@\w[\w\s]*)/g);
-    return parts.map((part, i) => {
-      if (part.startsWith("@")) {
-        const mentioned = members.find(
-          (m) => part.toLowerCase() === `@${m.name.toLowerCase()}`
-        );
-        if (mentioned) {
-          return (
-            <span key={i} className="bg-red-500/20 text-red-300 rounded-md px-1 py-0.5 font-medium border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
-              {part}
-            </span>
-          );
-        }
+    if (!mentionRegex) return text;
+
+    const nodes: ReactNode[] = [];
+    let lastIndex = 0;
+
+    for (const match of text.matchAll(mentionRegex)) {
+      const index = match.index ?? 0;
+      if (index > lastIndex) {
+        nodes.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex, index)}</span>);
       }
-      return <span key={i}>{part}</span>;
-    });
+      nodes.push(
+        <span key={`mention-${index}`} className="bg-red-500/20 text-red-300 rounded-md px-1 py-0.5 font-medium border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+          {match[0]}
+        </span>
+      );
+      lastIndex = index + match[0].length;
+    }
+
+    if (lastIndex < text.length) {
+      nodes.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex)}</span>);
+    }
+
+    return nodes;
   };
 
   return (

@@ -5,6 +5,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
 import type { HackathonProfile } from "@/types";
 
+const TEAM_RECOMMENDATION_LIMIT = 12;
+
 export interface TeamRecommendation {
   userId: string;
   name: string;
@@ -283,7 +285,7 @@ export async function getTeamRecommendations(
   });
   if (candidates.length === 0) return { recommendations: [], needsTeam: true };
 
-  const fallbackRecommendations = candidates.slice(0, 3).map((candidate) => ({
+  const fallbackRecommendations = candidates.slice(0, TEAM_RECOMMENDATION_LIMIT).map((candidate) => ({
     userId: candidate.user_id,
     name: candidate.name,
     occupation: candidate.occupation,
@@ -345,7 +347,7 @@ Current user: ${myDesc || "No survey profile fields available"}
 Other attendees also looking for a team:
 ${candidateLines.join("\n")}
 
-Return ONLY valid JSON — an array of up to 3 objects (best matches first):
+Return ONLY valid JSON — an array of up to ${Math.min(TEAM_RECOMMENDATION_LIMIT, candidates.length)} objects (best matches first):
 [{"user_id":"...","reason":"One sentence why this match makes sense (max 140 chars)"}]
 
 Rules for reasons:
@@ -390,7 +392,7 @@ Mix technical and non-technical backgrounds when possible. Return only the JSON 
     );
 
     const recommendations: TeamRecommendation[] = ranked
-      .slice(0, 3)
+      .slice(0, TEAM_RECOMMENDATION_LIMIT)
       .filter((r) => candidateMap.has(r.user_id))
       .map((r) => {
         const candidate = candidateMap.get(r.user_id)!;

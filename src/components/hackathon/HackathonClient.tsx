@@ -30,7 +30,6 @@ import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinn
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
-import { HackathonProfileEditor } from "@/components/hackathon/HackathonProfileEditor";
 import type { PollWithVotes } from "@/types";
 import {
   HACKATHON_SCORE_CATEGORIES,
@@ -816,12 +815,6 @@ export function HackathonClient({
             <HubMetric label="Submissions" value={submittedProjects} detail={`of ${plural(allTeams.length, "team")}`} />
             <HubMetric label="Open Slots" value={openTeamSlots} detail={`max ${maxTeamSize} per team`} muted={!formationOpen} />
           </div>
-
-          <HackathonProfileEditor
-            eventId={event.id}
-            initialProfile={hackathonProfile}
-            onSaved={refresh}
-          />
 
           <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />

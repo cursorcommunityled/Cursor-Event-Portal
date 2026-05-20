@@ -13,10 +13,12 @@ function textValue(value: string | null | undefined) {
 export function HackathonProfileEditor({
   eventId,
   initialProfile,
+  userName,
   onSaved,
 }: {
   eventId: string;
   initialProfile: HackathonProfile | null;
+  userName?: string;
   onSaved?: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -100,7 +102,9 @@ export function HackathonProfileEditor({
               <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-red-500/25 bg-red-500/10 text-red-200">
                 <UserRound className="h-4 w-4" />
               </div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">My Hackathon Profile</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">
+                {userName ? `${userName.split(' ')[0]}'s Profile` : "My Hackathon Profile"}
+              </p>
             </div>
             <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-gray-400">
               Add optional details teammates can see when they open your profile. Imported questionnaire answers stay editable here too.

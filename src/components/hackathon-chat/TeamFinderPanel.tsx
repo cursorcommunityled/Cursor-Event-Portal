@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Zap, X, AlertCircle, UserPlus, Linkedin } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Zap, X, AlertCircle, UserPlus, Linkedin, ChevronLeft, ChevronRight } from "lucide-react";
 import { sendTeamInvite } from "@/lib/actions/hackathon";
 import { getTeamRecommendations, type TeamRecommendation } from "@/lib/actions/hackathon-profiles";
 import type { ChatMember } from "@/types";
+
+const PAGE_SIZE = 3;
 
 export function TeamFinderPanel({
   eventId, userId, myTeamId, members, onOpenProfile,
@@ -21,6 +23,7 @@ export function TeamFinderPanel({
   const [inviteStatus, setInviteStatus] = useState<Record<string, "idle" | "pending" | "sent" | "error">>({});
   const [teamNameInputs, setTeamNameInputs] = useState<Record<string, string>>({});
   const [showNameInput, setShowNameInput] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
   const dismissStorageKey = `hackathon-chat:${eventId}:${userId}:team-finder-dismissed`;
 
   useEffect(() => {
@@ -37,9 +40,19 @@ export function TeamFinderPanel({
     setLoading(true);
     getTeamRecommendations(eventId).then((res) => {
       setRecs(res.recommendations);
+      setPageIndex(0);
       setLoading(false);
     });
   }, [dismissed, eventId]);
+
+  const pageCount = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
+  const visibleRecs = useMemo(() => {
+    const start = pageIndex * PAGE_SIZE;
+    return recs.slice(start, start + PAGE_SIZE);
+  }, [pageIndex, recs]);
+
+  const canGoBack = pageIndex > 0;
+  const canGoForward = pageIndex < pageCount - 1;
 
   const handleDismiss = () => {
     setDismissed(true);
@@ -108,113 +121,163 @@ export function TeamFinderPanel({
               </div>
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              {recs.map((rec) => {
-                const status = inviteStatus[rec.userId] ?? "idle";
-                const teamName = teamNameInputs[rec.userId] ?? "";
-                const profileMember = members.find((member) => member.id === rec.userId) ?? {
-                  id: rec.userId,
-                  name: rec.name,
-                  role: "attendee" as ChatMember["role"],
-                  team: null,
-                  team_role: null,
-                  occupation: rec.occupation,
-                  is_technical: rec.is_technical,
-                  unique_skill: rec.unique_skill,
-                  linkedin_url: rec.linkedin_url,
-                  needs_team: true,
-                  profile_bio: rec.profile_bio,
-                  project_interests: rec.project_interests,
-                  collaboration_style: rec.collaboration_style,
-                  looking_for_teammates: rec.looking_for_teammates,
-                };
-                return (
-                  <div
-                    key={rec.userId}
-                    className="flex-1 rounded-2xl border border-white/[0.06] bg-black/30 p-3.5 space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onOpenProfile(profileMember)}
-                        className="text-left text-[14px] font-bold text-white leading-tight hover:text-red-200 hover:underline decoration-red-500/40 underline-offset-4 transition-colors"
-                      >
-                        {rec.name}
-                      </button>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {rec.is_technical !== null && (
-                          <span className={`text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
-                            rec.is_technical
-                              ? "text-red-400 bg-red-500/10 border-red-500/20"
-                              : "text-orange-400 bg-orange-500/10 border-orange-500/20"
-                          }`}>
-                            {rec.is_technical ? "Tech" : "Non-Tech"}
-                          </span>
-                        )}
-                        {rec.linkedin_url && (
-                          <a
-                            href={rec.linkedin_url.startsWith("http") ? rec.linkedin_url : `https://${rec.linkedin_url}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-gray-600 hover:text-red-400 transition-colors"
-                          >
-                            <Linkedin className="w-3 h-3" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {rec.occupation && (
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
-                          {rec.occupation}
-                        </span>
-                      )}
-                      {rec.is_technical !== null && (
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
-                          {rec.is_technical ? "Technical builder" : "Non-technical / product"}
-                        </span>
-                      )}
-                      {rec.unique_skill && (
-                        <span className="rounded-full border border-red-500/25 bg-red-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-red-200">
-                          {rec.unique_skill}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[12px] text-gray-300 leading-snug">{rec.reason}</p>
+            <div className="flex items-stretch gap-2.5">
+              <button
+                type="button"
+                onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
+                disabled={!canGoBack}
+                aria-label="Previous team matches"
+                className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
 
-                    {status === "sent" ? (
-                      <p className="text-[11px] font-bold text-green-400">Invite sent!</p>
-                    ) : status === "error" ? (
-                      <p className="text-[11px] font-bold text-red-400">Could not send invite</p>
-                    ) : showNameInput === rec.userId && !myTeamId ? (
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          value={teamName}
-                          onChange={(e) => setTeamNameInputs((s) => ({ ...s, [rec.userId]: e.target.value }))}
-                          placeholder="Team name…"
-                          className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/50"
-                        />
-                        <button
-                          disabled={!teamName.trim() || status === "pending"}
-                          onClick={() => handleInvite(rec.userId, teamName.trim())}
-                          className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-all disabled:opacity-40"
-                        >
-                          Go
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        disabled={status === "pending"}
-                        onClick={() => handleYes(rec.userId)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/15 border border-red-500/25 text-red-200 hover:bg-red-500/25 hover:border-red-500/40 transition-all disabled:opacity-40"
+              <div className="min-w-0 flex-1 space-y-2.5">
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  {visibleRecs.map((rec) => {
+                    const status = inviteStatus[rec.userId] ?? "idle";
+                    const teamName = teamNameInputs[rec.userId] ?? "";
+                    const profileMember = members.find((member) => member.id === rec.userId) ?? {
+                      id: rec.userId,
+                      name: rec.name,
+                      role: "attendee" as ChatMember["role"],
+                      team: null,
+                      team_role: null,
+                      occupation: rec.occupation,
+                      is_technical: rec.is_technical,
+                      unique_skill: rec.unique_skill,
+                      linkedin_url: rec.linkedin_url,
+                      needs_team: true,
+                      profile_bio: rec.profile_bio,
+                      project_interests: rec.project_interests,
+                      collaboration_style: rec.collaboration_style,
+                      looking_for_teammates: rec.looking_for_teammates,
+                    };
+                    return (
+                      <div
+                        key={rec.userId}
+                        className="flex-1 rounded-2xl border border-white/[0.06] bg-black/30 p-3.5 space-y-2"
                       >
-                        <UserPlus className="w-3 h-3" />
-                        {status === "pending" ? "Sending…" : "Invite"}
-                      </button>
-                    )}
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => onOpenProfile(profileMember)}
+                            className="text-left text-[14px] font-bold text-white leading-tight hover:text-red-200 hover:underline decoration-red-500/40 underline-offset-4 transition-colors"
+                          >
+                            {rec.name}
+                          </button>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {rec.is_technical !== null && (
+                              <span className={`text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
+                                rec.is_technical
+                                  ? "text-red-400 bg-red-500/10 border-red-500/20"
+                                  : "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                              }`}>
+                                {rec.is_technical ? "Tech" : "Non-Tech"}
+                              </span>
+                            )}
+                            {rec.linkedin_url && (
+                              <a
+                                href={rec.linkedin_url.startsWith("http") ? rec.linkedin_url : `https://${rec.linkedin_url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-600 hover:text-red-400 transition-colors"
+                              >
+                                <Linkedin className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {rec.occupation && (
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
+                              {rec.occupation}
+                            </span>
+                          )}
+                          {rec.is_technical !== null && (
+                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
+                              {rec.is_technical ? "Technical builder" : "Non-technical / product"}
+                            </span>
+                          )}
+                          {rec.unique_skill && (
+                            <span className="rounded-full border border-red-500/25 bg-red-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-red-200">
+                              {rec.unique_skill}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[12px] text-gray-300 leading-snug">{rec.reason}</p>
+
+                        {status === "sent" ? (
+                          <p className="text-[11px] font-bold text-green-400">Invite sent!</p>
+                        ) : status === "error" ? (
+                          <p className="text-[11px] font-bold text-red-400">Could not send invite</p>
+                        ) : showNameInput === rec.userId && !myTeamId ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              value={teamName}
+                              onChange={(e) => setTeamNameInputs((s) => ({ ...s, [rec.userId]: e.target.value }))}
+                              placeholder="Team name…"
+                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/50"
+                            />
+                            <button
+                              disabled={!teamName.trim() || status === "pending"}
+                              onClick={() => handleInvite(rec.userId, teamName.trim())}
+                              className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-all disabled:opacity-40"
+                            >
+                              Go
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            disabled={status === "pending"}
+                            onClick={() => handleYes(rec.userId)}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/15 border border-red-500/25 text-red-200 hover:bg-red-500/25 hover:border-red-500/40 transition-all disabled:opacity-40"
+                          >
+                            <UserPlus className="w-3 h-3" />
+                            {status === "pending" ? "Sending…" : "Invite"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {pageCount > 1 && (
+                  <div className="flex items-center justify-between gap-3 sm:justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
+                      disabled={!canGoBack}
+                      className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-red-500/30 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                      Prev
+                    </button>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-600">
+                      {pageIndex + 1} / {pageCount}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}
+                      disabled={!canGoForward}
+                      className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-red-500/30 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
+                    >
+                      Next
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                );
-              })}
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPageIndex((page) => Math.min(pageCount - 1, page + 1))}
+                disabled={!canGoForward}
+                aria-label="Next team matches"
+                className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           )}
         </div>
