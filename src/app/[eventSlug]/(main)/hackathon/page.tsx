@@ -17,6 +17,8 @@ import { getSession } from "@/lib/actions/registration";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { createServiceClient } from "@/lib/supabase/server";
 import { HackathonClient } from "@/components/hackathon/HackathonClient";
+import { withDefaultHackathonLinkedIn } from "@/lib/hackathon-profile-defaults";
+import type { HackathonProfile } from "@/types";
 
 interface Props {
   params: Promise<{ eventSlug: string }>;
@@ -77,12 +79,23 @@ export default async function HackathonPage({ params }: Props) {
 
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
-  const [{ data: hackathonProfile }, { data: audienceVoteRow }] = await Promise.all([
+  const [{ data: hackathonProfile }, { data: intakeProfile }, { data: userProfile }, { data: audienceVoteRow }] = await Promise.all([
     supabase
       .from("hackathon_profiles")
       .select("user_id, event_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, accessibility, profile_bio, project_interests, collaboration_style, looking_for_teammates, created_at, updated_at")
       .eq("event_id", event.id)
       .eq("user_id", session.userId)
+      .maybeSingle(),
+    supabase
+      .from("attendee_intakes")
+      .select("linkedin")
+      .eq("event_id", event.id)
+      .eq("user_id", session.userId)
+      .maybeSingle(),
+    supabase
+      .from("users")
+      .select("linkedin")
+      .eq("id", session.userId)
       .maybeSingle(),
     supabase
       .from("polls")
@@ -92,6 +105,12 @@ export default async function HackathonPage({ params }: Props) {
       .eq("is_active", true)
       .maybeSingle(),
   ]);
+  const profileWithDefaults = withDefaultHackathonLinkedIn(
+    hackathonProfile as HackathonProfile | null,
+    intakeProfile?.linkedin ?? userProfile?.linkedin ?? null,
+    session.userId,
+    event.id
+  );
 
   // Build audience vote poll with counts + user vote
   let audienceVotePoll = null;
@@ -140,8 +159,8 @@ export default async function HackathonPage({ params }: Props) {
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
       publishedJudgingResults={judgingResults}
-      needsTeam={hackathonProfile?.needs_team === true}
-      hackathonProfile={hackathonProfile as import("@/types").HackathonProfile | null}
+      needsTeam={profileWithDefaults?.needs_team === true}
+      hackathonProfile={profileWithDefaults}
       initialScreenshots={initialScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
       audienceVotePoll={audienceVotePoll as import("@/types").PollWithVotes | null}

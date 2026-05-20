@@ -1,6 +1,7 @@
 import { createClient, createServiceClient } from "./server";
 import { createClient as createDirectClient } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
+import { preferredLinkedInUrl } from "@/lib/hackathon-profile-defaults";
 import type {
   Event,
   User,
@@ -2238,7 +2239,7 @@ export async function getCheckedInAttendeesWithoutTeams(
   // Step 3: Get all checked-in registrations with user names
   const { data: regs } = await supabase
     .from("registrations")
-    .select("user_id, user:users(id, name)")
+    .select("user_id, user:users(id, name, linkedin)")
     .eq("event_id", eventId)
     .not("checked_in_at", "is", null);
 
@@ -2254,12 +2255,14 @@ export async function getCheckedInAttendeesWithoutTeams(
     collaboration_style: string | null;
     looking_for_teammates: string | null;
   }[] = [];
+  const fallbackLinkedInByUserId = new Map<string, string | null>();
   const seen = new Set<string>();
   for (const reg of regs ?? []) {
     if (!reg.user_id || teamUserIds.has(reg.user_id) || seen.has(reg.user_id)) continue;
     seen.add(reg.user_id);
     const u = Array.isArray(reg.user) ? reg.user[0] : reg.user;
     if (u && typeof u === "object") {
+      fallbackLinkedInByUserId.set(String(u.id), (u as { linkedin?: string | null }).linkedin ?? null);
       result.push({
         id: String(u.id),
         name: String(u.name),
@@ -2277,11 +2280,19 @@ export async function getCheckedInAttendeesWithoutTeams(
 
   // Step 4: Enrich with hackathon profiles (occupation, technical background)
   if (result.length > 0) {
-    const { data: profiles } = await supabase
-      .from("hackathon_profiles")
-      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, profile_bio, project_interests, collaboration_style, looking_for_teammates")
-      .eq("event_id", eventId)
-      .in("user_id", result.map((u) => u.id));
+    const userIds = result.map((u) => u.id);
+    const [{ data: profiles }, { data: intakes }] = await Promise.all([
+      supabase
+        .from("hackathon_profiles")
+        .select("user_id, occupation, is_technical, unique_skill, linkedin_url, profile_bio, project_interests, collaboration_style, looking_for_teammates")
+        .eq("event_id", eventId)
+        .in("user_id", userIds),
+      supabase
+        .from("attendee_intakes")
+        .select("user_id, linkedin")
+        .eq("event_id", eventId)
+        .in("user_id", userIds),
+    ]);
 
     const profileMap = new Map(
       (profiles ?? []).map((p: {
@@ -2296,6 +2307,10 @@ export async function getCheckedInAttendeesWithoutTeams(
         looking_for_teammates: string | null;
       }) => [p.user_id, p])
     );
+    for (const intake of intakes ?? []) {
+      const row = intake as { user_id: string; linkedin: string | null };
+      if (row.linkedin) fallbackLinkedInByUserId.set(row.user_id, row.linkedin);
+    }
 
     for (const person of result) {
       const profile = profileMap.get(person.id);
@@ -2303,12 +2318,12 @@ export async function getCheckedInAttendeesWithoutTeams(
         person.occupation = profile.occupation;
         person.is_technical = profile.is_technical;
         person.unique_skill = profile.unique_skill;
-        person.linkedin_url = profile.linkedin_url;
         person.profile_bio = profile.profile_bio;
         person.project_interests = profile.project_interests;
         person.collaboration_style = profile.collaboration_style;
         person.looking_for_teammates = profile.looking_for_teammates;
       }
+      person.linkedin_url = preferredLinkedInUrl(profile?.linkedin_url, fallbackLinkedInByUserId.get(person.id));
     }
   }
 
@@ -2469,7 +2484,7 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
   // Chat roster should only include people who are actually present.
   const { data: regs, error } = await supabase
     .from("registrations")
-    .select("user_id, user:users!registrations_user_id_fkey(id, name, role)")
+    .select("user_id, user:users!registrations_user_id_fkey(id, name, role, linkedin)")
     .eq("event_id", eventId)
     .not("checked_in_at", "is", null);
 
@@ -2482,13 +2497,20 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
     })
     .filter((id): id is string => !!id);
 
-  const { data: profiles } = registeredUserIds.length > 0
-    ? await supabase
-      .from("hackathon_profiles")
-      .select("user_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, profile_bio, project_interests, collaboration_style, looking_for_teammates")
-      .eq("event_id", eventId)
-      .in("user_id", registeredUserIds)
-    : { data: [] };
+  const [{ data: profiles }, { data: intakes }] = registeredUserIds.length > 0
+    ? await Promise.all([
+      supabase
+        .from("hackathon_profiles")
+        .select("user_id, occupation, is_technical, unique_skill, linkedin_url, needs_team, profile_bio, project_interests, collaboration_style, looking_for_teammates")
+        .eq("event_id", eventId)
+        .in("user_id", registeredUserIds),
+      supabase
+        .from("attendee_intakes")
+        .select("user_id, linkedin")
+        .eq("event_id", eventId)
+        .in("user_id", registeredUserIds),
+    ])
+    : [{ data: [] }, { data: [] }];
 
   const profileMap = new Map(
     (profiles ?? []).map((profile: {
@@ -2503,6 +2525,9 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
       collaboration_style: string | null;
       looking_for_teammates: string | null;
     }) => [profile.user_id, profile])
+  );
+  const intakeLinkedInMap = new Map(
+    (intakes ?? []).map((intake: { user_id: string; linkedin: string | null }) => [intake.user_id, intake.linkedin])
   );
 
   // Get all team memberships for this event
@@ -2541,7 +2566,7 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
     };
   }
 
-  interface RawUser { id: string; name: string; role: string; }
+  interface RawUser { id: string; name: string; role: string; linkedin: string | null; }
 
   const result: ChatMember[] = [];
   for (const r of regs) {
@@ -2558,7 +2583,7 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
       occupation: profile?.occupation ?? null,
       is_technical: profile?.is_technical ?? null,
       unique_skill: profile?.unique_skill ?? null,
-      linkedin_url: profile?.linkedin_url ?? null,
+      linkedin_url: preferredLinkedInUrl(profile?.linkedin_url, intakeLinkedInMap.get(u.id), u.linkedin),
       needs_team: profile?.needs_team ?? null,
       profile_bio: profile?.profile_bio ?? null,
       project_interests: profile?.project_interests ?? null,
