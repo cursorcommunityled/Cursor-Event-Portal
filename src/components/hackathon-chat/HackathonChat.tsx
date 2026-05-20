@@ -80,7 +80,7 @@ export function HackathonChat({
   const [loadingChannel, setLoadingChannel] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialMessages.length >= 60);
-  const [showMembers, setShowMembers] = useState(false);
+  const [showMembers, setShowMembers] = useState(true);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [profileMember, setProfileMember] = useState<ChatMember | null>(null);
   const [isPending, startTransition] = useTransition();
