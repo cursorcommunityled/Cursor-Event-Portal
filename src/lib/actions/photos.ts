@@ -13,14 +13,22 @@ async function validateAdminAccess(
 ) {
   const { data: event } = await supabase
     .from("events")
-    .select("admin_code")
+    .select("admin_code, slug")
     .eq("id", eventId)
     .single();
 
   if (!event || event.admin_code !== adminCode) {
     return { valid: false as const, error: "Not authorized. Admin access required." };
   }
-  return { valid: true as const };
+  return { valid: true as const, eventSlug: event.slug as string };
+}
+
+function revalidatePhotoReviewPaths(adminCode: string, eventSlug: string, includesTeamIcon: boolean) {
+  revalidatePath(`/admin/${adminCode}/social`);
+  if (includesTeamIcon) {
+    revalidatePath(`/admin/${adminCode}/hackathon`);
+    revalidatePath(`/${eventSlug}/hackathon`);
+  }
 }
 
 export async function getEventPhotos(eventId: string, status?: PhotoStatus) {
@@ -74,6 +82,13 @@ export async function approvePhoto(
   const auth = await validateAdminAccess(supabase, eventId, adminCode);
   if (!auth.valid) return { error: auth.error };
 
+  const { data: photo } = await supabase
+    .from("event_photos")
+    .select("photo_usage")
+    .eq("id", photoId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("event_photos")
     .update({
@@ -88,7 +103,7 @@ export async function approvePhoto(
     return { error: error.message };
   }
 
-  revalidatePath(`/admin/${adminCode}/social`);
+  revalidatePhotoReviewPaths(adminCode, auth.eventSlug, photo?.photo_usage === "hackathon_team_icon");
   return { success: true };
 }
 
@@ -100,6 +115,13 @@ export async function rejectPhoto(
   const supabase = await createServiceClient();
   const auth = await validateAdminAccess(supabase, eventId, adminCode);
   if (!auth.valid) return { error: auth.error };
+
+  const { data: photo } = await supabase
+    .from("event_photos")
+    .select("photo_usage")
+    .eq("id", photoId)
+    .eq("event_id", eventId)
+    .maybeSingle();
 
   const { error } = await supabase
     .from("event_photos")
@@ -115,7 +137,7 @@ export async function rejectPhoto(
     return { error: error.message };
   }
 
-  revalidatePath(`/admin/${adminCode}/social`);
+  revalidatePhotoReviewPaths(adminCode, auth.eventSlug, photo?.photo_usage === "hackathon_team_icon");
   return { success: true };
 }
 
@@ -130,13 +152,21 @@ export async function deletePhoto(
 
   const { data: photo } = await supabase
     .from("event_photos")
-    .select("storage_path")
+    .select("storage_path, photo_usage")
     .eq("id", photoId)
     .eq("event_id", eventId)
     .single();
 
   if (!photo) {
     return { error: "Photo not found" };
+  }
+
+  if (photo.photo_usage === "hackathon_team_icon") {
+    await supabase
+      .from("hackathon_teams")
+      .update({ icon_photo_id: null, updated_at: new Date().toISOString() })
+      .eq("event_id", eventId)
+      .eq("icon_photo_id", photoId);
   }
 
   await supabase.storage.from("event-photos").remove([photo.storage_path]);
@@ -152,7 +182,7 @@ export async function deletePhoto(
     return { error: error.message };
   }
 
-  revalidatePath(`/admin/${adminCode}/social`);
+  revalidatePhotoReviewPaths(adminCode, auth.eventSlug, photo.photo_usage === "hackathon_team_icon");
   return { success: true };
 }
 
@@ -164,6 +194,12 @@ export async function bulkApprovePhotos(
   const supabase = await createServiceClient();
   const auth = await validateAdminAccess(supabase, eventId, adminCode);
   if (!auth.valid) return { error: auth.error };
+
+  const { data: photos } = await supabase
+    .from("event_photos")
+    .select("photo_usage")
+    .in("id", photoIds)
+    .eq("event_id", eventId);
 
   const { error } = await supabase
     .from("event_photos")
@@ -179,7 +215,11 @@ export async function bulkApprovePhotos(
     return { error: error.message };
   }
 
-  revalidatePath(`/admin/${adminCode}/social`);
+  revalidatePhotoReviewPaths(
+    adminCode,
+    auth.eventSlug,
+    (photos ?? []).some((photo) => photo.photo_usage === "hackathon_team_icon")
+  );
   return { success: true };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Zap, X, AlertCircle, UserPlus, Linkedin, ChevronLeft, ChevronRight } from "lucide-react";
 import { sendTeamInvite } from "@/lib/actions/hackathon";
 import { getTeamRecommendations, type TeamRecommendation } from "@/lib/actions/hackathon-profiles";
@@ -9,12 +9,13 @@ import type { ChatMember } from "@/types";
 const PAGE_SIZE = 3;
 
 export function TeamFinderPanel({
-  eventId, userId, myTeamId, members, onOpenProfile,
+  eventId, userId, myTeamId, members, availableUserIds, onOpenProfile,
 }: {
   eventId: string;
   userId: string;
   myTeamId: string | null;
   members: ChatMember[];
+  availableUserIds: string[];
   onOpenProfile: (member: ChatMember) => void;
 }) {
   const [recs, setRecs] = useState<TeamRecommendation[]>([]);
@@ -27,6 +28,17 @@ export function TeamFinderPanel({
   const [showNameInput, setShowNameInput] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const dismissStorageKey = `hackathon-chat:${eventId}:${userId}:team-finder-dismissed`;
+  const availableUserIdsRef = useRef(availableUserIds);
+  const recsRef = useRef<TeamRecommendation[]>([]);
+  const availableUserKey = useMemo(() => [...availableUserIds].sort().join("|"), [availableUserIds]);
+
+  useEffect(() => {
+    availableUserIdsRef.current = availableUserIds;
+  }, [availableUserIds]);
+
+  useEffect(() => {
+    recsRef.current = recs;
+  }, [recs]);
 
   useEffect(() => {
     try {
@@ -39,14 +51,54 @@ export function TeamFinderPanel({
   useEffect(() => {
     if (dismissed !== false) return;
 
+    let cancelled = false;
     setLoading(true);
     getTeamRecommendations(eventId).then((res) => {
-      setRecs(res.recommendations);
+      if (cancelled) return;
+      const available = new Set(availableUserIdsRef.current);
+      setRecs(res.recommendations.filter((rec) => available.has(rec.userId)));
       setPageIndex(0);
       setHasMoreRecommendations(Boolean(res.hasMore));
       setLoading(false);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [dismissed, eventId]);
+
+  useEffect(() => {
+    if (dismissed !== false || loading) return;
+
+    const available = new Set(availableUserIds);
+    const filtered = recsRef.current.filter((rec) => available.has(rec.userId));
+    const removedUnavailable = filtered.length !== recsRef.current.length;
+    if (!removedUnavailable) return;
+
+    setRecs(filtered);
+    setPageIndex((page) => Math.min(page, Math.max(0, Math.ceil(filtered.length / PAGE_SIZE) - 1)));
+
+    if (filtered.length >= PAGE_SIZE || !hasMoreRecommendations || availableUserIds.length <= filtered.length) {
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingMore(true);
+    getTeamRecommendations(eventId, filtered.map((rec) => rec.userId)).then((res) => {
+      if (cancelled) return;
+      const existingIds = new Set(filtered.map((rec) => rec.userId));
+      const nextRecs = res.recommendations.filter(
+        (rec) => available.has(rec.userId) && !existingIds.has(rec.userId)
+      );
+      setRecs([...filtered, ...nextRecs]);
+      setHasMoreRecommendations(Boolean(res.hasMore) && nextRecs.length > 0);
+      setLoadingMore(false);
+    });
+
+    return () => {
+      cancelled = true;
+      setLoadingMore(false);
+    };
+  }, [availableUserIds, availableUserKey, dismissed, eventId, hasMoreRecommendations, loading]);
 
   const pageCount = Math.max(1, Math.ceil(recs.length / PAGE_SIZE));
   const visibleRecs = useMemo(() => {

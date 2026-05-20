@@ -559,12 +559,14 @@ export function HackathonClient({
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
   const showTeamFinder = !myTeam && tab !== "overview";
+  const teamFinderAvailableUserIds = useMemo(() => pool.map((person) => person.id), [pool]);
   const teamFinder = showTeamFinder ? (
     <TeamFinderPanel
       eventId={event.id}
       userId={userId}
       myTeamId={null}
       members={chatMembers}
+      availableUserIds={teamFinderAvailableUserIds}
       onOpenProfile={setTeamFinderProfileMember}
     />
   ) : null;
