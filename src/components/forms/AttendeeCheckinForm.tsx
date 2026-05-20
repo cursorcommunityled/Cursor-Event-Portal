@@ -38,6 +38,7 @@ export function AttendeeCheckinForm({
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [foundAttendee, setFoundAttendee] = useState<Attendee | null>(null);
+  const [checkInToken, setCheckInToken] = useState<string | null>(null);
   const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
   const [bringingGuest, setBringingGuest] = useState<boolean | null>(null);
   const [guestName, setGuestName] = useState("");
@@ -81,12 +82,16 @@ export function AttendeeCheckinForm({
         const data = await response.json();
 
         if (data.found) {
-          setFoundAttendee(data.attendee);
-          setAlreadyCheckedIn(data.alreadyCheckedIn || false);
-          setStep("confirm");
+          const token = data.checkInToken ?? null;
+          setCheckInToken(token);
           // Pre-fill email if available
           if (data.attendee.email) {
             setEmail(data.attendee.email);
+          }
+          if (token) {
+            setFoundAttendee(data.attendee);
+            setAlreadyCheckedIn(data.alreadyCheckedIn || false);
+            setStep("confirm");
           }
         }
         // If not found, silently continue - user can enter email manually
@@ -119,6 +124,7 @@ export function AttendeeCheckinForm({
       const data = await response.json();
 
       if (!data.found) {
+        setCheckInToken(null);
         setError(
           "No registration found for this email. Please use your Luma registration email."
         );
@@ -127,6 +133,7 @@ export function AttendeeCheckinForm({
       }
 
       setFoundAttendee(data.attendee);
+      setCheckInToken(data.checkInToken ?? null);
       setAlreadyCheckedIn(data.alreadyCheckedIn || false);
       setStep("confirm");
     } catch (err) {
@@ -158,6 +165,10 @@ export function AttendeeCheckinForm({
 
   const handleConfirm = async () => {
     if (!foundAttendee) return;
+    if (!checkInToken) {
+      setError("Please look up your registration again.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError("");
@@ -171,6 +182,7 @@ export function AttendeeCheckinForm({
           attendeeId: foundAttendee.id,
           guest: null,
           skipCheckIn: alreadyCheckedIn,
+          checkInToken,
         }),
       });
 
@@ -194,6 +206,10 @@ export function AttendeeCheckinForm({
 
   const handleSubmit = async () => {
     if (!foundAttendee) return;
+    if (!checkInToken) {
+      setError("Please look up your registration again.");
+      return;
+    }
 
     // Validate guest info if bringing someone
     if (bringingGuest && !guestName.trim()) {
@@ -214,6 +230,7 @@ export function AttendeeCheckinForm({
           guest: bringingGuest
             ? { name: guestName.trim(), email: guestEmail.trim() || null }
             : null,
+          checkInToken,
         }),
       });
 

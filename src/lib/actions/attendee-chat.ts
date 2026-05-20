@@ -34,6 +34,83 @@ const EASTER_KEYWORDS = [
   "egg hunt credit",
 ];
 
+export async function getSuggestedChatQuestions(eventSlug: string): Promise<string[]> {
+  try {
+    const event = await getEventBySlug(eventSlug);
+    const defaultSuggestions = [
+      "What's on the schedule tonight?",
+      "How do I book a session?",
+      "What's the discussion theme?",
+      "How does speed networking work?",
+    ];
+    if (!event) return defaultSuggestions;
+
+    const [agendaItems, activePolls, themeSelection, competitions] = await Promise.all([
+      getAgendaItems(event.id),
+      getActivePolls(event.id),
+      getEventThemeSelection(event.id),
+      getActiveCompetitions(event.id),
+    ]);
+
+    const suggestions: string[] = [];
+
+    // Schedule
+    const now = new Date();
+    const hasLiveSession = agendaItems.some(item => {
+      if (!item.start_time || !item.end_time) return false;
+      return now >= new Date(item.start_time) && now <= new Date(item.end_time);
+    });
+    
+    if (hasLiveSession) {
+      suggestions.push("What's happening right now?");
+    } else if (agendaItems.length > 0) {
+      suggestions.push("What's on the schedule tonight?");
+    } else {
+      suggestions.push("What is the event about?");
+    }
+
+    // Theme
+    if (themeSelection?.theme_id) {
+      suggestions.push("What's the discussion theme?");
+    }
+
+    // Polls
+    if (activePolls.length > 0) {
+      suggestions.push("What are the live polls?");
+    }
+
+    // Competitions
+    if (competitions.length > 0) {
+      suggestions.push("What competitions are running?");
+    }
+
+    // Fallbacks to reach 4 items
+    const fallbacks = [
+      "How do I book a session?",
+      "How does speed networking work?",
+      "How do I post on the Exchange board?",
+      "Can I ask a question to the group?",
+    ];
+
+    for (const fb of fallbacks) {
+      if (suggestions.length >= 4) break;
+      if (!suggestions.includes(fb)) {
+        suggestions.push(fb);
+      }
+    }
+
+    return suggestions.slice(0, 4);
+  } catch (err) {
+    console.error("[getSuggestedChatQuestions]", err);
+    return [
+      "What's on the schedule tonight?",
+      "How do I book a session?",
+      "What's the discussion theme?",
+      "How does speed networking work?",
+    ];
+  }
+}
+
 export async function attendeeChat(
   eventSlug: string,
   messages: ChatMessage[]

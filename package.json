@@ -27,6 +27,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "emoji-picker-react": "^4.19.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.21",
     "framer-motion": "^12.38.0",

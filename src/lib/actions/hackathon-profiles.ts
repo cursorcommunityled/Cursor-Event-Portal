@@ -39,17 +39,28 @@ function buildConcreteReason(candidate: RecommendationCandidate, myProfile: Prof
   const myOccupation = myProfile?.occupation;
   const myBackground = backgroundLabel(myProfile?.is_technical ?? null);
   const candidateBackground = backgroundLabel(candidate.is_technical);
+  const candidateFacts = [
+    candidate.occupation ? `role: ${candidate.occupation}` : null,
+    candidateBackground ? `${candidateBackground} background` : null,
+    candidate.unique_skill ? `skill: ${candidate.unique_skill}` : null,
+  ].filter(Boolean);
+  const myFacts = [
+    myOccupation ? `your ${myOccupation} background` : null,
+    myBackground ? `your ${myBackground} perspective` : null,
+    mySkill ? `your ${mySkill}` : null,
+  ].filter(Boolean);
 
   if (candidate.unique_skill) {
     return mySkill
-      ? `${candidate.name}'s ${candidate.unique_skill} pairs with your ${mySkill}.`
-      : `${candidate.name}'s ${candidate.unique_skill} is a concrete skill your team can use.`;
+      ? `${candidate.name} listed ${candidate.unique_skill}; that pairs directly with your ${mySkill}.`
+      : `${candidate.name} listed ${candidate.unique_skill}; useful if the team needs a clear execution owner.`;
   }
 
   if (candidate.occupation) {
-    return myOccupation
-      ? `${candidate.name}'s ${candidate.occupation} experience complements your ${myOccupation} background.`
-      : `${candidate.name}'s ${candidate.occupation} experience gives the team a clear role to build around.`;
+    if (myFacts.length > 0) {
+      return `${candidate.name} is a ${candidate.occupation} (${candidateBackground ?? "background unknown"}), which can round out ${myFacts.slice(0, 2).join(" + ")}.`;
+    }
+    return `${candidate.name} is a ${candidate.occupation}${candidateBackground ? ` with a ${candidateBackground} background` : ""}; a practical fit for research, pitching, or user validation.`;
   }
 
   if (candidateBackground) {
@@ -58,7 +69,9 @@ function buildConcreteReason(candidate: RecommendationCandidate, myProfile: Prof
       : `${candidate.name} brings another ${candidateBackground} builder into the unassigned pool.`;
   }
 
-  return `${candidate.name} is checked in and unassigned, so they are available to team up now.`;
+  return candidateFacts.length > 0
+    ? `${candidate.name}: ${candidateFacts.join("; ")}.`
+    : `${candidate.name} is checked in and unassigned, but no Luma profile details are available yet.`;
 }
 
 function reasonUsesProfileDetail(

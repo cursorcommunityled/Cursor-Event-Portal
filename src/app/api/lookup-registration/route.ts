@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import { createCheckInToken } from "@/lib/auth/checkin-token";
+import {
+  parsePortalSession,
+  PORTAL_SESSION_COOKIE_NAME,
+} from "@/lib/auth/portal-session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,45 +22,33 @@ export async function POST(request: NextRequest) {
     // If neither email nor userId provided, check for session
     if (!email && !userId) {
       const cookieStore = await cookies();
-      const sessionCookie = cookieStore.get("portal_session");
-      
+      const sessionCookie = cookieStore.get(PORTAL_SESSION_COOKIE_NAME);
+
       if (sessionCookie) {
-        try {
-          const session = JSON.parse(sessionCookie.value);
-          // Check if session is valid and matches this event
-          if (session.userId && session.eventId === eventId && (!session.exp || session.exp > Date.now())) {
-            // Use userId from session
-            const supabase = await createServiceClient();
-            const { data: user, error: userError } = await supabase
-              .from("users")
-              .select("id, name, email")
-              .eq("id", session.userId)
+        const session = parsePortalSession(sessionCookie.value);
+        // Check if session is valid and matches this event
+        if (session && session.eventId === eventId) {
+          // Use userId from session
+          const supabase = await createServiceClient();
+          const { data: user, error: userError } = await supabase
+            .from("users")
+            .select("id, name, email")
+            .eq("id", session.userId)
+            .single();
+
+          if (!userError && user) {
+            // Check if they have a registration for this event
+            const { data: registration, error: regError } = await supabase
+              .from("registrations")
+              .select("id, checked_in_at")
+              .eq("event_id", eventId)
+              .eq("user_id", user.id)
               .single();
 
-            if (!userError && user) {
-              // Check if they have a registration for this event
-              const { data: registration, error: regError } = await supabase
-                .from("registrations")
-                .select("id, checked_in_at")
-                .eq("event_id", eventId)
-                .eq("user_id", user.id)
-                .single();
-
-              if (!regError && registration) {
-                return NextResponse.json({
-                  found: true,
-                  alreadyCheckedIn: !!registration.checked_in_at,
-                  attendee: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                  },
-                });
-              }
+            if (!regError && registration) {
+              return registrationResponse(user, !!registration.checked_in_at);
             }
           }
-        } catch {
-          // Invalid session, continue with email lookup
         }
       }
     }
@@ -93,33 +86,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check if already checked in
-      if (registration.checked_in_at) {
-        return NextResponse.json({
-          found: true,
-          alreadyCheckedIn: true,
-          attendee: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-          },
-        });
-      }
-
-      // Found and not checked in yet
-      return NextResponse.json({
-        found: true,
-        alreadyCheckedIn: false,
-        attendee: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
-      });
+      return checkInLookupResponse(eventId, user, !!registration.checked_in_at);
     }
 
-    // If userId provided, use userId lookup
+    // If userId provided, only allow it for the existing attendee session.
     if (userId) {
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get(PORTAL_SESSION_COOKIE_NAME);
+      const session = parsePortalSession(sessionCookie?.value);
+      const validSession =
+        session !== null && session.userId === userId && session.eventId === eventId;
+
+      if (!validSession) {
+        return NextResponse.json(
+          { found: false, error: "Valid attendee session required" },
+          { status: 401 }
+        );
+      }
+
       const supabase = await createServiceClient();
       const { data: user, error: userError } = await supabase
         .from("users")
@@ -149,29 +133,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Check if already checked in
-      if (registration.checked_in_at) {
-        return NextResponse.json({
-          found: true,
-          alreadyCheckedIn: true,
-          attendee: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-          },
-        });
-      }
-
-      // Found and not checked in yet
-      return NextResponse.json({
-        found: true,
-        alreadyCheckedIn: false,
-        attendee: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        },
-      });
+      return registrationResponse(user, !!registration.checked_in_at);
     }
 
     // If we get here, no email, userId, or valid session was provided
@@ -186,4 +148,36 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function registrationResponse(
+  user: { id: string; name: string; email: string | null },
+  alreadyCheckedIn: boolean
+) {
+  return NextResponse.json({
+    found: true,
+    alreadyCheckedIn,
+    attendee: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+  });
+}
+
+function checkInLookupResponse(
+  eventId: string,
+  user: { id: string; name: string; email: string | null },
+  alreadyCheckedIn: boolean
+) {
+  return NextResponse.json({
+    found: true,
+    alreadyCheckedIn,
+    attendee: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
+    checkInToken: createCheckInToken(eventId, user.id),
+  });
 }

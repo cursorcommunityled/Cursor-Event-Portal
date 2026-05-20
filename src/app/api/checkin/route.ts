@@ -2,16 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { autoAssignLateArrival } from "@/lib/actions/groups";
+import { verifyCheckInToken } from "@/lib/auth/checkin-token";
+import {
+  PORTAL_SESSION_COOKIE_NAME,
+  serializePortalSession,
+} from "@/lib/auth/portal-session";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, attendeeId, guest, skipCheckIn } = body;
+    const { eventId, attendeeId, guest, skipCheckIn, checkInToken } = body;
 
     if (!eventId || !attendeeId) {
       return NextResponse.json(
         { error: "Missing eventId or attendeeId" },
         { status: 400 }
+      );
+    }
+
+    if (!verifyCheckInToken(checkInToken, eventId, attendeeId)) {
+      return NextResponse.json(
+        { error: "Check-in authorization required" },
+        { status: 401 }
       );
     }
 
@@ -138,7 +150,7 @@ export async function POST(request: NextRequest) {
     };
 
     const cookieStore = await cookies();
-    cookieStore.set("portal_session", JSON.stringify(session), {
+    cookieStore.set(PORTAL_SESSION_COOKIE_NAME, serializePortalSession(session), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

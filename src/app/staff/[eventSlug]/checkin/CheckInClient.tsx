@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import { AttendeeDetailModal } from "@/components/admin/AttendeeDetailModal";
 import { EventStatusBar } from "@/components/staff/EventStatusBar";
 
+const ATTENDEES_PER_PAGE = 25;
+
 interface CheckInClientProps {
   event: Event;
   eventSlug: string;
@@ -58,6 +60,7 @@ export function CheckInClient({
   const [confirmClearAll, setConfirmClearAll] = useState(false);
   const [addEmail, setAddEmail] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedAttendee, setSelectedAttendee] = useState<{
     userId: string;
     userName: string;
@@ -73,6 +76,12 @@ export function CheckInClient({
       reg.user?.email?.toLowerCase().includes(query)
     );
   });
+  const totalPages = Math.max(1, Math.ceil(filteredRegistrations.length / ATTENDEES_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStart = (safePage - 1) * ATTENDEES_PER_PAGE;
+  const paginatedRegistrations = filteredRegistrations.slice(pageStart, pageStart + ATTENDEES_PER_PAGE);
+  const visibleStart = filteredRegistrations.length === 0 ? 0 : pageStart + 1;
+  const visibleEnd = Math.min(pageStart + paginatedRegistrations.length, filteredRegistrations.length);
 
   const checkedInCount = registrations.filter((r) => r.checked_in_at).length;
 
@@ -173,6 +182,7 @@ export function CheckInClient({
           if (exists) return prev;
           return [result.registration, ...prev];
         });
+        setCurrentPage(1);
         setAddEmail("");
       } else {
         setError(result.error || "Failed to add registration");
@@ -209,6 +219,7 @@ export function CheckInClient({
       if (result.success) {
         setRegistrations([]);
         setSearchQuery("");
+        setCurrentPage(1);
         setConfirmDeregisterId(null);
       } else {
         setError(result.error || "Failed to clear registrations");
@@ -362,7 +373,10 @@ export function CheckInClient({
               type="text"
               placeholder="Search attendees"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full bg-transparent border-b border-white/10 rounded-none pl-10 pr-4 h-16 text-white placeholder:text-gray-800 focus:outline-none focus:border-white/30 transition-all text-2xl font-light"
             />
           </div>
@@ -401,7 +415,7 @@ export function CheckInClient({
               </p>
             </div>
           ) : (
-            filteredRegistrations.map((registration, index) => {
+            paginatedRegistrations.map((registration, index) => {
               const isCheckedIn = !!registration.checked_in_at;
               const isActive = activeId === registration.id;
 
@@ -578,6 +592,32 @@ export function CheckInClient({
                 </div>
               );
             })
+          )}
+          {filteredRegistrations.length > ATTENDEES_PER_PAGE && (
+            <div className="glass rounded-[28px] border border-white/5 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                Showing {visibleStart}-{visibleEnd} of {filteredRegistrations.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={safePage === 1}
+                  className="h-10 px-4 rounded-xl bg-white/[0.04] border border-white/10 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-300 hover:bg-white/[0.08] hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="min-w-20 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                  {safePage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={safePage === totalPages}
+                  className="h-10 px-4 rounded-xl bg-white/[0.04] border border-white/10 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-300 hover:bg-white/[0.08] hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </main>

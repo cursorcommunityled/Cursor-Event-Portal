@@ -219,6 +219,41 @@ export async function sendChatMessage(
   };
 }
 
+export async function editChatMessage(
+  messageId: string,
+  newContent: string
+): Promise<{ error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: "Not authenticated" };
+
+  if (!newContent.trim()) return { error: "Message cannot be empty" };
+
+  const supabase = await createServiceClient();
+
+  const { data: msg } = await supabase
+    .from("hackathon_chat_messages")
+    .select("user_id")
+    .eq("id", messageId)
+    .maybeSingle();
+
+  if (!msg) return { error: "Message not found" };
+
+  if (msg.user_id !== session.userId) {
+    return { error: "You can only edit your own messages" };
+  }
+
+  const { error } = await supabase
+    .from("hackathon_chat_messages")
+    .update({ 
+      content: newContent.trim(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", messageId);
+
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function deleteChatMessage(
   messageId: string
 ): Promise<{ error?: string }> {
@@ -344,4 +379,10 @@ export async function fetchChannelMessages(
   channelId: string
 ): Promise<HackathonChatMessage[]> {
   return getHackathonChatMessages(channelId, 60);
+}
+
+export async function fetchPinnedMessages(
+  channelId: string
+): Promise<HackathonChatMessage[]> {
+  return getHackathonChatMessages(channelId, 25, undefined, true);
 }

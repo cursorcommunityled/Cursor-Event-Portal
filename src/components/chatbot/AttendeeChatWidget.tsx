@@ -1,30 +1,91 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageCircle, X, Send, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { attendeeChat } from "@/lib/actions/attendee-chat";
+import { attendeeChat, getSuggestedChatQuestions } from "@/lib/actions/attendee-chat";
 import type { ChatMessage } from "@/lib/actions/attendee-chat";
 
 interface AttendeeChatWidgetProps {
   eventSlug: string;
   eventName: string;
+  userId?: string;
 }
 
-const SUGGESTED_QUESTIONS = [
+const DEFAULT_SUGGESTED_QUESTIONS = [
   "What's on the schedule tonight?",
   "How do I book a session?",
   "What's the discussion theme?",
   "How does speed networking work?",
 ];
 
-export function AttendeeChatWidget({ eventSlug, eventName }: AttendeeChatWidgetProps) {
+const CHAT_HISTORY_LIMIT = 40;
+
+function isChatMessage(value: unknown): value is ChatMessage {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    ((value as ChatMessage).role === "user" || (value as ChatMessage).role === "assistant") &&
+    typeof (value as ChatMessage).content === "string"
+  );
+}
+
+export function AttendeeChatWidget({ eventSlug, eventName, userId }: AttendeeChatWidgetProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>(DEFAULT_SUGGESTED_QUESTIONS);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasFetchedSuggestions = useRef(false);
+  const [loadedHistoryKey, setLoadedHistoryKey] = useState<string | null>(null);
+  const chatStorageKey = `attendee-chat:${eventSlug}:${userId ?? "guest"}:history`;
+
+  const persistMessages = useCallback((nextMessages: ChatMessage[]) => {
+    try {
+      window.localStorage.setItem(
+        chatStorageKey,
+        JSON.stringify(nextMessages.slice(-CHAT_HISTORY_LIMIT))
+      );
+    } catch {
+      // Chat still works without persistence if storage is unavailable.
+    }
+  }, [chatStorageKey]);
+
+  useEffect(() => {
+    setLoadedHistoryKey(null);
+    let nextMessages: ChatMessage[] = [];
+
+    try {
+      const stored = window.localStorage.getItem(chatStorageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          nextMessages = parsed.filter(isChatMessage).slice(-CHAT_HISTORY_LIMIT);
+        }
+      }
+    } catch {
+      nextMessages = [];
+    }
+
+    setMessages(nextMessages);
+    setLoadedHistoryKey(chatStorageKey);
+  }, [chatStorageKey]);
+
+  useEffect(() => {
+    if (loadedHistoryKey !== chatStorageKey) return;
+    persistMessages(messages);
+  }, [messages, chatStorageKey, loadedHistoryKey, persistMessages]);
+
+  useEffect(() => {
+    if (open && !hasFetchedSuggestions.current) {
+      hasFetchedSuggestions.current = true;
+      getSuggestedChatQuestions(eventSlug).then((questions) => {
+        setSuggestedQuestions(questions);
+      });
+    }
+  }, [open, eventSlug]);
 
   useEffect(() => {
     if (open) {
@@ -45,13 +106,15 @@ export function AttendeeChatWidget({ eventSlug, eventName }: AttendeeChatWidgetP
 
     const newMessages: ChatMessage[] = [...messages, { role: "user", content: trimmed }];
     setMessages(newMessages);
+    persistMessages(newMessages);
     setLoading(true);
 
     const { reply, error, eggTriggered } = await attendeeChat(eventSlug, newMessages);
-    setMessages((prev) => [
-      ...prev,
-      { role: "assistant", content: error || reply },
-    ]);
+    setMessages((prev) => {
+      const next = [...prev, { role: "assistant" as const, content: error || reply }];
+      persistMessages(next);
+      return next;
+    });
     setLoading(false);
 
     if (eggTriggered) {
@@ -115,7 +178,7 @@ export function AttendeeChatWidget({ eventSlug, eventName }: AttendeeChatWidgetP
                   </p>
                 </div>
                 <div className="space-y-2">
-                  {SUGGESTED_QUESTIONS.map((q) => (
+                  {suggestedQuestions.map((q) => (
                     <button
                       key={q}
                       onClick={() => send(q)}

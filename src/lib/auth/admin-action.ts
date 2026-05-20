@@ -7,8 +7,8 @@ import { getSession } from "@/lib/actions/registration";
  *
  * Authorisation succeeds if any one of the following is true:
  *
- *   1. The caller has a `portal_session` cookie belonging to a user with
- *      `users.role = 'admin'` (the legacy admin login flow).
+ *   1. The caller has a signed `portal_session` cookie belonging to a user
+ *      with `users.role = 'admin'`.
  *   2. The caller passes the per-event `adminCode` and it matches the
  *      target event row (URL-based auth used by `/admin/[adminCode]`
  *      pages, where the operator never has a `portal_session`).
@@ -28,7 +28,7 @@ export async function requireEventAdmin(
 ): Promise<{ error: string } | null> {
   const supabase = await createServiceClient();
 
-  // 1) Legacy portal_session admin user
+  // 1) Signed portal_session admin user
   const session = await getSession();
   if (session) {
     const { data: user } = await supabase
@@ -59,8 +59,8 @@ export async function requireEventAdmin(
  *
  * Authorisation succeeds if any one of the following is true:
  *
- *   1. The caller has a `portal_session` cookie belonging to a user with
- *      `users.role = 'admin'`.
+ *   1. The caller has a signed `portal_session` cookie belonging to a user
+ *      with `users.role = 'admin'`.
  *   2. The caller passes an `adminCode` that matches **any** event row
  *      (i.e. they're already authenticated as an admin of *some* event,
  *      so they're allowed to manage shared resources).
