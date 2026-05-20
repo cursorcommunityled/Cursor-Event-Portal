@@ -59,7 +59,7 @@ export function HackathonProfileButton({ eventId, eventSlug, initialProfile, use
           <UserRound className="w-4 h-4" />
           
           {isProfileIncomplete && (
-            <div className="absolute -top-1 -right-1 flex h-[18px] items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-black text-black shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-bounce">
+            <div className="absolute -right-4 -top-2 flex h-5 w-max items-center justify-center whitespace-nowrap rounded-full bg-white px-2 text-[10px] font-black leading-none text-black shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-bounce">
               Set up!
             </div>
           )}
@@ -84,7 +84,10 @@ export function HackathonProfileButton({ eventId, eventSlug, initialProfile, use
                   eventId={eventId}
                   initialProfile={initialProfile}
                   userName={userName}
-                  onSaved={() => setOpen(false)}
+                  onSaved={() => {
+                    setOpen(false);
+                    router.refresh();
+                  }}
                 />
               </div>
             </div>

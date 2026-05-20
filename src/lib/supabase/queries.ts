@@ -1846,7 +1846,6 @@ export async function getEventPhotosForAdmin(eventId: string, status?: PhotoStat
     .from("event_photos")
     .select("*, uploader:users!event_photos_uploaded_by_fkey(id, name, email)")
     .eq("event_id", eventId)
-    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .order("created_at", { ascending: false });
 
   if (status) {
@@ -1887,7 +1886,6 @@ export async function getPendingPhotoCount(eventId: string): Promise<number> {
     .from("event_photos")
     .select("id", { count: "exact", head: true })
     .eq("event_id", eventId)
-    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
     .eq("status", "pending");
 
   if (error) {
@@ -2466,7 +2464,7 @@ export async function getHackathonChatMessages(
 
 export async function getEventChatMembers(eventId: string): Promise<ChatMember[]> {
   noStore();
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
 
   // Chat roster should only include people who are actually present.
   const { data: regs, error } = await supabase

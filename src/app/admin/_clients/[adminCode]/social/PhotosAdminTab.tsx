@@ -19,6 +19,10 @@ interface PhotosAdminTabProps {
 
 type FilterStatus = "all" | PhotoStatus;
 
+function isTeamIconPhoto(photo: EventPhoto) {
+  return photo.photo_usage === "hackathon_team_icon";
+}
+
 export function PhotosAdminTab({
   event,
   adminCode,
@@ -478,16 +482,22 @@ export function PhotosAdminTab({
                 </button>
               )}
 
-              {/* Status badge */}
-              <div className={cn(
-                "absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-bold border",
-                statusColor(photo.status as PhotoStatus)
-              )}>
-                {photo.status}
+              <div className="absolute right-2 top-2 z-20 flex flex-col items-end gap-1">
+                <div className={cn(
+                  "px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-bold border",
+                  statusColor(photo.status as PhotoStatus)
+                )}>
+                  {photo.status}
+                </div>
+                {isTeamIconPhoto(photo) && (
+                  <div className="rounded-full border border-blue-400/20 bg-blue-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-blue-200">
+                    Team icon
+                  </div>
+                )}
               </div>
 
               {/* Hero featured star */}
-              {photo.status === "approved" && (
+              {photo.status === "approved" && !isTeamIconPhoto(photo) && (
                 <button
                   onClick={() => handleToggleHeroFeatured(photo.id)}
                   disabled={isPending}
@@ -595,6 +605,11 @@ export function PhotosAdminTab({
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <div>
+                  {isTeamIconPhoto(photo) && (
+                    <span className="mb-2 inline-flex rounded-full border border-blue-400/20 bg-blue-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">
+                      Team icon submission
+                    </span>
+                  )}
                   {photo.caption && (
                     <p className="text-sm text-gray-300 mb-1">{photo.caption}</p>
                   )}
@@ -603,7 +618,7 @@ export function PhotosAdminTab({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {photo.status === "approved" && (
+                  {photo.status === "approved" && !isTeamIconPhoto(photo) && (
                     <button
                       onClick={() => handleToggleHeroFeatured(photo.id)}
                       disabled={isPending}
