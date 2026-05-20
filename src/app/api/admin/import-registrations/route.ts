@@ -91,6 +91,10 @@ export async function POST(request: NextRequest) {
         linkedin_url?: string;
         needs_team?: boolean;
         accessibility?: string;
+        profile_bio?: string;
+        project_interests?: string;
+        collaboration_style?: string;
+        looking_for_teammates?: string;
       }
     ) => {
       const hasSurveyData =
@@ -99,22 +103,33 @@ export async function POST(request: NextRequest) {
         attendee.unique_skill ||
         attendee.linkedin_url ||
         attendee.needs_team !== undefined ||
-        attendee.accessibility;
+        attendee.accessibility ||
+        attendee.profile_bio ||
+        attendee.project_interests ||
+        attendee.collaboration_style ||
+        attendee.looking_for_teammates;
 
       if (!hasSurveyData) return;
 
+      const payload: Record<string, unknown> = {
+        user_id: userId,
+        event_id: eventId,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (attendee.occupation !== undefined) payload.occupation = attendee.occupation || null;
+      if (attendee.is_technical !== undefined) payload.is_technical = attendee.is_technical;
+      if (attendee.unique_skill !== undefined) payload.unique_skill = attendee.unique_skill || null;
+      if (attendee.linkedin_url !== undefined) payload.linkedin_url = attendee.linkedin_url || null;
+      if (attendee.needs_team !== undefined) payload.needs_team = attendee.needs_team;
+      if (attendee.accessibility !== undefined) payload.accessibility = attendee.accessibility || null;
+      if (attendee.profile_bio !== undefined) payload.profile_bio = attendee.profile_bio || null;
+      if (attendee.project_interests !== undefined) payload.project_interests = attendee.project_interests || null;
+      if (attendee.collaboration_style !== undefined) payload.collaboration_style = attendee.collaboration_style || null;
+      if (attendee.looking_for_teammates !== undefined) payload.looking_for_teammates = attendee.looking_for_teammates || null;
+
       const { error } = await supabase.from("hackathon_profiles").upsert(
-        {
-          user_id: userId,
-          event_id: eventId,
-          occupation: attendee.occupation ?? null,
-          is_technical: attendee.is_technical ?? null,
-          unique_skill: attendee.unique_skill ?? null,
-          linkedin_url: attendee.linkedin_url ?? null,
-          needs_team: attendee.needs_team ?? false,
-          accessibility: attendee.accessibility ?? null,
-          updated_at: new Date().toISOString(),
-        },
+        payload,
         { onConflict: "user_id,event_id" }
       );
 
@@ -135,6 +150,10 @@ export async function POST(request: NextRequest) {
         linkedin_url,
         needs_team,
         accessibility,
+        profile_bio,
+        project_interests,
+        collaboration_style,
+        looking_for_teammates,
       } = attendee as {
         name: string;
         email: string;
@@ -144,6 +163,10 @@ export async function POST(request: NextRequest) {
         linkedin_url?: string;
         needs_team?: boolean;
         accessibility?: string;
+        profile_bio?: string;
+        project_interests?: string;
+        collaboration_style?: string;
+        looking_for_teammates?: string;
       };
 
       if (!name || !email) {
@@ -192,6 +215,10 @@ export async function POST(request: NextRequest) {
         linkedin_url,
         needs_team,
         accessibility,
+        profile_bio,
+        project_interests,
+        collaboration_style,
+        looking_for_teammates,
       });
 
       // Check if registration already exists

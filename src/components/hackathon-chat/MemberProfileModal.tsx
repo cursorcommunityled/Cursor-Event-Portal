@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Shield, Star, X, Linkedin } from "lucide-react";
+import { Shield, Star, X, Linkedin, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMember } from "@/types";
 import { Avatar } from "./Avatar";
@@ -26,9 +26,11 @@ function ProfileField({
 export function MemberProfileModal({
   member,
   onClose,
+  onStartDM,
 }: {
   member: ChatMember;
   onClose: () => void;
+  onStartDM?: (userId: string) => void;
 }) {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -82,14 +84,26 @@ export function MemberProfileModal({
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-2xl p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
-              aria-label="Close profile"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {onStartDM && (
+                <button
+                  type="button"
+                  onClick={() => onStartDM(member.id)}
+                  className="flex items-center gap-2 rounded-2xl bg-white/5 border border-white/10 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-white transition-all hover:bg-white/10 hover:scale-105"
+                  aria-label="Direct Message"
+                >
+                  <MessageSquare className="h-4 w-4" /> Message
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-2xl p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Close profile"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           {member.team && (

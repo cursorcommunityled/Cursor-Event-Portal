@@ -25,6 +25,10 @@ interface ParsedAttendee {
   linkedin_url?: string;
   needs_team?: boolean;
   accessibility?: string;
+  profile_bio?: string;
+  project_interests?: string;
+  collaboration_style?: string;
+  looking_for_teammates?: string;
 }
 
 export function ImportRegistrationsClient({
@@ -74,25 +78,41 @@ export function ImportRegistrationsClient({
       const emailIdx = headers.findIndex(
         (h) => h === "email" || h === "attendee email" || h === "email address"
       );
-      const occupationIdx = headers.findIndex((h) => h.includes("occupation"));
-      const technicalIdx = headers.findIndex((h) => h.includes("technical"));
-      const skillIdx = headers.findIndex(
-        (h) =>
-          h.includes("unique thing") ||
-          h.includes("teach someone") ||
-          h.includes("pair you up")
+      const includesAny = (header: string, values: string[]) =>
+        values.some((value) => header.includes(value));
+      const includesAll = (header: string, values: string[]) =>
+        values.every((value) => header.includes(value));
+      const findHeader = (matcher: (header: string) => boolean) => headers.findIndex(matcher);
+
+      const occupationIdx = findHeader((h) =>
+        includesAny(h, ["occupation", "current role", "job title", "profession", "company"])
       );
-      const linkedinIdx = headers.findIndex((h) => h.includes("linkedin"));
-      const needsTeamIdx = headers.findIndex(
-        (h) =>
-          (h.includes("help") && h.includes("team")) ||
-          h.includes("matched with a team")
+      const technicalIdx = findHeader((h) =>
+        includesAll(h, ["technical"]) ||
+        includesAny(h, ["technical or non-technical", "technical/non-technical", "technical background"])
       );
-      const accessibilityIdx = headers.findIndex(
-        (h) =>
-          h.includes("accessibility") ||
-          h.includes("accommodations") ||
-          h.includes("special requests")
+      const skillIdx = findHeader((h) =>
+        includesAny(h, ["unique thing", "unique skill", "teach someone", "pair you up", "superpower", "expertise"])
+      );
+      const linkedinIdx = findHeader((h) => h.includes("linkedin"));
+      const needsTeamIdx = findHeader((h) =>
+        includesAll(h, ["help", "team"]) ||
+        includesAny(h, ["matched with a team", "looking for team", "need a team"])
+      );
+      const accessibilityIdx = findHeader((h) =>
+        includesAny(h, ["accessibility", "accommodations", "special requests"])
+      );
+      const bioIdx = findHeader((h) =>
+        includesAny(h, ["short bio", "bio", "about yourself", "introduce yourself", "background"])
+      );
+      const projectInterestsIdx = findHeader((h) =>
+        includesAny(h, ["project interests", "project idea", "what are you building", "build", "solution", "track", "theme"])
+      );
+      const collaborationStyleIdx = findHeader((h) =>
+        includesAny(h, ["collaboration style", "working style", "work style", "collaborate"])
+      );
+      const lookingForIdx = findHeader((h) =>
+        includesAny(h, ["looking for", "teammate", "team mate", "need from teammates", "ideal teammate"])
       );
 
       if (emailIdx === -1) {
@@ -177,6 +197,10 @@ export function ImportRegistrationsClient({
           linkedin_url: cleanValue(linkedinIdx),
           needs_team: needsTeamRaw ? needsTeamRaw.includes("yes") : undefined,
           accessibility: cleanValue(accessibilityIdx),
+          profile_bio: cleanValue(bioIdx),
+          project_interests: cleanValue(projectInterestsIdx),
+          collaboration_style: cleanValue(collaborationStyleIdx),
+          looking_for_teammates: cleanValue(lookingForIdx),
         });
       }
 
@@ -231,6 +255,10 @@ export function ImportRegistrationsClient({
             linkedin_url: a.linkedin_url,
             needs_team: a.needs_team,
             accessibility: a.accessibility,
+            profile_bio: a.profile_bio,
+            project_interests: a.project_interests,
+            collaboration_style: a.collaboration_style,
+            looking_for_teammates: a.looking_for_teammates,
           })),
         }),
       });
@@ -253,7 +281,7 @@ export function ImportRegistrationsClient({
         });
 
         // Refresh the page to show updated registrations
-        if (data.imported > 0) {
+        if (data.imported > 0 || data.profilesUpdated > 0) {
           router.refresh();
         }
       }

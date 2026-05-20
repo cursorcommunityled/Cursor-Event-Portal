@@ -2334,7 +2334,7 @@ export async function getHackathonScores(eventId: string): Promise<HackathonScor
 export async function getHackathonChatChannels(
   eventId: string,
   teamId?: string | null,
-  _userId?: string | null
+  userId?: string | null
 ): Promise<HackathonChatChannel[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -2350,30 +2350,37 @@ export async function getHackathonChatChannels(
     return [];
   }
 
-  const rows = ((data ?? []) as HackathonChatChannel[]).filter((ch) => ch.channel_type !== "dm");
+  const rows = ((data ?? []) as HackathonChatChannel[]).filter((ch) => {
+    if (ch.channel_type === "dm") {
+      return userId && ch.name.includes(userId);
+    }
+    return true;
+  });
 
   // Admin/fallback: return all shared channels
   if (teamId === undefined) {
     return rows;
   }
 
-  // No team: Spawn Point + announcements + resources (NOT general)
+  // No team: Spawn Point + announcements + resources + DMs (NOT general)
   if (teamId === null) {
     return rows.filter(
       (ch) =>
         ch.channel_type === "spawn_point" ||
         ch.channel_type === "announcements" ||
-        ch.channel_type === "resources"
+        ch.channel_type === "resources" ||
+        ch.channel_type === "dm"
     );
   }
 
-  // Has team: general + announcements + resources + their team channel (NOT spawn_point)
+  // Has team: general + announcements + resources + their team channel + DMs (NOT spawn_point)
   return rows.filter(
     (ch) =>
       ch.channel_type === "general" ||
       ch.channel_type === "announcements" ||
       ch.channel_type === "resources" ||
-      ch.team_id === teamId
+      ch.team_id === teamId ||
+      ch.channel_type === "dm"
   );
 }
 

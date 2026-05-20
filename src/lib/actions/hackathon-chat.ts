@@ -22,6 +22,41 @@ async function isCheckedInForEvent(
 }
 
 // Auto-provision the three default channels for a hackathon event
+export async function getOrCreateDMChannel(eventId: string, otherUserId: string) {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+
+  const [aId, bId] = [session.userId, otherUserId].sort();
+  const channelName = `dm:${aId}:${bId}`;
+
+  // Try to find existing
+  const { data: existing } = await supabase
+    .from("hackathon_chat_channels")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("name", channelName)
+    .maybeSingle();
+
+  if (existing) return { channelId: existing.id };
+
+  // Create new
+  const { data: newChannel, error } = await supabase
+    .from("hackathon_chat_channels")
+    .insert({
+      event_id: eventId,
+      name: channelName,
+      channel_type: "dm",
+      position: 1000,
+    })
+    .select("id")
+    .single();
+
+  if (error || !newChannel) return { error: "Failed to create DM channel" };
+  return { channelId: newChannel.id };
+}
+
 export async function ensureDefaultChannels(eventId: string) {
   const supabase = await createServiceClient();
 
@@ -115,7 +150,20 @@ export async function sendChatMessage(
 
   if (!channel) return { error: "Channel not found" };
 
-  if (channel.channel_type === "dm") return { error: "Direct messages are disabled" };
+  if (channel.channel_type === "dm") {
+    // Check if the user is part of the DM
+    if (!channel.name.includes(session.userId)) {
+      const { data: user } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", session.userId)
+        .maybeSingle();
+      const adminRoles = ["admin", "staff", "facilitator"];
+      if (!user || !adminRoles.includes(user.role)) {
+        return { error: "You cannot post in this DM" };
+      }
+    }
+  }
 
   // For team channels, verify membership
   if (channel.team_id) {
@@ -209,6 +257,33 @@ export async function sendChatMessage(
     .select("id, name")
     .eq("id", session.userId)
     .maybeSingle();
+
+  const mentionRecipientIds = [...new Set(mentionedUserIds)].filter((id) => id !== session.userId);
+  if (mentionRecipientIds.length > 0) {
+    const { data: eventRow } = await supabase
+      .from("events")
+      .select("slug")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    const senderName = user?.name ?? "Someone";
+    const preview = content?.trim()
+      ? content.trim().slice(0, 140)
+      : fileName
+        ? `Shared ${fileName}`
+        : "Mentioned you in chat";
+
+    await supabase.from("in_app_notifications").insert(
+      mentionRecipientIds.map((recipientId) => ({
+        user_id: recipientId,
+        event_id: eventId,
+        type: "chat_mention",
+        title: `${senderName} mentioned you`,
+        body: preview,
+        action_url: eventRow?.slug ? `/${eventRow.slug}/hackathon` : null,
+      }))
+    );
+  }
 
   return {
     message: {
