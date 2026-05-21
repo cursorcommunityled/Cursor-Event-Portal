@@ -2627,9 +2627,10 @@ export async function getHackathonChatChannels(
     return true;
   });
 
-  // Admin/fallback: return all shared channels
+  // Admin/fallback: return shared channels only. Team channels stay private to
+  // the team even if the viewer can administer the event.
   if (teamId === undefined) {
-    return rows;
+    return rows.filter((ch) => !ch.team_id || ch.channel_type === "dm");
   }
 
   // No team: Spawn Point + announcements + resources + DMs (NOT general)

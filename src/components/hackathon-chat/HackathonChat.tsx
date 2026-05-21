@@ -62,6 +62,11 @@ function getMentionedUserIds(text: string, members: ChatMember[], currentUserId:
   return [...mentioned];
 }
 
+function isDmParticipant(channelName: string, participantId: string) {
+  const parts = channelName.split(":");
+  return parts.length === 3 && parts[0] === "dm" && (parts[1] === participantId || parts[2] === participantId);
+}
+
 function messagesChanged(
   current: LocalHackathonChatMessage[],
   next: HackathonChatMessage[]
@@ -181,9 +186,9 @@ export function HackathonChat({
   }, [members]);
 
   const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
-    if (channel.channel_type === "dm") return channel.name.includes(userId);
-    return !channel.team_id || channel.team_id === myTeamId || isAdmin;
-  }, [isAdmin, myTeamId, userId]);
+    if (channel.channel_type === "dm") return isDmParticipant(channel.name, userId);
+    return !channel.team_id || channel.team_id === myTeamId;
+  }, [myTeamId, userId]);
 
   useEffect(() => {
     channelsRef.current = channels;
@@ -278,7 +283,7 @@ export function HackathonChat({
   const canPost = useMemo(() => {
     // No channel loaded yet — don't block, channels may still be initialising
     if (!currentChannel) return channels.length === 0 ? false : true;
-    if (currentChannel.channel_type === "dm") return currentChannel.name.includes(userId);
+    if (currentChannel.channel_type === "dm") return isDmParticipant(currentChannel.name, userId);
     if (currentChannel.channel_type === "announcements") return isAdmin;
     // Spawn Point: only unassigned members (no team yet) can post
     if (currentChannel.channel_type === "spawn_point") return !myTeamId || isAdmin;
