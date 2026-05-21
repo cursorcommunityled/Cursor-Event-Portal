@@ -30,6 +30,8 @@ function isFormationOpen(settings: HackathonSettings | null): boolean {
 }
 
 const PROJECT_JUDGING_LOCK_BUFFER_MS = 5 * 60 * 1000;
+const TEAM_NAME_MAX_LENGTH = 60;
+const PENDING_INVITE_TEAM_CATEGORY = "pending_invite";
 
 function getProjectSubmissionCutoff(settings: Pick<HackathonSettings, "submission_deadline" | "judging_starts_at"> | null): Date | null {
   if (settings?.judging_starts_at) {
@@ -44,6 +46,10 @@ function isProjectSubmissionOpen(
 ): boolean {
   const cutoff = getProjectSubmissionCutoff(settings);
   return !cutoff || now < cutoff;
+}
+
+function getTeamChannelName(teamName: string): string {
+  return `team-${teamName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
 async function saveRepoSubmissionBackup(
@@ -452,8 +458,6 @@ export async function adminDissolveTeam(
   revalidatePath(`/${auth.eventSlug}/hackathon`);
   return { success: true };
 }
-
-const PENDING_INVITE_TEAM_CATEGORY = "pending_invite";
 
 // ─── Attendee: send team invite ────────────────────────────────────────────────
 // If teamName is provided and user has no team, creates a hidden pending team.
@@ -880,6 +884,81 @@ export async function declineTeamInvite(
   }
 
   return { success: true };
+}
+
+// ─── Attendee: rename team ─────────────────────────────────────────────────────
+
+export async function renameTeam(
+  teamId: string,
+  eventId: string,
+  teamName: string
+): Promise<{ success?: true; error?: string; name?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+
+  const nextName = teamName.trim();
+  if (!nextName) return { error: "Team name is required" };
+  if (nextName.length > TEAM_NAME_MAX_LENGTH) {
+    return { error: `Team name must be ${TEAM_NAME_MAX_LENGTH} characters or fewer` };
+  }
+
+  const supabase = await createServiceClient();
+
+  const { data: team, error: teamError } = await supabase
+    .from("hackathon_teams")
+    .select("id, event_id, name, category")
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (teamError) return { error: teamError.message };
+  if (!team) return { error: "Team not found" };
+  if (team.category === PENDING_INVITE_TEAM_CATEGORY) {
+    return { error: "This team is still pending an accepted invite" };
+  }
+
+  const { data: membership } = await supabase
+    .from("hackathon_team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (!membership) return { error: "You are not on this team" };
+
+  const { data: settings } = await supabase
+    .from("hackathon_settings")
+    .select("*")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!isFormationOpen(settings as HackathonSettings | null)) {
+    return { error: "Team formation is closed — you cannot rename your team" };
+  }
+
+  if (team.name === nextName) return { success: true, name: nextName };
+
+  const { data: updatedTeam, error } = await supabase
+    .from("hackathon_teams")
+    .update({ name: nextName, updated_at: new Date().toISOString() })
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .select("name")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!updatedTeam) return { error: "Team name could not be updated" };
+
+  await supabase
+    .from("hackathon_chat_channels")
+    .update({ name: getTeamChannelName(nextName) })
+    .eq("event_id", eventId)
+    .eq("team_id", teamId)
+    .eq("channel_type", "team");
+
+  const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
+  return { success: true, name: updatedTeam.name };
 }
 
 // ─── Attendee: leave team ─────────────────────────────────────────────────────
