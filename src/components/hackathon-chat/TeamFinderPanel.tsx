@@ -9,21 +9,24 @@ import type { ChatMember } from "@/types";
 const PAGE_SIZE = 3;
 
 export function TeamFinderPanel({
-  eventId, userId, myTeamId, members, availableUserIds, onOpenProfile,
+  eventId, userId, myTeamId, members, availableUserIds, sentInviteUserIds = [], onOpenProfile, onInviteSent, onCancelInvite,
 }: {
   eventId: string;
   userId: string;
   myTeamId: string | null;
   members: ChatMember[];
   availableUserIds: string[];
+  sentInviteUserIds?: string[];
   onOpenProfile: (member: ChatMember) => void;
+  onInviteSent?: (userId: string) => void;
+  onCancelInvite?: (userId: string) => Promise<void> | void;
 }) {
   const [recs, setRecs] = useState<TeamRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreRecommendations, setHasMoreRecommendations] = useState(true);
   const [dismissed, setDismissed] = useState<boolean | null>(null);
-  const [inviteStatus, setInviteStatus] = useState<Record<string, "idle" | "pending" | "sent" | "error">>({});
+  const [inviteStatus, setInviteStatus] = useState<Record<string, "idle" | "pending" | "sent" | "canceling" | "error">>({});
   const [teamNameInputs, setTeamNameInputs] = useState<Record<string, string>>({});
   const [showNameInput, setShowNameInput] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
@@ -31,6 +34,7 @@ export function TeamFinderPanel({
   const availableUserIdsRef = useRef(availableUserIds);
   const recsRef = useRef<TeamRecommendation[]>([]);
   const availableUserKey = useMemo(() => [...availableUserIds].sort().join("|"), [availableUserIds]);
+  const sentInviteIds = useMemo(() => new Set(sentInviteUserIds), [sentInviteUserIds]);
 
   useEffect(() => {
     availableUserIdsRef.current = availableUserIds;
@@ -155,6 +159,7 @@ export function TeamFinderPanel({
     } else {
       setInviteStatus((s) => ({ ...s, [userId]: "sent" }));
       setShowNameInput(null);
+      onInviteSent?.(userId);
     }
   };
 
@@ -164,6 +169,17 @@ export function TeamFinderPanel({
     } else {
       setShowNameInput(userId);
     }
+  };
+
+  const handleCancelInvite = async (userId: string) => {
+    if (!onCancelInvite) return;
+    setInviteStatus((s) => ({ ...s, [userId]: "canceling" }));
+    await onCancelInvite(userId);
+    setInviteStatus((s) => {
+      const next = { ...s };
+      delete next[userId];
+      return next;
+    });
   };
 
   if (dismissed !== false || (!loading && recs.length === 0)) return null;
@@ -218,7 +234,7 @@ export function TeamFinderPanel({
               <div className="min-w-0 flex-1 space-y-2.5">
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   {visibleRecs.map((rec) => {
-                    const status = inviteStatus[rec.userId] ?? "idle";
+                    const status = inviteStatus[rec.userId] ?? (sentInviteIds.has(rec.userId) ? "sent" : "idle");
                     const teamName = teamNameInputs[rec.userId] ?? "";
                     const profileMember = members.find((member) => member.id === rec.userId) ?? {
                       id: rec.userId,
@@ -290,8 +306,22 @@ export function TeamFinderPanel({
                         </div>
                         <p className="text-[12px] text-gray-300 leading-snug">{rec.reason}</p>
 
-                        {status === "sent" ? (
-                          <p className="text-[11px] font-bold text-green-400">Invite sent!</p>
+                        {status === "sent" || status === "canceling" ? (
+                          onCancelInvite ? (
+                            <button
+                              type="button"
+                              disabled={status === "canceling"}
+                              onClick={() => handleCancelInvite(rec.userId)}
+                              className="group rounded-xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-green-300 transition-all hover:border-red-500/35 hover:bg-red-500/15 hover:text-red-200 disabled:opacity-50"
+                            >
+                              <span className="group-hover:hidden">
+                                {status === "canceling" ? "Canceling..." : "Invited"}
+                              </span>
+                              <span className="hidden group-hover:inline">Cancel Invite</span>
+                            </button>
+                          ) : (
+                            <p className="text-[11px] font-bold text-green-400">Invited</p>
+                          )
                         ) : status === "error" ? (
                           <p className="text-[11px] font-bold text-red-400">Could not send invite</p>
                         ) : showNameInput === rec.userId && !myTeamId ? (

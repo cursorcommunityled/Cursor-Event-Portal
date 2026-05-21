@@ -1079,6 +1079,255 @@ export interface SeriesAttendanceDataPoint {
   checked_in: number;
 }
 
+export interface UXMonitorMetrics {
+  lastUpdated: string;
+  pageViewsToday: number;
+  sessionsToday: number;
+  topModuleToday: string;
+  errorsToday: number;
+  moduleVisits: Array<{ module: string; visits: number }>;
+  hourlyPageViews: Array<{ hour: string; views: number }>;
+  topActions: Array<{ action: string; count: number }>;
+  recentErrors: Array<{
+    id: string;
+    time: string;
+    type: string;
+    path: string | null;
+    message: string;
+    metadata: Record<string, unknown> | null;
+  }>;
+  recentActivity: Array<{
+    id: string;
+    time: string;
+    type: "page_view" | "action" | "error";
+    module: string;
+    path: string | null;
+    details: Record<string, unknown> | null;
+  }>;
+}
+
+const MODULE_LABELS: Record<string, string> = {
+  landing: "Home",
+  registration: "Registration",
+  intake: "Intake",
+  agenda: "Agenda",
+  qa: "Q&A",
+  questions: "Q&A",
+  polls: "Polls",
+  slides: "Slides",
+  resources: "Resources",
+  feedback: "Feedback",
+  survey: "Feedback",
+  display: "Display",
+  admin: "Admin",
+  staff: "Staff",
+  hackathon: "Hackathon",
+  competitions: "Competitions",
+  socials: "Socials",
+  photos: "Photos",
+  checkin: "Check-in",
+};
+
+function getMonitorModule(pageType?: string | null, pagePath?: string | null) {
+  if (pagePath?.includes("/admin")) return "Admin";
+  if (pagePath?.includes("/staff")) return "Staff";
+  if (pageType && MODULE_LABELS[pageType]) return MODULE_LABELS[pageType];
+
+  const segments = (pagePath || "").split("?")[0].split("/").filter(Boolean);
+  const routeSegment = segments.length > 1 ? segments[1] : segments[0];
+  if (!routeSegment) return "Home";
+  return MODULE_LABELS[routeSegment] || routeSegment.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function emptyUXMonitorMetrics(): UXMonitorMetrics {
+  return {
+    lastUpdated: new Date().toISOString(),
+    pageViewsToday: 0,
+    sessionsToday: 0,
+    topModuleToday: "None",
+    errorsToday: 0,
+    moduleVisits: [],
+    hourlyPageViews: Array.from({ length: 24 }, (_, hour) => ({
+      hour: `${String(hour).padStart(2, "0")}:00`,
+      views: 0,
+    })),
+    topActions: [],
+    recentErrors: [],
+    recentActivity: [],
+  };
+}
+
+export async function getUXMonitorMetrics(eventId: string): Promise<UXMonitorMetrics> {
+  const supabase = await createServiceClient();
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  try {
+    const [
+      todayPageViewsResult,
+      recentPageViewsResult,
+      uxEventsResult,
+      recentErrorsResult,
+      errorsTodayResult,
+    ] = await Promise.all([
+      supabase
+        .from("page_views")
+        .select("id, session_id, page_type, page_path, created_at")
+        .eq("event_id", eventId)
+        .gte("created_at", todayStart.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("page_views")
+        .select("id, session_id, page_type, page_path, created_at")
+        .eq("event_id", eventId)
+        .gte("created_at", sevenDaysAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(2000),
+      supabase
+        .from("ux_events")
+        .select("id, session_id, event_type, action, element, label, module, page_path, metadata, created_at")
+        .eq("event_id", eventId)
+        .gte("created_at", sevenDaysAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1000),
+      supabase
+        .from("error_logs")
+        .select("id, error_type, error_message, page_path, metadata, created_at")
+        .eq("event_id", eventId)
+        .gte("created_at", sevenDaysAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(25),
+      supabase
+        .from("error_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", eventId)
+        .gte("created_at", todayStart.toISOString()),
+    ]);
+
+    const todayPageViews = todayPageViewsResult.error ? [] : todayPageViewsResult.data || [];
+    const recentPageViews = recentPageViewsResult.error ? [] : recentPageViewsResult.data || [];
+    const uxEvents = uxEventsResult.error ? [] : uxEventsResult.data || [];
+    const recentErrors = recentErrorsResult.error ? [] : recentErrorsResult.data || [];
+
+    if (uxEventsResult.error) {
+      console.warn("[getUXMonitorMetrics] ux_events unavailable:", uxEventsResult.error.message);
+    }
+
+    const hourlyPageViews = Array.from({ length: 24 }, (_, hour) => ({
+      hour: `${String(hour).padStart(2, "0")}:00`,
+      views: 0,
+    }));
+
+    todayPageViews.forEach((view) => {
+      const hour = new Date(view.created_at).getHours();
+      hourlyPageViews[hour].views += 1;
+    });
+
+    const todayModules = new Map<string, number>();
+    todayPageViews.forEach((view) => {
+      const module = getMonitorModule(view.page_type, view.page_path);
+      todayModules.set(module, (todayModules.get(module) || 0) + 1);
+    });
+
+    const topModuleToday =
+      Array.from(todayModules.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "None";
+
+    const moduleVisits = Array.from(
+      recentPageViews.reduce((counts, view) => {
+        const module = getMonitorModule(view.page_type, view.page_path);
+        counts.set(module, (counts.get(module) || 0) + 1);
+        return counts;
+      }, new Map<string, number>())
+    )
+      .map(([module, visits]) => ({ module, visits }))
+      .sort((a, b) => b.visits - a.visits)
+      .slice(0, 10);
+
+    const topActions = Array.from(
+      uxEvents.reduce((counts, event) => {
+        const actionLabel = event.label
+          ? `${event.action || event.event_type}: ${event.label}`
+          : event.action || event.event_type;
+        counts.set(actionLabel, (counts.get(actionLabel) || 0) + 1);
+        return counts;
+      }, new Map<string, number>())
+    )
+      .map(([action, count]) => ({ action, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    const sessionsToday = new Set(
+      todayPageViews.map((view) => view.session_id).filter(Boolean)
+    ).size;
+
+    const pageActivity = recentPageViews.slice(0, 120).map((view) => ({
+      id: view.id,
+      time: view.created_at,
+      type: "page_view" as const,
+      module: getMonitorModule(view.page_type, view.page_path),
+      path: view.page_path,
+      details: null,
+    }));
+
+    const actionActivity = uxEvents.slice(0, 120).map((event) => ({
+      id: event.id,
+      time: event.created_at,
+      type: "action" as const,
+      module: event.module || getMonitorModule(null, event.page_path),
+      path: event.page_path,
+      details: {
+        label: event.label,
+        action: event.action,
+        element: event.element,
+        ...(event.metadata && typeof event.metadata === "object" ? event.metadata : {}),
+      },
+    }));
+
+    const errorActivity = recentErrors.map((error) => ({
+      id: error.id,
+      time: error.created_at,
+      type: "error" as const,
+      module: getMonitorModule(null, error.page_path),
+      path: error.page_path,
+      details: {
+        type: error.error_type,
+        message: error.error_message,
+      },
+    }));
+
+    return {
+      lastUpdated: now.toISOString(),
+      pageViewsToday: todayPageViews.length,
+      sessionsToday,
+      topModuleToday,
+      errorsToday: errorsTodayResult.count || 0,
+      moduleVisits,
+      hourlyPageViews,
+      topActions,
+      recentErrors: recentErrors.map((error) => ({
+        id: error.id,
+        time: error.created_at,
+        type: error.error_type,
+        path: error.page_path,
+        message: error.error_message,
+        metadata:
+          error.metadata && typeof error.metadata === "object"
+            ? (error.metadata as Record<string, unknown>)
+            : null,
+      })),
+      recentActivity: [...pageActivity, ...actionActivity, ...errorActivity]
+        .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+        .slice(0, 120),
+    };
+  } catch (error) {
+    console.error("[getUXMonitorMetrics] Exception:", error);
+    return emptyUXMonitorMetrics();
+  }
+}
+
 export async function getSeriesAttendanceData(seriesId: string): Promise<SeriesAttendanceDataPoint[]> {
   const supabase = await createServiceClient();
 
@@ -2186,14 +2435,16 @@ export async function getMyReceivedHackathonInvites(
 }
 
 export async function getMySentHackathonInviteUserIds(
-  teamId: string
+  eventId: string,
+  userId: string
 ): Promise<string[]> {
   noStore();
   const supabase = await createServiceClient();
   const { data } = await supabase
     .from("hackathon_team_invites")
     .select("invited_user_id")
-    .eq("team_id", teamId)
+    .eq("event_id", eventId)
+    .eq("invited_by", userId)
     .eq("status", "pending");
   return (data ?? []).map((r: { invited_user_id: string }) => r.invited_user_id);
 }

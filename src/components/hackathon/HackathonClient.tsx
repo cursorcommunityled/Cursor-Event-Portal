@@ -5,6 +5,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import {
   sendTeamInvite,
+  cancelTeamInvite,
   acceptTeamInvite,
   declineTeamInvite,
   leaveTeam,
@@ -454,6 +455,38 @@ export function HackathonClient({
     });
   };
 
+  const handleCancelSentInvite = useCallback(async (invitedUserId: string, invitedName?: string) => {
+    const res = await cancelTeamInvite(event.id, invitedUserId);
+    if (res.error) {
+      showMsg(res.error, true);
+      return;
+    }
+
+    setSentIds((prev) => {
+      const next = new Set(prev);
+      next.delete(invitedUserId);
+      return next;
+    });
+    showMsg(invitedName ? `Invite to ${invitedName} canceled` : "Invite canceled");
+    refresh();
+  }, [event.id, refresh]);
+
+  const getProfileInviteStatus = (member: ChatMember): "hidden" | "available" | "sent" => {
+    if (sentIds.has(member.id)) return "sent";
+    if (!formationOpen || member.id === userId || member.team) return "hidden";
+    return "available";
+  };
+
+  const openInviteModalFromProfile = (member: ChatMember) => {
+    setTeamFinderProfileMember(null);
+    setInviteTarget({ id: member.id, name: member.name });
+  };
+
+  const cancelInviteFromProfile = (member: ChatMember) => {
+    setTeamFinderProfileMember(null);
+    void handleCancelSentInvite(member.id, member.name);
+  };
+
   const handleAccept = (inviteId: string) => {
     startTransition(async () => {
       const res = await acceptTeamInvite(inviteId);
@@ -567,13 +600,19 @@ export function HackathonClient({
       myTeamId={null}
       members={chatMembers}
       availableUserIds={teamFinderAvailableUserIds}
+      sentInviteUserIds={[...sentIds]}
       onOpenProfile={setTeamFinderProfileMember}
+      onInviteSent={(invitedUserId) => setSentIds((prev) => new Set([...prev, invitedUserId]))}
+      onCancelInvite={(invitedUserId) => handleCancelSentInvite(invitedUserId)}
     />
   ) : null;
   const teamFinderProfileModal = teamFinderProfileMember ? (
     <MemberProfileModal
       member={teamFinderProfileMember}
       onClose={() => setTeamFinderProfileMember(null)}
+      onInvite={openInviteModalFromProfile}
+      onCancelInvite={cancelInviteFromProfile}
+      inviteStatus={getProfileInviteStatus(teamFinderProfileMember)}
     />
   ) : null;
 
@@ -678,6 +717,9 @@ export function HackathonClient({
           members={chatMembers}
           myTeamId={myTeam?.id ?? null}
           needsTeam={needsTeam}
+          sentInviteUserIds={[...sentIds]}
+          onInviteFromProfile={formationOpen ? openInviteModalFromProfile : undefined}
+          onCancelInviteFromProfile={cancelInviteFromProfile}
         />
         {teamFinderProfileModal}
       </main>
@@ -1466,9 +1508,18 @@ export function HackathonClient({
                     </div>
                     {formationOpen && (
                       alreadyInvited ? (
-                        <span className="flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-green-400 shadow-neon-green">
-                          <Check className="w-3 h-3" /> Invited
-                        </span>
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleCancelSentInvite(person.id, person.name)}
+                          className="group flex min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-green-400 shadow-neon-green transition-all hover:border-red-500/40 hover:bg-red-500/15 hover:text-red-200 disabled:opacity-50"
+                          aria-label={`Cancel invite to ${person.name}`}
+                        >
+                          <span className="flex items-center gap-1.5 group-hover:hidden">
+                            <Check className="w-3 h-3" /> Invited
+                          </span>
+                          <span className="hidden group-hover:inline">Cancel Invite</span>
+                        </button>
                       ) : (
                         <button
                           disabled={isPending}

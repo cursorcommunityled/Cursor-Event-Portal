@@ -2,7 +2,7 @@ import { IntelligenceHubClient } from "../../_clients/[adminCode]/analytics/Inte
 import { getEventForAdmin } from "@/lib/utils/admin";
 import {
   getCheckInCurve, getQAAnalytics, getPollParticipation, getIntakeAnalytics, getSeriesAttendanceData,
-  getEventRegistrations, getQuestions, getPublishedSurvey, getSurveyResponses,
+  getEventRegistrations, getQuestions, getPublishedSurvey, getSurveyResponses, getUXMonitorMetrics,
 } from "@/lib/supabase/queries";
 
 export const revalidate = 0;
@@ -15,11 +15,11 @@ interface AnalyticsPageProps {
 export default async function AnalyticsPage({ params, searchParams }: AnalyticsPageProps) {
   const { adminCode } = await params;
   const { tab } = await searchParams;
-  const activeTab = tab === "data" ? "data" : "analytics";
+  const activeTab = tab === "data" || tab === "monitor" ? tab : "analytics";
 
   const event = await getEventForAdmin(adminCode);
 
-  const [checkInCurve, qaAnalytics, pollParticipation, intakeAnalytics, registrations, questions, survey] = await Promise.all([
+  const [checkInCurve, qaAnalytics, pollParticipation, intakeAnalytics, registrations, questions, survey, uxMonitorMetrics] = await Promise.all([
     getCheckInCurve(event.id),
     getQAAnalytics(event.id),
     getPollParticipation(event.id),
@@ -27,6 +27,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
     getEventRegistrations(event.id),
     getQuestions(event.id),
     getPublishedSurvey(event.id),
+    getUXMonitorMetrics(event.id),
   ]);
 
   const [seriesAttendanceData, surveyResponses] = await Promise.all([
@@ -48,6 +49,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
       questions={questions}
       survey={survey}
       surveyResponses={surveyResponses}
+      uxMonitorMetrics={uxMonitorMetrics}
       activeTab={activeTab}
     />
   );

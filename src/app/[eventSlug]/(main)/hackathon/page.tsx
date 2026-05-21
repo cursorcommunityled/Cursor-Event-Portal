@@ -63,9 +63,14 @@ export default async function HackathonPage({ params }: Props) {
       getPublishedCompetitionJudgingResults(event.id),
     ]);
 
-  const sentInviteUserIds = myTeam
-    ? await getMySentHackathonInviteUserIds(myTeam.id)
-    : [];
+  // Admins need all shared channels so they can monitor unassigned attendees in Spawn Point.
+  const currentMember = chatMembers.find((m) => m.id === session.userId);
+  const isAdmin =
+    currentMember?.role === "admin" ||
+    currentMember?.role === "staff" ||
+    currentMember?.role === "facilitator";
+
+  const sentInviteUserIds = await getMySentHackathonInviteUserIds(event.id, session.userId);
 
   // Load team's existing screenshots + AI analysis status (status only, no scores)
   const [{ data: screenshotRows }, { data: analysisRows }] = await Promise.all([
@@ -128,19 +133,16 @@ export default async function HackathonPage({ params }: Props) {
     };
   }
 
-  // Chat: get channels visible to this user (general + their team channel)
-  const chatChannels = await getHackathonChatChannels(event.id, myTeam?.id ?? null, session.userId);
+  // Chat: admins see every shared channel; attendees see Spawn Point until they join a team.
+  const chatChannels = await getHackathonChatChannels(
+    event.id,
+    isAdmin ? undefined : myTeam?.id ?? null,
+    session.userId
+  );
   const defaultChannel = chatChannels[0] ?? null;
   const initialMessages = defaultChannel
     ? await getHackathonChatMessages(defaultChannel.id, 60)
     : [];
-
-  // Determine if the current user is an admin (for chat posting permissions)
-  const currentMember = chatMembers.find((m) => m.id === session.userId);
-  const isAdmin =
-    currentMember?.role === "admin" ||
-    currentMember?.role === "staff" ||
-    currentMember?.role === "facilitator";
 
   return (
     <HackathonClient
