@@ -22,7 +22,11 @@ async function main() {
     process.exit(1);
   }
 
-  const result = await runPass4(new Anthropic({ apiKey }), urls);
+  const result = await runPass4(new Anthropic({ apiKey }), urls, {
+    teamName: process.env.TEST_PROJECT_NAME ?? "Security auditor",
+    repoUrl: process.env.TEST_REPO_URL ?? "https://github.com/neweraintelligence/Codebase-security-auditor",
+    pitchText: process.env.TEST_PROJECT_DESCRIPTION ?? "Security audit assistant for codebases.",
+  });
   console.log(JSON.stringify(result, null, 2));
 }
 

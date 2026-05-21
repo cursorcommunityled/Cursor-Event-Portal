@@ -82,8 +82,12 @@ Pass 4 (Visual):
 - Visual hierarchy: ${pass4.visual_hierarchy_score}/10
 - Design consistency: ${pass4.design_consistency_score}/10
 - UX flow: ${pass4.ux_flow_score}/10
+- Screenshot relevance: ${pass4.screenshot_relevance_score ?? 'not evaluated'}/10
+- Product intent alignment: ${pass4.product_intent_alignment_score ?? 'not evaluated'}/10
 - Overall visual: ${pass4.overall_visual_score}/10
 - Commentary: ${pass4.ux_commentary.join(' | ')}
+- Relevance notes: ${pass4.relevance_notes?.join(' | ') || 'none'}
+- Product intent notes: ${pass4.product_intent_notes?.join(' | ') || 'none'}
 
 Pass 5 (Pool):
 - Pool rank: ${pass5.pool_rank}/${pass5.pool_size}
