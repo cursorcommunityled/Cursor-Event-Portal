@@ -62,9 +62,13 @@ export interface Pass4Result {
   design_consistency_score: number;
   ux_flow_score: number;
   brand_cohesion_score: number;
+  screenshot_relevance_score?: number;
+  product_intent_alignment_score?: number;
   overall_visual_score: number;
   screenshots_analyzed: number;
   ux_commentary: string[];
+  relevance_notes?: string[];
+  product_intent_notes?: string[];
 }
 
 export interface Pass5Result {

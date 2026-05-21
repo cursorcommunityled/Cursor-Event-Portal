@@ -89,7 +89,12 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
     activePass = 'pass4_visual';
     await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
     try {
-      const pass4 = await runPass4(anthropic, ctx.screenshotUrls);
+      const pass4 = await runPass4(anthropic, ctx.screenshotUrls, {
+        teamName: ctx.teamName,
+        repoUrl: ctx.repoUrl,
+        pitchText: ctx.pitchText,
+        repoSummary: pass1.readme_summary,
+      });
       await savePass(supabase, ctx.teamId, ctx.eventId, 'pass4_visual', 'complete', pass4, undefined, 'claude-sonnet-4-6');
     } catch (e) {
       await savePass(supabase, ctx.teamId, ctx.eventId, 'pass4_visual', 'error', undefined, String(e));

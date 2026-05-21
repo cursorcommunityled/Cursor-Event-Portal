@@ -1,6 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Pass4Result } from '../types';
 
+interface Pass4Context {
+  teamName?: string;
+  repoUrl?: string;
+  pitchText?: string | null;
+  repoSummary?: string | null;
+}
+
 async function urlToBase64(url: string): Promise<{ data: string; mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' } | null> {
   try {
     const res = await fetch(url);
@@ -22,7 +29,8 @@ async function urlToBase64(url: string): Promise<{ data: string; mediaType: 'ima
 
 export async function runPass4(
   client: Anthropic,
-  screenshotUrls: string[]
+  screenshotUrls: string[],
+  context: Pass4Context = {}
 ): Promise<Pass4Result> {
   if (!screenshotUrls.length) {
     return {
@@ -30,9 +38,13 @@ export async function runPass4(
       design_consistency_score: 0,
       ux_flow_score: 0,
       brand_cohesion_score: 0,
+      screenshot_relevance_score: 0,
+      product_intent_alignment_score: 0,
       overall_visual_score: 0,
       screenshots_analyzed: 0,
       ux_commentary: ['No screenshots provided — visual analysis skipped.'],
+      relevance_notes: ['No screenshots were provided to validate against the project.'],
+      product_intent_notes: ['No UI evidence was available to evaluate against product intent.'],
     };
   }
 
@@ -47,9 +59,13 @@ export async function runPass4(
       design_consistency_score: 0,
       ux_flow_score: 0,
       brand_cohesion_score: 0,
+      screenshot_relevance_score: 0,
+      product_intent_alignment_score: 0,
       overall_visual_score: 0,
       screenshots_analyzed: 0,
       ux_commentary: ['Screenshots could not be loaded.'],
+      relevance_notes: ['The screenshot URLs could not be fetched for visual analysis.'],
+      product_intent_notes: ['No loaded UI evidence was available to evaluate against product intent.'],
     };
   }
 
@@ -70,13 +86,28 @@ export async function runPass4(
             type: 'text',
             text: `You are a UX designer judging hackathon projects. Analyze the ${images.length} screenshot(s) above.
 
-PHILOSOPHY: Clean, minimal, working UI scores higher than ambitious but broken UI. A well-structured landing page with clear purpose beats a cluttered dashboard. Consider that this was built in 24 hours.
+PROJECT CONTEXT:
+- Team/project name: ${context.teamName ?? 'unknown'}
+- Repo URL: ${context.repoUrl ?? 'unknown'}
+- Pitch/description: ${context.pitchText ?? 'none provided'}
+- Repo summary: ${context.repoSummary ?? 'none available'}
+
+PHILOSOPHY: Judge the UI relative to what this product is trying to accomplish. Clean, minimal, working UI scores higher than ambitious but broken UI. A well-structured interface that makes the product's intended job obvious beats a polished but irrelevant or generic screen. Consider that this was built in 24 hours.
 
 Evaluate each dimension 0-10:
-- visual_hierarchy_score: Can you tell what's important? Is there a clear primary action?
-- design_consistency_score: Are colors, typography, and spacing intentional and consistent?
-- ux_flow_score: Is it obvious how to use it? Would a stranger understand without guidance?
-- brand_cohesion_score: Is there a distinct visual identity beyond generic defaults?
+- visual_hierarchy_score: Does the hierarchy emphasize what matters for this product's purpose? For example, a security auditor should prioritize findings, severity, affected files, and next actions, not decorative chrome.
+- design_consistency_score: Are colors, typography, spacing, and components intentional and consistent in service of the product's intended workflow?
+- ux_flow_score: Is it obvious how the intended user would complete the product's core job from this UI?
+- brand_cohesion_score: Is there a visual identity that fits the product's domain and audience rather than generic defaults?
+- screenshot_relevance_score: Do the screenshots appear to be from this submitted project, based on the project context above? Penalize unrelated third-party product screenshots, stock/mockup images, or images that clearly do not represent the project.
+- product_intent_alignment_score: How well does the UI support the product intention implied by the project name, pitch, repo, and repo summary? Penalize UI that may be attractive but mismatched to the problem, audience, or core workflow.
+
+CALIBRATION RULES:
+- If the screenshot is visually polished but clearly unrelated to the submitted project, cap overall_visual_score at 3.
+- If the screenshot appears to be a copied third-party product/game/app screen rather than the team's own build, cap overall_visual_score at 3.
+- If the screenshot belongs to the project but does not make the product's intended use clear, product_intent_alignment_score should be 4 or lower.
+- If the UI is rough but strongly supports the product's intended job, it can still score reasonably on product_intent_alignment_score while losing points on polish dimensions.
+- If the context is limited but the screenshot plausibly matches, score normally and mention low confidence in relevance_notes.
 
 Return ONLY valid JSON:
 {
@@ -84,9 +115,13 @@ Return ONLY valid JSON:
   "design_consistency_score": number,
   "ux_flow_score": number,
   "brand_cohesion_score": number,
-  "overall_visual_score": number (weighted average),
+  "screenshot_relevance_score": number,
+  "product_intent_alignment_score": number,
+  "overall_visual_score": number (weighted average after relevance caps),
   "screenshots_analyzed": ${images.length},
-  "ux_commentary": ["2-4 specific, constructive observations about what you see"]
+  "ux_commentary": ["2-4 specific, constructive observations about what you see"],
+  "relevance_notes": ["1-3 observations about whether the screenshots match the submitted project"],
+  "product_intent_notes": ["1-3 observations about how well the UI supports the intended product and user workflow"]
 }`,
           },
         ],
