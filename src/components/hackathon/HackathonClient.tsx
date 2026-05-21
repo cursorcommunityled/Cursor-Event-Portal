@@ -8,6 +8,7 @@ import {
   cancelTeamInvite,
   acceptTeamInvite,
   declineTeamInvite,
+  renameTeam,
   leaveTeam,
   dissolveTeam,
   submitHackathonProject,
@@ -19,6 +20,7 @@ import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
   Camera, ImageIcon, Loader2, MessageSquare,
+  Pencil,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
@@ -192,6 +194,8 @@ export function HackathonClient({
   const [projectRepo, setProjectRepo] = useState(myTeam?.project?.repo_url ?? "");
   const [projectDemo, setProjectDemo] = useState(myTeam?.project?.demo_url ?? "");
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [editingTeamName, setEditingTeamName] = useState(false);
+  const [teamNameDraft, setTeamNameDraft] = useState(initialMyTeam?.name ?? "");
   const teamIconInputRef = useRef<HTMLInputElement>(null);
   const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -315,6 +319,12 @@ export function HackathonClient({
     setProjectRepo(myTeam?.project?.repo_url ?? "");
     setProjectDemo(myTeam?.project?.demo_url ?? "");
   }, [myTeam, showProjectForm]);
+
+  useEffect(() => {
+    if (!editingTeamName) {
+      setTeamNameDraft(myTeam?.name ?? "");
+    }
+  }, [editingTeamName, myTeam?.name]);
 
   useEffect(() => {
     setNow(new Date());
@@ -526,6 +536,29 @@ export function HackathonClient({
       showMsg(`${res.dissolvedByName ?? "Someone"} dissolved ${res.teamName ?? myTeam.name}`, false, 10000);
       setMyTeam(null);
       setTab("open-pool");
+      refresh();
+    });
+  };
+
+  const handleTeamRename = () => {
+    if (!myTeam) return;
+    const nextName = teamNameDraft.trim();
+    if (!nextName) { showMsg("Team name is required", true); return; }
+    if (nextName === myTeam.name) { setEditingTeamName(false); return; }
+
+    const teamId = myTeam.id;
+    startTransition(async () => {
+      const res = await renameTeam(teamId, event.id, nextName);
+      if (res.error) { showMsg(res.error, true); return; }
+
+      const savedName = res.name ?? nextName;
+      setMyTeam((prev) => prev ? { ...prev, name: savedName } : prev);
+      setAllTeams((prev) => prev.map((team) =>
+        team.id === teamId ? { ...team, name: savedName } : team
+      ));
+      setTeamNameDraft(savedName);
+      setEditingTeamName(false);
+      showMsg("Team name updated");
       refresh();
     });
   };
@@ -1064,7 +1097,62 @@ export function HackathonClient({
                       )}
                     </div>
                     <div className="min-w-0 pt-1">
-                      <h2 className="text-4xl font-black tracking-tight truncate text-white drop-shadow-md">{myTeam.name}</h2>
+                      {editingTeamName ? (
+                        <div className="space-y-3">
+                          <input
+                            autoFocus
+                            value={teamNameDraft}
+                            maxLength={60}
+                            onChange={(e) => setTeamNameDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleTeamRename();
+                              }
+                              if (e.key === "Escape") {
+                                setTeamNameDraft(myTeam.name);
+                                setEditingTeamName(false);
+                              }
+                            }}
+                            className="w-full rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-2xl font-black tracking-tight text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50 sm:text-3xl"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              disabled={isPending || !teamNameDraft.trim() || teamNameDraft.trim() === myTeam.name}
+                              onClick={handleTeamRename}
+                              className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Save Name
+                            </button>
+                            <button
+                              disabled={isPending}
+                              onClick={() => {
+                                setTeamNameDraft(myTeam.name);
+                                setEditingTeamName(false);
+                              }}
+                              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
+                            >
+                              <X className="w-3.5 h-3.5" /> Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-3">
+                          <h2 className="text-4xl font-black tracking-tight truncate text-white drop-shadow-md">{myTeam.name}</h2>
+                          {!teamLocked && (
+                            <button
+                              disabled={isPending}
+                              onClick={() => {
+                                setTeamNameDraft(myTeam.name);
+                                setEditingTeamName(true);
+                              }}
+                              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white disabled:opacity-40"
+                            >
+                              <Pencil className="w-3 h-3" /> Rename
+                            </button>
+                          )}
+                        </div>
+                      )}
                       <p className="mt-2 text-[12px] font-bold uppercase tracking-[0.2em] text-gray-400">
                         {myTeam.members.length} member{myTeam.members.length !== 1 ? "s" : ""}
                         {teamLocked && (
