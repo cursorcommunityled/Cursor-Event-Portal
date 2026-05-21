@@ -5,7 +5,7 @@ export const events: CursorEvent[] = [
     id: 'calgary-hackathon-sait-may-2026',
     title: 'Cursor Calgary Hackathon - SAIT',
     date: '2026-05-23',
-    displayDate: 'May 23–24, 2026 · 8:00 AM–3:30 PM',
+    displayDate: 'May 23–24, 2026 · 9:00 AM–3:30 PM',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/e4l2gbj2',
     status: 'upcoming',

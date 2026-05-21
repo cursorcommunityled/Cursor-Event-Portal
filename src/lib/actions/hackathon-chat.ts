@@ -5,8 +5,29 @@ import { getSession } from "@/lib/actions/registration";
 import type { HackathonChatMessage } from "@/types";
 import { getHackathonChatMessages } from "@/lib/supabase/queries";
 
+type SupabaseServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
+type PortalSession = NonNullable<Awaited<ReturnType<typeof getSession>>>;
+type ChatChannelRow = {
+  id: string;
+  name: string;
+  channel_type: string;
+  team_id: string | null;
+  event_id: string;
+};
+
+const ADMIN_ROLES = new Set(["admin", "staff", "facilitator"]);
+
+function isAdminRole(role: string | null | undefined) {
+  return Boolean(role && ADMIN_ROLES.has(role));
+}
+
+function getDmParticipantIds(channelName: string) {
+  const parts = channelName.split(":");
+  return parts.length === 3 && parts[0] === "dm" ? [parts[1], parts[2]] : [];
+}
+
 async function isCheckedInForEvent(
-  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  supabase: SupabaseServiceClient,
   eventId: string,
   userId: string
 ) {
@@ -21,12 +42,108 @@ async function isCheckedInForEvent(
   return Boolean(data);
 }
 
+async function getUserRole(supabase: SupabaseServiceClient, userId: string) {
+  const { data } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return data?.role as string | null | undefined;
+}
+
+async function isTeamMember(
+  supabase: SupabaseServiceClient,
+  teamId: string,
+  userId: string
+) {
+  const { data } = await supabase
+    .from("hackathon_team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", userId)
+    .limit(1);
+
+  return Boolean(data?.length);
+}
+
+async function userHasTeamInEvent(
+  supabase: SupabaseServiceClient,
+  eventId: string,
+  userId: string
+) {
+  const { data: eventTeams } = await supabase
+    .from("hackathon_teams")
+    .select("id")
+    .eq("event_id", eventId);
+  const eventTeamIds = (eventTeams ?? []).map((team: { id: string }) => team.id);
+  if (eventTeamIds.length === 0) return false;
+
+  const { data: membership } = await supabase
+    .from("hackathon_team_members")
+    .select("id")
+    .eq("user_id", userId)
+    .in("team_id", eventTeamIds)
+    .limit(1);
+
+  return Boolean(membership?.length);
+}
+
+async function canAccessChannel(
+  supabase: SupabaseServiceClient,
+  channel: ChatChannelRow,
+  session: PortalSession
+) {
+  if (session.eventId !== channel.event_id) return false;
+
+  const [checkedIn, role] = await Promise.all([
+    isCheckedInForEvent(supabase, channel.event_id, session.userId),
+    getUserRole(supabase, session.userId),
+  ]);
+
+  if (!checkedIn) return false;
+  if (isAdminRole(role)) return true;
+
+  if (channel.channel_type === "dm") {
+    return getDmParticipantIds(channel.name).includes(session.userId);
+  }
+
+  if (channel.team_id) {
+    return isTeamMember(supabase, channel.team_id, session.userId);
+  }
+
+  if (channel.channel_type === "spawn_point") {
+    return !(await userHasTeamInEvent(supabase, channel.event_id, session.userId));
+  }
+
+  return ["general", "announcements", "resources"].includes(channel.channel_type);
+}
+
+async function getAuthorizedChannel(
+  supabase: SupabaseServiceClient,
+  channelId: string,
+  session: PortalSession
+) {
+  const { data: channel } = await supabase
+    .from("hackathon_chat_channels")
+    .select("id, name, channel_type, team_id, event_id")
+    .eq("id", channelId)
+    .maybeSingle();
+
+  if (!channel) return null;
+  return (await canAccessChannel(supabase, channel, session)) ? channel : null;
+}
+
 // Auto-provision the three default channels for a hackathon event
 export async function getOrCreateDMChannel(eventId: string, otherUserId: string) {
   const session = await getSession();
   if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+  if (session.userId === otherUserId) return { error: "Cannot create a DM with yourself" };
 
   const supabase = await createServiceClient();
+
+  const otherUserCheckedIn = await isCheckedInForEvent(supabase, eventId, otherUserId);
+  if (!otherUserCheckedIn) return { error: "User is not checked in for this event" };
 
   const [aId, bId] = [session.userId, otherUserId].sort();
   const channelName = `dm:${aId}:${bId}`;
@@ -152,14 +269,9 @@ export async function sendChatMessage(
 
   if (channel.channel_type === "dm") {
     // Check if the user is part of the DM
-    if (!channel.name.includes(session.userId)) {
-      const { data: user } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", session.userId)
-        .maybeSingle();
-      const adminRoles = ["admin", "staff", "facilitator"];
-      if (!user || !adminRoles.includes(user.role)) {
+    if (!getDmParticipantIds(channel.name).includes(session.userId)) {
+      const role = await getUserRole(supabase, session.userId);
+      if (!isAdminRole(role)) {
         return { error: "You cannot post in this DM" };
       }
     }
@@ -176,14 +288,8 @@ export async function sendChatMessage(
 
     if (!membership?.length) {
       // Admins can still post — check user role
-      const { data: user } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", session.userId)
-        .maybeSingle();
-
-      const adminRoles = ["admin", "staff", "facilitator"];
-      if (!user || !adminRoles.includes(user.role)) {
+      const role = await getUserRole(supabase, session.userId);
+      if (!isAdminRole(role)) {
         return { error: "You are not a member of this team" };
       }
     }
@@ -204,13 +310,8 @@ export async function sendChatMessage(
         .in("team_id", eventTeamIds)
         .limit(1);
       if (userMembership?.length) {
-        const { data: user } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", session.userId)
-          .maybeSingle();
-        const adminRoles = ["admin", "staff", "facilitator"];
-        if (!user || !adminRoles.includes(user.role)) {
+        const role = await getUserRole(supabase, session.userId);
+        if (!isAdminRole(role)) {
           return { error: "You're on a team — use your team channel or #general" };
         }
       }
@@ -219,14 +320,8 @@ export async function sendChatMessage(
 
   // For announcements, only admins/staff can post
   if (channel.channel_type === "announcements") {
-    const { data: user } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", session.userId)
-      .maybeSingle();
-
-    const adminRoles = ["admin", "staff", "facilitator"];
-    if (!user || !adminRoles.includes(user.role)) {
+    const role = await getUserRole(supabase, session.userId);
+    if (!isAdminRole(role)) {
       return { error: "Only admins can post in announcements" };
     }
   }
@@ -307,11 +402,14 @@ export async function editChatMessage(
 
   const { data: msg } = await supabase
     .from("hackathon_chat_messages")
-    .select("user_id")
+    .select("user_id, channel_id, event_id")
     .eq("id", messageId)
     .maybeSingle();
 
   if (!msg) return { error: "Message not found" };
+  if (msg.event_id !== session.eventId) return { error: "Not authorised" };
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  if (!channel) return { error: "Not authorised" };
 
   if (msg.user_id !== session.userId) {
     return { error: "You can only edit your own messages" };
@@ -339,22 +437,19 @@ export async function deleteChatMessage(
 
   const { data: msg } = await supabase
     .from("hackathon_chat_messages")
-    .select("user_id, event_id")
+    .select("user_id, channel_id, event_id")
     .eq("id", messageId)
     .maybeSingle();
 
   if (!msg) return { error: "Message not found" };
+  if (msg.event_id !== session.eventId) return { error: "Not authorised" };
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  if (!channel) return { error: "Not authorised" };
 
   // Allow delete if own message or admin
   if (msg.user_id !== session.userId) {
-    const { data: user } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", session.userId)
-      .maybeSingle();
-
-    const adminRoles = ["admin", "staff", "facilitator"];
-    if (!user || !adminRoles.includes(user.role)) {
+    const role = await getUserRole(supabase, session.userId);
+    if (!isAdminRole(role)) {
       return { error: "Not authorised" };
     }
   }
@@ -377,16 +472,20 @@ export async function pinChatMessage(
 
   const supabase = await createServiceClient();
 
-  const { data: user } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", session.userId)
-    .maybeSingle();
-
-  const adminRoles = ["admin", "staff", "facilitator"];
-  if (!user || !adminRoles.includes(user.role)) {
+  const role = await getUserRole(supabase, session.userId);
+  if (!isAdminRole(role)) {
     return { error: "Only admins can pin messages" };
   }
+
+  const { data: msg } = await supabase
+    .from("hackathon_chat_messages")
+    .select("channel_id, event_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (!msg || msg.event_id !== session.eventId) return { error: "Message not found" };
+
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  if (!channel) return { error: "Not authorised" };
 
   const { error } = await supabase
     .from("hackathon_chat_messages")
@@ -405,6 +504,16 @@ export async function toggleChatReaction(
   if (!session) return { error: "Not authenticated" };
 
   const supabase = await createServiceClient();
+
+  const { data: msg } = await supabase
+    .from("hackathon_chat_messages")
+    .select("channel_id, event_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (!msg || msg.event_id !== session.eventId) return { error: "Message not found" };
+
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  if (!channel) return { error: "Not authorised" };
 
   const { data: existing } = await supabase
     .from("hackathon_chat_reactions")
@@ -435,6 +544,9 @@ export async function markChannelRead(
   if (!session) return;
 
   const supabase = await createServiceClient();
+  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  if (!channel) return;
+
   await supabase
     .from("hackathon_chat_reads")
     .upsert(
@@ -447,17 +559,38 @@ export async function loadMoreMessages(
   channelId: string,
   beforeId: string
 ): Promise<HackathonChatMessage[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const supabase = await createServiceClient();
+  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  if (!channel) return [];
+
   return getHackathonChatMessages(channelId, 40, beforeId);
 }
 
 export async function fetchChannelMessages(
   channelId: string
 ): Promise<HackathonChatMessage[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const supabase = await createServiceClient();
+  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  if (!channel) return [];
+
   return getHackathonChatMessages(channelId, 60);
 }
 
 export async function fetchPinnedMessages(
   channelId: string
 ): Promise<HackathonChatMessage[]> {
+  const session = await getSession();
+  if (!session) return [];
+
+  const supabase = await createServiceClient();
+  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  if (!channel) return [];
+
   return getHackathonChatMessages(channelId, 25, undefined, true);
 }
