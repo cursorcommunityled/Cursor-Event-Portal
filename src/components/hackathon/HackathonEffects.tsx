@@ -182,7 +182,7 @@ export function HackathonEffects({ scoresCount, projectSubmitted, eventStarted, 
                 PROJECT SUBMITTED!
               </p>
               <p className="mt-2 text-lg font-bold uppercase tracking-[0.3em] text-green-400">
-                Awaiting AI Analysis
+                Awaiting Analysis
               </p>
             </div>
           ) : null}

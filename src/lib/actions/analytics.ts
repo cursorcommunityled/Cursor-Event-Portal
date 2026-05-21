@@ -549,6 +549,51 @@ export async function logError(
 }
 
 // ============================================================================
+// UX EVENT TRACKING
+// ============================================================================
+
+export type UxEventType = "action" | "navigation" | "search" | "system";
+
+export async function recordUxEvent(
+  eventId: string,
+  options: {
+    eventType: UxEventType;
+    action?: string;
+    element?: string;
+    label?: string | null;
+    module?: string | null;
+    pagePath?: string;
+    metadata?: Record<string, unknown>;
+    sessionId?: string;
+    userAgent?: string;
+  }
+) {
+  try {
+    const session = await getSession();
+    const supabase = await createServiceClient();
+
+    await supabase.from("ux_events").insert({
+      event_id: eventId,
+      user_id: session?.userId || null,
+      session_id: options.sessionId || null,
+      event_type: options.eventType,
+      action: options.action || null,
+      element: options.element || null,
+      label: options.label || null,
+      module: options.module || null,
+      page_path: options.pagePath || null,
+      metadata: options.metadata || null,
+      user_agent: options.userAgent || null,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[recordUxEvent] Error:", error);
+    return { error: "Failed to record UX event" };
+  }
+}
+
+// ============================================================================
 // ANALYTICS QUERIES
 // ============================================================================
 

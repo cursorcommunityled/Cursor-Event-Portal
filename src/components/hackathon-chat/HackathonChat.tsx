@@ -10,15 +10,13 @@ import {
   sendChatMessage, deleteChatMessage, pinChatMessage, editChatMessage,
   toggleChatReaction, markChannelRead, loadMoreMessages, fetchChannelMessages, fetchPinnedMessages, getOrCreateDMChannel,
 } from "@/lib/actions/hackathon-chat";
-import { sendTeamInvite } from "@/lib/actions/hackathon";
 import { cn } from "@/lib/utils";
 import {
   Hash, Lock, Megaphone, BookOpen, Users, X, Send,
   Paperclip, Smile, Pin, Trash2, ChevronUp, Shield,
-  Star, ImageIcon, FileText, Download, AlertCircle, Zap, UserPlus,
+  Star, ImageIcon, FileText, Download, AlertCircle, Zap,
   Linkedin, Pencil, Check, Search,
 } from "lucide-react";
-import { getTeamRecommendations, type TeamRecommendation } from "@/lib/actions/hackathon-profiles";
 import type {
   HackathonChatChannel, HackathonChatMessage, HackathonChatReaction,
   ChatMember, Event,
@@ -43,6 +41,9 @@ interface Props {
   members: ChatMember[];
   myTeamId: string | null;
   needsTeam?: boolean;
+  sentInviteUserIds?: string[];
+  onInviteFromProfile?: (member: ChatMember) => void;
+  onCancelInviteFromProfile?: (member: ChatMember) => void;
 }
 
 function escapeRegExp(value: string) {
@@ -70,6 +71,7 @@ function isClosableChannel(channel: HackathonChatChannel) {
 export function HackathonChat({
   event, userId, isAdmin, channels: initialChannels,
   initialMessages, initialChannelId, members, myTeamId,
+  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile,
 }: Props) {
   const [channels, setChannels] = useState(initialChannels);
   const [activeChannelId, setActiveChannelId] = useState(initialChannelId);
@@ -207,6 +209,24 @@ export function HackathonChat({
       return searchable.includes(query);
     });
   }, [memberSearchQuery, members]);
+
+  const sentInviteIds = useMemo(() => new Set(sentInviteUserIds), [sentInviteUserIds]);
+
+  const getProfileInviteStatus = useCallback((member: ChatMember): "hidden" | "available" | "sent" => {
+    if (sentInviteIds.has(member.id)) return "sent";
+    if (!onInviteFromProfile || member.id === userId || member.team) return "hidden";
+    return "available";
+  }, [onInviteFromProfile, sentInviteIds, userId]);
+
+  const handleProfileInvite = useCallback((member: ChatMember) => {
+    setProfileMember(null);
+    onInviteFromProfile?.(member);
+  }, [onInviteFromProfile]);
+
+  const handleProfileCancelInvite = useCallback((member: ChatMember) => {
+    setProfileMember(null);
+    onCancelInviteFromProfile?.(member);
+  }, [onCancelInviteFromProfile]);
 
   // Group members by team for the sidebar
   const membersByTeam = useMemo(() => {
@@ -1297,6 +1317,9 @@ export function HackathonChat({
           member={profileMember}
           onClose={() => setProfileMember(null)}
           onStartDM={userId !== profileMember.id ? handleStartDM : undefined}
+          onInvite={handleProfileInvite}
+          onCancelInvite={handleProfileCancelInvite}
+          inviteStatus={getProfileInviteStatus(profileMember)}
         />
       )}
     </div>

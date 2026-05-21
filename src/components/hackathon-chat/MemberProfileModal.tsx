@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Shield, Star, X, Linkedin, MessageSquare } from "lucide-react";
+import { Check, Shield, Star, X, Linkedin, MessageSquare, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMember } from "@/types";
 import { Avatar } from "./Avatar";
@@ -27,10 +27,16 @@ export function MemberProfileModal({
   member,
   onClose,
   onStartDM,
+  onInvite,
+  onCancelInvite,
+  inviteStatus = "hidden",
 }: {
   member: ChatMember;
   onClose: () => void;
   onStartDM?: (userId: string) => void;
+  onInvite?: (member: ChatMember) => void;
+  onCancelInvite?: (member: ChatMember) => void;
+  inviteStatus?: "hidden" | "available" | "sent";
 }) {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -85,6 +91,34 @@ export function MemberProfileModal({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {inviteStatus === "sent" ? (
+                onCancelInvite ? (
+                  <button
+                    type="button"
+                    onClick={() => onCancelInvite(member)}
+                    className="group flex min-w-[106px] items-center justify-center gap-2 rounded-2xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-green-300 transition-all hover:border-red-500/35 hover:bg-red-500/15 hover:text-red-200"
+                    aria-label="Cancel invite"
+                  >
+                    <span className="flex items-center gap-2 group-hover:hidden">
+                      <Check className="h-4 w-4" /> Invited
+                    </span>
+                    <span className="hidden group-hover:inline">Cancel Invite</span>
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-2 rounded-2xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-green-300">
+                    <Check className="h-4 w-4" /> Invited
+                  </span>
+                )
+              ) : inviteStatus === "available" && onInvite ? (
+                <button
+                  type="button"
+                  onClick={() => onInvite(member)}
+                  className="flex items-center gap-2 rounded-2xl border border-red-500/25 bg-red-500/15 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-red-200 transition-all hover:border-red-500/40 hover:bg-red-500/25 hover:scale-105"
+                  aria-label="Invite to team"
+                >
+                  <UserPlus className="h-4 w-4" /> Invite
+                </button>
+              ) : null}
               {onStartDM && (
                 <button
                   type="button"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AnalyticsClient } from "./AnalyticsClient";
+import { UXMonitorClient } from "./UXMonitorClient";
 import { DataManagementClient } from "../data/DataManagementClient";
 import { cn } from "@/lib/utils";
 import type { Event, Registration, Question, Survey, SurveyResponse } from "@/types";
@@ -12,12 +13,14 @@ import type {
   PollParticipation,
   IntakeAnalytics,
   SeriesAttendanceDataPoint,
+  UXMonitorMetrics,
 } from "@/lib/supabase/queries";
 
-type TabType = "analytics" | "data";
+type TabType = "analytics" | "monitor" | "data";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "analytics", label: "Analytics", description: "Insights & reports" },
+  { id: "monitor",   label: "UX Monitor", description: "Live activity & errors" },
   { id: "data",      label: "Data",      description: "Import & export" },
 ];
 
@@ -31,6 +34,7 @@ interface IntelligenceHubClientProps {
   pollParticipation: PollParticipation[];
   intakeAnalytics: IntakeAnalytics;
   seriesAttendanceData?: SeriesAttendanceDataPoint[];
+  uxMonitorMetrics: UXMonitorMetrics;
   // Data
   registrations: Registration[];
   questions: Question[];
@@ -49,6 +53,7 @@ export function IntelligenceHubClient({
   pollParticipation,
   intakeAnalytics,
   seriesAttendanceData,
+  uxMonitorMetrics,
   registrations,
   questions,
   survey,
@@ -121,6 +126,7 @@ export function IntelligenceHubClient({
               seriesAttendanceData={seriesAttendanceData}
             />
           )}
+          {activeTab === "monitor" && <UXMonitorClient metrics={uxMonitorMetrics} />}
           {activeTab === "data" && (
             <DataManagementClient
               event={event}

@@ -630,6 +630,54 @@ export async function sendTeamInvite(
   return { success: true, teamId };
 }
 
+// ─── Attendee: cancel sent team invite ─────────────────────────────────────────
+
+export async function cancelTeamInvite(
+  eventId: string,
+  invitedUserId: string
+): Promise<{ success?: true; error?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+  const { data: invite, error: inviteError } = await supabase
+    .from("hackathon_team_invites")
+    .select("id, team_id, team:hackathon_teams(category)")
+    .eq("event_id", eventId)
+    .eq("invited_by", session.userId)
+    .eq("invited_user_id", invitedUserId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (inviteError) return { error: inviteError.message };
+  if (!invite) return { error: "Invite not found" };
+
+  const { error } = await supabase
+    .from("hackathon_team_invites")
+    .update({ status: "declined", updated_at: new Date().toISOString() })
+    .eq("id", invite.id)
+    .eq("invited_by", session.userId);
+
+  if (error) return { error: error.message };
+
+  const team = invite.team as unknown as { category: string | null } | null;
+  if (invite.team_id && team?.category === PENDING_INVITE_TEAM_CATEGORY) {
+    const { count: remainingInvites } = await supabase
+      .from("hackathon_team_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", invite.team_id)
+      .eq("status", "pending");
+
+    if ((remainingInvites ?? 0) === 0) {
+      await supabase.from("hackathon_teams").delete().eq("id", invite.team_id);
+    }
+  }
+
+  const { data: eventRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (eventRow?.slug) revalidatePath(`/${eventRow.slug}/hackathon`);
+  return { success: true };
+}
+
 // ─── Attendee: accept invite ───────────────────────────────────────────────────
 
 export async function acceptTeamInvite(
