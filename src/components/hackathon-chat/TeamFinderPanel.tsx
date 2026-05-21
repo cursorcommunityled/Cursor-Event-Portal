@@ -289,17 +289,17 @@ export function TeamFinderPanel({
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {rec.occupation && (
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
+                            <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
                               {rec.occupation}
                             </span>
                           )}
                           {rec.is_technical !== null && (
-                            <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
+                            <span className="rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-gray-300">
                               {rec.is_technical ? "Technical builder" : "Non-technical / product"}
                             </span>
                           )}
                           {rec.unique_skill && (
-                            <span className="rounded-full border border-red-500/25 bg-red-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-red-200">
+                            <span className="rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-red-200">
                               {rec.unique_skill}
                             </span>
                           )}
