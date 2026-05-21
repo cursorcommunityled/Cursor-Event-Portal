@@ -1,6 +1,6 @@
 -- Creates the SAIT Hackathon May 2026 event and supporting setup.
 -- Safe to run multiple times.
--- May 23/24 2026 is MDT (UTC-6): 8:00 AM MDT = 14:00 UTC; 3:30 PM MDT = 21:30 UTC.
+-- May 23/24 2026 is MDT (UTC-6): 9:00 AM MDT = 15:00 UTC; 3:30 PM MDT = 21:30 UTC.
 
 -- 0. Ensure prerequisite columns/tables exist on databases missing newer migrations
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -383,7 +383,7 @@ VALUES (
   'Southern Alberta Institute of Technology',
   '1301 16 Ave NW, Calgary, AB T2M 0L4, Canada',
   '/nw-sait-heritage-hall-winter-730x485.jpg',
-  '2026-05-23T14:00:00Z',   -- 8:00 AM MDT May 23
+  '2026-05-23T15:00:00Z',   -- 9:00 AM MDT May 23
   '2026-05-24T21:30:00Z',   -- 3:30 PM MDT May 24
   'America/Edmonton',
   'published',
@@ -415,7 +415,7 @@ SELECT
   'Cursor Calgary Hackathon - SAIT',
   '2026-05-23',
   '2026-05-24',
-  '08:00',
+  '09:00',
   '15:30',
   e.venue,
   e.address,
@@ -434,7 +434,7 @@ WHERE e.slug = 'calgary-hackathon-sait-may-2026'
 UPDATE public.planned_events pe
 SET
   end_date = '2026-05-24',
-  start_time = '08:00',
+  start_time = '09:00',
   end_time = '15:30',
   venue = e.venue,
   address = e.address,

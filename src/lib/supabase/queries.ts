@@ -2595,6 +2595,12 @@ export async function getHackathonScores(eventId: string): Promise<HackathonScor
 
 // ─── Hackathon Chat ───────────────────────────────────────────────────────────
 
+function isDmParticipant(channelName: string, userId: string | null | undefined) {
+  if (!userId) return false;
+  const parts = channelName.split(":");
+  return parts.length === 3 && parts[0] === "dm" && (parts[1] === userId || parts[2] === userId);
+}
+
 export async function getHackathonChatChannels(
   eventId: string,
   teamId?: string | null,
@@ -2616,7 +2622,7 @@ export async function getHackathonChatChannels(
 
   const rows = ((data ?? []) as HackathonChatChannel[]).filter((ch) => {
     if (ch.channel_type === "dm") {
-      return userId && ch.name.includes(userId);
+      return isDmParticipant(ch.name, userId);
     }
     return true;
   });

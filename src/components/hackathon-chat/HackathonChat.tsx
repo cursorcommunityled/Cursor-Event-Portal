@@ -62,6 +62,30 @@ function getMentionedUserIds(text: string, members: ChatMember[], currentUserId:
   return [...mentioned];
 }
 
+function messagesChanged(
+  current: LocalHackathonChatMessage[],
+  next: HackathonChatMessage[]
+) {
+  if (current.length !== next.length) return true;
+  return current.some((message, index) => {
+    const nextMessage = next[index];
+    if (!nextMessage) return true;
+    const reactionSignature = (message.reactions ?? [])
+      .map((reaction) => `${reaction.id}:${reaction.emoji}:${reaction.user_id}`)
+      .join("|");
+    const nextReactionSignature = (nextMessage.reactions ?? [])
+      .map((reaction) => `${reaction.id}:${reaction.emoji}:${reaction.user_id}`)
+      .join("|");
+    return (
+      message.id !== nextMessage.id ||
+      message.updated_at !== nextMessage.updated_at ||
+      message.deleted_at !== nextMessage.deleted_at ||
+      message.is_pinned !== nextMessage.is_pinned ||
+      reactionSignature !== nextReactionSignature
+    );
+  });
+}
+
 function isClosableChannel(channel: HackathonChatChannel) {
   return channel.channel_type === "dm" || channel.channel_type === "team";
 }
@@ -362,6 +386,9 @@ export function HackathonChat({
         { event: "INSERT", schema: "public", table: "hackathon_chat_messages", filter: `event_id=eq.${event.id}` },
         (payload) => {
           const newMsg = payload.new as HackathonChatMessage;
+          const messageChannel = channelsRef.current.find((channel) => channel.id === newMsg.channel_id);
+          if (!messageChannel || !canSeeChannel(messageChannel)) return;
+
           const mentionedMe = newMsg.user_id !== userId && newMsg.mentioned_user_ids?.includes(userId);
           setMessageMap((prev) => {
             const existing = prev[newMsg.channel_id] ?? [];
@@ -398,6 +425,9 @@ export function HackathonChat({
         { event: "UPDATE", schema: "public", table: "hackathon_chat_messages", filter: `event_id=eq.${event.id}` },
         (payload) => {
           const updated = payload.new as HackathonChatMessage;
+          const messageChannel = channelsRef.current.find((channel) => channel.id === updated.channel_id);
+          if (!messageChannel || !canSeeChannel(messageChannel)) return;
+
           setMessageMap((prev) => {
             const existing = prev[updated.channel_id] ?? [];
             return {
@@ -494,6 +524,36 @@ export function HackathonChat({
         ch.id === resolvedChannelId && ch.unread_count ? { ...ch, unread_count: 0 } : ch
       ));
     }
+  }, [resolvedChannelId]);
+
+  useEffect(() => {
+    if (!resolvedChannelId) return;
+
+    let cancelled = false;
+    const refreshActiveChannel = async () => {
+      const latestMessages = await fetchChannelMessages(resolvedChannelId);
+      if (cancelled) return;
+
+      setMessageMap((prev) => {
+        const current = prev[resolvedChannelId] ?? [];
+        if (!messagesChanged(current, latestMessages)) return prev;
+        return { ...prev, [resolvedChannelId]: latestMessages };
+      });
+      setPinnedMessageMap((prev) => ({
+        ...prev,
+        [resolvedChannelId]: latestMessages.filter((message) => message.is_pinned),
+      }));
+      setHasMore(latestMessages.length >= 60);
+    };
+
+    const intervalId = window.setInterval(() => {
+      refreshActiveChannel().catch(() => {});
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [resolvedChannelId]);
 
   useEffect(() => {
