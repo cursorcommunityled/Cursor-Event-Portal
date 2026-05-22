@@ -12,6 +12,8 @@ import {
   getHackathonChatMessages,
   getEventChatMembers,
   getPublishedCompetitionJudgingResults,
+  getHackathonMentors,
+  getHackathonJudges,
 } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
@@ -51,7 +53,7 @@ export default async function HackathonPage({ params }: Props) {
   // Ensure default channels exist (idempotent)
   await ensureDefaultChannels(event.id);
 
-  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults] =
+  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults, mentors, judges] =
     await Promise.all([
       getHackathonSettings(event.id),
       getMyHackathonTeam(event.id, session.userId),
@@ -61,6 +63,8 @@ export default async function HackathonPage({ params }: Props) {
       getHackathonScores(event.id),
       getEventChatMembers(event.id),
       getPublishedCompetitionJudgingResults(event.id),
+      getHackathonMentors(event.id),
+      getHackathonJudges(event.id),
     ]);
 
   // Admins need all shared channels so they can monitor unassigned attendees in Spawn Point.
@@ -163,6 +167,8 @@ export default async function HackathonPage({ params }: Props) {
       publishedJudgingResults={judgingResults}
       needsTeam={profileWithDefaults?.needs_team === true}
       hackathonProfile={profileWithDefaults}
+      mentors={mentors}
+      judges={judges}
       initialScreenshots={initialScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
       audienceVotePoll={audienceVotePoll as import("@/types").PollWithVotes | null}

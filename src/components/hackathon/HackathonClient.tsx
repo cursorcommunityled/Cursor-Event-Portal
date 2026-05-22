@@ -20,13 +20,13 @@ import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
   Camera, ImageIcon, Loader2, MessageSquare,
-  Pencil,
+  Pencil, Award,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
   HackathonTeamInvite, HackathonScore, EventPhoto,
   HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingResult,
-  HackathonProfile,
+  HackathonProfile, Mentor,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { MemberProfileModal } from "@/components/hackathon-chat/MemberProfileModal";
@@ -35,6 +35,8 @@ import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinn
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
+import { MentorCard } from "@/components/demos/MentorCard";
+import { JudgeBadge } from "@/components/hackathon/JudgeBadge";
 import type { PollWithVotes } from "@/types";
 import {
   HACKATHON_SCORE_CATEGORIES,
@@ -71,14 +73,16 @@ interface Props {
   publishedJudgingResults: CompetitionJudgingResult[];
   needsTeam?: boolean;
   hackathonProfile: HackathonProfile | null;
+  mentors: Mentor[];
+  judges: Mentor[];
   initialScreenshots?: { id: string; file_url: string }[];
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
   audienceVotePoll?: PollWithVotes | null;
 }
 
-type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "chat";
+type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "mentors" | "judges" | "chat";
 
-const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "chat"]);
+const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "mentors", "judges", "chat"]);
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
@@ -164,7 +168,7 @@ export function HackathonClient({
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
   publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
-  audienceVotePoll = null, hackathonProfile,
+  audienceVotePoll = null, hackathonProfile, mentors, judges,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -622,9 +626,15 @@ export function HackathonClient({
     { id: "overview", label: "Hub", icon: <Swords className="w-3.5 h-3.5" /> },
     { id: "all-teams", label: "Teams", count: allTeams.length },
     { id: "open-pool", label: "Pool", count: pool.length },
+    { id: "mentors", label: "Mentors", count: mentors.length, icon: <UserPlus className="w-3.5 h-3.5" /> },
+    { id: "judges", label: "Judges", count: judges.length, icon: <Award className="w-3.5 h-3.5" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
-  const showTeamFinder = !myTeam && tab !== "overview";
+  const showTeamFinder = !myTeam && (tab === "all-teams" || tab === "open-pool" || tab === "chat");
+  const liveMentors = mentors.filter(
+    (mentor) => mentor.mentorship_mode === "in_person" || mentor.mentorship_mode === "hybrid"
+  );
+  const onlineMentors = mentors.filter((mentor) => mentor.mentorship_mode === "virtual");
   const teamFinderAvailableUserIds = useMemo(() => pool.map((person) => person.id), [pool]);
   const teamFinder = showTeamFinder ? (
     <TeamFinderPanel
@@ -1624,6 +1634,88 @@ export function HackathonClient({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Mentors tab */}
+      {tab === "mentors" && (
+        <div className="space-y-8 animate-slide-up">
+          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
+            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/10 blur-[50px]" />
+            <div className="relative space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
+              <h2 className="text-4xl font-light text-white tracking-tight">Mentors</h2>
+              <p className="text-sm text-gray-500">Get guidance from industry experts throughout the event.</p>
+            </div>
+          </div>
+
+          {liveMentors.length > 0 && (
+            <section className="space-y-4">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live Tonight</p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {liveMentors.map((mentor) => (
+                  <MentorCard
+                    key={mentor.id}
+                    mentor={mentor}
+                    eventSlug={event.slug}
+                    availableSlots={0}
+                    isBooked={false}
+                    basePath="hackathon"
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {onlineMentors.length > 0 && (
+            <section className="space-y-4">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Book Online</p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {onlineMentors.map((mentor) => (
+                  <MentorCard
+                    key={mentor.id}
+                    mentor={mentor}
+                    eventSlug={event.slug}
+                    availableSlots={0}
+                    isBooked={false}
+                    basePath="hackathon"
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {mentors.length === 0 && (
+            <div className="glass rounded-[32px] p-8 border-white/10 text-center">
+              <p className="text-sm text-gray-500">Mentors will be announced soon.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Judges tab */}
+      {tab === "judges" && (
+        <div className="space-y-6 animate-slide-up">
+          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
+            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-amber-500/10 blur-[50px]" />
+            <div className="relative space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
+              <h2 className="text-4xl font-light text-white tracking-tight">Judges</h2>
+              <p className="text-sm text-gray-500">Meet the panel evaluating tonight&apos;s projects.</p>
+            </div>
+          </div>
+
+          {judges.length > 0 ? (
+            <section className="space-y-3">
+              {judges.map((judge) => (
+                <JudgeBadge key={judge.id} judge={judge} />
+              ))}
+            </section>
+          ) : (
+            <div className="glass rounded-[32px] p-8 border-white/10 text-center">
+              <p className="text-sm text-gray-500">Judges will be announced soon.</p>
+            </div>
+          )}
         </div>
       )}
 
