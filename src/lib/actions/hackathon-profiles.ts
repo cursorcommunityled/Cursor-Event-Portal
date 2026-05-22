@@ -117,7 +117,8 @@ function backgroundLabel(isTechnical: boolean | null) {
 }
 
 function buildConcreteReason(candidate: RecommendationCandidate, myProfile: ProfileContext | null) {
-  const mySkill = myProfile?.unique_skill;
+  const mySkillRaw = myProfile?.unique_skill?.trim() || "";
+  const mySkill = mySkillRaw.toLowerCase() === "none" ? null : mySkillRaw;
   const myOccupation = myProfile?.occupation;
   const myBackground = backgroundLabel(myProfile?.is_technical ?? null);
   const candidateBackground = backgroundLabel(candidate.is_technical);
@@ -134,8 +135,8 @@ function buildConcreteReason(candidate: RecommendationCandidate, myProfile: Prof
 
   if (candidate.unique_skill) {
     return mySkill
-      ? `${candidate.name} listed ${candidate.unique_skill}; that pairs directly with your ${mySkill}.`
-      : `${candidate.name} listed ${candidate.unique_skill}; useful if the team needs a clear execution owner.`;
+      ? `This pairs directly with your ${mySkill}.`
+      : `Useful if the team needs a clear execution owner.`;
   }
 
   if (candidate.occupation) {
