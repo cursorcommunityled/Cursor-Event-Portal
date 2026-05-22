@@ -2941,6 +2941,12 @@ const SAIT_PERSON_PROFILE_OVERRIDES: Record<string, Partial<Mentor>> = {
     is_mentor: true,
     is_judge: true,
   },
+  "Aditya Thakur": {
+    photo_url: "/avatars/hackathon/sait-may-2026/aditya-thakur-20260522.png",
+  },
+  "Kanis Patel": {
+    photo_url: "/avatars/hackathon/sait-may-2026/kanis-patel-20260522.png",
+  },
   "Alex Young": {
     title: "Senior Software Engineer",
     company: "Mercury Technologies",
