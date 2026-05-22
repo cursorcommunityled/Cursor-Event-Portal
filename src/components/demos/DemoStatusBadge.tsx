@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MonitorPlay, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatTime } from "@/lib/utils";
+import { SESSIONS_PAGE_ENABLED } from "@/lib/demo/visibility";
 
 interface DemoSlotPreview {
   id: string;
@@ -40,6 +41,8 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!SESSIONS_PAGE_ENABLED) return;
+
     async function loadStatus() {
       try {
         const res = await fetch(`/api/session-status?eventId=${eventId}`);
@@ -64,6 +67,7 @@ export function DemoStatusBadge({ eventId, eventSlug, timezone }: DemoStatusBadg
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [open]);
 
+  if (!SESSIONS_PAGE_ENABLED) return null;
   if (!status?.enabled || !status.availability) return null;
 
   const { availability, speakerName, currentSlot, upcomingSlots = [] } = status;

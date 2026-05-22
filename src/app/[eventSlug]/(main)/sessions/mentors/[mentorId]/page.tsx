@@ -9,6 +9,7 @@ import {
   getDemoSlotsWithCounts,
   getOrCreateDemoSettings,
 } from "@/lib/demo/service";
+import { SESSIONS_PAGE_ENABLED } from "@/lib/demo/visibility";
 import { MentorProfilePanel } from "@/components/demos/MentorProfilePanel";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ export default async function MentorPage({ params }: MentorPageProps) {
 
   const event = await getEventBySlug(eventSlug);
   if (!event) notFound();
+  if (!SESSIONS_PAGE_ENABLED) redirect(`/${eventSlug}/agenda`);
 
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
