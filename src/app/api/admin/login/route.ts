@@ -5,6 +5,7 @@ import {
   PORTAL_SESSION_COOKIE_NAME,
   serializePortalSession,
 } from "@/lib/auth/portal-session";
+import { isStaticAdminEmail } from "@/lib/auth/admin-allowlist";
 
 // Health check for debugging
 export async function GET() {
@@ -65,7 +66,9 @@ export async function POST(request: NextRequest) {
       service.from("users").select("id, name, email, role").ilike("email", email).limit(1).maybeSingle(),
     ]);
 
-    if (!allowListed && existingUser?.role !== "admin") {
+    const isAllowListed = Boolean(allowListed) || isStaticAdminEmail(email);
+
+    if (!isAllowListed && existingUser?.role !== "admin") {
       return NextResponse.json(
         { error: "Admin access required." },
         { status: 403 }
@@ -79,6 +82,7 @@ export async function POST(request: NextRequest) {
       const { data: newUser, error: createUserError } = await service
         .from("users")
         .insert({
+          id: authUser.id,
           email,
           name: typeof metadataName === "string" && metadataName.trim() ? metadataName.trim() : fallbackName,
           role: "admin",

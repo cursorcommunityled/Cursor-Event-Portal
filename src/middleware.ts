@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
+import { isStaticAdminEmail } from "@/lib/auth/admin-allowlist";
 
 // Process-local cache so we don't hammer the DB on every admin request.
 // Edge runtime is per-instance so this is best-effort, not authoritative.
@@ -9,6 +10,8 @@ const adminEmailCache = new Map<string, { isAdmin: boolean; expiresAt: number }>
 const ADMIN_CACHE_TTL_MS = 60_000;
 
 async function isAdminEmail(email: string): Promise<boolean> {
+  if (isStaticAdminEmail(email)) return true;
+
   const cached = adminEmailCache.get(email);
   if (cached && cached.expiresAt > Date.now()) {
     return cached.isAdmin;
