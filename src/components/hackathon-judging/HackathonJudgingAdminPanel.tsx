@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   ExternalLink,
@@ -174,10 +174,34 @@ export function HackathonJudgingAdminPanel({
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Track which entries have unsaved local changes so remote refreshes don't
+  // wipe a judge's in-progress slider positions when other judges save.
+  const dirtyRef = useRef<Set<string>>(new Set());
+  const [dirtyEntries, setDirtyEntries] = useState<Set<string>>(new Set());
+
+  const markDirty = (entryId: string) => {
+    dirtyRef.current.add(entryId);
+    setDirtyEntries((prev) => { const s = new Set(prev); s.add(entryId); return s; });
+  };
+  const clearDirty = (entryId: string) => {
+    dirtyRef.current.delete(entryId);
+    setDirtyEntries((prev) => { const s = new Set(prev); s.delete(entryId); return s; });
+  };
+  const clearAllDirty = () => {
+    dirtyRef.current.clear();
+    setDirtyEntries(new Set());
+  };
+
   const competition = useMemo(
     () => competitions.find((comp) => comp.id === selectedCompetitionId) ?? competitions[0] ?? null,
     [competitions, selectedCompetitionId]
   );
+
+  // Clear dirty tracking when the judge explicitly switches to a different competition.
+  useEffect(() => {
+    clearAllDirty();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompetitionId]);
 
   useEffect(() => {
     if (!competition || !adminUserId) return;
@@ -185,6 +209,9 @@ export function HackathonJudgingAdminPanel({
     const nextScores: ScoreDraft = {};
     const nextNotes: Record<string, string> = {};
     for (const finalist of competition.finalists) {
+      // Don't overwrite entries the judge is actively editing — preserve their
+      // in-progress slider positions across real-time refreshes from other judges.
+      if (dirtyRef.current.has(finalist.entry_id)) continue;
       const scorecard = competition.scorecards.find(
         (card) => card.entry_id === finalist.entry_id && card.judge_id === adminUserId
       );
@@ -195,8 +222,8 @@ export function HackathonJudgingAdminPanel({
       }
       nextNotes[finalist.entry_id] = scorecard?.notes ?? "";
     }
-    setScoreDrafts(nextScores);
-    setNotesDrafts(nextNotes);
+    setScoreDrafts((prev) => ({ ...prev, ...nextScores }));
+    setNotesDrafts((prev) => ({ ...prev, ...nextNotes }));
   }, [competition, adminUserId]);
 
   if (competitions.length === 0) {
@@ -212,6 +239,7 @@ export function HackathonJudgingAdminPanel({
   const maxScore = competition.criteria.reduce((sum, criterion) => sum + Number(criterion.max_points), 0) || 100;
   const published = competition.results.filter((result) => result.is_published);
   const hasResettableState = competition.scorecards.length > 0 || competition.results.length > 0;
+  const uniqueJudgeCount = new Set(competition.scorecards.map((card) => card.judge_id)).size;
 
   const saveEntryScore = (entryId: string) => {
     setActiveEntryId(entryId);
@@ -233,6 +261,7 @@ export function HackathonJudgingAdminPanel({
         setError(res.error);
       } else {
         setSavedEntryId(entryId);
+        clearDirty(entryId);
       }
       setActiveEntryId(null);
     });
@@ -268,6 +297,7 @@ export function HackathonJudgingAdminPanel({
         return;
       }
 
+      clearAllDirty();
       const emptyScores: ScoreDraft = {};
       const emptyNotes: Record<string, string> = {};
       for (const finalist of competition.finalists) {
@@ -318,7 +348,7 @@ export function HackathonJudgingAdminPanel({
           )}
         </div>
 
-        <div className="relative grid grid-cols-3 gap-4 text-center">
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           <div className="rounded-[24px] bg-white/5 border border-white/10 p-5 shadow-inner">
             <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{competition.finalists.length}</p>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">Finalists</p>
@@ -330,6 +360,15 @@ export function HackathonJudgingAdminPanel({
           <div className="rounded-[24px] bg-white/5 border border-white/10 p-5 shadow-inner">
             <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{maxScore}</p>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">Max Score</p>
+          </div>
+          <div className={cn(
+            "rounded-[24px] border p-5 shadow-inner",
+            uniqueJudgeCount > 0 ? "bg-green-500/10 border-green-500/30" : "bg-white/5 border-white/10"
+          )}>
+            <p className={cn("text-3xl font-black tabular-nums tracking-tight drop-shadow-md", uniqueJudgeCount > 0 ? "text-green-400" : "text-gray-600")}>
+              {uniqueJudgeCount}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">Judges Scored</p>
           </div>
         </div>
 
@@ -354,6 +393,8 @@ export function HackathonJudgingAdminPanel({
         {competition.finalists.map((finalist) => {
           const entry = finalist.entry ?? competition.entries.find((candidate) => candidate.id === finalist.entry_id);
           if (!entry) return null;
+          const entryJudgeCount = competition.scorecards.filter((card) => card.entry_id === entry.id).length;
+          const isEntryDirty = dirtyEntries.has(entry.id);
           const draftTotal = competition.criteria.reduce(
             (sum, criterion) => sum + Number(scoreDrafts[entry.id]?.[criterion.id] ?? 0),
             0
@@ -389,11 +430,26 @@ export function HackathonJudgingAdminPanel({
                         Demo <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     )}
+                    <span className={cn(
+                      "inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[11px] font-bold uppercase tracking-wider",
+                      entryJudgeCount > 0
+                        ? "bg-green-500/10 border-green-500/25 text-green-400"
+                        : "bg-white/5 border-white/10 text-gray-600"
+                    )}>
+                      <Users className="w-3 h-3" />
+                      {entryJudgeCount} {entryJudgeCount === 1 ? "judge" : "judges"} scored
+                    </span>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 space-y-1.5">
                   <p className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{draftTotal}</p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">/ {maxScore} pts</p>
+                  {isEntryDirty && (
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-orange-500/15 border border-orange-500/25 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.15em] text-orange-400">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                      Unsaved
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -420,15 +476,16 @@ export function HackathonJudgingAdminPanel({
                         max={Number(criterion.max_points)}
                         step={1}
                         value={scoreDrafts[entry.id]?.[criterion.id] ?? 0}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          markDirty(entry.id);
                           setScoreDrafts((prev) => ({
                             ...prev,
                             [entry.id]: {
                               ...(prev[entry.id] ?? {}),
                               [criterion.id]: Number(e.target.value),
                             },
-                          }))
-                        }
+                          }));
+                        }}
                         className="w-full accent-red-500"
                       />
                       {criterion.description && (
@@ -443,17 +500,25 @@ export function HackathonJudgingAdminPanel({
                 placeholder="Judge notes..."
                 rows={2}
                 value={notesDrafts[entry.id] ?? ""}
-                onChange={(e) => setNotesDrafts((prev) => ({ ...prev, [entry.id]: e.target.value }))}
+                onChange={(e) => {
+                  markDirty(entry.id);
+                  setNotesDrafts((prev) => ({ ...prev, [entry.id]: e.target.value }));
+                }}
                 className="relative w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none transition-colors shadow-inner mt-auto"
               />
 
               <button
                 disabled={isPending || !adminUserId || activeEntryId === entry.id}
                 onClick={() => saveEntryScore(entry.id)}
-                className="relative w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-white/10 border border-white/10 py-3.5 text-[13px] font-bold uppercase tracking-wider text-white hover:bg-white/20 transition-all disabled:opacity-50 hover:scale-[1.02] shadow-sm mt-2"
+                className={cn(
+                  "relative w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[13px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02] shadow-sm mt-2",
+                  isEntryDirty
+                    ? "bg-orange-500/20 border border-orange-500/30 text-orange-300 hover:bg-orange-500/30"
+                    : "bg-white/10 border border-white/10 text-white hover:bg-white/20"
+                )}
               >
                 <Save className="w-4 h-4" />
-                {activeEntryId === entry.id ? "Saving..." : savedEntryId === entry.id ? "Saved" : "Save Scorecard"}
+                {activeEntryId === entry.id ? "Saving..." : isEntryDirty ? "Save Scorecard" : savedEntryId === entry.id ? "Saved ✓" : "Save Scorecard"}
               </button>
             </div>
           );
@@ -520,9 +585,12 @@ export function HackathonJudgingAdminPanel({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[16px] font-bold text-white tracking-tight truncate">{standing.entry.title}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-0.5">
-                    {standing.judge_count} judge{standing.judge_count !== 1 ? "s" : ""}
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-green-500/15 border border-green-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-green-400">
+                      <Users className="w-2.5 h-2.5" />
+                      {standing.judge_count} {standing.judge_count === 1 ? "judge" : "judges"}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-2xl font-black tabular-nums tracking-tight text-white drop-shadow-md">
                   {formatScore(standing.final_score, standing.max_score)}
