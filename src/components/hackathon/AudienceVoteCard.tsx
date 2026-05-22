@@ -13,6 +13,8 @@ interface Props {
   eventSlug: string;
 }
 
+const EXPECTED_AUDIENCE_VOTES = 150;
+
 export function AudienceVoteCard({ poll, eventSlug }: Props) {
   const router = useRouter();
   const [selected, setSelected] = useState<number | null>(poll.user_vote?.option_index ?? null);
@@ -125,10 +127,8 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
         <div className="space-y-3">
           {poll.options.map((option, idx) => {
             const isChosen = selected === idx;
-            const pct = totalVotes > 0 ? Math.round((voteCounts[idx] / totalVotes) * 100) : 0;
             const isLeading = voteCounts[idx] === maxVotes && voteCounts[idx] > 0;
-            // Calculate race progress based on maxVotes so the leader is always at the finish line
-            const raceProgress = maxVotes > 0 ? (voteCounts[idx] / maxVotes) * 100 : 0;
+            const raceProgress = Math.min((voteCounts[idx] / EXPECTED_AUDIENCE_VOTES) * 100, 100);
 
             return (
               <button
@@ -179,7 +179,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                       "text-[11px] font-black tabular-nums",
                       isChosen ? "text-red-300" : isLeading ? "text-yellow-400" : "text-gray-500"
                     )}>
-                      {pct}% ({voteCounts[idx]})
+                      {voteCounts[idx]} vote{voteCounts[idx] === 1 ? "" : "s"}
                     </span>
                   )}
                 </div>
