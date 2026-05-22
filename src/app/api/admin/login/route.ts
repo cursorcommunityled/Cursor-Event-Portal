@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { rateLimit, getClientIp } from "@/lib/auth/rate-limit";
 import {
   PORTAL_SESSION_COOKIE_NAME,
@@ -14,13 +14,28 @@ export async function GET() {
 // Admin login API route
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email } = body;
+    const body = await request.json().catch(() => ({}));
+    const requestedEmail = typeof body?.email === "string" ? body.email.trim().toLowerCase() : null;
 
-    if (!email) {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser?.email) {
       return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
+        { error: "Please sign in again." },
+        { status: 401 }
+      );
+    }
+
+    const email = authUser.email.trim().toLowerCase();
+
+    if (requestedEmail && requestedEmail !== email) {
+      return NextResponse.json(
+        { error: "Signed-in user does not match requested email." },
+        { status: 403 }
       );
     }
 
@@ -28,7 +43,7 @@ export async function POST(request: NextRequest) {
     // get throttled even when the attacker rotates one of the two.
     const ip = getClientIp(request);
     const ipLimit = rateLimit(`admin-login:ip:${ip}`, { limit: 10, windowMs: 60_000 });
-    const emailLimit = rateLimit(`admin-login:email:${String(email).toLowerCase()}`, {
+    const emailLimit = rateLimit(`admin-login:email:${email}`, {
       limit: 5,
       windowMs: 5 * 60_000,
     });
@@ -43,31 +58,65 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const service = await createServiceClient();
 
-    // Find user by email
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id, name, email, role")
-      .ilike("email", email.trim())
-      .single();
+    const [{ data: allowListed }, { data: existingUser }] = await Promise.all([
+      service.from("admin_emails").select("email").ilike("email", email).maybeSingle(),
+      service.from("users").select("id, name, email, role").ilike("email", email).limit(1).maybeSingle(),
+    ]);
 
-    if (userError || !user) {
+    if (!allowListed && existingUser?.role !== "admin") {
       return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
+        { error: "Admin access required." },
+        { status: 403 }
       );
     }
 
-    const isAdmin = user.role === "admin";
+    let user = existingUser;
+    if (!user) {
+      const metadataName = authUser.user_metadata?.name;
+      const fallbackName = email.split("@")[0] || "Admin";
+      const { data: newUser, error: createUserError } = await service
+        .from("users")
+        .insert({
+          email,
+          name: typeof metadataName === "string" && metadataName.trim() ? metadataName.trim() : fallbackName,
+          role: "admin",
+        })
+        .select("id, name, email, role")
+        .single();
+
+      if (createUserError || !newUser) {
+        return NextResponse.json(
+          { error: "Failed to create admin profile." },
+          { status: 500 }
+        );
+      }
+      user = newUser;
+    } else if (user.role !== "admin") {
+      const { data: promotedUser, error: promoteError } = await service
+        .from("users")
+        .update({ role: "admin" })
+        .eq("id", user.id)
+        .select("id, name, email, role")
+        .single();
+
+      if (promoteError || !promotedUser) {
+        return NextResponse.json(
+          { error: "Failed to update admin profile." },
+          { status: 500 }
+        );
+      }
+      user = promotedUser;
+    }
 
     // Find an event they're registered for (admins can fall back to any active event)
-    const { data: registration } = await supabase
+    const { data: registration } = await service
       .from("registrations")
       .select("event_id, events(slug, admin_code)")
       .eq("user_id", user.id)
       .limit(1)
-      .single();
+      .maybeSingle();
 
     let eventId: string;
     let eventSlug: string;
@@ -81,9 +130,9 @@ export async function POST(request: NextRequest) {
         : registration.events;
       eventSlug = (eventData as { slug: string; admin_code: string }).slug;
       adminCode = (eventData as { slug: string; admin_code: string }).admin_code;
-    } else if (isAdmin) {
+    } else {
       // Admin fallback: find any event (published, active, or draft)
-      const { data: anyEvent } = await supabase
+      const { data: anyEvent } = await service
         .from("events")
         .select("id, slug, admin_code")
         .in("status", ["published", "active", "draft"])
@@ -101,32 +150,22 @@ export async function POST(request: NextRequest) {
       eventId = anyEvent.id;
       eventSlug = anyEvent.slug;
       adminCode = anyEvent.admin_code;
-
-      // Create registration for admin (ignore if already exists)
-      await supabase.from("registrations").upsert({
-        event_id: eventId,
-        user_id: user.id,
-        source: "link",
-        checked_in_at: new Date().toISOString(),
-      }, { onConflict: "event_id,user_id", ignoreDuplicates: true });
-    } else {
-      return NextResponse.json(
-        { error: "No registration found for this user." },
-        { status: 403 }
-      );
     }
 
     // Set session cookie with exp field for getSession() compatibility
     const session = {
       eventId,
       userId: user.id,
+      role: user.role,
+      userName: user.name,
+      userEmail: user.email,
       exp: Date.now() + 7 * 24 * 60 * 60 * 1000, // 1 week
     };
 
     const response = NextResponse.json({
       success: true,
       eventSlug,
-      adminCode: isAdmin ? adminCode : null,
+      adminCode,
       user: {
         id: user.id,
         name: user.name,

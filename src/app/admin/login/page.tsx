@@ -33,8 +33,22 @@ export default function AdminLoginPage() {
       }
 
       if (data.user) {
-        // Redirect to admin root which auto-redirects to the active event
-        router.push("/admin");
+        const sessionResponse = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const sessionData = await sessionResponse.json().catch(() => null);
+
+        if (!sessionResponse.ok) {
+          await supabase.auth.signOut();
+          setError(sessionData?.error ?? "Admin access required.");
+          setLoading(false);
+          return;
+        }
+
+        // Redirect after the portal session is set so judge scoring can identify the user.
+        router.push(sessionData?.adminCode ? `/admin/${sessionData.adminCode}` : "/admin");
         router.refresh();
       }
     } catch (err) {
