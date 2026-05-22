@@ -12,6 +12,8 @@ interface PollCardProps {
   eventSlug: string;
 }
 
+const EXPECTED_AUDIENCE_VOTES = 150;
+
 function formatTimeRemaining(endsAt: string): string {
   const now = new Date();
   const end = new Date(endsAt);
@@ -159,10 +161,10 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
       <div className="space-y-3">
         {poll.options.map((option, index) => {
           const isSelected = selectedOption === index;
-          const percentage =
-            totalVotes > 0 ? Math.round((voteCounts[index] / totalVotes) * 100) : 0;
           const isWinning = voteCounts[index] === maxVotes && voteCounts[index] > 0;
-          const raceProgress = showResults ? (voteCounts[index] / maxVotes) * 100 : 0;
+          const raceProgress = showResults
+            ? Math.min((voteCounts[index] / EXPECTED_AUDIENCE_VOTES) * 100, 100)
+            : 0;
 
           return (
             <button
@@ -206,7 +208,7 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
                     "mt-1 text-[11px] font-medium tabular-nums",
                     isWinning ? "text-yellow-300" : "text-gray-500"
                   )}>
-                    {voteCounts[index]} vote{voteCounts[index] === 1 ? "" : "s"} · {percentage}%
+                    {voteCounts[index]} vote{voteCounts[index] === 1 ? "" : "s"}
                   </span>
                 )}
               </div>
