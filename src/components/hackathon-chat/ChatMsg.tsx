@@ -99,14 +99,20 @@ export function ChatMsg({
 
   // Group reactions by emoji
   const reactions = useMemo(() => {
-    const map: Record<string, { emoji: string; count: number; mine: boolean }> = {};
+    const map: Record<string, { emoji: string; count: number; mine: boolean; users: string[] }> = {};
     for (const r of msg.reactions ?? []) {
-      if (!map[r.emoji]) map[r.emoji] = { emoji: r.emoji, count: 0, mine: false };
+      if (!map[r.emoji]) map[r.emoji] = { emoji: r.emoji, count: 0, mine: false, users: [] };
       map[r.emoji].count++;
       if (r.user_id === userId) map[r.emoji].mine = true;
+      const member = memberMap.get(r.user_id);
+      if (member) {
+        map[r.emoji].users.push(member.name);
+      } else {
+        map[r.emoji].users.push("Unknown");
+      }
     }
     return Object.values(map);
-  }, [msg.reactions, userId]);
+  }, [msg.reactions, userId, memberMap]);
 
   const mentionRegex = useMemo(() => {
     const names = members
@@ -336,6 +342,7 @@ export function ChatMsg({
               <button
                 key={r.emoji}
                 onClick={() => onReact(msg.id, r.emoji)}
+                title={r.users.join(", ")}
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-200 border",
                   r.mine

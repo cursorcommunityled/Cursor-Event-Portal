@@ -127,6 +127,8 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
             const isChosen = selected === idx;
             const pct = totalVotes > 0 ? Math.round((voteCounts[idx] / totalVotes) * 100) : 0;
             const isLeading = voteCounts[idx] === maxVotes && voteCounts[idx] > 0;
+            // Calculate race progress based on maxVotes so the leader is always at the finish line
+            const raceProgress = maxVotes > 0 ? (voteCounts[idx] / maxVotes) * 100 : 0;
 
             return (
               <button
@@ -134,61 +136,76 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                 onClick={() => handleVote(idx)}
                 disabled={loading || !poll.is_active}
                 className={cn(
-                  "relative w-full overflow-hidden rounded-[20px] border p-5 text-left transition-all duration-300 group",
+                  "relative w-full overflow-hidden rounded-[20px] border p-0 text-left transition-all duration-300 group h-16 bg-[#1a1a1a]",
                   isChosen
-                    ? "border-red-400/60 bg-red-500/15 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                    : "border-white/8 bg-white/[0.025] hover:border-red-500/30 hover:bg-red-500/8",
+                    ? "border-red-400/60 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                    : "border-white/8 hover:border-red-500/30",
                   (!poll.is_active || loading) && "cursor-not-allowed"
                 )}
               >
-                {/* Vote bar fill */}
-                {hasVoted && (
-                  <div
-                    className={cn(
-                      "absolute inset-0 transition-all duration-700 ease-out rounded-[20px]",
-                      isLeading
-                        ? isChosen ? "bg-red-500/20" : "bg-white/5"
-                        : "bg-white/[0.02]"
-                    )}
-                    style={{ width: `${pct}%` }}
-                  />
-                )}
+                {/* Track background */}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#2a2a2a] via-[#1a1a1a] to-[#2a2a2a]" />
 
-                <div className="relative flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    {/* Checkmark / number */}
-                    <div className={cn(
-                      "shrink-0 flex h-8 w-8 items-center justify-center rounded-full border text-[13px] font-black transition-all",
-                      isChosen
-                        ? "border-red-400/60 bg-red-500/30 text-red-200"
-                        : "border-white/10 bg-white/5 text-gray-500 group-hover:border-red-500/30 group-hover:text-red-300"
-                    )}>
-                      {isChosen ? <Check className="w-4 h-4" /> : <span>{idx + 1}</span>}
-                    </div>
-                    <p className={cn(
-                      "text-[16px] font-bold tracking-tight truncate",
-                      isChosen ? "text-white" : "text-gray-200"
+                {/* Track lines */}
+                <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] border-t-2 border-dashed border-white/20" />
+
+                {/* Start line (Checkered) */}
+                <div className="absolute left-[140px] top-0 bottom-0 w-4 flex flex-col flex-wrap opacity-80 z-0">
+                  {[...Array(16)].map((_, i) => (
+                    <div key={i} className={cn("w-2 h-2", (i + Math.floor(i/2)) % 2 === 0 ? "bg-white" : "bg-black")} />
+                  ))}
+                </div>
+
+                {/* Finish line (Checkered) */}
+                <div className="absolute right-4 top-0 bottom-0 w-4 flex flex-col flex-wrap opacity-80 z-0">
+                  {[...Array(16)].map((_, i) => (
+                    <div key={i} className={cn("w-2 h-2", (i + Math.floor(i/2)) % 2 === 0 ? "bg-white" : "bg-black")} />
+                  ))}
+                </div>
+
+                {/* Option Info (Fixed on the left) */}
+                <div className="absolute left-0 top-0 bottom-0 w-[140px] bg-black/90 backdrop-blur-md border-r border-white/10 flex flex-col justify-center px-4 z-20 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                  <div className="flex items-center gap-1.5">
+                    {isChosen && <Check className="w-3 h-3 text-red-400 shrink-0" />}
+                    <span className={cn(
+                      "text-[13px] font-bold truncate",
+                      isChosen ? "text-white" : "text-gray-300"
                     )}>
                       {option}
-                    </p>
+                    </span>
                   </div>
-
                   {hasVoted && (
-                    <div className="shrink-0 flex items-center gap-2">
-                      {isLeading && (
-                        <span className="text-[10px] font-black uppercase tracking-wider text-yellow-400">
-                          Leading
-                        </span>
-                      )}
-                      <span className={cn(
-                        "text-[20px] font-black tabular-nums",
-                        isChosen ? "text-red-300" : isLeading ? "text-yellow-400" : "text-gray-500"
-                      )}>
-                        {pct}%
-                      </span>
-                    </div>
+                    <span className={cn(
+                      "text-[11px] font-black tabular-nums",
+                      isChosen ? "text-red-300" : isLeading ? "text-yellow-400" : "text-gray-500"
+                    )}>
+                      {pct}% ({voteCounts[idx]})
+                    </span>
                   )}
                 </div>
+
+                {/* The Car */}
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 transition-all duration-1000 ease-out z-10 flex items-center"
+                  style={{ 
+                    // Start at 140px, end at right-12 (calc(100% - 3rem))
+                    left: `calc(140px + (100% - 140px - 3rem) * ${hasVoted ? raceProgress / 100 : 0})`
+                  }}
+                >
+                  <div className="relative">
+                    {/* Dust trail effect if has votes */}
+                    {hasVoted && voteCounts[idx] > 0 && (
+                      <div className="absolute right-[100%] top-1/2 -translate-y-1/2 w-12 h-4 bg-gradient-to-r from-transparent to-white/20 blur-sm rounded-full" />
+                    )}
+                    <span className="text-3xl filter drop-shadow-lg inline-block transform scale-x-[-1]">🏎️</span>
+                    {isLeading && hasVoted && voteCounts[idx] > 0 && (
+                      <span className="absolute -left-2 top-1/2 -translate-y-1/2 text-xl animate-pulse">🔥</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-white/0 group-hover:bg-white/5 transition-colors z-30 pointer-events-none" />
               </button>
             );
           })}
