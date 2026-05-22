@@ -20,6 +20,8 @@ type PersonFormState = {
   isJudge: boolean;
 };
 
+type RolePreset = "mentor" | "judge" | "both";
+
 const emptyForm = (): PersonFormState => ({
   name: "",
   title: "",
@@ -58,6 +60,20 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm());
+  };
+
+  const rolePreset: RolePreset = form.isMentor && form.isJudge
+    ? "both"
+    : form.isJudge
+      ? "judge"
+      : "mentor";
+
+  const setRolePreset = (preset: RolePreset) => {
+    setForm((prev) => ({
+      ...prev,
+      isMentor: preset === "mentor" || preset === "both",
+      isJudge: preset === "judge" || preset === "both",
+    }));
   };
 
   const handleEdit = (person: Mentor) => {
@@ -148,30 +164,35 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
           </p>
         </div>
 
-        {/* Role toggles */}
-        <div className="flex flex-wrap gap-3">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.isMentor}
-              onChange={(e) => setForm((f) => ({ ...f, isMentor: e.target.checked }))}
-              className="sr-only"
-            />
-            <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${form.isMentor ? "border-white/20 bg-white text-black" : "border-white/10 bg-white/5 text-gray-500"}`}>
-              Mentor
-            </span>
-          </label>
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.isJudge}
-              onChange={(e) => setForm((f) => ({ ...f, isJudge: e.target.checked }))}
-              className="sr-only"
-            />
-            <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${form.isJudge ? "border-amber-400/20 bg-amber-400/10 text-amber-400" : "border-white/10 bg-white/5 text-gray-500"}`}>
-              Judge
-            </span>
-          </label>
+        {/* Role selector */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-3">
+            {([
+              { id: "mentor", label: "Mentor" },
+              { id: "judge", label: "Judge" },
+              { id: "both", label: "Both" },
+            ] as const).map((role) => (
+              <button
+                key={role.id}
+                type="button"
+                onClick={() => setRolePreset(role.id)}
+                className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${
+                  rolePreset === role.id
+                    ? role.id === "judge"
+                      ? "border-amber-400/20 bg-amber-400/10 text-amber-400"
+                      : "border-white/20 bg-white text-black"
+                    : "border-white/10 bg-white/5 text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {role.label}
+              </button>
+            ))}
+          </div>
+          {!form.isMentor && (
+            <p className="text-xs text-gray-600">
+              Judge-only people appear on the judges page. Mentorship fields are hidden.
+            </p>
+          )}
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
