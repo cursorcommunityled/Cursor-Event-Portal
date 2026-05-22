@@ -2893,7 +2893,7 @@ export async function getHackathonMentors(eventId: string): Promise<Mentor[]> {
     .from("mentors")
     .select("*")
     .eq("event_id", eventId)
-    .neq("is_judge", true)
+    .eq("is_mentor", true)
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
 

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.mentors (
   in_person_location TEXT,
   in_person_schedule TEXT,
   display_order INTEGER DEFAULT 0,
+  is_mentor BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -19,7 +20,8 @@ CREATE TABLE IF NOT EXISTS public.mentors (
 ALTER TABLE public.mentors
   ADD COLUMN IF NOT EXISTS mentorship_mode TEXT NOT NULL DEFAULT 'virtual',
   ADD COLUMN IF NOT EXISTS in_person_location TEXT,
-  ADD COLUMN IF NOT EXISTS in_person_schedule TEXT;
+  ADD COLUMN IF NOT EXISTS in_person_schedule TEXT,
+  ADD COLUMN IF NOT EXISTS is_mentor BOOLEAN NOT NULL DEFAULT true;
 
 UPDATE public.mentors
 SET mentorship_mode = 'virtual'

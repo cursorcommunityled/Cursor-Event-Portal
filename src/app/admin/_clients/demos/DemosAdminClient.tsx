@@ -60,6 +60,7 @@ type MentorFormState = {
   inPersonLocation: string;
   inPersonSchedule: string;
   displayOrder: number;
+  isMentor: boolean;
   isJudge: boolean;
 };
 
@@ -116,12 +117,14 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
     inPersonLocation: "",
     inPersonSchedule: "",
     displayOrder: 0,
+    isMentor: true,
     isJudge: false,
   });
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
 
   const totalBookings = slots.reduce((acc, slot) => acc + slot.signup_count, 0);
+  const mentorsForSessions = initialMentors.filter((mentor) => mentor.is_mentor);
 
   const resetSlotForm = () => {
     setEditingSlotId(null);
@@ -151,6 +154,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       inPersonLocation: "",
       inPersonSchedule: "",
       displayOrder: 0,
+      isMentor: true,
       isJudge: false,
     });
   };
@@ -302,6 +306,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       inPersonLocation: mentor.in_person_location || "",
       inPersonSchedule: mentor.in_person_schedule || "",
       displayOrder: mentor.display_order,
+      isMentor: mentor.is_mentor,
       isJudge: mentor.is_judge,
     });
   };
@@ -325,7 +330,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
   };
 
   const handleMentorSelect = (mentorId: string) => {
-    const mentor = initialMentors.find((m) => m.id === mentorId);
+    const mentor = mentorsForSessions.find((m) => m.id === mentorId);
     setForm((prev) => ({
       ...prev,
       mentorId,
@@ -415,7 +420,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
               className={inputClass}
             >
               <option value="">No mentor assigned</option>
-              {initialMentors.map((m) => (
+              {mentorsForSessions.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}{m.title ? ` — ${m.title}` : ""}</option>
               ))}
             </select>
@@ -609,12 +614,12 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       <div className="glass rounded-[32px] p-8 border-white/10 space-y-5">
         <div>
           <h3 className="text-xl font-light tracking-tight">Mentors</h3>
-          <p className="text-sm text-gray-500 mt-1">{initialMentors.length} mentor{initialMentors.length !== 1 ? "s" : ""} added</p>
+          <p className="text-sm text-gray-500 mt-1">{mentorsForSessions.length} mentor{mentorsForSessions.length !== 1 ? "s" : ""} added</p>
         </div>
 
         <div className="space-y-3">
-          {initialMentors.length === 0 && <p className="text-sm text-gray-600">No mentors added yet.</p>}
-          {initialMentors.map((mentor) => {
+          {mentorsForSessions.length === 0 && <p className="text-sm text-gray-600">No mentors added yet.</p>}
+          {mentorsForSessions.map((mentor) => {
             const slotCount = slots.filter((s) => s.mentor_id === mentor.id).length;
             return (
               <div key={mentor.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
@@ -669,8 +674,8 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
             }`}
           >
             {tab === "sessions" ? "Sessions" : "Mentors"}
-            {tab === "mentors" && initialMentors.length > 0 && (
-              <span className="ml-2 text-[9px] opacity-60">{initialMentors.length}</span>
+            {tab === "mentors" && mentorsForSessions.length > 0 && (
+              <span className="ml-2 text-[9px] opacity-60">{mentorsForSessions.length}</span>
             )}
           </button>
         ))}

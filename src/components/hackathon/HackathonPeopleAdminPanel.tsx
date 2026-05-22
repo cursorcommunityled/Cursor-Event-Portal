@@ -16,6 +16,7 @@ type PersonFormState = {
   inPersonLocation: string;
   inPersonSchedule: string;
   displayOrder: number;
+  isMentor: boolean;
   isJudge: boolean;
 };
 
@@ -30,6 +31,7 @@ const emptyForm = (): PersonFormState => ({
   inPersonLocation: "",
   inPersonSchedule: "",
   displayOrder: 0,
+  isMentor: true,
   isJudge: false,
 });
 
@@ -71,6 +73,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
       inPersonLocation: person.in_person_location || "",
       inPersonSchedule: person.in_person_schedule || "",
       displayOrder: person.display_order,
+      isMentor: person.is_mentor,
       isJudge: person.is_judge,
     });
   };
@@ -124,12 +127,12 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
   };
 
   const visiblePeople = initialPeople.filter((p) => {
-    if (filterTab === "mentors") return !p.is_judge;
+    if (filterTab === "mentors") return p.is_mentor;
     if (filterTab === "judges") return p.is_judge;
     return true;
   });
 
-  const mentorCount = initialPeople.filter((p) => !p.is_judge).length;
+  const mentorCount = initialPeople.filter((p) => p.is_mentor).length;
   const judgeCount = initialPeople.filter((p) => p.is_judge).length;
 
   return (
@@ -141,27 +144,35 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
             {editingId ? "Edit Person" : "Add Person"}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Add mentors and judges for the hackathon. Toggle &ldquo;Judge&rdquo; to move them to the judges page.
+            Add mentors and judges for the hackathon. Select both roles when someone should appear on both pages.
           </p>
         </div>
 
-        {/* Judge toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div
-            className={`relative w-10 h-6 rounded-full transition-colors ${form.isJudge ? "bg-amber-500" : "bg-white/10"}`}
-            onClick={() => setForm((f) => ({ ...f, isJudge: !f.isJudge }))}
-          >
-            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${form.isJudge ? "translate-x-5" : "translate-x-1"}`} />
-          </div>
-          <span className="text-sm text-gray-300">
-            {form.isJudge ? "Judge" : "Mentor"}
-          </span>
-          {form.isJudge && (
-            <span className="text-[9px] uppercase tracking-[0.15em] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-              Shows on Judges page
+        {/* Role toggles */}
+        <div className="flex flex-wrap gap-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isMentor}
+              onChange={(e) => setForm((f) => ({ ...f, isMentor: e.target.checked }))}
+              className="sr-only"
+            />
+            <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${form.isMentor ? "border-white/20 bg-white text-black" : "border-white/10 bg-white/5 text-gray-500"}`}>
+              Mentor
             </span>
-          )}
-        </label>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.isJudge}
+              onChange={(e) => setForm((f) => ({ ...f, isJudge: e.target.checked }))}
+              className="sr-only"
+            />
+            <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-colors ${form.isJudge ? "border-amber-400/20 bg-amber-400/10 text-amber-400" : "border-white/10 bg-white/5 text-gray-500"}`}>
+              Judge
+            </span>
+          </label>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-4">
           <label className="space-y-2">
@@ -176,7 +187,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
             <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Company</span>
             <input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder="Company or org" className={inputClass} />
           </label>
-          {!form.isJudge && (
+          {form.isMentor && (
             <label className="space-y-2">
               <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Mentorship Type</span>
               <select value={form.mentorshipMode} onChange={(e) => setForm({ ...form, mentorshipMode: e.target.value as PersonFormState["mentorshipMode"] })} className={inputClass}>
@@ -186,7 +197,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
               </select>
             </label>
           )}
-          {!form.isJudge && form.mentorshipMode !== "in_person" && (
+          {form.isMentor && form.mentorshipMode !== "in_person" && (
             <label className="space-y-2">
               <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Google Meet Link</span>
               <input value={form.meetLink} onChange={(e) => setForm({ ...form, meetLink: e.target.value })} placeholder="Shared after booking" className={inputClass} />
@@ -198,7 +209,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
           </label>
         </div>
 
-        {!form.isJudge && (form.mentorshipMode === "in_person" || form.mentorshipMode === "hybrid") && (
+        {form.isMentor && (form.mentorshipMode === "in_person" || form.mentorshipMode === "hybrid") && (
           <div className="grid md:grid-cols-2 gap-4">
             <label className="space-y-2">
               <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">In-Person Location</span>
@@ -240,8 +251,8 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
         {error && <p className="text-sm text-red-400">{error}</p>}
 
         <div className="flex gap-3">
-          <button onClick={handleSubmit} disabled={isPending || !form.name.trim()} className="h-12 px-6 rounded-2xl bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-200 disabled:opacity-40">
-            {editingId ? `Update ${form.isJudge ? "Judge" : "Mentor"}` : `Add ${form.isJudge ? "Judge" : "Mentor"}`}
+          <button onClick={handleSubmit} disabled={isPending || !form.name.trim() || (!form.isMentor && !form.isJudge)} className="h-12 px-6 rounded-2xl bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-200 disabled:opacity-40">
+            {editingId ? "Update Person" : "Add Person"}
           </button>
           {editingId && (
             <button onClick={resetForm} className="h-12 px-6 rounded-2xl border border-white/10 text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-white">
@@ -290,9 +301,16 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm text-white font-medium">{person.name}</p>
-                    <span className={`text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border ${person.is_judge ? "text-amber-400 bg-amber-400/10 border-amber-400/20" : "text-gray-400 bg-white/5 border-white/10"}`}>
-                      {person.is_judge ? "Judge" : person.mentorship_mode === "in_person" ? "In-person" : person.mentorship_mode === "hybrid" ? "Hybrid" : "Virtual"}
-                    </span>
+                    {person.is_mentor && (
+                      <span className="text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-gray-400 bg-white/5 border-white/10">
+                        {person.mentorship_mode === "in_person" ? "Mentor: In-person" : person.mentorship_mode === "hybrid" ? "Mentor: Hybrid" : "Mentor: Virtual"}
+                      </span>
+                    )}
+                    {person.is_judge && (
+                      <span className="text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-amber-400 bg-amber-400/10 border-amber-400/20">
+                        Judge
+                      </span>
+                    )}
                   </div>
                   {(person.title || person.company) && (
                     <p className="text-xs text-gray-400 mt-0.5">

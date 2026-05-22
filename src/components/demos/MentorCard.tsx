@@ -46,6 +46,11 @@ export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePa
             <span className="text-[9px] uppercase tracking-[0.15em] text-gray-400 bg-white/5 px-2 py-1 rounded-full border border-white/10">
               {modeLabel}
             </span>
+            {mentor.is_judge && (
+              <span className="text-[9px] uppercase tracking-[0.15em] text-amber-400 bg-amber-400/10 px-2 py-1 rounded-full border border-amber-400/20">
+                Judge
+              </span>
+            )}
             {isBooked && (
               <span className="text-[9px] uppercase tracking-[0.15em] text-green-400 bg-green-400/10 px-2 py-1 rounded-full border border-green-400/20">
                 Booked

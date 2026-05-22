@@ -56,7 +56,7 @@ export default async function MentorPage({ params }: MentorPageProps) {
 
   const mentors = await getMentors(event.id);
   const mentor = mentors.find((m) => m.id === mentorId);
-  if (!mentor) notFound();
+  if (!mentor || !mentor.is_mentor) notFound();
 
   const [allSlots, mySignup] = await Promise.all([
     getDemoSlotsWithCounts(event.id),

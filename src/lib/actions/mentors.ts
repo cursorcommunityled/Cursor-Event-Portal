@@ -49,6 +49,7 @@ type MentorData = {
   inPersonLocation?: string;
   inPersonSchedule?: string;
   displayOrder?: number;
+  isMentor?: boolean;
   isJudge?: boolean;
 };
 
@@ -65,6 +66,9 @@ export async function createMentor(
   const auth = await validateAdminAccess(eventId, adminCode);
   if (!auth.valid) return { error: auth.error };
   if (!data.name.trim()) return { error: "Name is required" };
+  if (data.isMentor === false && data.isJudge !== true) {
+    return { error: "Select at least one role" };
+  }
   const mentorshipMode = normalizeMentorshipMode(data.mentorshipMode);
 
   const supabase = await createServiceClient();
@@ -80,6 +84,7 @@ export async function createMentor(
     in_person_location: data.inPersonLocation?.trim() || null,
     in_person_schedule: data.inPersonSchedule?.trim() || null,
     display_order: data.displayOrder ?? 0,
+    is_mentor: data.isMentor ?? true,
     is_judge: data.isJudge ?? false,
   });
 
@@ -103,6 +108,9 @@ export async function updateMentor(
   const auth = await validateAdminAccess(eventId, adminCode);
   if (!auth.valid) return { error: auth.error };
   if (!data.name.trim()) return { error: "Name is required" };
+  if (data.isMentor === false && data.isJudge !== true) {
+    return { error: "Select at least one role" };
+  }
   const mentorshipMode = normalizeMentorshipMode(data.mentorshipMode);
 
   const supabase = await createServiceClient();
@@ -119,6 +127,7 @@ export async function updateMentor(
       in_person_location: data.inPersonLocation?.trim() || null,
       in_person_schedule: data.inPersonSchedule?.trim() || null,
       display_order: data.displayOrder ?? 0,
+      is_mentor: data.isMentor ?? true,
       is_judge: data.isJudge ?? false,
       updated_at: new Date().toISOString(),
     })
