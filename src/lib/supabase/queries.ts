@@ -2872,6 +2872,21 @@ export async function getHeroFeaturedPhotoIds(): Promise<string[]> {
   }
 }
 
+function mentorTitleMentions(title: string | null, role: "judge" | "mentor") {
+  return new RegExp(`\\b${role}\\b`, "i").test(title ?? "");
+}
+
+function normalizeMentorRoles(mentor: Mentor): Mentor {
+  const titleMentionsJudge = mentorTitleMentions(mentor.title, "judge");
+  const titleMentionsMentor = mentorTitleMentions(mentor.title, "mentor");
+
+  return {
+    ...mentor,
+    is_judge: Boolean(mentor.is_judge || titleMentionsJudge),
+    is_mentor: Boolean(mentor.is_mentor ?? (titleMentionsMentor || !titleMentionsJudge)),
+  };
+}
+
 export async function getMentors(eventId: string): Promise<Mentor[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -2883,35 +2898,13 @@ export async function getMentors(eventId: string): Promise<Mentor[]> {
     .order("created_at", { ascending: true });
 
   if (error || !data) return [];
-  return data as Mentor[];
+  return (data as Mentor[]).map(normalizeMentorRoles);
 }
 
 export async function getHackathonMentors(eventId: string): Promise<Mentor[]> {
-  noStore();
-  const supabase = await createServiceClient();
-  const { data, error } = await supabase
-    .from("mentors")
-    .select("*")
-    .eq("event_id", eventId)
-    .eq("is_mentor", true)
-    .order("display_order", { ascending: true })
-    .order("created_at", { ascending: true });
-
-  if (error || !data) return [];
-  return data as Mentor[];
+  return (await getMentors(eventId)).filter((mentor) => mentor.is_mentor);
 }
 
 export async function getHackathonJudges(eventId: string): Promise<Mentor[]> {
-  noStore();
-  const supabase = await createServiceClient();
-  const { data, error } = await supabase
-    .from("mentors")
-    .select("*")
-    .eq("event_id", eventId)
-    .or("is_judge.eq.true,title.ilike.%Judge%")
-    .order("display_order", { ascending: true })
-    .order("created_at", { ascending: true });
-
-  if (error || !data) return [];
-  return data as Mentor[];
+  return (await getMentors(eventId)).filter((mentor) => mentor.is_judge);
 }
