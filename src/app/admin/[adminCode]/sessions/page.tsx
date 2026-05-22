@@ -4,6 +4,7 @@ import {
   getOrCreateDemoSettings,
   getDemoSlotsWithCounts,
 } from "@/lib/demo/service";
+import { getMentors } from "@/lib/supabase/queries";
 import { DemosAdminClient } from "@/app/admin/_clients/demos/DemosAdminClient";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +26,15 @@ export default async function AdminSessionsPage({ params }: AdminSessionsPagePro
     notFound();
   }
 
+  const mentors = await getMentors(event.id);
+
   return (
     <DemosAdminClient
       event={event}
       adminCode={adminCode}
       settings={settings}
       slots={slots}
+      mentors={mentors}
     />
   );
 }

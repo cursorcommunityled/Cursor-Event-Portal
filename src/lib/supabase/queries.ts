@@ -42,6 +42,7 @@ import type {
   HackathonChatChannel,
   HackathonChatMessage,
   ChatMember,
+  Mentor,
 } from "@/types";
 
 const NON_FINAL_ROUND_JUDGING_TITLES = new Set(["audience favourite", "audience favorite"]);
@@ -53,6 +54,7 @@ function isFinalRoundJudgingCompetition(competition: CompetitionWithEntries) {
 // Event queries
 // Use limit(1) + take first row so we don't get PGRST116 when there are 0 or 2+ rows for a slug
 export async function getEventBySlug(slug: string): Promise<Event | null> {
+  noStore();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -101,6 +103,7 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
 
 /** Look up an event by its admin_code (unique). Used for simplified admin URLs. */
 export async function getEventByAdminCode(adminCode: string): Promise<Event | null> {
+  noStore();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -2867,4 +2870,18 @@ export async function getHeroFeaturedPhotoIds(): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+export async function getMentors(eventId: string): Promise<Mentor[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("mentors")
+    .select("*")
+    .eq("event_id", eventId)
+    .order("display_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error || !data) return [];
+  return data as Mentor[];
 }

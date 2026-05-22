@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { DemoSignupPanel } from "@/components/demos/DemoSignupPanel";
-import { getEventBySlug } from "@/lib/supabase/queries";
+import { MentorCard } from "@/components/demos/MentorCard";
+import { getEventBySlug, getMentors } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
@@ -49,7 +50,7 @@ export default async function SessionsPage({ params }: SessionsPageProps) {
     redirect(`/${eventSlug}/agenda`);
   }
 
-  const [slots, mySignup] = await Promise.all([
+  const [slots, mySignup, mentors] = await Promise.all([
     getDemoSlotsWithCounts(event.id),
     supabase
       .from("demo_slot_signups")
@@ -57,9 +58,30 @@ export default async function SessionsPage({ params }: SessionsPageProps) {
       .eq("event_id", event.id)
       .eq("user_id", session.userId)
       .maybeSingle(),
+    getMentors(event.id),
   ]);
 
   const availability = getDemoAvailability(settings, event.timezone || "America/Edmonton");
+  const mySlotId = mySignup.data?.slot_id || null;
+  const timezone = event.timezone || "America/Edmonton";
+
+  // Separate mentor-assigned slots from unassigned
+  const mentorSlotMap = new Map<string, typeof slots>();
+  for (const slot of slots) {
+    if (slot.mentor_id) {
+      const existing = mentorSlotMap.get(slot.mentor_id) || [];
+      existing.push(slot);
+      mentorSlotMap.set(slot.mentor_id, existing);
+    }
+  }
+  const visibleMentors = mentors.filter((m) =>
+    mentorSlotMap.has(m.id) ||
+    m.mentorship_mode === "in_person" ||
+    m.mentorship_mode === "hybrid" ||
+    !!m.in_person_schedule ||
+    !!m.in_person_location
+  );
+  const unassignedSlots = slots.filter((s) => !s.mentor_id);
 
   return (
     <main className="max-w-2xl mx-auto w-full px-6 py-12 space-y-8">
@@ -81,14 +103,53 @@ export default async function SessionsPage({ params }: SessionsPageProps) {
         )}
       </div>
 
-      <DemoSignupPanel
-        eventSlug={eventSlug}
-        timezone={event.timezone || "America/Edmonton"}
-        availability={availability}
-        speakerName={settings.speaker_name}
-        slots={slots}
-        mySlotId={mySignup.data?.slot_id || null}
-      />
+      {/* Mentor cards */}
+      {visibleMentors.length > 0 && (
+        <section className="space-y-4">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Meet the Mentors</p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {visibleMentors.map((mentor) => {
+              const mentorSlots = mentorSlotMap.get(mentor.id) || [];
+              const availableSlots = mentorSlots.filter((s) => !s.is_full).length;
+              const isBooked = mentorSlots.some((s) => s.id === mySlotId);
+              return (
+                <MentorCard
+                  key={mentor.id}
+                  mentor={mentor}
+                  eventSlug={eventSlug}
+                  availableSlots={availableSlots}
+                  isBooked={isBooked}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Unassigned slots (or full slot list if no mentors) */}
+      {(unassignedSlots.length > 0 || visibleMentors.length === 0) && (
+        <section className="space-y-4">
+          {visibleMentors.length > 0 && (
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Other Sessions</p>
+          )}
+          <DemoSignupPanel
+            eventSlug={eventSlug}
+            timezone={timezone}
+            availability={availability}
+            speakerName={settings.speaker_name}
+            slots={visibleMentors.length > 0 ? unassignedSlots : slots}
+            mySlotId={mySlotId}
+          />
+        </section>
+      )}
+
+      {/* If all slots are mentor-assigned, still show availability status */}
+      {visibleMentors.length > 0 && slots.length > 0 && unassignedSlots.length === 0 && (
+        <div className="glass rounded-[32px] p-6 border-white/10">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium mb-2">Session Booking</p>
+          <p className="text-sm text-gray-300">{availability.message}</p>
+        </div>
+      )}
     </main>
   );
 }

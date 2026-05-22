@@ -91,6 +91,23 @@ export interface DemoSignupSettings {
   updated_at: string;
 }
 
+export interface Mentor {
+  id: string;
+  event_id: string;
+  name: string;
+  title: string | null;
+  company: string | null;
+  bio: string | null;
+  photo_url: string | null;
+  meet_link: string | null;
+  mentorship_mode: 'virtual' | 'in_person' | 'hybrid';
+  in_person_location: string | null;
+  in_person_schedule: string | null;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DemoSlot {
   id: string;
   event_id: string;
@@ -102,6 +119,7 @@ export interface DemoSlot {
   description: string | null;
   location: string | null;
   session_type: string;
+  mentor_id: string | null;
   created_at: string;
 }
 
