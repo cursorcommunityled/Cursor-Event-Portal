@@ -1649,11 +1649,11 @@ export function HackathonClient({
             </div>
           </div>
 
-          {liveMentors.length > 0 && (
+          {onlineMentors.length > 0 && (
             <section className="space-y-4">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live Tonight</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Book Online</p>
               <div className="grid sm:grid-cols-2 gap-4">
-                {liveMentors.map((mentor) => (
+                {onlineMentors.map((mentor) => (
                   <MentorCard
                     key={mentor.id}
                     mentor={mentor}
@@ -1667,11 +1667,11 @@ export function HackathonClient({
             </section>
           )}
 
-          {onlineMentors.length > 0 && (
+          {liveMentors.length > 0 && (
             <section className="space-y-4">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Book Online</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live Tonight</p>
               <div className="grid sm:grid-cols-2 gap-4">
-                {onlineMentors.map((mentor) => (
+                {liveMentors.map((mentor) => (
                   <MentorCard
                     key={mentor.id}
                     mentor={mentor}

@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, MapPin, UserCheck, Video } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { bookDemoSlot, cancelMyDemoSlot } from "@/lib/actions/demo";
 import type { DemoAvailability, DemoSlotWithCounts } from "@/lib/demo/service";
 import type { Mentor } from "@/types";
+
+const MEET_LINK_UNLOCK_EARLY_MS = 0;
+const MEET_LINK_UNLOCK_LATE_MS = 10 * 60 * 1000;
 
 interface MentorProfilePanelProps {
   eventSlug: string;
@@ -28,6 +31,12 @@ export function MentorProfilePanel({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const handleBook = (slotId: string) => {
     setError(null);
@@ -59,6 +68,10 @@ export function MentorProfilePanel({
   const canBookSlots = mentorshipMode !== "in_person";
   const showBookingControls = canBookSlots && slots.length > 0;
   const canInteract = availability.is_open && canBookSlots;
+  const meetLinkUnlocked = mySlot
+    ? now >= new Date(mySlot.starts_at).getTime() - MEET_LINK_UNLOCK_EARLY_MS
+      && now <= new Date(mySlot.ends_at).getTime() + MEET_LINK_UNLOCK_LATE_MS
+    : false;
 
   return (
     <div className="space-y-6">
@@ -105,7 +118,7 @@ export function MentorProfilePanel({
           </div>
         )}
 
-        {mySlot && mentor.meet_link && (
+        {mySlot && mentor.meet_link && meetLinkUnlocked && (
           <a
             href={mentor.meet_link}
             target="_blank"
@@ -115,6 +128,12 @@ export function MentorProfilePanel({
             <Video className="w-4 h-4" />
             Join Google Meet
           </a>
+        )}
+
+        {mySlot && mentor.meet_link && !meetLinkUnlocked && (
+          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-xs text-blue-200">
+            Google Meet link unlocks at {formatTime(mySlot.starts_at, timezone)}.
+          </div>
         )}
       </div>
 

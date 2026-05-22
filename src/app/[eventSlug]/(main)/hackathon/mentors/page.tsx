@@ -23,6 +23,8 @@ export default async function HackathonMentorsPage({ params }: Props) {
   if (!event) notFound();
   if (!event.is_hackathon) redirect(`/${eventSlug}/hackathon`);
 
+  redirect(`/${eventSlug}/hackathon#mentors`);
+
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
@@ -96,12 +98,15 @@ export default async function HackathonMentorsPage({ params }: Props) {
         </p>
       </div>
 
-      {/* Live / in-person mentors */}
-      {liveMentors.length > 0 && (
+      {/* Online / bookable mentors */}
+      {onlineMentors.length > 0 && (
         <section className="space-y-4">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live Tonight</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Book Online</p>
+          {availability && (
+            <p className="text-xs text-gray-500">{availability.message}</p>
+          )}
           <div className="grid sm:grid-cols-2 gap-4">
-            {liveMentors.map((mentor) => {
+            {onlineMentors.map((mentor) => {
               const mentorSlots = mentorSlotMap.get(mentor.id) || [];
               const availableSlots = mentorSlots.filter((s) => !s.is_full).length;
               const isBooked = mentorSlots.some((s) => s.id === mySlotId);
@@ -121,15 +126,12 @@ export default async function HackathonMentorsPage({ params }: Props) {
         </section>
       )}
 
-      {/* Online / bookable mentors */}
-      {onlineMentors.length > 0 && (
+      {/* Live / in-person mentors */}
+      {liveMentors.length > 0 && (
         <section className="space-y-4">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Book Online</p>
-          {availability && (
-            <p className="text-xs text-gray-500">{availability.message}</p>
-          )}
+          <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live Tonight</p>
           <div className="grid sm:grid-cols-2 gap-4">
-            {onlineMentors.map((mentor) => {
+            {liveMentors.map((mentor) => {
               const mentorSlots = mentorSlotMap.get(mentor.id) || [];
               const availableSlots = mentorSlots.filter((s) => !s.is_full).length;
               const isBooked = mentorSlots.some((s) => s.id === mySlotId);

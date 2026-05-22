@@ -18,6 +18,8 @@ export default async function HackathonJudgesPage({ params }: Props) {
   if (!event) notFound();
   if (!event.is_hackathon) redirect(`/${eventSlug}/hackathon`);
 
+  redirect(`/${eventSlug}/hackathon#judges`);
+
   const session = await getSession();
   if (!session || session.eventId !== event.id) {
     redirect(`/${eventSlug}`);
