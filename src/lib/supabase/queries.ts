@@ -2908,7 +2908,7 @@ export async function getHackathonJudges(eventId: string): Promise<Mentor[]> {
     .from("mentors")
     .select("*")
     .eq("event_id", eventId)
-    .eq("is_judge", true)
+    .or("is_judge.eq.true,title.ilike.%Judge%")
     .order("display_order", { ascending: true })
     .order("created_at", { ascending: true });
 
