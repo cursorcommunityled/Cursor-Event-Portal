@@ -6,9 +6,10 @@ interface MentorCardProps {
   eventSlug: string;
   availableSlots: number;
   isBooked: boolean;
+  basePath?: string;
 }
 
-export function MentorCard({ mentor, eventSlug, availableSlots, isBooked }: MentorCardProps) {
+export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePath = "sessions" }: MentorCardProps) {
   const isInPerson = mentor.mentorship_mode === "in_person" || mentor.mentorship_mode === "hybrid";
   const modeLabel = mentor.mentorship_mode === "in_person"
     ? "In Person"
@@ -22,7 +23,7 @@ export function MentorCard({ mentor, eventSlug, availableSlots, isBooked }: Ment
       : "No slots available";
 
   return (
-    <Link href={`/${eventSlug}/sessions/mentors/${mentor.id}`} className="group block h-full">
+    <Link href={`/${eventSlug}/${basePath}/mentors/${mentor.id}`} className="group block h-full">
       <div className="glass rounded-[24px] p-5 border-white/10 hover:border-white/25 transition-all cursor-pointer space-y-4 h-full">
         <div className="flex items-start gap-4">
           {mentor.photo_url ? (

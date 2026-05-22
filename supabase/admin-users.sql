@@ -1,140 +1,113 @@
--- SQL script to create admin users for Cursor Popup portal
--- Run this in Supabase SQL Editor with service role permissions
+-- SQL script to allow-list admin/judge users for Cursor Popup portal.
+-- Run this in the Supabase SQL Editor after creating the matching Auth users.
+-- Shared temporary password for Auth users: CursorCalgary2026
 
--- Create admin users in auth.users table
--- Password: CursorCalgary2026
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- First, delete existing users if they exist (to reset)
-DELETE FROM auth.users WHERE email IN (
-  'simonloewen@gmail.com',
-  'cal@neweraintelligence.com',
-  'jia@jiaminghuang.com',
-  'carterhjm@hotmail.com'
-);
+CREATE TEMP TABLE IF NOT EXISTS tmp_admin_credentials (
+  email TEXT PRIMARY KEY,
+  name TEXT NOT NULL
+) ON COMMIT DROP;
 
--- Insert admin users with the password "CursorCalgary2026"
--- The password is hashed using bcrypt (Supabase's default)
-INSERT INTO auth.users (
-  instance_id,
-  id,
-  aud,
-  role,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  confirmation_token,
-  email_change_token_current,
-  email_change_token_new,
-  recovery_token
-) VALUES
-  (
-    '00000000-0000-0000-0000-000000000000',
-    gen_random_uuid(),
-    'authenticated',
-    'authenticated',
-    'simonloewen@gmail.com',
-    crypt('CursorCalgary2026', gen_salt('bf')),
-    NOW(),
-    NOW(),
-    NOW(),
-    '',
-    '',
-    '',
-    ''
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    gen_random_uuid(),
-    'authenticated',
-    'authenticated',
-    'cal@neweraintelligence.com',
-    crypt('CursorCalgary2026', gen_salt('bf')),
-    NOW(),
-    NOW(),
-    NOW(),
-    '',
-    '',
-    '',
-    ''
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    gen_random_uuid(),
-    'authenticated',
-    'authenticated',
-    'jia@jiaminghuang.com',
-    crypt('CursorCalgary2026', gen_salt('bf')),
-    NOW(),
-    NOW(),
-    NOW(),
-    '',
-    '',
-    '',
-    ''
-  ),
-  (
-    '00000000-0000-0000-0000-000000000000',
-    gen_random_uuid(),
-    'authenticated',
-    'authenticated',
-    'carterhjm@hotmail.com',
-    crypt('CursorCalgary2026', gen_salt('bf')),
-    NOW(),
-    NOW(),
-    NOW(),
-    '',
-    '',
-    '',
-    ''
-  );
+TRUNCATE tmp_admin_credentials;
 
--- Also add/update these users in the public.users table with admin role
-INSERT INTO public.users (id, email, name, role, created_at, updated_at)
-SELECT
-  au.id,
-  au.email,
-  split_part(au.email, '@', 1) as name,
-  'admin' as role,
-  NOW(),
-  NOW()
-FROM auth.users au
-WHERE au.email IN (
-  'simonloewen@gmail.com',
-  'cal@neweraintelligence.com',
-  'jia@jiaminghuang.com',
-  'carterhjm@hotmail.com'
-)
+INSERT INTO tmp_admin_credentials (email, name)
+VALUES
+  -- Organizers / existing admins
+  ('ali.moussa@sait.ca', 'Ali Moussa'),
+  ('cal@neweraintelligence.com', 'Cal Leung'),
+  ('carterhjm@hotmail.com', 'Carter'),
+  ('ineselspeth@gmail.com', 'Ines Elspeth'),
+  ('megabytesait@gmail.com', 'Megabyte SAIT'),
+  ('megabytesait@outlook.com', 'Megabyte SAIT'),
+  ('simonloewen@gmail.com', 'Simon Loewen'),
+  ('simon@neweraintelligence.com', 'Simon Loewen'),
+
+  -- SAIT May 2026 judges / mentors
+  ('dogru@ualberta.ca', 'Oguzhan Dogru'),
+  ('jia@jiaminghuang.com', 'Jia Ming Huang'),
+  ('au@tsuin.ai', 'Audrey Aui Yong'),
+  ('alexyoung612@gmail.com', 'Alex Young'),
+  ('trystan@saleslinkstrategies.com', 'Trystan Keller'),
+  ('dlynch@openhouse.ai', 'David Lynch'),
+  ('apalamattam@google.com', 'Anvil Palamattam'),
+  ('suprita.shankar@gmail.com', 'Suprita Shankar'),
+  ('nawroz.riti@gmail.com', 'Riti Nawroz'),
+  ('fatema.chowdhury@ucalgary.ca', 'Fatema Chowdhury'),
+  ('aditya.thakur@salesforce.com', 'Aditya Thakur')
 ON CONFLICT (email) DO UPDATE SET
-  role = 'admin',
-  updated_at = NOW();
+  name = EXCLUDED.name;
 
--- Create an admin_emails table for easy lookup (optional but useful)
+-- If the Auth users already exist, force the intended temporary password and
+-- mark emails confirmed so password login works immediately.
+UPDATE auth.users AS auth_user
+SET
+  encrypted_password = crypt('CursorCalgary2026', gen_salt('bf')),
+  email_confirmed_at = COALESCE(auth_user.email_confirmed_at, NOW()),
+  updated_at = NOW()
+FROM tmp_admin_credentials AS admin_user
+WHERE LOWER(auth_user.email) = admin_user.email;
+
 CREATE TABLE IF NOT EXISTS public.admin_emails (
   email TEXT PRIMARY KEY,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- RLS: admin_emails is the admin allow-list — must not be readable by the
--- anon client. Server code uses the service role (which bypasses RLS) to
--- check if a logged-in user's email is in this table.
+-- RLS: admin_emails is the admin allow-list and must not be readable by anon.
+-- Server code checks this table with the service role.
 ALTER TABLE public.admin_emails ENABLE ROW LEVEL SECURITY;
 
--- Insert admin emails
-INSERT INTO public.admin_emails (email) VALUES
-  ('simonloewen@gmail.com'),
-  ('cal@neweraintelligence.com'),
-  ('jia@jiaminghuang.com'),
-  ('carterhjm@hotmail.com')
+INSERT INTO public.admin_emails (email)
+SELECT email
+FROM tmp_admin_credentials
 ON CONFLICT (email) DO NOTHING;
 
--- Verify the users were created
-SELECT id, email, email_confirmed_at, created_at
-FROM auth.users
-WHERE email IN (
-  'simonloewen@gmail.com',
-  'cal@neweraintelligence.com',
-  'jia@jiaminghuang.com',
-  'carterhjm@hotmail.com'
-);
+ALTER TABLE public.users
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- Create/promote the public user rows used by judging scorecards.
+-- Existing public user IDs are preserved because many tables may reference them.
+UPDATE public.users AS public_user
+SET
+  role = 'admin',
+  name = COALESCE(NULLIF(public_user.name, ''), admin_user.name),
+  updated_at = NOW()
+FROM tmp_admin_credentials AS admin_user
+WHERE LOWER(public_user.email) = admin_user.email;
+
+INSERT INTO public.users (id, email, name, role, created_at, updated_at)
+SELECT
+  COALESCE(auth_user.id, gen_random_uuid()),
+  admin_user.email,
+  admin_user.name,
+  'admin',
+  NOW(),
+  NOW()
+FROM tmp_admin_credentials AS admin_user
+LEFT JOIN auth.users AS auth_user
+  ON LOWER(auth_user.email) = admin_user.email
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM public.users AS existing_user
+  WHERE LOWER(existing_user.email) = admin_user.email
+)
+ON CONFLICT (email) DO UPDATE SET
+  role = 'admin',
+  name = COALESCE(NULLIF(public.users.name, ''), EXCLUDED.name),
+  updated_at = NOW();
+
+-- Verification: auth_user_exists must be true before that person can password-login.
+SELECT
+  admin_user.email,
+  admin_user.name,
+  (auth_user.id IS NOT NULL) AS auth_user_exists,
+  public_user.role AS public_role,
+  (admin_email.email IS NOT NULL) AS admin_allowlisted
+FROM tmp_admin_credentials AS admin_user
+LEFT JOIN auth.users AS auth_user
+  ON LOWER(auth_user.email) = admin_user.email
+LEFT JOIN public.users AS public_user
+  ON LOWER(public_user.email) = admin_user.email
+LEFT JOIN public.admin_emails AS admin_email
+  ON admin_email.email = admin_user.email
+ORDER BY admin_user.email;
