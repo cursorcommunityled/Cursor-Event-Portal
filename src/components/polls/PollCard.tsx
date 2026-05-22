@@ -162,6 +162,7 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
           const percentage =
             totalVotes > 0 ? Math.round((voteCounts[index] / totalVotes) * 100) : 0;
           const isWinning = voteCounts[index] === maxVotes && voteCounts[index] > 0;
+          const raceProgress = showResults ? (voteCounts[index] / maxVotes) * 100 : 0;
 
           return (
             <button
@@ -169,55 +170,61 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
               onClick={() => handleVote(index)}
               disabled={loading || isEnded}
               className={cn(
-                "w-full relative rounded-2xl p-4 text-left transition-all duration-300 overflow-hidden group",
+                "w-full relative h-20 rounded-2xl text-left transition-all duration-300 overflow-hidden group border",
                 isSelected
-                  ? "bg-white/10 border-2 border-white/30"
-                  : "bg-white/[0.02] border border-white/5 hover:border-white/15 hover:bg-white/[0.04]",
+                  ? "border-white/35 bg-white/[0.06] shadow-[0_0_18px_rgba(255,255,255,0.08)]"
+                  : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]",
                 (loading || isEnded) && "cursor-not-allowed opacity-70"
               )}
             >
-              {/* Progress bar background */}
-              {showResults && (
-                <div
-                  className={cn(
-                    "absolute inset-0 transition-all duration-500 ease-out",
-                    isWinning ? "bg-white/10" : "bg-white/[0.03]"
-                  )}
-                  style={{ width: `${percentage}%` }}
-                />
-              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-zinc-800/80 via-zinc-950/90 to-zinc-800/80" />
+              <div className="absolute left-32 right-8 top-1/2 border-t-2 border-dashed border-white/15" />
+              <div className="absolute left-32 top-0 bottom-0 w-3 bg-[linear-gradient(45deg,#fff_25%,#111_25%,#111_50%,#fff_50%,#fff_75%,#111_75%,#111_100%)] bg-[length:12px_12px] opacity-80" />
+              <div className="absolute right-5 top-0 bottom-0 w-3 bg-[linear-gradient(45deg,#fff_25%,#111_25%,#111_50%,#fff_50%,#fff_75%,#111_75%,#111_100%)] bg-[length:12px_12px] opacity-80" />
 
-              <div className="relative flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Check className="w-3 h-3 text-black" />
-                    </div>
+              <div className="absolute inset-y-0 left-0 z-20 flex w-32 flex-col justify-center border-r border-white/10 bg-black/80 px-4 backdrop-blur-sm">
+                <div className="flex items-center gap-2 min-w-0">
+                  {isSelected ? (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white">
+                      <Check className="h-3 w-3 text-black" />
+                    </span>
+                  ) : (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/15 text-[10px] font-medium text-gray-500">
+                      {index + 1}
+                    </span>
                   )}
-                  <span
-                    className={cn(
-                      "text-sm font-light leading-relaxed whitespace-normal break-words",
-                      isSelected ? "text-white" : "text-gray-300"
-                    )}
-                  >
+                  <span className={cn(
+                    "truncate text-sm font-medium",
+                    isSelected ? "text-white" : "text-gray-300"
+                  )}>
                     {option}
                   </span>
                 </div>
 
                 {showResults && (
-                  <div className="flex items-center gap-3 flex-shrink-0 pt-0.5">
-                    <span className="text-xs text-gray-500 tabular-nums">
-                      {voteCounts[index]}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-sm font-medium tabular-nums w-12 text-right",
-                        isWinning ? "text-white" : "text-gray-500"
-                      )}
-                    >
-                      {percentage}%
-                    </span>
-                  </div>
+                  <span className={cn(
+                    "mt-1 text-[11px] font-medium tabular-nums",
+                    isWinning ? "text-yellow-300" : "text-gray-500"
+                  )}>
+                    {voteCounts[index]} vote{voteCounts[index] === 1 ? "" : "s"} · {percentage}%
+                  </span>
+                )}
+              </div>
+
+              <div
+                className="absolute top-1/2 z-10 flex -translate-y-1/2 items-center transition-all duration-700 ease-out"
+                style={{
+                  left: `calc(8rem + (100% - 11.5rem) * ${raceProgress / 100})`,
+                }}
+              >
+                {showResults && voteCounts[index] > 0 && (
+                  <span className="absolute right-full h-4 w-10 rounded-full bg-gradient-to-l from-white/20 to-transparent blur-sm" />
+                )}
+                <span className="inline-block text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
+                  🏎️
+                </span>
+                {isWinning && showResults && voteCounts[index] > 0 && (
+                  <span className="absolute -right-2 -top-2 animate-pulse text-lg">🔥</span>
                 )}
               </div>
             </button>
