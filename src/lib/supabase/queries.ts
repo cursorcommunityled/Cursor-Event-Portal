@@ -2876,14 +2876,126 @@ function mentorTitleMentions(title: string | null, role: "judge" | "mentor") {
   return new RegExp(`\\b${role}\\b`, "i").test(title ?? "");
 }
 
+const SAIT_PERSON_PROFILE_OVERRIDES: Record<string, Partial<Mentor>> = {
+  "Oguzhan Dogru": {
+    title: "Advanced Process Control Engineer",
+    company: "CruxOCM",
+    bio: "Advanced process control engineer at CruxOCM with deep experience in AI-driven process control, reinforcement learning, computer vision, OT/SCADA, and industrial automation. Oguzhan brings a practical research-to-production lens for teams building technical systems, ML workflows, and high-impact demos.",
+    photo_url: "/avatars/hackathon/sait-may-2026/ozzy.jpeg",
+    is_mentor: true,
+    is_judge: true,
+  },
+  "Jia Ming Huang": {
+    title: "Founder, Entrepreneur in Residence & Cursor Ambassador",
+    company: "Antler / Cursor",
+    bio: "Founder, Entrepreneur in Residence at Antler, Cursor Ambassador for Calgary and Toronto, and host at Cappis. Jia brings startup, product, community, and data science perspective from building ventures and organizing large builder events.",
+    photo_url: "/avatars/hackathon/sait-may-2026/jia-ming-huang.jpg",
+    is_mentor: true,
+    is_judge: true,
+  },
+  "Cal Leung": {
+    title: "Partner & AI Automation Strategist",
+    company: "New Era Intelligence Automation",
+    bio: "Partner at New Era Intelligence Automation with experience in AI workflow automation, platform support, policy strategy, campaigns, and community building. Cal brings a practical operations and go-to-market lens for teams turning prototypes into useful systems.",
+    photo_url: "/avatars/hackathon/sait-may-2026/cal-leung.jpg",
+    is_mentor: false,
+    is_judge: true,
+  },
+  "Audrey Aui Yong": {
+    title: "CEO & Co-Founder",
+    company: "tsuin.ai",
+    bio: "CEO and Co-Founder of tsuin.ai, building AI Digital Twin solutions for enterprises modernizing complex systems. Audrey brings project management, no-code development, startup strategy, enterprise AI implementation, and product leadership experience.",
+    photo_url: "/avatars/hackathon/sait-may-2026/audrey-aui-yong.jpg",
+    is_mentor: false,
+    is_judge: true,
+  },
+  "Simon Loewen": {
+    title: "Agribusiness AI Strategist & Cursor Ambassador",
+    company: "New Era Intelligence / Terralink Horticulture",
+    bio: "Agribusiness AI strategist, Cursor Ambassador, and Alberta Greenhouse Growers Association board member working across commercial horticulture and applied AI. Simon helps teams think through practical automation, business workflows, customer-facing systems, and useful AI deployments.",
+    photo_url: "/avatars/hackathon/sait-may-2026/simon-loewen.jpg",
+    is_mentor: true,
+    is_judge: true,
+  },
+  "Trystan Keller": {
+    title: "Event Growth Strategist",
+    company: "Saleslink Strategies",
+    bio: "Event growth strategist helping coaches, consultants, and service providers build authority and generate clients through community events and direct outreach. Trystan brings sales, demand generation, positioning, and event marketing judgment.",
+    photo_url: "/avatars/hackathon/sait-may-2026/trystan-keller.jpg",
+    is_mentor: false,
+    is_judge: true,
+  },
+  "Anvil Palamattam": {
+    title: "AI & Platform Cloud Architect",
+    company: "Google",
+    bio: "AI and platform cloud architect at Google helping enterprise and public-sector teams ship production workloads across Gemini, Google Cloud, Kubernetes, application modernization, cybersecurity, and infrastructure modernization. Anvil brings strong architecture, cloud engineering, and production deployment judgment.",
+    photo_url: "/avatars/hackathon/sait-may-2026/anvil-palamattam.jpg",
+    is_mentor: true,
+    is_judge: true,
+  },
+  "Suprita Shankar": {
+    title: "Machine Learning Engineer, Foundation Models",
+    company: "Apple",
+    bio: "Machine learning engineer at Apple on the Foundation Models team, focused on training data, ablations, and model performance. Suprita has built production-scale knowledge extraction, entity resolution, and Siri question-answering systems, and brings deep ML systems, data-centric AI, and startup engineering experience.",
+    photo_url: "/avatars/hackathon/sait-may-2026/suprita-shankar.jpg",
+    is_mentor: true,
+    is_judge: true,
+  },
+  "Alex Young": {
+    title: "Senior Software Engineer",
+    company: "Mercury Technologies",
+    bio: "Software engineer with more than 7 years of experience, primarily in backend microservices and event-driven architecture. Alex has built products in space tech, ad tech, and fintech at Mercury Technologies, and can help teams simplify prototypes and minimum viable products.",
+    photo_url: "/avatars/hackathon/sait-may-2026/alex-young.jpeg",
+    is_mentor: true,
+    is_judge: false,
+  },
+  "David Lynch": {
+    title: "Co-Owner / VP of Revenue",
+    company: "OpenHouse.ai",
+    bio: "Co-Owner and VP of Revenue at OpenHouse.ai, helping home builders use AI and decision intelligence to improve pace, margin, pricing, and sales execution. David brings deep experience in revenue, growth, consulting, product positioning, and builder-market discovery.",
+    photo_url: "/avatars/hackathon/sait-may-2026/david-lynch.jpg",
+    is_mentor: true,
+    is_judge: false,
+  },
+  "Riti Nawroz": {
+    title: "Sr Analyst, Digital Strategy and Planning",
+    company: "AltaGas",
+    bio: "Digital strategy and planning analyst at AltaGas with experience across business analysis, risk, communications, reporting, project delivery, and stakeholder storytelling. Riti brings a strategic operations lens and experience translating complex work into stakeholder-ready outcomes.",
+    photo_url: "/avatars/hackathon/sait-may-2026/riti-nawroz.jpeg",
+    is_mentor: true,
+    is_judge: false,
+  },
+  "Fatema Chowdhury": {
+    title: "Transportation Analytics Intern & HerAI President",
+    company: "AltaGas / HerAI",
+    bio: "Computer Science graduate from the University of Calgary, Transportation Analytics Intern at AltaGas, and President of HerAI: Women in AI/ML. Fatema brings experience in Python, SQL, Power BI, cybersecurity, data analytics, event leadership, and student tech community building.",
+    is_mentor: true,
+    is_judge: false,
+  },
+  "Fatema C (HerAI)": {
+    name: "Fatema Chowdhury",
+    title: "Transportation Analytics Intern & HerAI President",
+    company: "AltaGas / HerAI",
+    bio: "Computer Science graduate from the University of Calgary, Transportation Analytics Intern at AltaGas, and President of HerAI: Women in AI/ML. Fatema brings experience in Python, SQL, Power BI, cybersecurity, data analytics, event leadership, and student tech community building.",
+    is_mentor: true,
+    is_judge: false,
+  },
+};
+
+function withSaitPersonProfileOverride(mentor: Mentor): Mentor {
+  const override = SAIT_PERSON_PROFILE_OVERRIDES[mentor.name];
+  return override ? { ...mentor, ...override } : mentor;
+}
+
 function normalizeMentorRoles(mentor: Mentor): Mentor {
+  const enrichedMentor = withSaitPersonProfileOverride(mentor);
   const titleMentionsJudge = mentorTitleMentions(mentor.title, "judge");
   const titleMentionsMentor = mentorTitleMentions(mentor.title, "mentor");
 
   return {
-    ...mentor,
-    is_judge: Boolean(mentor.is_judge || titleMentionsJudge),
-    is_mentor: Boolean(mentor.is_mentor ?? (titleMentionsMentor || !titleMentionsJudge)),
+    ...enrichedMentor,
+    is_judge: Boolean(enrichedMentor.is_judge || titleMentionsJudge),
+    is_mentor: Boolean(enrichedMentor.is_mentor ?? (titleMentionsMentor || !titleMentionsJudge)),
   };
 }
 
