@@ -80,7 +80,11 @@ export default async function HackathonMentorsPage({ params }: Props) {
   const liveMentors = mentors.filter(
     (m) => m.mentorship_mode === "in_person" || m.mentorship_mode === "hybrid"
   );
-  const onlineMentors = mentors.filter((m) => m.mentorship_mode === "virtual");
+  const onlineMentors = mentors.filter((m) => m.mentorship_mode === "virtual").sort((a, b) => {
+    if (a.name === "Suprita Shankar") return -1;
+    if (b.name === "Suprita Shankar") return 1;
+    return a.display_order - b.display_order;
+  });
 
   return (
     <main className="max-w-2xl mx-auto w-full px-6 py-12 space-y-10">
@@ -109,6 +113,7 @@ export default async function HackathonMentorsPage({ params }: Props) {
                   availableSlots={availableSlots}
                   isBooked={isBooked}
                   basePath="hackathon"
+                  featured={mentor.name === "Suprita Shankar"}
                 />
               );
             })}
@@ -136,6 +141,7 @@ export default async function HackathonMentorsPage({ params }: Props) {
                   availableSlots={availableSlots}
                   isBooked={isBooked}
                   basePath="hackathon"
+                  featured={mentor.name === "Suprita Shankar"}
                 />
               );
             })}
