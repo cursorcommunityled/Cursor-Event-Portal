@@ -108,7 +108,7 @@ export default async function HackathonMentorsPage({ params }: Props) {
                   eventSlug={eventSlug}
                   availableSlots={availableSlots}
                   isBooked={isBooked}
-                  basePath="hackathon/mentors"
+                  basePath="hackathon"
                 />
               );
             })}
@@ -135,7 +135,7 @@ export default async function HackathonMentorsPage({ params }: Props) {
                   eventSlug={eventSlug}
                   availableSlots={availableSlots}
                   isBooked={isBooked}
-                  basePath="hackathon/mentors"
+                  basePath="hackathon"
                 />
               );
             })}
