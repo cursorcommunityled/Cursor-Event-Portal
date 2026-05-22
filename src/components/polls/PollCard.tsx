@@ -6,6 +6,7 @@ import { votePoll } from "@/lib/actions/polls";
 import { cn } from "@/lib/utils";
 import { Check, Clock, Users } from "lucide-react";
 import type { PollWithVotes } from "@/types";
+import { RaceCar } from "./RaceCar";
 
 interface PollCardProps {
   poll: PollWithVotes;
@@ -165,6 +166,7 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
           const raceProgress = showResults
             ? Math.min((voteCounts[index] / EXPECTED_AUDIENCE_VOTES) * 100, 100)
             : 0;
+          const carIsMoving = showResults && voteCounts[index] > 0;
 
           return (
             <button
@@ -181,6 +183,16 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
             >
               <div className="absolute inset-0 bg-gradient-to-b from-zinc-800/80 via-zinc-950/90 to-zinc-800/80" />
               <div className="absolute left-32 right-8 top-1/2 border-t-2 border-dashed border-white/15" />
+              {carIsMoving && (
+                <div
+                  className="absolute left-32 top-[calc(50%+18px)] h-[3px] rounded-full opacity-60"
+                  style={{
+                    width: `calc((100% - 11.5rem) * ${raceProgress / 100})`,
+                    background:
+                      "repeating-linear-gradient(90deg, rgba(0,0,0,0.75) 0 12px, transparent 12px 22px)",
+                  }}
+                />
+              )}
               <div className="absolute left-32 top-0 bottom-0 w-3 bg-[linear-gradient(45deg,#fff_25%,#111_25%,#111_50%,#fff_50%,#fff_75%,#111_75%,#111_100%)] bg-[length:12px_12px] opacity-80" />
               <div className="absolute right-5 top-0 bottom-0 w-3 bg-[linear-gradient(45deg,#fff_25%,#111_25%,#111_50%,#fff_50%,#fff_75%,#111_75%,#111_100%)] bg-[length:12px_12px] opacity-80" />
 
@@ -219,15 +231,11 @@ export function PollCard({ poll, eventSlug }: PollCardProps) {
                   left: `calc(8rem + (100% - 11.5rem) * ${raceProgress / 100})`,
                 }}
               >
-                {showResults && voteCounts[index] > 0 && (
-                  <span className="absolute right-full h-4 w-10 rounded-full bg-gradient-to-l from-white/20 to-transparent blur-sm" />
-                )}
-                <span className="inline-block text-3xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">
-                  🏎️
-                </span>
-                {isWinning && showResults && voteCounts[index] > 0 && (
-                  <span className="absolute -right-2 -top-2 animate-pulse text-lg">🔥</span>
-                )}
+                <RaceCar
+                  isWinning={isWinning}
+                  isMoving={carIsMoving}
+                  variant={isSelected ? "red" : "white"}
+                />
               </div>
             </button>
           );

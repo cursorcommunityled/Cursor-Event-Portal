@@ -7,6 +7,7 @@ import { votePoll } from "@/lib/actions/polls";
 import { cn } from "@/lib/utils";
 import { Check, Trophy } from "lucide-react";
 import type { PollWithVotes } from "@/types";
+import { RaceCar } from "@/components/polls/RaceCar";
 
 interface Props {
   poll: PollWithVotes;
@@ -129,6 +130,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
             const isChosen = selected === idx;
             const isLeading = voteCounts[idx] === maxVotes && voteCounts[idx] > 0;
             const raceProgress = Math.min((voteCounts[idx] / EXPECTED_AUDIENCE_VOTES) * 100, 100);
+            const carIsMoving = hasVoted && voteCounts[idx] > 0;
 
             return (
               <button
@@ -148,6 +150,16 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
 
                 {/* Track lines */}
                 <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] border-t-2 border-dashed border-white/20" />
+                {carIsMoving && (
+                  <div
+                    className="absolute left-[140px] top-[calc(50%+16px)] h-[3px] rounded-full opacity-60"
+                    style={{
+                      width: `calc((100% - 140px - 3rem) * ${raceProgress / 100})`,
+                      background:
+                        "repeating-linear-gradient(90deg, rgba(0,0,0,0.75) 0 12px, transparent 12px 22px)",
+                    }}
+                  />
+                )}
 
                 {/* Start line (Checkered) */}
                 <div className="absolute left-[140px] top-0 bottom-0 w-4 flex flex-col flex-wrap opacity-80 z-0">
@@ -192,16 +204,11 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                     left: `calc(140px + (100% - 140px - 3rem) * ${hasVoted ? raceProgress / 100 : 0})`
                   }}
                 >
-                  <div className="relative">
-                    {/* Dust trail effect if has votes */}
-                    {hasVoted && voteCounts[idx] > 0 && (
-                      <div className="absolute right-[100%] top-1/2 -translate-y-1/2 w-12 h-4 bg-gradient-to-r from-transparent to-white/20 blur-sm rounded-full" />
-                    )}
-                    <span className="text-3xl filter drop-shadow-lg inline-block transform scale-x-[-1]">🏎️</span>
-                    {isLeading && hasVoted && voteCounts[idx] > 0 && (
-                      <span className="absolute -left-2 top-1/2 -translate-y-1/2 text-xl animate-pulse">🔥</span>
-                    )}
-                  </div>
+                  <RaceCar
+                    isWinning={isLeading}
+                    isMoving={carIsMoving}
+                    variant={isChosen ? "red" : "white"}
+                  />
                 </div>
 
                 {/* Hover overlay */}
