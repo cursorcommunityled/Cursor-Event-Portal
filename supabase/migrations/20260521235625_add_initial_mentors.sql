@@ -1,7 +1,26 @@
+ALTER TABLE public.mentors
+  ADD COLUMN IF NOT EXISTS mentorship_mode TEXT NOT NULL DEFAULT 'virtual',
+  ADD COLUMN IF NOT EXISTS in_person_location TEXT,
+  ADD COLUMN IF NOT EXISTS in_person_schedule TEXT;
+
+ALTER TABLE public.demo_slots
+  ADD COLUMN IF NOT EXISTS mentor_id UUID REFERENCES public.mentors(id) ON DELETE SET NULL;
+
 DO $$
 DECLARE
   v_event_id UUID;
 BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'mentors_mentorship_mode_check'
+      AND conrelid = 'public.mentors'::regclass
+  ) THEN
+    ALTER TABLE public.mentors
+      ADD CONSTRAINT mentors_mentorship_mode_check
+      CHECK (mentorship_mode IN ('virtual', 'in_person', 'hybrid'));
+  END IF;
+
   -- Get the SAIT May 2026 event ID
   SELECT id INTO v_event_id
   FROM public.events
