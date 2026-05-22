@@ -104,6 +104,7 @@ export interface Mentor {
   in_person_location: string | null;
   in_person_schedule: string | null;
   display_order: number;
+  is_judge: boolean;
   created_at: string;
   updated_at: string;
 }

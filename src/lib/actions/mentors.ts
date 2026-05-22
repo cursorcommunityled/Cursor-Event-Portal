@@ -49,6 +49,7 @@ type MentorData = {
   inPersonLocation?: string;
   inPersonSchedule?: string;
   displayOrder?: number;
+  isJudge?: boolean;
 };
 
 function normalizeMentorshipMode(mode: MentorData["mentorshipMode"]) {
@@ -79,12 +80,16 @@ export async function createMentor(
     in_person_location: data.inPersonLocation?.trim() || null,
     in_person_schedule: data.inPersonSchedule?.trim() || null,
     display_order: data.displayOrder ?? 0,
+    is_judge: data.isJudge ?? false,
   });
 
   if (error) return { error: error.message || "Failed to create mentor" };
 
   revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
   revalidatePath(`/${eventSlug}/sessions`);
+  revalidatePath(`/${eventSlug}/hackathon/mentors`);
+  revalidatePath(`/${eventSlug}/hackathon/judges`);
   return { success: true };
 }
 
@@ -114,6 +119,7 @@ export async function updateMentor(
       in_person_location: data.inPersonLocation?.trim() || null,
       in_person_schedule: data.inPersonSchedule?.trim() || null,
       display_order: data.displayOrder ?? 0,
+      is_judge: data.isJudge ?? false,
       updated_at: new Date().toISOString(),
     })
     .eq("id", mentorId)
@@ -122,8 +128,12 @@ export async function updateMentor(
   if (error) return { error: error.message || "Failed to update mentor" };
 
   revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
   revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/${eventSlug}/sessions/mentors/${mentorId}`);
+  revalidatePath(`/${eventSlug}/hackathon/mentors`);
+  revalidatePath(`/${eventSlug}/hackathon/mentors/${mentorId}`);
+  revalidatePath(`/${eventSlug}/hackathon/judges`);
   return { success: true };
 }
 
@@ -146,6 +156,9 @@ export async function deleteMentor(
   if (error) return { error: error.message || "Failed to delete mentor" };
 
   revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
   revalidatePath(`/${eventSlug}/sessions`);
+  revalidatePath(`/${eventSlug}/hackathon/mentors`);
+  revalidatePath(`/${eventSlug}/hackathon/judges`);
   return { success: true };
 }

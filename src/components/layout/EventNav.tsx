@@ -330,6 +330,8 @@ export function EventNav({ eventSlug, event, userId }: EventNavProps) {
 
   const renderNavItems = () => (
     navItems.map((item) => {
+      // Hide Sessions for hackathon events (mentors/judges live inside the hackathon module)
+      if (item.href === "sessions" && event?.is_hackathon) return null;
       // Hide Sessions entirely when disabled (null = loading, treat as hidden)
       if (item.href === "sessions" && !sessionsEnabled) return null;
       // Hide Hackathon when not in hackathon mode

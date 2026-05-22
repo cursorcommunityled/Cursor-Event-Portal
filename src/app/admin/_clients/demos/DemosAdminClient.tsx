@@ -60,6 +60,7 @@ type MentorFormState = {
   inPersonLocation: string;
   inPersonSchedule: string;
   displayOrder: number;
+  isJudge: boolean;
 };
 
 interface DemosAdminClientProps {
@@ -115,6 +116,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
     inPersonLocation: "",
     inPersonSchedule: "",
     displayOrder: 0,
+    isJudge: false,
   });
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -149,6 +151,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       inPersonLocation: "",
       inPersonSchedule: "",
       displayOrder: 0,
+      isJudge: false,
     });
   };
 
@@ -299,6 +302,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       inPersonLocation: mentor.in_person_location || "",
       inPersonSchedule: mentor.in_person_schedule || "",
       displayOrder: mentor.display_order,
+      isJudge: mentor.is_judge,
     });
   };
 

@@ -31,7 +31,7 @@ import {
   Swords, Settings, Users, Trophy,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
   ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award, Megaphone,
-  FileText,
+  FileText, UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -44,11 +44,12 @@ import {
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore,
   HackathonChatChannel, HackathonChatMessage, ChatMember, CompetitionJudgingCompetition,
-  HackathonRepoSubmissionBackup,
+  HackathonRepoSubmissionBackup, Mentor,
 } from "@/types";
 import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
 import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
+import { HackathonPeopleAdminPanel } from "@/components/hackathon/HackathonPeopleAdminPanel";
 import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
 
 type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
@@ -73,9 +74,10 @@ interface Props {
   initialAudienceVote: AudienceVoteSummary | null;
   initialAudienceVoteWinner: AudienceVoteWinnerPrompt | null;
   initialPublishedAudienceWinner: PublishedAudienceVoteAnnouncement | null;
+  initialPeople: Mentor[];
 }
 
-type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat";
+type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat" | "people";
 type SimonTodoItem = { id: string; text: string };
 type SimonTodoTarget = string | number;
 type SimonTodoConsoleApi = {
@@ -257,7 +259,7 @@ export function HackathonAdminClient({
   event, adminCode, activeTab: initialTab, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
   judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
-  initialAudienceVoteWinner, initialPublishedAudienceWinner,
+  initialAudienceVoteWinner, initialPublishedAudienceWinner, initialPeople,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -712,6 +714,7 @@ export function HackathonAdminClient({
     { id: "scoring", label: `AI Screen (${submittedTeams.length}/${teams.length})`, icon: <Cpu className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
     { id: "judging", label: "Final Round", icon: <Award className="w-4 h-4" /> },
+    { id: "people", label: `People (${initialPeople.length})`, icon: <UserRound className="w-4 h-4" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
   ];
 
@@ -2011,6 +2014,16 @@ export function HackathonAdminClient({
         {tab === "chat" && !adminUserId && (
           <div className="glass rounded-[28px] p-10 border-white/20 text-center text-gray-500 text-sm animate-slide-up">
             Sign in as a registered attendee to access chat
+          </div>
+        )}
+
+        {tab === "people" && (
+          <div className="animate-slide-up">
+            <HackathonPeopleAdminPanel
+              event={event}
+              adminCode={adminCode}
+              initialPeople={initialPeople}
+            />
           </div>
         )}
       </main>

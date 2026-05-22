@@ -4,7 +4,7 @@ import {
   getHackathonSettings, getHackathonTeamsWithMembers, getHackathonScores,
   getHackathonChatChannels, getHackathonChatMessages, getEventChatMembers,
   getCompetitionJudgingData, getCheckedInAttendeesWithoutTeams,
-  getHackathonRepoSubmissionBackups,
+  getHackathonRepoSubmissionBackups, getMentors,
 } from "@/lib/supabase/queries";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { getSession } from "@/lib/actions/registration";
@@ -21,7 +21,7 @@ interface Props {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const VALID_TABS = ["settings", "teams", "scoring", "leaderboard", "judging", "chat"] as const;
+const VALID_TABS = ["settings", "teams", "scoring", "leaderboard", "judging", "chat", "people"] as const;
 type Tab = typeof VALID_TABS[number];
 
 export default async function HackathonAdminPage({ params, searchParams }: Props) {
@@ -38,7 +38,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
 
   const session = await getSession();
 
-  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions, openPool, repoSubmissionBackups] = await Promise.all([
+  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions, openPool, repoSubmissionBackups, people] = await Promise.all([
     getHackathonSettings(event.id),
     getHackathonTeamsWithMembers(event.id),
     getHackathonScores(event.id),
@@ -49,6 +49,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
     // All checked-in attendees not yet on a team (no user to exclude)
     getCheckedInAttendeesWithoutTeams(event.id, ""),
     getHackathonRepoSubmissionBackups(event.id),
+    getMentors(event.id),
   ]);
 
   const teamIds = teams.map((t) => t.id);
@@ -95,6 +96,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
       initialAiAnalyses={aiAnalyses}
       initialOpenPool={openPool}
       initialRepoSubmissionBackups={repoSubmissionBackups}
+      initialPeople={people}
       initialAudienceVoteWinner={pendingAudienceVoteWinner}
       initialPublishedAudienceWinner={publishedAudienceWinner}
       initialAudienceVote={activeAudienceVote ? {
