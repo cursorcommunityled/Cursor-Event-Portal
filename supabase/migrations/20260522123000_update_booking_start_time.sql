@@ -1,0 +1,1 @@
+UPDATE public.demo_signup_settings SET opens_at = '2026-05-23T16:30:00Z' WHERE event_id = (SELECT id FROM public.events WHERE slug = 'calgary-hackathon-sait-may-2026');

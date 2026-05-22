@@ -7,9 +7,10 @@ interface MentorCardProps {
   availableSlots: number;
   isBooked: boolean;
   basePath?: string;
+  featured?: boolean;
 }
 
-export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePath = "sessions" }: MentorCardProps) {
+export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePath = "sessions", featured = false }: MentorCardProps) {
   const isInPerson = mentor.mentorship_mode === "in_person" || mentor.mentorship_mode === "hybrid";
   const modeLabel = mentor.mentorship_mode === "in_person"
     ? "In Person"
@@ -24,8 +25,15 @@ export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePa
 
   return (
     <Link href={`/${eventSlug}/${basePath}/mentors/${mentor.id}`} className="group block h-full">
-      <div className="glass rounded-[24px] p-5 border-white/10 hover:border-white/25 transition-all cursor-pointer space-y-4 h-full">
-        <div className="flex items-start gap-4">
+      <div className={`glass rounded-[24px] p-5 border-white/10 hover:border-white/25 transition-all cursor-pointer space-y-4 h-full relative overflow-hidden ${featured ? 'ring-2 ring-blue-500/50 bg-blue-500/10' : ''}`}>
+        {featured && (
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <svg className="w-24 h-24 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
+          </div>
+        )}
+        <div className="flex items-start gap-4 relative z-10">
           {mentor.photo_url ? (
             <img
               src={mentor.photo_url}
@@ -60,11 +68,11 @@ export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePa
         </div>
 
         {mentor.bio && (
-          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{mentor.bio}</p>
+          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed relative z-10">{mentor.bio}</p>
         )}
 
         {isInPerson && (mentor.in_person_schedule || mentor.in_person_location) && (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 space-y-1.5">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 space-y-1.5 relative z-10">
             {mentor.in_person_schedule && (
               <p className="text-xs text-gray-400">{mentor.in_person_schedule}</p>
             )}
@@ -74,7 +82,7 @@ export function MentorCard({ mentor, eventSlug, availableSlots, isBooked, basePa
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-1">
+        <div className="flex items-center justify-between pt-1 relative z-10">
           <p className="text-[10px] text-gray-600">
             {availabilityText}
           </p>

@@ -38,17 +38,17 @@ export default async function HackathonJudgesPage({ params }: Props) {
   const judges = await getHackathonJudges(event.id);
 
   return (
-    <main className="max-w-2xl mx-auto w-full px-6 py-12 space-y-8">
-      <div className="space-y-2">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
-        <h1 className="text-4xl font-light text-white tracking-tight">Judges</h1>
-        <p className="text-sm text-gray-500">
-          Meet the panel evaluating tonight&apos;s projects.
+    <main className="max-w-4xl mx-auto w-full px-6 py-12 space-y-12">
+      <div className="space-y-4 text-center">
+        <p className="text-[10px] uppercase tracking-[0.4em] text-amber-500/80 font-medium">Hackathon</p>
+        <h1 className="text-5xl font-light text-white tracking-tight">The Judges</h1>
+        <p className="text-base text-gray-400 max-w-xl mx-auto">
+          Meet the panel of industry experts who will be evaluating tonight&apos;s projects.
         </p>
       </div>
 
       {judges.length > 0 ? (
-        <section className="space-y-3">
+        <section className="space-y-6">
           {judges.map((judge) => (
             <JudgeBadge key={judge.id} judge={judge} />
           ))}

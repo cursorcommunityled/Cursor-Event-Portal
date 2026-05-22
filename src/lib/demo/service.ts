@@ -76,7 +76,7 @@ function getEventLocalDate(event: Event): { year: string; month: string; day: st
 function buildDefaultWindow(event: Event): { opensAt: string; closesAt: string } {
   const timezone = event.timezone || "America/Edmonton";
   const { year, month, day } = getEventLocalDate(event);
-  const opensAt = toUtcIso(`${year}-${month}-${day}T18:30`, timezone);
+  const opensAt = toUtcIso(`${year}-${month}-${day}T10:30`, timezone);
   const closesAt = toUtcIso(`${year}-${month}-${day}T20:00`, timezone);
   return { opensAt, closesAt };
 }
