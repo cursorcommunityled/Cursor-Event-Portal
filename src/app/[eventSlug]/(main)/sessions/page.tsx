@@ -77,11 +77,14 @@ export default async function SessionsPage({ params }: SessionsPageProps) {
     }
   }
   const visibleMentors = mentors.filter((m) =>
-    mentorSlotMap.has(m.id) ||
-    m.mentorship_mode === "in_person" ||
-    m.mentorship_mode === "hybrid" ||
-    !!m.in_person_schedule ||
-    !!m.in_person_location
+    m.is_mentor &&
+    (
+      mentorSlotMap.has(m.id) ||
+      m.mentorship_mode === "in_person" ||
+      m.mentorship_mode === "hybrid" ||
+      !!m.in_person_schedule ||
+      !!m.in_person_location
+    )
   );
   const unassignedSlots = slots.filter((s) => !s.mentor_id);
 

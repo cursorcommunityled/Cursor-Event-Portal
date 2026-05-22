@@ -26,9 +26,16 @@ export function JudgeBadge({ judge }: JudgeBadgeProps) {
           <p className="text-xs text-gray-600 mt-1.5 line-clamp-2 leading-relaxed">{judge.bio}</p>
         )}
       </div>
-      <span className="text-[9px] uppercase tracking-[0.15em] text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20 flex-shrink-0">
-        Judge
-      </span>
+      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+        {judge.is_mentor && (
+          <span className="text-[9px] uppercase tracking-[0.15em] text-gray-400 bg-white/5 px-2.5 py-1 rounded-full border border-white/10">
+            Mentor
+          </span>
+        )}
+        <span className="text-[9px] uppercase tracking-[0.15em] text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">
+          Judge
+        </span>
+      </div>
     </div>
   );
 }

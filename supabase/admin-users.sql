@@ -16,7 +16,7 @@ VALUES
   -- Organizers / existing admins
   ('ali.moussa@sait.ca', 'Ali Moussa'),
   ('cal@neweraintelligence.com', 'Cal Leung'),
-  ('carterhjm@hotmail.com', 'Carter'),
+  ('carterhjm@hotmail.com', 'Jia Ming Huang'),
   ('ineselspeth@gmail.com', 'Ines Elspeth'),
   ('megabytesait@gmail.com', 'Megabyte SAIT'),
   ('megabytesait@outlook.com', 'Megabyte SAIT'),
@@ -30,6 +30,8 @@ VALUES
   ('alexyoung612@gmail.com', 'Alex Young'),
   ('trystan@saleslinkstrategies.com', 'Trystan Keller'),
   ('dlynch@openhouse.ai', 'David Lynch'),
+  ('ethan.bayarsaikhan@edu.sait.ca', 'Ethan Bayarsaikhan'),
+  ('mayurrajendrakumar.brahmbhatt@edu.sait.ca', 'Mayur Rajendrakumar Brahmbhatt'),
   ('apalamattam@google.com', 'Anvil Palamattam'),
   ('suprita.shankar@gmail.com', 'Suprita Shankar'),
   ('nawroz.riti@gmail.com', 'Riti Nawroz'),
