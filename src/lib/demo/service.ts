@@ -1,11 +1,26 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import type { DemoSignupSettings, DemoSlot, Event } from "@/types";
 
+export interface MentorSummary {
+  id: string;
+  name: string;
+  title: string | null;
+  company: string | null;
+  bio: string | null;
+  photo_url: string | null;
+  meet_link: string | null;
+  mentorship_mode: "virtual" | "in_person" | "hybrid";
+  in_person_location: string | null;
+  in_person_schedule: string | null;
+  display_order: number;
+}
+
 export interface DemoSlotWithCounts extends DemoSlot {
   signup_count: number;
   spots_left: number;
   is_full: boolean;
   attendees: Array<{ id: string; name: string; email: string | null }>;
+  mentor: MentorSummary | null;
 }
 
 export interface DemoAvailability {
@@ -212,7 +227,7 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
   const supabase = await createServiceClient();
   const { data, error } = await supabase
     .from("demo_slots")
-    .select("id, event_id, starts_at, ends_at, capacity, title, host_name, description, location, session_type, created_at, signups:demo_slot_signups(id, user:users(id, name, email))")
+    .select("id, event_id, starts_at, ends_at, capacity, title, host_name, description, location, session_type, mentor_id, created_at, mentor:mentors(id, name, title, company, bio, photo_url, meet_link, mentorship_mode, in_person_location, in_person_schedule, display_order), signups:demo_slot_signups(id, user:users(id, name, email))")
     .eq("event_id", eventId)
     .order("starts_at", { ascending: true });
 
@@ -227,6 +242,8 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
 
     const signupCount = attendees.length;
     const capacity = slot.capacity || 2;
+    const mentorRaw = slot.mentor;
+    const mentor = (Array.isArray(mentorRaw) ? (mentorRaw[0] ?? null) : mentorRaw) as MentorSummary | null;
     return {
       id: slot.id,
       event_id: slot.event_id,
@@ -238,11 +255,13 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
       description: slot.description ?? null,
       location: slot.location ?? null,
       session_type: slot.session_type ?? "mentor",
+      mentor_id: slot.mentor_id ?? null,
       created_at: slot.created_at,
       signup_count: signupCount,
       spots_left: Math.max(0, capacity - signupCount),
       is_full: signupCount >= capacity,
       attendees,
+      mentor,
     };
   });
 }

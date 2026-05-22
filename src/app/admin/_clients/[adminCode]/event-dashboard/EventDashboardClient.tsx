@@ -11,7 +11,7 @@ import { SlideDeckAdminClient } from "../../slides/SlideDeckAdminClient";
 import { CompetitionsAdminClient } from "@/components/admin/CompetitionsAdminClient";
 import { CreditsAdminTab } from "../../event-dashboard/CreditsAdminTab";
 import { cn } from "@/lib/utils";
-import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit } from "@/types";
+import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit, Mentor } from "@/types";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
 type TabType = "agenda" | "venue" | "sessions" | "slides" | "competitions" | "themes" | "calendar" | "credits";
@@ -62,6 +62,7 @@ interface EventDashboardClientProps {
   // Sessions
   demoSettings: DemoSignupSettings | null;
   demoSlots: DemoSlotWithCounts[];
+  mentors: Mentor[];
   // Slides
   initialDeck: SlideDeck | null;
   // Competitions
@@ -86,6 +87,7 @@ export function EventDashboardClient({
   activeSlug,
   demoSettings,
   demoSlots,
+  mentors,
   initialDeck,
   initialCompetitions,
   cursorCredits,
@@ -222,6 +224,7 @@ export function EventDashboardClient({
               adminCode={adminCode}
               settings={demoSettings}
               slots={demoSlots}
+              mentors={mentors}
               embedded
             />
           )}

@@ -9,6 +9,7 @@ import {
   getVenues,
   getSlideDeck,
   getAllCompetitions,
+  getMentors,
 } from "@/lib/supabase/queries";
 import { getOrCreateDemoSettings, getDemoSlotsWithCounts } from "@/lib/demo/service";
 import { EventDashboardClient } from "../../_clients/[adminCode]/event-dashboard/EventDashboardClient";
@@ -52,6 +53,7 @@ export default async function EventDashboardPage({
 
   let demoSettings = null;
   let demoSlots: Awaited<ReturnType<typeof getDemoSlotsWithCounts>> = [];
+  const mentors = await getMentors(event.id);
   try {
     demoSettings = await getOrCreateDemoSettings(event);
     demoSlots = await getDemoSlotsWithCounts(event.id);
@@ -74,6 +76,7 @@ export default async function EventDashboardPage({
       venues={venues}
       demoSettings={demoSettings}
       demoSlots={demoSlots}
+      mentors={mentors}
       initialDeck={slideDeck}
       initialCompetitions={competitions}
       cursorCredits={[]}

@@ -163,6 +163,7 @@ export async function createSessionSlot(
     description?: string;
     location?: string;
     sessionType?: string;
+    mentorId?: string;
     startsAtLocal: string;
     endsAtLocal: string;
     capacity: number;
@@ -198,6 +199,7 @@ export async function createSessionSlot(
     description: data.description?.trim() || null,
     location: data.location?.trim() || null,
     session_type: data.sessionType?.trim() || "mentor",
+    mentor_id: data.mentorId || null,
   });
 
   if (error) return { error: error.message || "Failed to create session" };
@@ -219,6 +221,7 @@ export async function updateSessionSlot(
     description?: string;
     location?: string;
     sessionType?: string;
+    mentorId?: string;
     startsAtLocal: string;
     endsAtLocal: string;
     capacity: number;
@@ -255,6 +258,7 @@ export async function updateSessionSlot(
       description: data.description?.trim() || null,
       location: data.location?.trim() || null,
       session_type: data.sessionType?.trim() || "mentor",
+      mentor_id: data.mentorId || null,
     })
     .eq("id", slotId)
     .eq("event_id", eventId);
