@@ -52,7 +52,7 @@ export default async function HackathonMentorPage({ params }: Props) {
   try {
     settings = await getOrCreateDemoSettings(event);
   } catch {
-    redirect(`/${eventSlug}/hackathon/mentors`);
+    redirect(`/${eventSlug}/hackathon#mentors`);
   }
 
   const [allSlots, mySignup] = await Promise.all([
@@ -72,7 +72,7 @@ export default async function HackathonMentorPage({ params }: Props) {
     <main className="max-w-2xl mx-auto w-full px-6 py-12 space-y-8">
       <div>
         <Link
-          href={`/${eventSlug}/hackathon/mentors`}
+          href={`/${eventSlug}/hackathon#mentors`}
           className="inline-flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors mb-6"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
