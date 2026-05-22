@@ -1,21 +1,10 @@
--- Force existing SAIT May 2026 mentor/judge rows to use the enriched profile
--- data. Earlier seed migrations only insert when rows do not already exist, so
--- live rows with placeholder bios need an explicit update.
+-- Refresh SAIT May 2026 mentor and judge copy for the public profile pages.
+-- This intentionally updates existing rows because the live event was seeded
+-- before several speaker bios and photos were finalized.
 
 ALTER TABLE public.mentors
   ADD COLUMN IF NOT EXISTS is_judge BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS is_mentor BOOLEAN DEFAULT true;
-
-UPDATE public.mentors
-SET
-  is_judge = COALESCE(is_judge, false),
-  is_mentor = COALESCE(is_mentor, true);
-
-ALTER TABLE public.mentors
-  ALTER COLUMN is_judge SET DEFAULT false,
-  ALTER COLUMN is_judge SET NOT NULL,
-  ALTER COLUMN is_mentor SET DEFAULT true,
-  ALTER COLUMN is_mentor SET NOT NULL;
 
 DO $$
 DECLARE
@@ -27,7 +16,7 @@ BEGIN
   LIMIT 1;
 
   IF v_event_id IS NULL THEN
-    RAISE NOTICE 'Event calgary-hackathon-sait-may-2026 not found, skipping hackathon profile fix.';
+    RAISE NOTICE 'Event calgary-hackathon-sait-may-2026 not found, skipping mentor profile refresh.';
     RETURN;
   END IF;
 
@@ -49,7 +38,7 @@ BEGIN
       ('Jia Ming Huang', 'Jia Ming Huang', 'Antler / Cursor', 'Founder, Entrepreneur in Residence & Cursor Ambassador', 'Founder, Entrepreneur in Residence at Antler, Cursor Ambassador for Calgary and Toronto, and host at Cappis. Jia brings startup, product, community, and data science perspective from building ventures and organizing large builder events.', '/avatars/hackathon/sait-may-2026/jia-ming-huang.jpg', 'in_person', 20, true, true),
       ('Cal Leung', 'Cal Leung', 'New Era Intelligence Automation', 'Partner & AI Automation Strategist', 'Partner at New Era Intelligence Automation with experience in AI workflow automation, platform support, policy strategy, campaigns, and community building. Cal brings a practical operations and go-to-market lens for teams turning prototypes into useful systems.', '/avatars/hackathon/sait-may-2026/cal-leung.jpg', 'in_person', 30, false, true),
       ('Audrey Aui Yong', 'Audrey Aui Yong', 'tsuin.ai', 'CEO & Co-Founder', 'CEO and Co-Founder of tsuin.ai, building AI Digital Twin solutions for enterprises modernizing complex systems. Audrey brings project management, no-code development, startup strategy, enterprise AI implementation, and product leadership experience.', '/avatars/hackathon/sait-may-2026/audrey-aui-yong.jpg', 'in_person', 40, false, true),
-      ('Simon Loewen', 'Simon Loewen', 'New Era Intelligence / Terralink Horticulture', 'Agribusiness AI Strategist & Cursor Ambassador', 'Agribusiness AI strategist, Cursor Ambassador, and Alberta Greenhouse Growers Association board member working across commercial horticulture and applied AI. Simon helps teams think through practical automation, business workflows, customer-facing systems, and useful AI deployments.', '/avatars/hackathon/sait-may-2026/simon-loewen.jpg', 'in_person', 50, true, true),
+      ('Simon Loewen', 'Simon Loewen', 'New Era Intelligence / Terralink Horticulture', 'Agribusiness AI strategist, Cursor Ambassador, and Alberta Greenhouse Growers Association board member working across commercial horticulture and applied AI. Simon helps teams think through practical automation, business workflows, customer-facing systems, and useful AI deployments.', '/avatars/hackathon/sait-may-2026/simon-loewen.jpg', 'in_person', 50, true, true),
       ('Alex Young', 'Alex Young', 'Mercury Technologies', 'Senior Software Engineer', 'Software engineer with more than 7 years of experience, primarily in backend microservices and event-driven architecture. Alex has built products in space tech, ad tech, and most recently fintech at Mercury Technologies, and is happy to chat through prototypes, minimum viable products, and how to simplify complex problems.', '/avatars/hackathon/sait-may-2026/alex-young.jpeg', 'in_person', 60, true, false),
       ('Trystan Keller', 'Trystan Keller', 'Saleslink Strategies', 'Event Growth Strategist', 'Event growth strategist helping coaches, consultants, and service providers build authority and generate clients through community events and direct outreach. Trystan brings sales, demand generation, positioning, and event marketing judgment.', '/avatars/hackathon/sait-may-2026/trystan-keller.jpg', 'in_person', 70, false, true),
       ('David Lynch', 'David Lynch', 'OpenHouse.ai', 'Co-Owner / VP of Revenue', 'Co-Owner and VP of Revenue at OpenHouse.ai, helping home builders use AI and decision intelligence to improve pace, margin, pricing, and sales execution. David brings deep experience in revenue, growth, consulting, product positioning, and builder-market discovery.', '/avatars/hackathon/sait-may-2026/david-lynch.jpg', 'in_person', 80, true, false),

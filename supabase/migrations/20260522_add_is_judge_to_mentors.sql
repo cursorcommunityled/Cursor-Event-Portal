@@ -41,6 +41,7 @@ BEGIN
     is_judge = true,
     is_mentor = CASE
       WHEN name IN (
+        'Oguzhan Dogru',
         'Jia Ming Huang',
         'Simon Loewen',
         'Anvil Palamattam',
@@ -50,6 +51,7 @@ BEGIN
     END,
     company = CASE name
       WHEN 'Jia Ming Huang' THEN 'Antler / Cursor'
+      WHEN 'Oguzhan Dogru' THEN 'CruxOCM'
       WHEN 'Cal Leung' THEN 'New Era Intelligence Automation'
       WHEN 'Audrey Aui Yong' THEN 'tsuin.ai'
       WHEN 'Simon Loewen' THEN 'New Era Intelligence / Terralink Horticulture'
@@ -60,8 +62,9 @@ BEGIN
     END,
     title = CASE name
       WHEN 'Jia Ming Huang' THEN 'Founder, Entrepreneur in Residence & Cursor Ambassador'
+      WHEN 'Oguzhan Dogru' THEN 'Advanced Process Control Engineer'
       WHEN 'Cal Leung' THEN 'Partner & AI Automation Strategist'
-      WHEN 'Audrey Aui Yong' THEN 'CEO & Founder'
+      WHEN 'Audrey Aui Yong' THEN 'CEO & Co-Founder'
       WHEN 'Simon Loewen' THEN 'Agribusiness AI Strategist & Cursor Ambassador'
       WHEN 'Trystan Keller' THEN 'Event Growth Strategist'
       WHEN 'Anvil Palamattam' THEN 'AI & Platform Cloud Architect'
@@ -69,17 +72,19 @@ BEGIN
       ELSE title
     END,
     bio = CASE name
-      WHEN 'Jia Ming Huang' THEN 'Founder, Entrepreneur in Residence at Antler, and Cursor Ambassador for Calgary and Toronto. Carter brings product, community, startup, and data science perspective from building ventures and hosting large builder events.'
-      WHEN 'Cal Leung' THEN 'Partner at New Era Intelligence Automation with experience in AI workflow automation, policy strategy, campaigns, and community building. Cal brings a practical lens on operations, positioning, and go-to-market execution.'
-      WHEN 'Audrey Aui Yong' THEN 'CEO and Founder of tsuin.ai, building AI digital twins for software teams and enterprises. Audrey brings product leadership, startup execution, project management, and enterprise AI implementation experience.'
-      WHEN 'Simon Loewen' THEN 'Agribusiness AI strategist, Cursor Ambassador, and Alberta Greenhouse Growers Association board member. Simon focuses on practical AI systems, automation, business operations, and supporting builders in Calgary.'
-      WHEN 'Trystan Keller' THEN 'Event growth strategist helping coaches, consultants, and service providers build authority and generate clients through community events and direct outreach. Trystan brings sales, demand generation, and event marketing judgment.'
-      WHEN 'Anvil Palamattam' THEN 'AI and platform cloud architect at Google focused on enterprise AI, Google Cloud, application modernization, cybersecurity, and distributed systems. Anvil brings deep technical architecture and production deployment experience.'
-      WHEN 'Suprita Shankar' THEN 'Machine learning engineer on Apple''s Foundation Models team, working on training data and model performance. Suprita has built large-scale knowledge extraction, entity resolution, and Siri question-answering systems.'
+      WHEN 'Jia Ming Huang' THEN 'Founder, Entrepreneur in Residence at Antler, Cursor Ambassador for Calgary and Toronto, and host at Cappis. Jia brings startup, product, community, and data science perspective from building ventures and organizing large builder events.'
+      WHEN 'Oguzhan Dogru' THEN 'Advanced process control engineer at CruxOCM with deep experience in AI-driven process control, reinforcement learning, computer vision, OT/SCADA, and industrial automation. Oguzhan brings a practical research-to-production lens for teams building technical systems, ML workflows, and high-impact demos.'
+      WHEN 'Cal Leung' THEN 'Partner at New Era Intelligence Automation with experience in AI workflow automation, platform support, policy strategy, campaigns, and community building. Cal brings a practical operations and go-to-market lens for teams turning prototypes into useful systems.'
+      WHEN 'Audrey Aui Yong' THEN 'CEO and Co-Founder of tsuin.ai, building AI Digital Twin solutions for enterprises modernizing complex systems. Audrey brings project management, no-code development, startup strategy, enterprise AI implementation, and product leadership experience.'
+      WHEN 'Simon Loewen' THEN 'Agribusiness AI strategist, Cursor Ambassador, and Alberta Greenhouse Growers Association board member working across commercial horticulture and applied AI. Simon helps teams think through practical automation, business workflows, customer-facing systems, and useful AI deployments.'
+      WHEN 'Trystan Keller' THEN 'Event growth strategist helping coaches, consultants, and service providers build authority and generate clients through community events and direct outreach. Trystan brings sales, demand generation, positioning, and event marketing judgment.'
+      WHEN 'Anvil Palamattam' THEN 'AI and platform cloud architect at Google helping enterprise and public-sector teams ship production workloads across Gemini, Google Cloud, Kubernetes, application modernization, cybersecurity, and infrastructure modernization. Anvil brings strong architecture, cloud engineering, and production deployment judgment.'
+      WHEN 'Suprita Shankar' THEN 'Machine learning engineer at Apple on the Foundation Models team, focused on training data, ablations, and model performance. Suprita has built production-scale knowledge extraction, entity resolution, and Siri question-answering systems, and brings deep ML systems, data-centric AI, and startup engineering experience.'
       ELSE bio
     END,
     photo_url = CASE name
       WHEN 'Jia Ming Huang' THEN '/avatars/hackathon/sait-may-2026/jia-ming-huang.jpg'
+      WHEN 'Oguzhan Dogru' THEN '/avatars/hackathon/sait-may-2026/ozzy.jpeg'
       WHEN 'Cal Leung' THEN '/avatars/hackathon/sait-may-2026/cal-leung.jpg'
       WHEN 'Audrey Aui Yong' THEN '/avatars/hackathon/sait-may-2026/audrey-aui-yong.jpg'
       WHEN 'Simon Loewen' THEN '/avatars/hackathon/sait-may-2026/simon-loewen.jpg'
@@ -92,6 +97,7 @@ BEGIN
   WHERE event_id = v_event_id
     AND name IN (
       'Jia Ming Huang',
+      'Oguzhan Dogru',
       'Cal Leung',
       'Audrey Aui Yong',
       'Simon Loewen',

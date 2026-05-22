@@ -13,7 +13,7 @@ BEGIN
 
   UPDATE public.mentors
   SET photo_url = '/avatars/hackathon/sait-may-2026/jia-ming-huang.jpg',
-      bio = 'Founder, Entrepreneur in Residence at Antler, and Cursor Ambassador for Calgary and Toronto. Carter brings product, community, startup, and data science perspective from building ventures and hosting large builder events.'
+      bio = 'Founder, Entrepreneur in Residence at Antler, Cursor Ambassador for Calgary and Toronto, and host at Cappis. Jia brings startup, product, community, and data science perspective from building ventures and organizing large builder events.'
   WHERE event_id = v_event_id AND name = 'Jia Ming Huang';
 
   UPDATE public.mentors
