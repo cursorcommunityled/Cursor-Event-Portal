@@ -56,6 +56,26 @@ async function getUserRole(supabase: SupabaseServiceClient, userId: string) {
   return data?.role as string | null | undefined;
 }
 
+async function hasAdminAccessForEvent(
+  supabase: SupabaseServiceClient,
+  eventId: string,
+  userId: string,
+  adminCode?: string
+) {
+  const role = await getUserRole(supabase, userId);
+  if (isAdminRole(role)) return true;
+  if (!adminCode) return false;
+
+  const { data } = await supabase
+    .from("events")
+    .select("id")
+    .eq("id", eventId)
+    .eq("admin_code", adminCode)
+    .maybeSingle();
+
+  return Boolean(data);
+}
+
 async function isTeamMember(
   supabase: SupabaseServiceClient,
   teamId: string,
@@ -96,17 +116,18 @@ async function userHasTeamInEvent(
 async function canAccessChannel(
   supabase: SupabaseServiceClient,
   channel: ChatChannelRow,
-  session: PortalSession
+  session: PortalSession,
+  adminCode?: string
 ) {
+  if (await hasAdminAccessForEvent(supabase, channel.event_id, session.userId, adminCode)) {
+    return true;
+  }
+
   if (session.eventId !== channel.event_id) return false;
 
-  const [checkedIn, role] = await Promise.all([
-    isCheckedInForEvent(supabase, channel.event_id, session.userId),
-    getUserRole(supabase, session.userId),
-  ]);
+  const checkedIn = await isCheckedInForEvent(supabase, channel.event_id, session.userId);
 
   if (!checkedIn) return false;
-  if (isAdminRole(role)) return true;
 
   if (channel.channel_type === "dm") {
     return getDmParticipantIds(channel.name).includes(session.userId);
@@ -126,7 +147,8 @@ async function canAccessChannel(
 async function getAuthorizedChannel(
   supabase: SupabaseServiceClient,
   channelId: string,
-  session: PortalSession
+  session: PortalSession,
+  adminCode?: string
 ) {
   const { data: channel } = await supabase
     .from("hackathon_chat_channels")
@@ -135,7 +157,7 @@ async function getAuthorizedChannel(
     .maybeSingle();
 
   if (!channel) return null;
-  return (await canAccessChannel(supabase, channel, session)) ? channel : null;
+  return (await canAccessChannel(supabase, channel, session, adminCode)) ? channel : null;
 }
 
 // Auto-provision the three default channels for a hackathon event
@@ -250,17 +272,23 @@ export async function sendChatMessage(
   fileUrl?: string | null,
   fileType?: "image" | "file" | null,
   fileName?: string | null,
-  fileSizeBytes?: number | null
+  fileSizeBytes?: number | null,
+  adminCode?: string
 ): Promise<{ error?: string; message?: HackathonChatMessage }> {
   const session = await getSession();
-  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+  if (!session) return { error: "Not authenticated" };
 
   if (!content?.trim() && !fileUrl) return { error: "Message cannot be empty" };
 
   const supabase = await createServiceClient();
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, eventId, session.userId, adminCode);
 
-  const currentUserCheckedIn = await isCheckedInForEvent(supabase, eventId, session.userId);
-  if (!currentUserCheckedIn) return { error: "You must be checked in before using chat" };
+  if (!currentUserIsAdmin && session.eventId !== eventId) return { error: "Not authenticated" };
+
+  if (!currentUserIsAdmin) {
+    const currentUserCheckedIn = await isCheckedInForEvent(supabase, eventId, session.userId);
+    if (!currentUserCheckedIn) return { error: "You must be checked in before using chat" };
+  }
 
   // Verify the user can access this channel
   const { data: channel } = await supabase
@@ -275,8 +303,7 @@ export async function sendChatMessage(
   if (channel.channel_type === "dm") {
     // Check if the user is part of the DM
     if (!getDmParticipantIds(channel.name).includes(session.userId)) {
-      const role = await getUserRole(supabase, session.userId);
-      if (!isAdminRole(role)) {
+      if (!currentUserIsAdmin) {
         return { error: "You cannot post in this DM" };
       }
     }
@@ -293,8 +320,7 @@ export async function sendChatMessage(
 
     if (!membership?.length) {
       // Admins can still post — check user role
-      const role = await getUserRole(supabase, session.userId);
-      if (!isAdminRole(role)) {
+      if (!currentUserIsAdmin) {
         return { error: "You are not a member of this team" };
       }
     }
@@ -315,8 +341,7 @@ export async function sendChatMessage(
         .in("team_id", eventTeamIds)
         .limit(1);
       if (userMembership?.length) {
-        const role = await getUserRole(supabase, session.userId);
-        if (!isAdminRole(role)) {
+        if (!currentUserIsAdmin) {
           return { error: "You're on a team — use your team channel or #general" };
         }
       }
@@ -325,8 +350,7 @@ export async function sendChatMessage(
 
   // For announcements, only admins/staff can post
   if (channel.channel_type === "announcements") {
-    const role = await getUserRole(supabase, session.userId);
-    if (!isAdminRole(role)) {
+    if (!currentUserIsAdmin) {
       return { error: "Only admins can post in announcements" };
     }
   }
@@ -396,7 +420,8 @@ export async function sendChatMessage(
 
 export async function editChatMessage(
   messageId: string,
-  newContent: string
+  newContent: string,
+  adminCode?: string
 ): Promise<{ error?: string }> {
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
@@ -412,8 +437,9 @@ export async function editChatMessage(
     .maybeSingle();
 
   if (!msg) return { error: "Message not found" };
-  if (msg.event_id !== session.eventId) return { error: "Not authorised" };
-  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, msg.event_id, session.userId, adminCode);
+  if (!currentUserIsAdmin && msg.event_id !== session.eventId) return { error: "Not authorised" };
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session, adminCode);
   if (!channel) return { error: "Not authorised" };
 
   if (msg.user_id !== session.userId) {
@@ -433,7 +459,8 @@ export async function editChatMessage(
 }
 
 export async function deleteChatMessage(
-  messageId: string
+  messageId: string,
+  adminCode?: string
 ): Promise<{ error?: string }> {
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
@@ -447,16 +474,14 @@ export async function deleteChatMessage(
     .maybeSingle();
 
   if (!msg) return { error: "Message not found" };
-  if (msg.event_id !== session.eventId) return { error: "Not authorised" };
-  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, msg.event_id, session.userId, adminCode);
+  if (!currentUserIsAdmin && msg.event_id !== session.eventId) return { error: "Not authorised" };
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session, adminCode);
   if (!channel) return { error: "Not authorised" };
 
   // Allow delete if own message or admin
-  if (msg.user_id !== session.userId) {
-    const role = await getUserRole(supabase, session.userId);
-    if (!isAdminRole(role)) {
-      return { error: "Not authorised" };
-    }
+  if (msg.user_id !== session.userId && !currentUserIsAdmin) {
+    return { error: "Not authorised" };
   }
 
   const { error } = await supabase
@@ -470,26 +495,27 @@ export async function deleteChatMessage(
 
 export async function pinChatMessage(
   messageId: string,
-  pinned: boolean
+  pinned: boolean,
+  adminCode?: string
 ): Promise<{ error?: string }> {
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
 
   const supabase = await createServiceClient();
 
-  const role = await getUserRole(supabase, session.userId);
-  if (!isAdminRole(role)) {
-    return { error: "Only admins can pin messages" };
-  }
-
   const { data: msg } = await supabase
     .from("hackathon_chat_messages")
     .select("channel_id, event_id")
     .eq("id", messageId)
     .maybeSingle();
-  if (!msg || msg.event_id !== session.eventId) return { error: "Message not found" };
+  if (!msg) return { error: "Message not found" };
 
-  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, msg.event_id, session.userId, adminCode);
+  if (!currentUserIsAdmin) {
+    return { error: "Only admins can pin messages" };
+  }
+
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session, adminCode);
   if (!channel) return { error: "Not authorised" };
 
   const { error } = await supabase
@@ -503,7 +529,8 @@ export async function pinChatMessage(
 
 export async function toggleChatReaction(
   messageId: string,
-  emoji: string
+  emoji: string,
+  adminCode?: string
 ): Promise<{ error?: string }> {
   const session = await getSession();
   if (!session) return { error: "Not authenticated" };
@@ -515,9 +542,11 @@ export async function toggleChatReaction(
     .select("channel_id, event_id")
     .eq("id", messageId)
     .maybeSingle();
-  if (!msg || msg.event_id !== session.eventId) return { error: "Message not found" };
+  if (!msg) return { error: "Message not found" };
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, msg.event_id, session.userId, adminCode);
+  if (!currentUserIsAdmin && msg.event_id !== session.eventId) return { error: "Message not found" };
 
-  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session);
+  const channel = await getAuthorizedChannel(supabase, msg.channel_id, session, adminCode);
   if (!channel) return { error: "Not authorised" };
 
   const { data: existing } = await supabase
@@ -543,13 +572,14 @@ export async function toggleChatReaction(
 }
 
 export async function markChannelRead(
-  channelId: string
+  channelId: string,
+  adminCode?: string
 ): Promise<void> {
   const session = await getSession();
   if (!session) return;
 
   const supabase = await createServiceClient();
-  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  const channel = await getAuthorizedChannel(supabase, channelId, session, adminCode);
   if (!channel) return;
 
   await supabase
@@ -562,39 +592,42 @@ export async function markChannelRead(
 
 export async function loadMoreMessages(
   channelId: string,
-  beforeId: string
+  beforeId: string,
+  adminCode?: string
 ): Promise<HackathonChatMessage[]> {
   const session = await getSession();
   if (!session) return [];
 
   const supabase = await createServiceClient();
-  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  const channel = await getAuthorizedChannel(supabase, channelId, session, adminCode);
   if (!channel) return [];
 
   return getHackathonChatMessages(channelId, 40, beforeId);
 }
 
 export async function fetchChannelMessages(
-  channelId: string
+  channelId: string,
+  adminCode?: string
 ): Promise<ChatMessagesResult> {
   const session = await getSession();
   if (!session) return { messages: [], error: "Not authenticated" };
 
   const supabase = await createServiceClient();
-  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  const channel = await getAuthorizedChannel(supabase, channelId, session, adminCode);
   if (!channel) return { messages: [], error: "Not authorised" };
 
   return { messages: await getHackathonChatMessages(channelId, 60) };
 }
 
 export async function fetchPinnedMessages(
-  channelId: string
+  channelId: string,
+  adminCode?: string
 ): Promise<HackathonChatMessage[]> {
   const session = await getSession();
   if (!session) return [];
 
   const supabase = await createServiceClient();
-  const channel = await getAuthorizedChannel(supabase, channelId, session);
+  const channel = await getAuthorizedChannel(supabase, channelId, session, adminCode);
   if (!channel) return [];
 
   return getHackathonChatMessages(channelId, 25, undefined, true);

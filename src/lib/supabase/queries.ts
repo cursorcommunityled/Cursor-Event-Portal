@@ -2622,22 +2622,23 @@ export async function getHackathonChatChannels(
     return [];
   }
 
-  const rows = ((data ?? []) as HackathonChatChannel[]).filter((ch) => {
+  const rows = (data ?? []) as HackathonChatChannel[];
+
+  // Admin/fallback: no team filter means the caller can administer the event.
+  if (teamId === undefined) {
+    return rows;
+  }
+
+  const visibleRows = rows.filter((ch) => {
     if (ch.channel_type === "dm") {
       return isDmParticipant(ch.name, userId);
     }
     return true;
   });
 
-  // Admin/fallback: return shared channels only. Team channels stay private to
-  // the team even if the viewer can administer the event.
-  if (teamId === undefined) {
-    return rows.filter((ch) => !ch.team_id || ch.channel_type === "dm");
-  }
-
   // No team: Spawn Point + announcements + resources + help + DMs (NOT general)
   if (teamId === null) {
-    return rows.filter(
+    return visibleRows.filter(
       (ch) =>
         ch.channel_type === "spawn_point" ||
         ch.channel_type === "announcements" ||
@@ -2648,7 +2649,7 @@ export async function getHackathonChatChannels(
   }
 
   // Has team: general + announcements + resources + help + their team channel + DMs (NOT spawn_point)
-  return rows.filter(
+  return visibleRows.filter(
     (ch) =>
       ch.channel_type === "general" ||
       ch.channel_type === "announcements" ||

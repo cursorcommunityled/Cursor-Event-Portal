@@ -44,6 +44,7 @@ interface Props {
   sentInviteUserIds?: string[];
   onInviteFromProfile?: (member: ChatMember) => void;
   onCancelInviteFromProfile?: (member: ChatMember) => void;
+  adminCode?: string;
 }
 
 function escapeRegExp(value: string) {
@@ -100,7 +101,7 @@ function isClosableChannel(channel: HackathonChatChannel) {
 export function HackathonChat({
   event, userId, isAdmin, channels: initialChannels,
   initialMessages, initialChannelId, members, myTeamId,
-  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile,
+  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile, adminCode,
 }: Props) {
   const [channels, setChannels] = useState(initialChannels);
   const [activeChannelId, setActiveChannelId] = useState(initialChannelId);
@@ -132,7 +133,6 @@ export function HackathonChat({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const channelsRef = useRef(channels);
-  const messageMapRef = useRef(messageMap);
   const hasAttemptedChannelRestoreRef = useRef(false);
   const [hasRestoredChannel, setHasRestoredChannel] = useState(false);
   const storageKey = `hackathon-chat:${event.id}:active-channel`;
@@ -187,17 +187,14 @@ export function HackathonChat({
   }, [members]);
 
   const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
+    if (isAdmin) return true;
     if (channel.channel_type === "dm") return isDmParticipant(channel.name, userId);
     return !channel.team_id || channel.team_id === myTeamId;
-  }, [myTeamId, userId]);
+  }, [isAdmin, myTeamId, userId]);
 
   useEffect(() => {
     channelsRef.current = channels;
   }, [channels]);
-
-  useEffect(() => {
-    messageMapRef.current = messageMap;
-  }, [messageMap]);
 
   const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
     if (!channel) return "";
@@ -289,6 +286,7 @@ export function HackathonChat({
   const canPost = useMemo(() => {
     // No channel loaded yet — don't block, channels may still be initialising
     if (!currentChannel) return channels.length === 0 ? false : true;
+    if (isAdmin) return true;
     if (currentChannel.channel_type === "dm") return isDmParticipant(currentChannel.name, userId);
     if (currentChannel.channel_type === "announcements") return isAdmin;
     // Spawn Point: only unassigned members (no team yet) can post
@@ -334,7 +332,7 @@ export function HackathonChat({
     setActiveChannelId(storedChannelId);
     if (!messageMap[storedChannelId]) {
       setLoadingChannel(true);
-      fetchChannelMessages(storedChannelId)
+      fetchChannelMessages(storedChannelId, adminCode)
         .then((result) => {
           if (result.error) return;
           setMessageMap((prev) => ({ ...prev, [storedChannelId]: result.messages }));
@@ -345,7 +343,7 @@ export function HackathonChat({
     setHasRestoredChannel(true);
     // Run once after channels are available; messageMap is intentionally not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channels, resolvedChannelId, storageKey]);
+  }, [adminCode, channels, resolvedChannelId, storageKey]);
 
   useEffect(() => {
     if (!hasRestoredChannel || !resolvedChannelId) return;
@@ -531,24 +529,22 @@ export function HackathonChat({
   // Mark channel as read when switching to it
   useEffect(() => {
     if (resolvedChannelId) {
-      markChannelRead(resolvedChannelId).catch(() => {});
+      markChannelRead(resolvedChannelId, adminCode).catch(() => {});
       setChannels((prev) => prev.map((ch) =>
         ch.id === resolvedChannelId && ch.unread_count ? { ...ch, unread_count: 0 } : ch
       ));
     }
-  }, [resolvedChannelId]);
+  }, [adminCode, resolvedChannelId]);
 
   useEffect(() => {
     if (!resolvedChannelId) return;
 
     let cancelled = false;
     const refreshActiveChannel = async () => {
-      const result = await fetchChannelMessages(resolvedChannelId);
+      const result = await fetchChannelMessages(resolvedChannelId, adminCode);
       if (cancelled || result.error) return;
 
       const latestMessages = result.messages;
-      const currentMessages = messageMapRef.current[resolvedChannelId] ?? [];
-      if (currentMessages.length > 0 && latestMessages.length === 0) return;
 
       setMessageMap((prev) => {
         const current = prev[resolvedChannelId] ?? [];
@@ -562,6 +558,8 @@ export function HackathonChat({
       setHasMore(latestMessages.length >= 60);
     };
 
+    refreshActiveChannel().catch(() => {});
+
     const intervalId = window.setInterval(() => {
       refreshActiveChannel().catch(() => {});
     }, 5000);
@@ -570,14 +568,14 @@ export function HackathonChat({
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [resolvedChannelId]);
+  }, [adminCode, resolvedChannelId]);
 
   useEffect(() => {
     if (!resolvedChannelId) return;
 
     let cancelled = false;
     setLoadingPinned(true);
-    fetchPinnedMessages(resolvedChannelId)
+    fetchPinnedMessages(resolvedChannelId, adminCode)
       .then((pinned) => {
         if (cancelled) return;
         setPinnedMessageMap((prev) => ({ ...prev, [resolvedChannelId]: pinned }));
@@ -589,24 +587,22 @@ export function HackathonChat({
     return () => {
       cancelled = true;
     };
-  }, [resolvedChannelId]);
+  }, [adminCode, resolvedChannelId]);
 
   const switchChannel = async (channelId: string) => {
     if (channelId === resolvedChannelId) return;
     setActiveChannelId(channelId);
-    if (!messageMap[channelId]) {
-      setLoadingChannel(true);
-      try {
-        const result = await fetchChannelMessages(channelId);
-        if (result.error) {
-          toast.error(result.error);
-          return;
-        }
-        setMessageMap((prev) => ({ ...prev, [channelId]: result.messages }));
-        setHasMore(result.messages.length >= 60);
-      } finally {
-        setLoadingChannel(false);
+    setLoadingChannel(!messageMap[channelId]);
+    try {
+      const result = await fetchChannelMessages(channelId, adminCode);
+      if (result.error) {
+        toast.error(result.error);
+        return;
       }
+      setMessageMap((prev) => ({ ...prev, [channelId]: result.messages }));
+      setHasMore(result.messages.length >= 60);
+    } finally {
+      setLoadingChannel(false);
     }
   };
 
@@ -634,7 +630,7 @@ export function HackathonChat({
     const oldest = messages[0];
     if (!oldest || loadingMore) return;
     setLoadingMore(true);
-    const older = await loadMoreMessages(resolvedChannelId, oldest.id);
+    const older = await loadMoreMessages(resolvedChannelId, oldest.id, adminCode);
     setMessageMap((prev) => ({
       ...prev,
       [resolvedChannelId]: [...older, ...(prev[resolvedChannelId] ?? [])],
@@ -677,7 +673,17 @@ export function HackathonChat({
 
     startTransition(async () => {
       try {
-        const res = await sendChatMessage(resolvedChannelId, event.id, text, mentioned);
+        const res = await sendChatMessage(
+          resolvedChannelId,
+          event.id,
+          text,
+          mentioned,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          adminCode
+        );
         if (res.error) {
           setMessageMap((prev) => ({
             ...prev,
@@ -758,6 +764,7 @@ export function HackathonChat({
       fd.append("file", file);
       fd.append("eventId", event.id);
       fd.append("channelId", channelId);
+      if (adminCode) fd.append("adminCode", adminCode);
       const res = await fetch("/api/hackathon/chat-upload", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
@@ -779,7 +786,7 @@ export function HackathonChat({
           const result = await sendChatMessage(
             channelId, event.id,
             caption || null, [],
-            data.file_url, data.file_type, data.file_name, data.file_size_bytes
+            data.file_url, data.file_type, data.file_name, data.file_size_bytes, adminCode
           );
           if (result.error) {
             removeOptimisticUpload();
@@ -833,7 +840,7 @@ export function HackathonChat({
         }),
       };
     });
-    startTransition(async () => { await toggleChatReaction(msgId, emoji); });
+    startTransition(async () => { await toggleChatReaction(msgId, emoji, adminCode); });
   };
 
   const handleEdit = (msgId: string, newContent: string) => {
@@ -850,7 +857,7 @@ export function HackathonChat({
       ),
     }));
     startTransition(async () => {
-      const res = await editChatMessage(msgId, newContent);
+      const res = await editChatMessage(msgId, newContent, adminCode);
       if (res.error) toast.error(res.error);
     });
   };
@@ -864,7 +871,7 @@ export function HackathonChat({
       ...prev,
       [resolvedChannelId]: (prev[resolvedChannelId] ?? []).filter((m) => m.id !== msgId),
     }));
-    startTransition(async () => { await deleteChatMessage(msgId); });
+    startTransition(async () => { await deleteChatMessage(msgId, adminCode); });
   };
 
   const handlePin = (msgId: string, pinned: boolean) => {
@@ -887,7 +894,7 @@ export function HackathonChat({
         : [...existing, pinnedTarget];
       return { ...prev, [resolvedChannelId]: next };
     });
-    startTransition(async () => { await pinChatMessage(msgId, pinned); });
+    startTransition(async () => { await pinChatMessage(msgId, pinned, adminCode); });
   };
 
   const handlePinnedJump = (messageId: string) => {

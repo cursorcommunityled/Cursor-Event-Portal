@@ -8,6 +8,8 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif",
 ]);
 
+const ADMIN_ROLES = new Set(["admin", "staff", "facilitator"]);
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
@@ -19,13 +21,10 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const eventId = formData.get("eventId") as string | null;
     const channelId = formData.get("channelId") as string | null;
+    const adminCode = formData.get("adminCode") as string | null;
 
     if (!file || !eventId || !channelId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
-
-    if (session.eventId !== eventId) {
-      return NextResponse.json({ error: "Not authenticated for this event" }, { status: 403 });
     }
 
     if (file.size > MAX_SIZE_BYTES) {
@@ -33,17 +32,40 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createServiceClient();
+    const [{ data: user }, { data: adminEvent }] = await Promise.all([
+      supabase
+        .from("users")
+        .select("role")
+        .eq("id", session.userId)
+        .maybeSingle(),
+      adminCode
+        ? supabase
+          .from("events")
+          .select("id")
+          .eq("id", eventId)
+          .eq("admin_code", adminCode)
+          .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
-    const { data: checkedInRegistration } = await supabase
-      .from("registrations")
-      .select("id")
-      .eq("event_id", eventId)
-      .eq("user_id", session.userId)
-      .not("checked_in_at", "is", null)
-      .maybeSingle();
+    const currentUserIsAdmin = ADMIN_ROLES.has(user?.role ?? "") || Boolean(adminEvent);
 
-    if (!checkedInRegistration) {
-      return NextResponse.json({ error: "You must be checked in before using chat" }, { status: 403 });
+    if (!currentUserIsAdmin && session.eventId !== eventId) {
+      return NextResponse.json({ error: "Not authenticated for this event" }, { status: 403 });
+    }
+
+    if (!currentUserIsAdmin) {
+      const { data: checkedInRegistration } = await supabase
+        .from("registrations")
+        .select("id")
+        .eq("event_id", eventId)
+        .eq("user_id", session.userId)
+        .not("checked_in_at", "is", null)
+        .maybeSingle();
+
+      if (!checkedInRegistration) {
+        return NextResponse.json({ error: "You must be checked in before using chat" }, { status: 403 });
+      }
     }
 
     // Verify user can access this channel
@@ -67,14 +89,7 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (!membership?.length) {
-        const { data: user } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", session.userId)
-          .maybeSingle();
-
-        const adminRoles = ["admin", "staff", "facilitator"];
-        if (!user || !adminRoles.includes(user.role)) {
+        if (!currentUserIsAdmin) {
           return NextResponse.json({ error: "Not a team member" }, { status: 403 });
         }
       }
