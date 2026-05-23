@@ -119,15 +119,32 @@ export function MentorProfilePanel({
         )}
 
         {mySlot && mentor.meet_link && meetLinkUnlocked && (
-          <a
-            href={mentor.meet_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 h-11 px-5 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-medium hover:bg-green-500/25 transition-all"
-          >
-            <Video className="w-4 h-4" />
-            Join Google Meet
-          </a>
+          <div className="rounded-3xl border border-green-500/25 bg-green-500/10 p-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={mentor.meet_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 h-11 px-5 rounded-2xl bg-green-500/15 border border-green-500/30 text-green-400 text-xs font-medium hover:bg-green-500/25 transition-all"
+              >
+                <Video className="w-4 h-4" />
+                Join Google Meet
+              </a>
+              <a
+                href={mentor.meet_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-green-200 hover:text-green-100 break-all"
+              >
+                {mentor.meet_link}
+              </a>
+            </div>
+            {mentor.virtual_call_instructions && (
+              <p className="text-xs text-green-100/80 leading-relaxed whitespace-pre-line">
+                {mentor.virtual_call_instructions}
+              </p>
+            )}
+          </div>
         )}
 
         {mySlot && mentor.meet_link && !meetLinkUnlocked && (

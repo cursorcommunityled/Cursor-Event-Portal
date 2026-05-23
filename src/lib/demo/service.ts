@@ -9,6 +9,7 @@ export interface MentorSummary {
   bio: string | null;
   photo_url: string | null;
   meet_link: string | null;
+  virtual_call_instructions: string | null;
   mentorship_mode: "virtual" | "in_person" | "hybrid";
   in_person_location: string | null;
   in_person_schedule: string | null;
@@ -227,7 +228,7 @@ export async function getDemoSlotsWithCounts(eventId: string): Promise<DemoSlotW
   const supabase = await createServiceClient();
   const { data, error } = await supabase
     .from("demo_slots")
-    .select("id, event_id, starts_at, ends_at, capacity, title, host_name, description, location, session_type, mentor_id, created_at, mentor:mentors(id, name, title, company, bio, photo_url, meet_link, mentorship_mode, in_person_location, in_person_schedule, display_order), signups:demo_slot_signups(id, user:users(id, name, email))")
+    .select("id, event_id, starts_at, ends_at, capacity, title, host_name, description, location, session_type, mentor_id, created_at, mentor:mentors(id, name, title, company, bio, photo_url, meet_link, virtual_call_instructions, mentorship_mode, in_person_location, in_person_schedule, display_order), signups:demo_slot_signups(id, user:users(id, name, email))")
     .eq("event_id", eventId)
     .order("starts_at", { ascending: true });
 
