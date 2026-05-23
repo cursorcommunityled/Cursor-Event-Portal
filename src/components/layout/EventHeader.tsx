@@ -176,9 +176,10 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
     };
   }, [announcement]);
 
-  // Fetch table assignment if userId is provided
+  // Fetch the compact header badge once. Live seating updates are handled by
+  // SeatAssignmentBanner so this component does not poll the hot API path.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !event.seating_enabled) return;
 
     async function fetchTableAssignment() {
       try {
@@ -224,10 +225,7 @@ export function EventHeader({ event, announcement: initialAnnouncement, showTime
     }
 
     fetchTableAssignment();
-
-    const interval = setInterval(fetchTableAssignment, 10000);
-    return () => clearInterval(interval);
-  }, [event.id, userId]);
+  }, [event.id, event.seating_enabled, userId]);
 
   const eventStartTime = event.start_time || "2026-01-29T00:00:00Z";
   const redThreshold = 180; // 3 hours from start
