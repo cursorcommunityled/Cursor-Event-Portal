@@ -118,6 +118,74 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
         </h1>
       </div>
 
+      {/* Hackathon Event Q&A */}
+      {event.is_hackathon && (
+        <div className="space-y-6 animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <div className="flex items-center gap-4 px-2">
+            <p className="text-[10px] font-medium text-gray-700 uppercase tracking-[0.4em]">
+              Event Q&A
+            </p>
+            <div className="h-[1px] flex-1 bg-white/[0.03]" />
+          </div>
+
+          <div className="glass rounded-[32px] p-8 border-white/[0.06] space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-5 h-5 text-white/50 stroke-[1.5px]" />
+              </div>
+              <div>
+                <h3 className="text-xl font-light text-white tracking-tight">Hackathon Guide</h3>
+                <p className="text-xs text-gray-600 font-light mt-1">Event protocol, credit redemption, submissions, and fair play</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {eventQa.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article
+                    key={item.question}
+                    className="rounded-2xl border border-white/[0.05] bg-white/[0.015] p-4 transition-colors hover:border-white/[0.08] hover:bg-white/[0.025]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-gray-500 shrink-0">
+                        <Icon className="w-4 h-4 stroke-[1.5px]" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-[13px] font-medium text-white/75 tracking-wide">{item.question}</h4>
+                        <p className="text-[12px] text-gray-600 font-light leading-relaxed">{item.answer}</p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="rounded-2xl border border-emerald-400/10 bg-emerald-500/[0.025] p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-300/70 shrink-0" />
+                <h4 className="text-[13px] font-medium text-white/75 tracking-wide">Cursor Credit Notes</h4>
+              </div>
+              <ul className="space-y-2">
+                {creditNotes.map((note) => (
+                  <li key={note} className="flex items-start gap-2.5 text-[11px] text-gray-500 font-light leading-relaxed">
+                    <ChevronRight className="w-3 h-3 text-emerald-300/35 shrink-0 mt-0.5" />
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.03] p-4 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-red-300/70 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-gray-500 font-light leading-relaxed">
+                When in doubt, ask an organizer before proceeding. Admins and judges may review submissions, repos, and team conduct if protocol concerns come up.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {resources.map((category, catIndex) => (
         <div key={category.id} className="space-y-6 animate-slide-up" style={{ animationDelay: `${catIndex * 100}ms` }}>
           <div className="flex items-center gap-4 px-2">
@@ -266,74 +334,6 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
               Tips: <strong className="font-black text-gray-300">MAKE YOUR REPO PUBLIC BEFORE SUBMISSION.</strong>{" "}
               Upload screenshots — they directly affect your visual score. Keep your pitch text concise and clear about what problem you're solving.
             </p>
-          </div>
-        </div>
-      )}
-
-      {/* Hackathon Event Q&A */}
-      {event.is_hackathon && (
-        <div className="space-y-6 animate-slide-up" style={{ animationDelay: "300ms" }}>
-          <div className="flex items-center gap-4 px-2">
-            <p className="text-[10px] font-medium text-gray-700 uppercase tracking-[0.4em]">
-              Event Q&A
-            </p>
-            <div className="h-[1px] flex-1 bg-white/[0.03]" />
-          </div>
-
-          <div className="glass rounded-[32px] p-8 border-white/[0.06] space-y-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0">
-                <HelpCircle className="w-5 h-5 text-white/50 stroke-[1.5px]" />
-              </div>
-              <div>
-                <h3 className="text-xl font-light text-white tracking-tight">Hackathon Guide</h3>
-                <p className="text-xs text-gray-600 font-light mt-1">Event protocol, credit redemption, submissions, and fair play</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {eventQa.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <article
-                    key={item.question}
-                    className="rounded-2xl border border-white/[0.05] bg-white/[0.015] p-4 transition-colors hover:border-white/[0.08] hover:bg-white/[0.025]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-gray-500 shrink-0">
-                        <Icon className="w-4 h-4 stroke-[1.5px]" />
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="text-[13px] font-medium text-white/75 tracking-wide">{item.question}</h4>
-                        <p className="text-[12px] text-gray-600 font-light leading-relaxed">{item.answer}</p>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="rounded-2xl border border-emerald-400/10 bg-emerald-500/[0.025] p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-emerald-300/70 shrink-0" />
-                <h4 className="text-[13px] font-medium text-white/75 tracking-wide">Cursor Credit Notes</h4>
-              </div>
-              <ul className="space-y-2">
-                {creditNotes.map((note) => (
-                  <li key={note} className="flex items-start gap-2.5 text-[11px] text-gray-500 font-light leading-relaxed">
-                    <ChevronRight className="w-3 h-3 text-emerald-300/35 shrink-0 mt-0.5" />
-                    <span>{note}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.03] p-4 flex items-start gap-3">
-              <AlertTriangle className="w-4 h-4 text-red-300/70 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-gray-500 font-light leading-relaxed">
-                When in doubt, ask an organizer before proceeding. Admins and judges may review submissions, repos, and team conduct if protocol concerns come up.
-              </p>
-            </div>
           </div>
         </div>
       )}
