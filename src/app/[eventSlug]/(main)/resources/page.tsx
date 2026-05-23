@@ -1,7 +1,26 @@
 import { notFound, redirect } from "next/navigation";
 import { getEventBySlug } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
-import { ExternalLink, Download, Code, MessageSquare, Users, Trophy, Cpu, Github, Camera, Star, ChevronRight } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronRight,
+  Clock3,
+  Code,
+  CreditCard,
+  Download,
+  ExternalLink,
+  Github,
+  Handshake,
+  HelpCircle,
+  Laptop,
+  MessageSquare,
+  ShieldCheck,
+  Star,
+  Trophy,
+  Upload,
+  Users,
+  Cpu,
+} from "lucide-react";
 import { ResourcesEggTrigger } from "@/components/easter/ResourcesEggTrigger";
 
 interface ResourcesPageProps {
@@ -24,6 +43,45 @@ const resources = [
       { title: "Cursor Discord", description: "Join the community chat", url: "https://discord.gg/cursor", icon: MessageSquare },
       { title: "Cursor Forum", description: "Ask questions and share tips", url: "https://forum.cursor.com", icon: Users },
     ],
+  },
+];
+
+const eventQa = [
+  {
+    question: "How do I redeem my Cursor credits?",
+    answer:
+      "Go to Event -> Credits in this portal. Once your credit appears, scan the QR code or click the redeem button, sign in to Cursor, and mark it as redeemed after it is applied.",
+    icon: CreditCard,
+  },
+  {
+    question: "How do project submissions work?",
+    answer:
+      "Go to Hackathon -> My Team -> Submit Project. Add your project name, concise description, public GitHub repo URL, up to 5 screenshots, and an optional demo URL before the deadline.",
+    icon: Upload,
+  },
+  {
+    question: "Can we build before the hackathon starts?",
+    answer:
+      "No project code should be written before the official hacking window. You can brainstorm, form teams, install tools, create accounts, and read documentation ahead of time.",
+    icon: Clock3,
+  },
+  {
+    question: "What collaboration is allowed?",
+    answer:
+      "Work with your registered team and ask mentors or organizers for guidance. Open-source libraries, APIs, and datasets are allowed when their licenses permit use and your team can explain the work.",
+    icon: Handshake,
+  },
+  {
+    question: "How can we use AI fairly?",
+    answer:
+      "AI tools are allowed, including Cursor, but your team is responsible for understanding and presenting the final project. Do not misrepresent generated, copied, or external work as your own.",
+    icon: Laptop,
+  },
+  {
+    question: "What conduct is expected?",
+    answer:
+      "Be respectful and professional with participants, mentors, judges, and staff. Harassment, discrimination, disruptive behaviour, plagiarism, or cheating can lead to removal or disqualification.",
+    icon: ShieldCheck,
   },
 ];
 
@@ -199,6 +257,59 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
               Tips: <strong className="font-black text-gray-300">MAKE YOUR REPO PUBLIC BEFORE SUBMISSION.</strong>{" "}
               Upload screenshots — they directly affect your visual score. Keep your pitch text concise and clear about what problem you're solving.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Hackathon Event Q&A */}
+      {event.is_hackathon && (
+        <div className="space-y-6 animate-slide-up" style={{ animationDelay: "300ms" }}>
+          <div className="flex items-center gap-4 px-2">
+            <p className="text-[10px] font-medium text-gray-700 uppercase tracking-[0.4em]">
+              Event Q&A
+            </p>
+            <div className="h-[1px] flex-1 bg-white/[0.03]" />
+          </div>
+
+          <div className="glass rounded-[32px] p-8 border-white/[0.06] space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-5 h-5 text-white/50 stroke-[1.5px]" />
+              </div>
+              <div>
+                <h3 className="text-xl font-light text-white tracking-tight">Hackathon Guide</h3>
+                <p className="text-xs text-gray-600 font-light mt-1">Event protocol, credit redemption, submissions, and fair play</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {eventQa.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article
+                    key={item.question}
+                    className="rounded-2xl border border-white/[0.05] bg-white/[0.015] p-4 transition-colors hover:border-white/[0.08] hover:bg-white/[0.025]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 w-8 h-8 rounded-xl bg-white/[0.03] border border-white/[0.05] flex items-center justify-center text-gray-500 shrink-0">
+                        <Icon className="w-4 h-4 stroke-[1.5px]" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-[13px] font-medium text-white/75 tracking-wide">{item.question}</h4>
+                        <p className="text-[12px] text-gray-600 font-light leading-relaxed">{item.answer}</p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.03] p-4 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 text-red-300/70 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-gray-500 font-light leading-relaxed">
+                When in doubt, ask an organizer before proceeding. Admins and judges may review submissions, repos, and team conduct if protocol concerns come up.
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -2211,7 +2211,6 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
     .from("events")
     .select("id, slug, name, start_time, status, venue")
     .in("id", eventIds)
-    .neq("status", "archived")
     .order("start_time", { ascending: false });
 
   if (eventsError || !events) {
