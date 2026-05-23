@@ -2635,23 +2635,25 @@ export async function getHackathonChatChannels(
     return rows.filter((ch) => !ch.team_id || ch.channel_type === "dm");
   }
 
-  // No team: Spawn Point + announcements + resources + DMs (NOT general)
+  // No team: Spawn Point + announcements + resources + help + DMs (NOT general)
   if (teamId === null) {
     return rows.filter(
       (ch) =>
         ch.channel_type === "spawn_point" ||
         ch.channel_type === "announcements" ||
         ch.channel_type === "resources" ||
+        ch.channel_type === "help" ||
         ch.channel_type === "dm"
     );
   }
 
-  // Has team: general + announcements + resources + their team channel + DMs (NOT spawn_point)
+  // Has team: general + announcements + resources + help + their team channel + DMs (NOT spawn_point)
   return rows.filter(
     (ch) =>
       ch.channel_type === "general" ||
       ch.channel_type === "announcements" ||
       ch.channel_type === "resources" ||
+      ch.channel_type === "help" ||
       ch.team_id === teamId ||
       ch.channel_type === "dm"
   );
@@ -2942,6 +2944,11 @@ const SAIT_PERSON_PROFILE_OVERRIDES: Record<string, Partial<Mentor>> = {
   },
   "Aditya Thakur": {
     photo_url: "/avatars/hackathon/sait-may-2026/aditya-thakur-20260522.png",
+    meet_link: "https://meet.google.com/suv-evqt-rjm",
+    mentorship_mode: "virtual",
+    in_person_location: null,
+    in_person_schedule: null,
+    is_mentor: true,
   },
   "Kanis Patel": {
     photo_url: "/avatars/hackathon/sait-may-2026/kanis-patel-20260522.png",

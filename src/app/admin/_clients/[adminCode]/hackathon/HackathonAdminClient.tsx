@@ -50,6 +50,7 @@ import { HackathonChat } from "@/components/hackathon-chat/HackathonChat";
 import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/HackathonJudgingAdminPanel";
 import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
 import { HackathonPeopleAdminPanel } from "@/components/hackathon/HackathonPeopleAdminPanel";
+import type { DemoSlotWithCounts } from "@/lib/demo/service";
 import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
 
 type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
@@ -75,6 +76,7 @@ interface Props {
   initialAudienceVoteWinner: AudienceVoteWinnerPrompt | null;
   initialPublishedAudienceWinner: PublishedAudienceVoteAnnouncement | null;
   initialPeople: Mentor[];
+  initialSlots: DemoSlotWithCounts[];
 }
 
 type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat" | "people";
@@ -259,7 +261,7 @@ export function HackathonAdminClient({
   event, adminCode, activeTab: initialTab, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
   judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
-  initialAudienceVoteWinner, initialPublishedAudienceWinner, initialPeople,
+  initialAudienceVoteWinner, initialPublishedAudienceWinner, initialPeople, initialSlots,
 }: Props) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -2023,6 +2025,7 @@ export function HackathonAdminClient({
               event={event}
               adminCode={adminCode}
               initialPeople={initialPeople}
+              initialSlots={initialSlots}
             />
           </div>
         )}

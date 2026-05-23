@@ -963,7 +963,7 @@ export interface HackathonTeamWithMembers extends HackathonTeam {
 
 // ─── Hackathon Chat ───────────────────────────────────────────────────────────
 
-export type ChatChannelType = 'spawn_point' | 'general' | 'announcements' | 'team' | 'resources' | 'dm';
+export type ChatChannelType = 'spawn_point' | 'general' | 'announcements' | 'team' | 'resources' | 'help' | 'dm';
 
 export interface HackathonChatChannel {
   id: string;

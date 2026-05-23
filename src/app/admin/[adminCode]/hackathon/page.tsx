@@ -12,6 +12,7 @@ import { getTeamAnalyses } from "@/lib/actions/hackathon-analysis";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getPendingAudienceVoteWinner, getPublishedAudienceVoteAnnouncement } from "@/lib/actions/polls";
 import { HackathonAdminClient } from "@/app/admin/_clients/[adminCode]/hackathon/HackathonAdminClient";
+import { getDemoSlotsWithCounts } from "@/lib/demo/service";
 
 interface Props {
   params: Promise<{ adminCode: string }>;
@@ -38,7 +39,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
 
   const session = await getSession();
 
-  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions, openPool, repoSubmissionBackups, people] = await Promise.all([
+  const [settings, teams, scores, chatChannels, chatMembers, judgingCompetitions, openPool, repoSubmissionBackups, people, slots] = await Promise.all([
     getHackathonSettings(event.id),
     getHackathonTeamsWithMembers(event.id),
     getHackathonScores(event.id),
@@ -50,6 +51,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
     getCheckedInAttendeesWithoutTeams(event.id, ""),
     getHackathonRepoSubmissionBackups(event.id),
     getMentors(event.id),
+    getDemoSlotsWithCounts(event.id),
   ]);
 
   const teamIds = teams.map((t) => t.id);
@@ -97,6 +99,7 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
       initialOpenPool={openPool}
       initialRepoSubmissionBackups={repoSubmissionBackups}
       initialPeople={people}
+      initialSlots={slots}
       initialAudienceVoteWinner={pendingAudienceVoteWinner}
       initialPublishedAudienceWinner={publishedAudienceWinner}
       initialAudienceVote={activeAudienceVote ? {

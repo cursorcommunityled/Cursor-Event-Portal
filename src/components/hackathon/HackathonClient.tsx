@@ -1651,7 +1651,10 @@ export function HackathonClient({
 
           {onlineMentors.length > 0 && (
             <section className="space-y-4">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Book Online</p>
+              <div className="flex items-center gap-3">
+                <span className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_14px_rgba(96,165,250,0.65)]" />
+                <p className="text-sm uppercase tracking-[0.28em] text-blue-100 font-semibold">Book Online</p>
+              </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 {onlineMentors.map((mentor) => (
                   <MentorCard

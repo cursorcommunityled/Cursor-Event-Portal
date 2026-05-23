@@ -197,6 +197,7 @@ export function HackathonChat({
   const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
     if (!channel) return "";
     if (channel.channel_type === "spawn_point") return "Spawn Point";
+    if (channel.channel_type === "help") return "Help";
     if (channel.channel_type === "dm") {
       const parts = channel.name.split(":");
       if (parts.length === 3) {
@@ -291,7 +292,7 @@ export function HackathonChat({
       const myMember = memberMap.get(userId);
       return isAdmin || myMember?.team?.id === currentChannel.team_id;
     }
-    // general / resources — all signed-in attendees can post
+    // shared channels — all signed-in attendees can post
     return true;
   }, [currentChannel, channels.length, isAdmin, memberMap, myTeamId, userId]);
 
@@ -1112,6 +1113,13 @@ export function HackathonChat({
                       Introduce yourself, or type <span className="font-bold text-gray-200">help</span> if you need an admin to jump in.
                     </p>
                   </>
+                ) : currentChannel?.channel_type === "help" ? (
+                  <>
+                    <p className="text-2xl font-black tracking-tight text-white">Need a hand?</p>
+                    <p className="text-[15px] font-medium text-gray-400 mt-2 max-w-[320px] leading-relaxed">
+                      Ask here and an organizer can jump in.
+                    </p>
+                  </>
                 ) : (
                   <>
                     <p className="text-2xl font-black tracking-tight text-white">No messages yet</p>
@@ -1217,7 +1225,9 @@ export function HackathonChat({
                         ? `Message your team…`
                         : currentChannel?.channel_type === "spawn_point"
                           ? `Introduce yourself or type help…`
-                          : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
+                          : currentChannel?.channel_type === "help"
+                            ? `Ask for help…`
+                            : `Message #${currentChannel ? getChannelLabel(currentChannel) : "…"}`
                     }
                     rows={1}
                     className="min-w-0 flex-1 resize-none bg-transparent text-[16px] font-medium leading-relaxed text-white placeholder-gray-500 focus:outline-none max-h-32 py-1"

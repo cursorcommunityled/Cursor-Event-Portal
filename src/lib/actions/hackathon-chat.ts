@@ -116,7 +116,7 @@ async function canAccessChannel(
     return !(await userHasTeamInEvent(supabase, channel.event_id, session.userId));
   }
 
-  return ["general", "announcements", "resources"].includes(channel.channel_type);
+  return ["general", "announcements", "resources", "help"].includes(channel.channel_type);
 }
 
 async function getAuthorizedChannel(
@@ -182,6 +182,7 @@ export async function ensureDefaultChannels(eventId: string) {
     { name: "general", channel_type: "general", position: 1 },
     { name: "announcements", channel_type: "announcements", position: 2 },
     { name: "resources", channel_type: "resources", position: 3 },
+    { name: "help", channel_type: "help", position: 4 },
   ];
 
   // Check which channels already exist first

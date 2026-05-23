@@ -2,8 +2,34 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { createSessionSlot, deleteSessionSlot, updateSessionSlot } from "@/lib/actions/demo";
 import { createMentor, updateMentor, deleteMentor } from "@/lib/actions/mentors";
+import { formatTime } from "@/lib/utils";
 import type { Event, Mentor } from "@/types";
+import type { DemoSlotWithCounts } from "@/lib/demo/service";
+
+function utcToLocalDateTime(utcValue: string, timezone: string): string {
+  const date = new Date(utcValue);
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = formatter.formatToParts(date);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+function addMinutes(localValue: string, minutes: number) {
+  const date = new Date(localValue);
+  if (Number.isNaN(date.getTime())) return localValue;
+  date.setMinutes(date.getMinutes() + minutes);
+  return date.toISOString().slice(0, 16);
+}
 
 type PersonFormState = {
   name: string;
@@ -18,6 +44,13 @@ type PersonFormState = {
   displayOrder: number;
   isMentor: boolean;
   isJudge: boolean;
+};
+
+type AvailabilityFormState = {
+  startsAtLocal: string;
+  endsAtLocal: string;
+  capacity: number;
+  description: string;
 };
 
 type RolePreset = "mentor" | "judge" | "both";
@@ -41,15 +74,26 @@ interface Props {
   event: Event;
   adminCode: string;
   initialPeople: Mentor[];
+  initialSlots: DemoSlotWithCounts[];
 }
 
-export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: Props) {
+export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, initialSlots }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<PersonFormState>(emptyForm());
+  const timezone = event.timezone || "America/Edmonton";
+  const defaultAvailabilityStart = utcToLocalDateTime(event.start_time || new Date().toISOString(), timezone);
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
+  const [availabilityForm, setAvailabilityForm] = useState<AvailabilityFormState>({
+    startsAtLocal: defaultAvailabilityStart,
+    endsAtLocal: addMinutes(defaultAvailabilityStart, 15),
+    capacity: 1,
+    description: "",
+  });
   const [photoUploading, setPhotoUploading] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const [filterTab, setFilterTab] = useState<"all" | "mentors" | "judges">("all");
@@ -60,6 +104,13 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
   const resetForm = () => {
     setEditingId(null);
     setForm(emptyForm());
+    setEditingSlotId(null);
+    setAvailabilityForm({
+      startsAtLocal: defaultAvailabilityStart,
+      endsAtLocal: addMinutes(defaultAvailabilityStart, 15),
+      capacity: 1,
+      description: "",
+    });
   };
 
   const rolePreset: RolePreset = form.isMentor && form.isJudge
@@ -78,6 +129,8 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
 
   const handleEdit = (person: Mentor) => {
     setEditingId(person.id);
+    setEditingSlotId(null);
+    setError(null);
     setForm({
       name: person.name,
       title: person.title || "",
@@ -92,6 +145,11 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
       isMentor: person.is_mentor,
       isJudge: person.is_judge,
     });
+    setAvailabilityForm((prev) => ({
+      ...prev,
+      description: "",
+    }));
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
   const handleDelete = (person: Mentor) => {
@@ -101,6 +159,72 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
       const result = await deleteMentor(event.id, event.slug, adminCode, person.id);
       if (!result.success) { setError(result.error || "Failed to delete"); return; }
       if (editingId === person.id) resetForm();
+      router.refresh();
+    });
+  };
+
+  const selectedPerson = editingId ? initialPeople.find((person) => person.id === editingId) ?? null : null;
+  const selectedPersonSlots = editingId
+    ? initialSlots.filter((slot) => slot.mentor_id === editingId)
+    : [];
+  const showAvailabilityEditor = Boolean(
+    editingId &&
+    form.isMentor &&
+    form.mentorshipMode !== "in_person"
+  );
+
+  const resetAvailabilityForm = () => {
+    setEditingSlotId(null);
+    setAvailabilityForm({
+      startsAtLocal: defaultAvailabilityStart,
+      endsAtLocal: addMinutes(defaultAvailabilityStart, 15),
+      capacity: 1,
+      description: "",
+    });
+  };
+
+  const handleEditSlot = (slot: DemoSlotWithCounts) => {
+    setEditingSlotId(slot.id);
+    setAvailabilityForm({
+      startsAtLocal: utcToLocalDateTime(slot.starts_at, timezone),
+      endsAtLocal: utcToLocalDateTime(slot.ends_at, timezone),
+      capacity: slot.capacity,
+      description: slot.description || "",
+    });
+  };
+
+  const handleSubmitAvailability = () => {
+    if (!editingId || !selectedPerson) return;
+    setError(null);
+    startTransition(async () => {
+      const payload = {
+        title: "Mentor Session",
+        hostName: form.name.trim() || selectedPerson.name,
+        description: availabilityForm.description,
+        location: form.meetLink.trim() ? "Online" : "",
+        sessionType: "mentor",
+        mentorId: editingId,
+        startsAtLocal: availabilityForm.startsAtLocal,
+        endsAtLocal: availabilityForm.endsAtLocal,
+        capacity: availabilityForm.capacity,
+        timezone,
+      };
+      const result = editingSlotId
+        ? await updateSessionSlot(event.id, event.slug, adminCode, editingSlotId, payload)
+        : await createSessionSlot(event.id, event.slug, adminCode, payload);
+      if (!result.success) { setError(result.error || "Failed to save availability"); return; }
+      resetAvailabilityForm();
+      router.refresh();
+    });
+  };
+
+  const handleDeleteSlot = (slot: DemoSlotWithCounts) => {
+    if (!confirm(`Delete ${formatTime(slot.starts_at, timezone)} availability for ${selectedPerson?.name || "this mentor"}?`)) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteSessionSlot(event.id, event.slug, adminCode, slot.id);
+      if (!result.success) { setError(result.error || "Failed to delete availability"); return; }
+      if (editingSlotId === slot.id) resetAvailabilityForm();
       router.refresh();
     });
   };
@@ -154,7 +278,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
   return (
     <div className="space-y-6">
       {/* Form */}
-      <div className="glass rounded-[32px] p-8 border-white/10 space-y-5">
+      <div ref={formRef} className="glass rounded-[32px] p-8 border-white/10 space-y-5 scroll-mt-6">
         <div>
           <h3 className="text-xl font-light tracking-tight">
             {editingId ? "Edit Person" : "Add Person"}
@@ -281,6 +405,70 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople }: P
             </button>
           )}
         </div>
+
+        {showAvailabilityEditor && (
+          <div className="rounded-[28px] border border-white/10 bg-black/20 p-5 space-y-5">
+            <div>
+              <h4 className="text-sm font-medium text-white">Bookable Availability</h4>
+              <p className="text-xs text-gray-500 mt-1">
+                These slots are what attendees can book for {form.name || selectedPerson?.name || "this mentor"}.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <label className="space-y-2">
+                <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Starts</span>
+                <input type="datetime-local" value={availabilityForm.startsAtLocal} onChange={(e) => setAvailabilityForm({ ...availabilityForm, startsAtLocal: e.target.value })} className={inputClass} />
+              </label>
+              <label className="space-y-2">
+                <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Ends</span>
+                <input type="datetime-local" value={availabilityForm.endsAtLocal} onChange={(e) => setAvailabilityForm({ ...availabilityForm, endsAtLocal: e.target.value })} className={inputClass} />
+              </label>
+              <label className="space-y-2">
+                <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Capacity</span>
+                <input type="number" min={1} value={availabilityForm.capacity} onChange={(e) => setAvailabilityForm({ ...availabilityForm, capacity: Number(e.target.value) })} className={inputClass} />
+              </label>
+            </div>
+
+            <label className="space-y-2 block">
+              <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Slot Notes</span>
+              <textarea value={availabilityForm.description} onChange={(e) => setAvailabilityForm({ ...availabilityForm, description: e.target.value })} rows={2} placeholder="Optional: what builders can ask about" className={`${inputClass} resize-none`} />
+            </label>
+
+            <div className="flex gap-3">
+              <button onClick={handleSubmitAvailability} disabled={isPending || !availabilityForm.startsAtLocal || !availabilityForm.endsAtLocal} className="h-10 px-4 rounded-2xl bg-white text-black text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-200 disabled:opacity-40">
+                {editingSlotId ? "Update Slot" : "Add Slot"}
+              </button>
+              {editingSlotId && (
+                <button onClick={resetAvailabilityForm} className="h-10 px-4 rounded-2xl border border-white/10 text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em] hover:text-white">
+                  Cancel Slot Edit
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              {selectedPersonSlots.length === 0 && (
+                <p className="text-xs text-gray-600">No availability slots yet.</p>
+              )}
+              {selectedPersonSlots.map((slot) => (
+                <div key={slot.id} className="flex items-start justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                  <div>
+                    <p className="text-xs text-gray-300">
+                      {formatTime(slot.starts_at, timezone)} - {formatTime(slot.ends_at, timezone)}
+                    </p>
+                    <p className="text-[11px] text-gray-600 mt-1">
+                      {slot.signup_count}/{slot.capacity} booked{slot.description ? ` · ${slot.description}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => handleEditSlot(slot)} className="text-[10px] uppercase tracking-[0.15em] text-gray-500 hover:text-white">Edit Slot</button>
+                    <button onClick={() => handleDeleteSlot(slot)} className="text-[10px] uppercase tracking-[0.15em] text-red-400/80 hover:text-red-300">Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* List */}

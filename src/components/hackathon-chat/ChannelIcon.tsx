@@ -1,6 +1,6 @@
 "use client";
 
-import { Hash, Lock, Megaphone, BookOpen, Zap, MessageSquare } from "lucide-react";
+import { Hash, Lock, Megaphone, BookOpen, Zap, MessageSquare, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ChannelIcon({ type, className }: { type: string; className?: string }) {
@@ -9,6 +9,7 @@ export function ChannelIcon({ type, className }: { type: string; className?: str
   if (type === "announcements") return <Megaphone className={cls} />;
   if (type === "team") return <Lock className={cls} />;
   if (type === "resources") return <BookOpen className={cls} />;
+  if (type === "help") return <HelpCircle className={cls} />;
   if (type === "dm") return <MessageSquare className={cls} />;
   return <Hash className={cls} />;
 }
