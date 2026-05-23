@@ -94,6 +94,45 @@ const creditNotes = [
   "Some advanced Cursor features require an active paid plan even when account credits are available.",
 ];
 
+const finalRoundRubric = [
+  {
+    label: "Innovation & Originality",
+    weight: "25%",
+    description:
+      "How creative, fresh, or unexpected is the project idea? Judges consider whether the team approached the problem in a new way, combined existing tools creatively, or built something meaningfully different from a standard solution.",
+  },
+  {
+    label: "Technical Execution",
+    weight: "25%",
+    description:
+      "How strong and difficult is the implementation? Judges look for reliable functionality, appropriate technologies, strong engineering decisions, clever architecture, clean integrations, effective APIs or AI use, and ambitious features that were actually built.",
+  },
+  {
+    label: "Functional Completeness",
+    weight: "20%",
+    description:
+      "Does the core experience work from beginning to end? Strong teams identify the most important part of their idea and build a usable version of it instead of spreading effort across too many unfinished pieces.",
+  },
+  {
+    label: "Problem-Solution Fit",
+    weight: "15%",
+    description:
+      "Does the project solve a real or clearly defined problem? Judges consider the target user, pain point, and why the solution would be useful.",
+  },
+  {
+    label: "User Experience & Design",
+    weight: "10%",
+    description:
+      "How easy, intuitive, and pleasant is the project to use? Judges consider interface clarity, flow, visual polish, and whether users can understand what to do without a long explanation.",
+  },
+  {
+    label: "Demo & Communication",
+    weight: "5%",
+    description:
+      "How clearly does the team present the project? A strong demo explains the problem, solution, technical approach, and what was built during the hackathon.",
+  },
+];
+
 export default async function ResourcesPage({ params }: ResourcesPageProps) {
   const { eventSlug } = await params;
 
@@ -308,10 +347,10 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
               </div>
             ))}
 
-            {/* Scoring table */}
+            {/* AI scoring table */}
             <div className="rounded-2xl border border-white/[0.05] overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.05]">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium">Scoring Criteria</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium">AI Screening Criteria</p>
               </div>
               {[
                 { label: "Innovation & Originality", weight: "25%", note: "How novel and surprising is the concept?" },
@@ -329,6 +368,38 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                 </div>
               ))}
             </div>
+
+            <details className="group rounded-2xl border border-amber-300/10 bg-amber-500/[0.025] overflow-hidden">
+              <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                <div className="w-8 h-8 rounded-xl bg-amber-300/[0.06] border border-amber-200/10 flex items-center justify-center text-amber-200/60 shrink-0">
+                  <Star className="w-4 h-4 stroke-[1.5px]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-amber-200/45 font-medium">Final Round Judging Rubric</p>
+                  <p className="text-[12px] text-gray-500 font-light mt-1">
+                    Human judges score each criterion out of 10; the portal normalizes scores by these weights.
+                  </p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-200/35 shrink-0 transition-transform group-open:rotate-90" />
+              </summary>
+
+              <div className="border-t border-amber-200/10 px-4 pb-4 pt-2 space-y-3">
+                {finalRoundRubric.map((criterion) => (
+                  <article
+                    key={criterion.label}
+                    className="rounded-2xl border border-white/[0.05] bg-black/10 p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-[13px] font-medium text-white/75 tracking-wide">{criterion.label}</h4>
+                        <p className="text-[11px] text-gray-600 font-light leading-relaxed mt-1">{criterion.description}</p>
+                      </div>
+                      <span className="text-[11px] text-amber-200/70 font-semibold tabular-nums shrink-0">{criterion.weight}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </details>
 
             <p className="text-[11px] text-gray-700 font-light leading-relaxed">
               Tips: <strong className="font-black text-gray-300">MAKE YOUR REPO PUBLIC BEFORE SUBMISSION.</strong>{" "}
