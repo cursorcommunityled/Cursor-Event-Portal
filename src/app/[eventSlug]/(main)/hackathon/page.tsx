@@ -145,7 +145,7 @@ export default async function HackathonPage({ params }: Props) {
     };
   }
 
-  // Chat: admins see every shared channel; attendees see Spawn Point until they join a team.
+  // Chat: admins see admin-wide channels; attendees see Spawn Point until they join a team.
   const chatChannels = await getHackathonChatChannels(
     event.id,
     isAdmin ? undefined : myTeam?.id ?? null,
