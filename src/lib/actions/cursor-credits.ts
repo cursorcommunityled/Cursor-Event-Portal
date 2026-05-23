@@ -4,6 +4,81 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { CursorCredit } from "@/types";
 
+type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
+
+async function getParticipantCreditAmount(
+  supabase: ServiceClient,
+  eventId: string
+) {
+  const { data: event } = await supabase
+    .from("events")
+    .select("is_hackathon")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  return event?.is_hackathon ? 50 : 20;
+}
+
+async function assignParticipantCredit(
+  supabase: ServiceClient,
+  eventId: string,
+  userId: string,
+  registrationId: string,
+  creditAmount: number
+): Promise<{ assigned: boolean; noCodesLeft: boolean; error?: string }> {
+  const { data: existing, error: existingError } = await supabase
+    .from("cursor_credits")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("assigned_to", userId)
+    .eq("amount_usd", creditAmount)
+    .limit(1);
+
+  if (existingError) {
+    return { assigned: false, noCodesLeft: false, error: existingError.message };
+  }
+
+  if ((existing ?? []).length > 0) {
+    return { assigned: false, noCodesLeft: false };
+  }
+
+  const { data: available, error: availErr } = await supabase
+    .from("cursor_credits")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("amount_usd", creditAmount)
+    .is("assigned_to", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (availErr) {
+    return { assigned: false, noCodesLeft: false, error: availErr.message };
+  }
+
+  if (!available) {
+    return { assigned: false, noCodesLeft: true };
+  }
+
+  const { data: updated, error: updErr } = await supabase
+    .from("cursor_credits")
+    .update({
+      assigned_to: userId,
+      registration_id: registrationId,
+      assigned_at: new Date().toISOString(),
+    })
+    .eq("id", available.id)
+    .is("assigned_to", null)
+    .select("id")
+    .maybeSingle();
+
+  if (updErr) {
+    return { assigned: false, noCodesLeft: false, error: updErr.message };
+  }
+
+  return { assigned: !!updated, noCodesLeft: false };
+}
+
 export async function fetchCursorCredits(eventId: string): Promise<CursorCredit[]> {
   const supabase = await createServiceClient();
   const { data } = await supabase
@@ -29,6 +104,23 @@ export async function fetchMyCredits(
   return (data ?? []) as CursorCredit[];
 }
 
+export async function assignCursorCreditForAttendee(
+  eventId: string,
+  userId: string,
+  registrationId: string
+): Promise<{ assigned: boolean; noCodesLeft: boolean; error?: string }> {
+  const supabase = await createServiceClient();
+  const creditAmount = await getParticipantCreditAmount(supabase, eventId);
+
+  return assignParticipantCredit(
+    supabase,
+    eventId,
+    userId,
+    registrationId,
+    creditAmount
+  );
+}
+
 // ─── Import Codes ─────────────────────────────────────────────────────────────
 
 export async function importCreditCodes(
@@ -37,13 +129,7 @@ export async function importCreditCodes(
   adminCode: string
 ): Promise<{ inserted: number; duplicates: number; error?: string }> {
   const supabase = await createServiceClient();
-
-  const { data: event } = await supabase
-    .from("events")
-    .select("is_hackathon")
-    .eq("id", eventId)
-    .maybeSingle();
-  const creditAmount = event?.is_hackathon ? 50 : 20;
+  const creditAmount = await getParticipantCreditAmount(supabase, eventId);
 
   // Normalise: strip the referral URL prefix if present, keep only alphanumeric
   const PREFIX = "https://cursor.com/referral?code=";
@@ -95,13 +181,7 @@ export async function autoAssignCredits(
   adminCode: string
 ): Promise<{ assigned: number; noCodesLeft: boolean; error?: string }> {
   const supabase = await createServiceClient();
-
-  const { data: event } = await supabase
-    .from("events")
-    .select("is_hackathon")
-    .eq("id", eventId)
-    .maybeSingle();
-  const creditAmount = event?.is_hackathon ? 50 : 20;
+  const creditAmount = await getParticipantCreditAmount(supabase, eventId);
 
   // Get checked-in registrations (max 1 participant credit per user per event)
   const { data: regs, error: regsError } = await supabase
@@ -127,41 +207,31 @@ export async function autoAssignCredits(
 
   if (unassignedRegs.length === 0) return { assigned: 0, noCodesLeft: false };
 
-  // Get available participant codes only. For regular meetups this excludes $50 egg rewards.
-  const { data: available, error: availErr } = await supabase
-    .from("cursor_credits")
-    .select("id")
-    .eq("event_id", eventId)
-    .eq("amount_usd", creditAmount)
-    .is("assigned_to", null)
-    .order("created_at", { ascending: true })
-    .limit(unassignedRegs.length);
-
-  if (availErr) return { assigned: 0, noCodesLeft: false, error: availErr.message };
-  if (!available || available.length === 0) return { assigned: 0, noCodesLeft: true };
-
-  const now = new Date().toISOString();
   let assigned = 0;
+  let noCodesLeft = false;
 
-  for (let i = 0; i < Math.min(unassignedRegs.length, available.length); i++) {
-    const reg = unassignedRegs[i];
-    const credit = available[i];
-    const { error: updErr } = await supabase
-      .from("cursor_credits")
-      .update({
-        assigned_to: reg.user_id,
-        registration_id: reg.id,
-        assigned_at: now,
-      })
-      .eq("id", credit.id)
-      .is("assigned_to", null); // guard against races
-    if (!updErr) assigned++;
+  for (const reg of unassignedRegs) {
+    const result = await assignParticipantCredit(
+      supabase,
+      eventId,
+      reg.user_id,
+      reg.id,
+      creditAmount
+    );
+    if (result.error) {
+      return { assigned, noCodesLeft: false, error: result.error };
+    }
+    if (result.noCodesLeft) {
+      noCodesLeft = true;
+      break;
+    }
+    if (result.assigned) assigned++;
   }
 
   revalidatePath(`/admin/${adminCode}/event-dashboard`);
   return {
     assigned,
-    noCodesLeft: available.length < unassignedRegs.length,
+    noCodesLeft,
   };
 }
 

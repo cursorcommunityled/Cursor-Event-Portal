@@ -38,6 +38,7 @@ type PersonFormState = {
   bio: string;
   photoUrl: string;
   meetLink: string;
+  virtualCallInstructions: string;
   mentorshipMode: "virtual" | "in_person" | "hybrid";
   inPersonLocation: string;
   inPersonSchedule: string;
@@ -62,6 +63,7 @@ const emptyForm = (): PersonFormState => ({
   bio: "",
   photoUrl: "",
   meetLink: "",
+  virtualCallInstructions: "",
   mentorshipMode: "virtual",
   inPersonLocation: "",
   inPersonSchedule: "",
@@ -138,6 +140,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
       bio: person.bio || "",
       photoUrl: person.photo_url || "",
       meetLink: person.meet_link || "",
+      virtualCallInstructions: person.virtual_call_instructions || "",
       mentorshipMode: person.mentorship_mode,
       inPersonLocation: person.in_person_location || "",
       inPersonSchedule: person.in_person_schedule || "",
@@ -376,6 +379,19 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
             <input type="number" min={0} value={form.displayOrder} onChange={(e) => setForm({ ...form, displayOrder: Number(e.target.value) })} className={inputClass} />
           </label>
         </div>
+
+        {form.isMentor && form.mentorshipMode !== "in_person" && (
+          <label className="space-y-2 block">
+            <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Call Instructions</span>
+            <textarea
+              value={form.virtualCallInstructions}
+              onChange={(e) => setForm({ ...form, virtualCallInstructions: e.target.value })}
+              rows={3}
+              placeholder="Optional: what attendees see with the Meet URL after their booking unlocks"
+              className={`${inputClass} resize-none`}
+            />
+          </label>
+        )}
 
         {form.isMentor && (form.mentorshipMode === "in_person" || form.mentorshipMode === "hybrid") && (
           <div className="grid md:grid-cols-2 gap-4">

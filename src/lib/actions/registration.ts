@@ -10,6 +10,7 @@ import {
   PORTAL_SESSION_COOKIE_NAME,
   serializePortalSession,
 } from "@/lib/auth/portal-session";
+import { assignCursorCreditForAttendee } from "@/lib/actions/cursor-credits";
 
 export async function registerForEvent(
   eventId: string,
@@ -148,13 +149,27 @@ export async function getSession() {
 export async function checkIn(registrationId: string, eventSlug?: string) {
   const supabase = await createServiceClient();
 
-  const { error } = await supabase
+  const { data: registration, error } = await supabase
     .from("registrations")
     .update({ checked_in_at: new Date().toISOString() })
-    .eq("id", registrationId);
+    .eq("id", registrationId)
+    .select("event_id, user_id")
+    .maybeSingle();
 
   if (error) {
     return { error: "Failed to check in" };
+  }
+
+  if (registration) {
+    const result = await assignCursorCreditForAttendee(
+      registration.event_id,
+      registration.user_id,
+      registrationId
+    );
+
+    if (result.error) {
+      console.error("Credit assignment failed:", result.error);
+    }
   }
 
   // Revalidate groups page to sync checked-in attendees

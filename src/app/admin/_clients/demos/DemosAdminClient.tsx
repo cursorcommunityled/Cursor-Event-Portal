@@ -56,6 +56,7 @@ type MentorFormState = {
   bio: string;
   photoUrl: string;
   meetLink: string;
+  virtualCallInstructions: string;
   mentorshipMode: "virtual" | "in_person" | "hybrid";
   inPersonLocation: string;
   inPersonSchedule: string;
@@ -113,6 +114,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
     bio: "",
     photoUrl: "",
     meetLink: "",
+    virtualCallInstructions: "",
     mentorshipMode: "virtual",
     inPersonLocation: "",
     inPersonSchedule: "",
@@ -153,6 +155,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       bio: "",
       photoUrl: "",
       meetLink: "",
+      virtualCallInstructions: "",
       mentorshipMode: "virtual",
       inPersonLocation: "",
       inPersonSchedule: "",
@@ -305,6 +308,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
       bio: mentor.bio || "",
       photoUrl: mentor.photo_url || "",
       meetLink: mentor.meet_link || "",
+      virtualCallInstructions: mentor.virtual_call_instructions || "",
       mentorshipMode: mentor.mentorship_mode || "virtual",
       inPersonLocation: mentor.in_person_location || "",
       inPersonSchedule: mentor.in_person_schedule || "",
@@ -567,6 +571,19 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
             <input type="number" min={0} value={mentorForm.displayOrder} onChange={(e) => setMentorForm({ ...mentorForm, displayOrder: Number(e.target.value) })} className={inputClass} />
           </label>
         </div>
+
+        {mentorForm.mentorshipMode !== "in_person" && (
+          <label className="space-y-2 block">
+            <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Call Instructions</span>
+            <textarea
+              value={mentorForm.virtualCallInstructions}
+              onChange={(e) => setMentorForm({ ...mentorForm, virtualCallInstructions: e.target.value })}
+              rows={3}
+              placeholder="Optional: shown with the Meet URL after the attendee booking unlocks"
+              className={`${inputClass} resize-none`}
+            />
+          </label>
+        )}
 
         <div className="grid md:grid-cols-2 gap-4">
           <label className="space-y-2">

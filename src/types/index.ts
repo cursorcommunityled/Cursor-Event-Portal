@@ -100,6 +100,7 @@ export interface Mentor {
   bio: string | null;
   photo_url: string | null;
   meet_link: string | null;
+  virtual_call_instructions: string | null;
   mentorship_mode: 'virtual' | 'in_person' | 'hybrid';
   in_person_location: string | null;
   in_person_schedule: string | null;

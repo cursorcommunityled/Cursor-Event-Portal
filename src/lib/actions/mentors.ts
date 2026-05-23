@@ -45,6 +45,7 @@ type MentorData = {
   bio?: string;
   photoUrl?: string;
   meetLink?: string;
+  virtualCallInstructions?: string;
   mentorshipMode?: "virtual" | "in_person" | "hybrid";
   inPersonLocation?: string;
   inPersonSchedule?: string;
@@ -80,6 +81,7 @@ export async function createMentor(
     bio: data.bio?.trim() || null,
     photo_url: data.photoUrl?.trim() || null,
     meet_link: data.meetLink?.trim() || null,
+    virtual_call_instructions: data.virtualCallInstructions?.trim() || null,
     mentorship_mode: mentorshipMode,
     in_person_location: data.inPersonLocation?.trim() || null,
     in_person_schedule: data.inPersonSchedule?.trim() || null,
@@ -123,6 +125,7 @@ export async function updateMentor(
       bio: data.bio?.trim() || null,
       photo_url: data.photoUrl?.trim() || null,
       meet_link: data.meetLink?.trim() || null,
+      virtual_call_instructions: data.virtualCallInstructions?.trim() || null,
       mentorship_mode: mentorshipMode,
       in_person_location: data.inPersonLocation?.trim() || null,
       in_person_schedule: data.inPersonSchedule?.trim() || null,
