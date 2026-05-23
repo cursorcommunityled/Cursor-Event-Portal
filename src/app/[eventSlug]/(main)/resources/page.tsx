@@ -50,7 +50,7 @@ const eventQa = [
   {
     question: "How do I redeem my Cursor credits?",
     answer:
-      "Go to Event -> Credits in this portal. Once your credit appears, scan the QR code or click the redeem button, sign in to Cursor, and mark it as redeemed after it is applied.",
+      "Go to Event -> Credits in this portal. Open the credit link or QR code in the same browser where you are logged in to the right Cursor account, redeem the $50 credit, then mark it as redeemed in the portal.",
     icon: CreditCard,
   },
   {
@@ -83,6 +83,15 @@ const eventQa = [
       "Be respectful and professional with participants, mentors, judges, and staff. Harassment, discrimination, disruptive behaviour, plagiarism, or cheating can lead to removal or disqualification.",
     icon: ShieldCheck,
   },
+];
+
+const creditNotes = [
+  "Credits work for individual Cursor accounts only: Free, Pro, Pro+, or Ultra. They do not work on Team plans.",
+  "Redeeming adds the $50 credit to Dashboard -> Credits. The credit is applied automatically to the next invoice after a Pro trial or paid subscription starts.",
+  "Cursor may require a payment method on file through Stripe for verification. The card should not be charged while credits cover the invoice.",
+  "Free users can use the free plan first. After reaching the plan limit, start a Pro trial or Pro account with a valid payment method so the credit can be consumed.",
+  "If credits do not appear after redeeming, hard refresh Cursor Dashboard, log out and back in, or check the Stripe checkout screen from your dashboard.",
+  "Background Agents and some web features require a paid plan even if credits are available.",
 ];
 
 export default async function ResourcesPage({ params }: ResourcesPageProps) {
@@ -302,6 +311,21 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                   </article>
                 );
               })}
+            </div>
+
+            <div className="rounded-2xl border border-emerald-400/10 bg-emerald-500/[0.025] p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-300/70 shrink-0" />
+                <h4 className="text-[13px] font-medium text-white/75 tracking-wide">Cursor Credit Notes</h4>
+              </div>
+              <ul className="space-y-2">
+                {creditNotes.map((note) => (
+                  <li key={note} className="flex items-start gap-2.5 text-[11px] text-gray-500 font-light leading-relaxed">
+                    <ChevronRight className="w-3 h-3 text-emerald-300/35 shrink-0 mt-0.5" />
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div className="rounded-2xl border border-red-400/10 bg-red-500/[0.03] p-4 flex items-start gap-3">
