@@ -14,6 +14,10 @@ type ChatChannelRow = {
   team_id: string | null;
   event_id: string;
 };
+type ChatMessagesResult = {
+  messages: HackathonChatMessage[];
+  error?: string;
+};
 
 const ADMIN_ROLES = new Set(["admin", "staff", "facilitator"]);
 
@@ -572,15 +576,15 @@ export async function loadMoreMessages(
 
 export async function fetchChannelMessages(
   channelId: string
-): Promise<HackathonChatMessage[]> {
+): Promise<ChatMessagesResult> {
   const session = await getSession();
-  if (!session) return [];
+  if (!session) return { messages: [], error: "Not authenticated" };
 
   const supabase = await createServiceClient();
   const channel = await getAuthorizedChannel(supabase, channelId, session);
-  if (!channel) return [];
+  if (!channel) return { messages: [], error: "Not authorised" };
 
-  return getHackathonChatMessages(channelId, 60);
+  return { messages: await getHackathonChatMessages(channelId, 60) };
 }
 
 export async function fetchPinnedMessages(

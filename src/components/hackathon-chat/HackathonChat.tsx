@@ -132,6 +132,7 @@ export function HackathonChat({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const channelsRef = useRef(channels);
+  const messageMapRef = useRef(messageMap);
   const hasAttemptedChannelRestoreRef = useRef(false);
   const [hasRestoredChannel, setHasRestoredChannel] = useState(false);
   const storageKey = `hackathon-chat:${event.id}:active-channel`;
@@ -193,6 +194,10 @@ export function HackathonChat({
   useEffect(() => {
     channelsRef.current = channels;
   }, [channels]);
+
+  useEffect(() => {
+    messageMapRef.current = messageMap;
+  }, [messageMap]);
 
   const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
     if (!channel) return "";
@@ -330,9 +335,10 @@ export function HackathonChat({
     if (!messageMap[storedChannelId]) {
       setLoadingChannel(true);
       fetchChannelMessages(storedChannelId)
-        .then((msgs) => {
-          setMessageMap((prev) => ({ ...prev, [storedChannelId]: msgs }));
-          setHasMore(msgs.length >= 60);
+        .then((result) => {
+          if (result.error) return;
+          setMessageMap((prev) => ({ ...prev, [storedChannelId]: result.messages }));
+          setHasMore(result.messages.length >= 60);
         })
         .finally(() => setLoadingChannel(false));
     }
@@ -537,8 +543,12 @@ export function HackathonChat({
 
     let cancelled = false;
     const refreshActiveChannel = async () => {
-      const latestMessages = await fetchChannelMessages(resolvedChannelId);
-      if (cancelled) return;
+      const result = await fetchChannelMessages(resolvedChannelId);
+      if (cancelled || result.error) return;
+
+      const latestMessages = result.messages;
+      const currentMessages = messageMapRef.current[resolvedChannelId] ?? [];
+      if (currentMessages.length > 0 && latestMessages.length === 0) return;
 
       setMessageMap((prev) => {
         const current = prev[resolvedChannelId] ?? [];
@@ -586,10 +596,17 @@ export function HackathonChat({
     setActiveChannelId(channelId);
     if (!messageMap[channelId]) {
       setLoadingChannel(true);
-      const msgs = await fetchChannelMessages(channelId);
-      setMessageMap((prev) => ({ ...prev, [channelId]: msgs }));
-      setHasMore(msgs.length >= 60);
-      setLoadingChannel(false);
+      try {
+        const result = await fetchChannelMessages(channelId);
+        if (result.error) {
+          toast.error(result.error);
+          return;
+        }
+        setMessageMap((prev) => ({ ...prev, [channelId]: result.messages }));
+        setHasMore(result.messages.length >= 60);
+      } finally {
+        setLoadingChannel(false);
+      }
     }
   };
 
