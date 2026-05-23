@@ -94,6 +94,51 @@ const creditNotes = [
   "Some advanced Cursor features require an active paid plan even when account credits are available.",
 ];
 
+const aiScreeningPasses = [
+  {
+    pass: "Pass 1",
+    title: "Repo Archaeology",
+    model: "Claude Sonnet",
+    description:
+      "Extracts structured facts from the submission: tech stack, template detection, commit history metadata, README summary, and key files. This grounds downstream passes in objective evidence.",
+  },
+  {
+    pass: "Pass 2",
+    title: "Code Deep Dive",
+    model: "Claude Sonnet",
+    description:
+      "Reads the source files identified in Pass 1 and looks for clever solutions, novel API use, and architectural decisions that go beyond the obvious. It is instructed not to penalize messy code, TODOs, or missing tests because this is a 24-hour build.",
+  },
+  {
+    pass: "Pass 3",
+    title: "Innovation Audit",
+    model: "Claude Sonnet",
+    description:
+      "Checks the submission against 13 common hackathon archetypes, including LangChain plus Pinecone CRUD, basic todo or weather apps, and boilerplate chatbots. It scores genuine novelty and flags the senior engineer surprise factor: meh, interesting, impressive, or exceptional.",
+  },
+  {
+    pass: "Pass 4",
+    title: "Visual/UX Review",
+    model: "Claude Sonnet",
+    description:
+      "Reviews up to 5 screenshots as image inputs. The model scores visual hierarchy, design consistency, UX flow clarity, brand cohesion, and an overall visual score. If no screenshots are provided, UX sub-scores default to 0; this criterion counts for 5% of the total score.",
+  },
+  {
+    pass: "Pass 5",
+    title: "Pool Comparison",
+    model: "Claude Sonnet",
+    description:
+      "Ranks the submission relative to other entries in the same event, requiring at least 3 peers. It outputs a percentile, pool rank, and areas where the project outperforms or underperforms the field.",
+  },
+  {
+    pass: "Pass 6",
+    title: "Synthesis",
+    model: "Claude Opus + extended thinking",
+    description:
+      "Ingests all previous pass outputs and uses an 8,000-token thinking budget to produce calibrated scores across seven criteria. Scoring anchors prevent compression: 9-10 is genuinely exceptional, 5-6 is average and competent, and missing UI or a no-show demo must score 1-4 instead of being softened to 5.",
+  },
+];
+
 const finalRoundRubric = [
   {
     label: "Innovation & Originality",
@@ -344,6 +389,42 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                     </li>
                   ))}
                 </ul>
+                {phase.phase === "Phase 2 · AI Screening" && (
+                  <details className="group mt-4 rounded-2xl border border-purple-300/10 bg-purple-500/[0.025] overflow-hidden">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-4 [&::-webkit-details-marker]:hidden">
+                      <div className="w-8 h-8 rounded-xl bg-purple-300/[0.06] border border-purple-200/10 flex items-center justify-center text-purple-200/60 shrink-0">
+                        <Cpu className="w-4 h-4 stroke-[1.5px]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-[0.2em] text-purple-200/45 font-medium">How the AI Judging Pipeline Works</p>
+                        <p className="text-[12px] text-gray-500 font-light mt-1">
+                          Each submission runs through five targeted Sonnet passes, then an Opus synthesis pass with extended thinking.
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-purple-200/35 shrink-0 transition-transform group-open:rotate-90" />
+                    </summary>
+
+                    <div className="border-t border-purple-200/10 px-4 pb-4 pt-2 space-y-3">
+                      {aiScreeningPasses.map((pass) => (
+                        <article
+                          key={pass.pass}
+                          className="rounded-2xl border border-white/[0.05] bg-black/10 p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="text-[10px] text-purple-200/60 font-semibold uppercase tracking-[0.18em] shrink-0 mt-0.5">{pass.pass}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                                <h4 className="text-[13px] font-medium text-white/75 tracking-wide">{pass.title}</h4>
+                                <span className="text-[10px] text-gray-700 font-medium uppercase tracking-[0.14em]">{pass.model}</span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 font-light leading-relaxed mt-1">{pass.description}</p>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </details>
+                )}
               </div>
             ))}
 
