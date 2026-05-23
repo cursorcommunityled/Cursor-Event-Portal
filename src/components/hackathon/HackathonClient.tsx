@@ -20,7 +20,7 @@ import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
   Camera, ImageIcon, Loader2, MessageSquare,
-  Pencil, Award,
+  Pencil,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
@@ -80,9 +80,10 @@ interface Props {
   audienceVotePoll?: PollWithVotes | null;
 }
 
-type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "mentors" | "judges" | "chat";
+type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "chat";
+type PeopleTab = "mentors" | "judges";
 
-const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "mentors", "judges", "chat"]);
+const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "people", "chat"]);
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
@@ -173,6 +174,7 @@ export function HackathonClient({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [tab, setTab] = useState<Tab>("overview");
+  const [peopleTab, setPeopleTab] = useState<PeopleTab>("mentors");
   const [now, setNow] = useState<Date | null>(null);
   const tabStorageKey = `hackathon:${event.id}:${userId}:tab`;
 
@@ -222,6 +224,19 @@ export function HackathonClient({
   useEffect(() => {
     const hashTab = window.location.hash.replace(/^#/, "");
     const storedTab = window.localStorage.getItem(tabStorageKey);
+
+    if (hashTab === "mentors" || hashTab === "judges") {
+      setPeopleTab(hashTab);
+      setTab("people");
+      return;
+    }
+
+    if ((storedTab === "mentors" || storedTab === "judges") && !isHackathonTab(hashTab)) {
+      setPeopleTab(storedTab);
+      setTab("people");
+      return;
+    }
+
     const restoredTab = isHackathonTab(hashTab)
       ? hashTab
       : isHackathonTab(storedTab)
@@ -622,12 +637,12 @@ export function HackathonClient({
     }
   };
 
+  const peopleCount = new Set([...mentors, ...judges].map((person) => person.id)).size;
   const tabs: { id: Tab; label: string; count?: number; icon?: React.ReactNode }[] = [
     { id: "overview", label: "Hub", icon: <Swords className="w-3.5 h-3.5" /> },
     { id: "all-teams", label: "Teams", count: allTeams.length },
     { id: "open-pool", label: "Pool", count: pool.length },
-    { id: "mentors", label: "Mentors", count: mentors.length, icon: <UserPlus className="w-3.5 h-3.5" /> },
-    { id: "judges", label: "Judges", count: judges.length, icon: <Award className="w-3.5 h-3.5" /> },
+    { id: "people", label: "People", count: peopleCount, icon: <UserPlus className="w-3.5 h-3.5" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
   const showTeamFinder = !myTeam && (tab === "all-teams" || tab === "open-pool" || tab === "chat");
@@ -1637,87 +1652,99 @@ export function HackathonClient({
         </div>
       )}
 
-      {/* Mentors tab */}
-      {tab === "mentors" && (
+      {/* People tab */}
+      {tab === "people" && (
         <div className="space-y-8 animate-slide-up">
           <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
             <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/10 blur-[50px]" />
             <div className="relative space-y-2">
               <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
-              <h2 className="text-4xl font-light text-white tracking-tight">Mentors</h2>
-              <p className="text-sm text-gray-500">Get guidance from industry experts throughout the event.</p>
+              <h2 className="text-4xl font-light text-white tracking-tight">People</h2>
+              <p className="text-sm text-gray-500">Get guidance from mentors and meet the judging panel.</p>
             </div>
           </div>
 
-          {onlineMentors.length > 0 && (
-            <section className="space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_14px_rgba(96,165,250,0.65)]" />
-                <p className="text-sm uppercase tracking-[0.28em] text-blue-100 font-semibold">Book Online</p>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {onlineMentors.map((mentor) => (
-                  <MentorCard
-                    key={mentor.id}
-                    mentor={mentor}
-                    eventSlug={event.slug}
-                    availableSlots={0}
-                    isBooked={false}
-                    basePath="hackathon"
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {liveMentors.length > 0 && (
-            <section className="space-y-4">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live Tonight</p>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {liveMentors.map((mentor) => (
-                  <MentorCard
-                    key={mentor.id}
-                    mentor={mentor}
-                    eventSlug={event.slug}
-                    availableSlots={0}
-                    isBooked={false}
-                    basePath="hackathon"
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {mentors.length === 0 && (
-            <div className="glass rounded-[32px] p-8 border-white/10 text-center">
-              <p className="text-sm text-gray-500">Mentors will be announced soon.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Judges tab */}
-      {tab === "judges" && (
-        <div className="space-y-6 animate-slide-up">
-          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-amber-500/10 blur-[50px]" />
-            <div className="relative space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
-              <h2 className="text-4xl font-light text-white tracking-tight">Judges</h2>
-              <p className="text-sm text-gray-500">Meet the panel evaluating tonight&apos;s projects.</p>
-            </div>
+          <div className="flex gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+            {([
+              { id: "mentors", label: "Mentors", count: mentors.length },
+              { id: "judges", label: "Judges", count: judges.length },
+            ] as const).map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setPeopleTab(item.id)}
+                className={`flex-1 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-all ${
+                  peopleTab === item.id
+                    ? "bg-white text-black shadow-glow"
+                    : "text-gray-500 hover:text-gray-300"
+                }`}
+              >
+                {item.label}
+                <span className="ml-2 opacity-60">{item.count}</span>
+              </button>
+            ))}
           </div>
 
-          {judges.length > 0 ? (
-            <section className="space-y-3">
-              {judges.map((judge) => (
-                <JudgeBadge key={judge.id} judge={judge} />
-              ))}
-            </section>
-          ) : (
-            <div className="glass rounded-[32px] p-8 border-white/10 text-center">
-              <p className="text-sm text-gray-500">Judges will be announced soon.</p>
-            </div>
+          {peopleTab === "mentors" && (
+            <>
+              {onlineMentors.length > 0 && (
+                <section className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="h-2 w-2 rounded-full bg-blue-400 shadow-[0_0_14px_rgba(96,165,250,0.65)]" />
+                    <p className="text-sm uppercase tracking-[0.28em] text-blue-100 font-semibold">Book Online</p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {onlineMentors.map((mentor) => (
+                      <MentorCard
+                        key={mentor.id}
+                        mentor={mentor}
+                        eventSlug={event.slug}
+                        availableSlots={0}
+                        isBooked={false}
+                        basePath="hackathon"
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {liveMentors.length > 0 && (
+                <section className="space-y-4">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live On Site</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {liveMentors.map((mentor) => (
+                      <MentorCard
+                        key={mentor.id}
+                        mentor={mentor}
+                        eventSlug={event.slug}
+                        availableSlots={0}
+                        isBooked={false}
+                        basePath="hackathon"
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {mentors.length === 0 && (
+                <div className="glass rounded-[32px] p-8 border-white/10 text-center">
+                  <p className="text-sm text-gray-500">Mentors will be announced soon.</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {peopleTab === "judges" && (
+            judges.length > 0 ? (
+              <section className="space-y-3">
+                {judges.map((judge) => (
+                  <JudgeBadge key={judge.id} judge={judge} />
+                ))}
+              </section>
+            ) : (
+              <div className="glass rounded-[32px] p-8 border-white/10 text-center">
+                <p className="text-sm text-gray-500">Judges will be announced soon.</p>
+              </div>
+            )
           )}
         </div>
       )}

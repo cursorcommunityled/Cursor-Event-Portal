@@ -459,6 +459,17 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
                     <p className="text-[11px] text-gray-600 mt-1">
                       {slot.signup_count}/{slot.capacity} booked{slot.description ? ` · ${slot.description}` : ""}
                     </p>
+                    {slot.attendees.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {slot.attendees.map((attendee) => (
+                          <p key={attendee.id} className="text-[11px] text-gray-400">
+                            {attendee.name}{attendee.email ? ` (${attendee.email})` : ""}
+                          </p>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-gray-700 mt-2">No attendee booked yet.</p>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={() => handleEditSlot(slot)} className="text-[10px] uppercase tracking-[0.15em] text-gray-500 hover:text-white">Edit Slot</button>
@@ -497,13 +508,19 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
           {visiblePeople.length === 0 && (
             <p className="text-sm text-gray-600">None added yet.</p>
           )}
-          {visiblePeople.map((person) => (
-            <div key={person.id} className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          {visiblePeople.map((person) => {
+            const personSlots = initialSlots.filter((slot) => slot.mentor_id === person.id);
+            const isBookableMentor = person.is_mentor && person.mentorship_mode !== "in_person";
+            const bookedCount = personSlots.reduce((total, slot) => total + slot.signup_count, 0);
+            const capacityCount = personSlots.reduce((total, slot) => total + slot.capacity, 0);
+
+            return (
+            <div key={person.id} className={`rounded-2xl border bg-white/[0.02] ${isBookableMentor ? "border-blue-400/20 p-5" : "border-white/10 p-4"}`}>
               <div className="flex items-start gap-4">
                 {person.photo_url ? (
-                  <img src={person.photo_url} alt={person.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                  <img src={person.photo_url} alt={person.name} className={`${isBookableMentor ? "w-16 h-16" : "w-12 h-12"} rounded-xl object-cover flex-shrink-0`} />
                 ) : (
-                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-lg text-white flex-shrink-0">
+                  <div className={`${isBookableMentor ? "w-16 h-16" : "w-12 h-12"} rounded-xl bg-white/10 flex items-center justify-center text-lg text-white flex-shrink-0`}>
                     {person.name.charAt(0)}
                   </div>
                 )}
@@ -527,7 +544,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
                     </p>
                   )}
                   {person.bio && (
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-1">{person.bio}</p>
+                    <p className={`text-xs text-gray-600 mt-1 ${isBookableMentor ? "line-clamp-2" : "line-clamp-1"}`}>{person.bio}</p>
                   )}
                 </div>
                 <div className="flex gap-3 shrink-0 mt-1">
@@ -535,8 +552,59 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
                   <button onClick={() => handleDelete(person)} className="text-[10px] uppercase tracking-[0.15em] text-red-400/80 hover:text-red-300">Delete</button>
                 </div>
               </div>
+              {isBookableMentor && (
+                <div className="mt-4 rounded-2xl border border-blue-400/10 bg-blue-400/[0.03] p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-blue-200 font-semibold">Virtual Bookings</p>
+                    <p className="text-[11px] text-gray-500">
+                      {bookedCount}/{capacityCount} booked
+                    </p>
+                  </div>
+                  {personSlots.length === 0 ? (
+                    <p className="text-xs text-gray-600">No availability slots set.</p>
+                  ) : (
+                    <div className="grid gap-2">
+                      {personSlots.map((slot) => (
+                        <div key={slot.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs text-gray-300">
+                                {formatTime(slot.starts_at, timezone)} - {formatTime(slot.ends_at, timezone)}
+                              </p>
+                              <p className="text-[11px] text-gray-600 mt-1">
+                                {slot.signup_count}/{slot.capacity} booked
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                handleEdit(person);
+                                handleEditSlot(slot);
+                              }}
+                              className="text-[10px] uppercase tracking-[0.15em] text-gray-500 hover:text-white"
+                            >
+                              Edit Slot
+                            </button>
+                          </div>
+                          {slot.attendees.length > 0 ? (
+                            <div className="mt-2 space-y-1">
+                              {slot.attendees.map((attendee) => (
+                                <p key={attendee.id} className="text-[11px] text-gray-400">
+                                  {attendee.name}{attendee.email ? ` (${attendee.email})` : ""}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-gray-700 mt-2">Open slot</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
