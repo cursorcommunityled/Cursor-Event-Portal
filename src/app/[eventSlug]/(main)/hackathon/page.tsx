@@ -20,6 +20,7 @@ import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { createServiceClient } from "@/lib/supabase/server";
 import { HackathonClient } from "@/components/hackathon/HackathonClient";
 import { withDefaultHackathonLinkedIn } from "@/lib/hackathon-profile-defaults";
+import { getDemoSlotsWithCounts } from "@/lib/demo/service";
 import type { HackathonProfile } from "@/types";
 
 interface Props {
@@ -53,7 +54,7 @@ export default async function HackathonPage({ params }: Props) {
   // Ensure default channels exist (idempotent)
   await ensureDefaultChannels(event.id);
 
-  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults, mentors, judges] =
+  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults, mentors, judges, mentorSlots, myMentorSignup] =
     await Promise.all([
       getHackathonSettings(event.id),
       getMyHackathonTeam(event.id, session.userId),
@@ -65,6 +66,13 @@ export default async function HackathonPage({ params }: Props) {
       getPublishedCompetitionJudgingResults(event.id),
       getHackathonMentors(event.id),
       getHackathonJudges(event.id),
+      getDemoSlotsWithCounts(event.id),
+      supabase
+        .from("demo_slot_signups")
+        .select("slot_id")
+        .eq("event_id", event.id)
+        .eq("user_id", session.userId)
+        .maybeSingle(),
     ]);
 
   // Admins need all shared channels so they can monitor unassigned attendees in Spawn Point.
@@ -169,6 +177,12 @@ export default async function HackathonPage({ params }: Props) {
       hackathonProfile={profileWithDefaults}
       mentors={mentors}
       judges={judges}
+      mentorSlots={mentorSlots.map((slot) => ({
+        id: slot.id,
+        mentor_id: slot.mentor_id,
+        is_full: slot.is_full,
+      }))}
+      myMentorSlotId={myMentorSignup.data?.slot_id ?? null}
       initialScreenshots={initialScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
       audienceVotePoll={audienceVotePoll as import("@/types").PollWithVotes | null}

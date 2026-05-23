@@ -99,7 +99,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
   const [filterTab, setFilterTab] = useState<"all" | "mentors" | "judges">("all");
 
   const inputClass =
-    "w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20";
+    "w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20 disabled:cursor-not-allowed disabled:opacity-60";
 
   const resetForm = () => {
     setEditingId(null);
@@ -167,6 +167,11 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
   const selectedPersonSlots = editingId
     ? initialSlots.filter((slot) => slot.mentor_id === editingId)
     : [];
+  const selectedEditingSlot = editingSlotId
+    ? initialSlots.find((slot) => slot.id === editingSlotId) ?? null
+    : null;
+  const editingSlotHasBookings = (selectedEditingSlot?.signup_count ?? 0) > 0;
+  const minAvailabilityCapacity = Math.max(1, selectedEditingSlot?.signup_count ?? 0);
   const showAvailabilityEditor = Boolean(
     editingId &&
     form.isMentor &&
@@ -266,11 +271,29 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
     }
   };
 
-  const visiblePeople = initialPeople.filter((p) => {
-    if (filterTab === "mentors") return p.is_mentor;
-    if (filterTab === "judges") return p.is_judge;
-    return true;
-  });
+  const getPersonSlots = (personId: string) => initialSlots.filter((slot) => slot.mentor_id === personId);
+  const isBookablePerson = (person: Mentor, slots = getPersonSlots(person.id)) =>
+    person.mentorship_mode !== "in_person" && (person.is_mentor || slots.length > 0);
+
+  const visiblePeople = initialPeople
+    .filter((p) => {
+      if (filterTab === "mentors") return p.is_mentor;
+      if (filterTab === "judges") return p.is_judge;
+      return true;
+    })
+    .sort((a, b) => {
+      const aSlots = getPersonSlots(a.id);
+      const bSlots = getPersonSlots(b.id);
+      const aBookable = isBookablePerson(a, aSlots);
+      const bBookable = isBookablePerson(b, bSlots);
+      if (aBookable !== bBookable) return aBookable ? -1 : 1;
+
+      const aBooked = aSlots.reduce((total, slot) => total + slot.signup_count, 0);
+      const bBooked = bSlots.reduce((total, slot) => total + slot.signup_count, 0);
+      if (aBookable && aBooked !== bBooked) return bBooked - aBooked;
+
+      return (a.display_order - b.display_order) || a.name.localeCompare(b.name);
+    });
 
   const mentorCount = initialPeople.filter((p) => p.is_mentor).length;
   const judgeCount = initialPeople.filter((p) => p.is_judge).length;
@@ -418,17 +441,23 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
             <div className="grid md:grid-cols-3 gap-4">
               <label className="space-y-2">
                 <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Starts</span>
-                <input type="datetime-local" value={availabilityForm.startsAtLocal} onChange={(e) => setAvailabilityForm({ ...availabilityForm, startsAtLocal: e.target.value })} className={inputClass} />
+                <input type="datetime-local" value={availabilityForm.startsAtLocal} onChange={(e) => setAvailabilityForm({ ...availabilityForm, startsAtLocal: e.target.value })} disabled={editingSlotHasBookings} className={inputClass} />
               </label>
               <label className="space-y-2">
                 <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Ends</span>
-                <input type="datetime-local" value={availabilityForm.endsAtLocal} onChange={(e) => setAvailabilityForm({ ...availabilityForm, endsAtLocal: e.target.value })} className={inputClass} />
+                <input type="datetime-local" value={availabilityForm.endsAtLocal} onChange={(e) => setAvailabilityForm({ ...availabilityForm, endsAtLocal: e.target.value })} disabled={editingSlotHasBookings} className={inputClass} />
               </label>
               <label className="space-y-2">
                 <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Capacity</span>
-                <input type="number" min={1} value={availabilityForm.capacity} onChange={(e) => setAvailabilityForm({ ...availabilityForm, capacity: Number(e.target.value) })} className={inputClass} />
+                <input type="number" min={minAvailabilityCapacity} value={availabilityForm.capacity} onChange={(e) => setAvailabilityForm({ ...availabilityForm, capacity: Number(e.target.value) })} className={inputClass} />
               </label>
             </div>
+
+            {editingSlotHasBookings && (
+              <p className="text-xs text-amber-300/80">
+                This slot already has a booking, so its time is locked. Capacity and notes can still be updated.
+              </p>
+            )}
 
             <label className="space-y-2 block">
               <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Slot Notes</span>
@@ -509,24 +538,29 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
             <p className="text-sm text-gray-600">None added yet.</p>
           )}
           {visiblePeople.map((person) => {
-            const personSlots = initialSlots.filter((slot) => slot.mentor_id === person.id);
-            const isBookableMentor = person.is_mentor && person.mentorship_mode !== "in_person";
+            const personSlots = getPersonSlots(person.id);
+            const isBookableMentor = isBookablePerson(person, personSlots);
             const bookedCount = personSlots.reduce((total, slot) => total + slot.signup_count, 0);
             const capacityCount = personSlots.reduce((total, slot) => total + slot.capacity, 0);
+            const bookingRoleLabel = person.is_judge && person.is_mentor
+              ? "Virtual judge + mentor"
+              : person.is_judge
+                ? "Virtual judge"
+                : "Virtual mentor";
 
             return (
-            <div key={person.id} className={`rounded-2xl border bg-white/[0.02] ${isBookableMentor ? "border-blue-400/20 p-5" : "border-white/10 p-4"}`}>
+            <div key={person.id} className={`rounded-2xl border bg-white/[0.02] ${isBookableMentor ? "border-blue-400/30 p-6 shadow-[0_0_30px_rgba(59,130,246,0.08)]" : "border-white/10 p-4"}`}>
               <div className="flex items-start gap-4">
                 {person.photo_url ? (
-                  <img src={person.photo_url} alt={person.name} className={`${isBookableMentor ? "w-16 h-16" : "w-12 h-12"} rounded-xl object-cover flex-shrink-0`} />
+                  <img src={person.photo_url} alt={person.name} className={`${isBookableMentor ? "w-20 h-20" : "w-12 h-12"} rounded-xl object-cover flex-shrink-0`} />
                 ) : (
-                  <div className={`${isBookableMentor ? "w-16 h-16" : "w-12 h-12"} rounded-xl bg-white/10 flex items-center justify-center text-lg text-white flex-shrink-0`}>
+                  <div className={`${isBookableMentor ? "w-20 h-20" : "w-12 h-12"} rounded-xl bg-white/10 flex items-center justify-center text-lg text-white flex-shrink-0`}>
                     {person.name.charAt(0)}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm text-white font-medium">{person.name}</p>
+                    <p className={`${isBookableMentor ? "text-base" : "text-sm"} text-white font-medium`}>{person.name}</p>
                     {person.is_mentor && (
                       <span className="text-[9px] uppercase tracking-[0.15em] px-2 py-0.5 rounded-full border text-gray-400 bg-white/5 border-white/10">
                         {person.mentorship_mode === "in_person" ? "Mentor: In-person" : person.mentorship_mode === "hybrid" ? "Mentor: Hybrid" : "Mentor: Virtual"}
@@ -544,7 +578,7 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
                     </p>
                   )}
                   {person.bio && (
-                    <p className={`text-xs text-gray-600 mt-1 ${isBookableMentor ? "line-clamp-2" : "line-clamp-1"}`}>{person.bio}</p>
+                    <p className={`text-xs text-gray-600 mt-1 ${isBookableMentor ? "line-clamp-3" : "line-clamp-1"}`}>{person.bio}</p>
                   )}
                 </div>
                 <div className="flex gap-3 shrink-0 mt-1">
@@ -553,26 +587,29 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
                 </div>
               </div>
               {isBookableMentor && (
-                <div className="mt-4 rounded-2xl border border-blue-400/10 bg-blue-400/[0.03] p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-blue-200 font-semibold">Virtual Bookings</p>
-                    <p className="text-[11px] text-gray-500">
+                <div className="mt-5 rounded-[24px] border border-blue-400/20 bg-blue-400/[0.04] p-5 space-y-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-blue-200 font-semibold">Virtual Sessions</p>
+                      <p className="text-[11px] text-gray-500 mt-1">{bookingRoleLabel}</p>
+                    </div>
+                    <p className="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-[11px] text-blue-100">
                       {bookedCount}/{capacityCount} booked
                     </p>
                   </div>
                   {personSlots.length === 0 ? (
                     <p className="text-xs text-gray-600">No availability slots set.</p>
                   ) : (
-                    <div className="grid gap-2">
+                    <div className="grid gap-3 md:grid-cols-2">
                       {personSlots.map((slot) => (
-                        <div key={slot.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                        <div key={slot.id} className="rounded-2xl border border-white/10 bg-black/25 p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="text-xs text-gray-300">
+                              <p className="text-sm text-gray-200">
                                 {formatTime(slot.starts_at, timezone)} - {formatTime(slot.ends_at, timezone)}
                               </p>
                               <p className="text-[11px] text-gray-600 mt-1">
-                                {slot.signup_count}/{slot.capacity} booked
+                                {slot.signup_count}/{slot.capacity} booked{slot.description ? ` · ${slot.description}` : ""}
                               </p>
                             </div>
                             <button
@@ -586,9 +623,9 @@ export function HackathonPeopleAdminPanel({ event, adminCode, initialPeople, ini
                             </button>
                           </div>
                           {slot.attendees.length > 0 ? (
-                            <div className="mt-2 space-y-1">
+                            <div className="mt-3 space-y-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-3">
                               {slot.attendees.map((attendee) => (
-                                <p key={attendee.id} className="text-[11px] text-gray-400">
+                                <p key={attendee.id} className="text-xs text-gray-300">
                                   {attendee.name}{attendee.email ? ` (${attendee.email})` : ""}
                                 </p>
                               ))}
