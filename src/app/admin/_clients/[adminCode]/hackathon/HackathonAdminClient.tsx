@@ -1999,7 +1999,7 @@ export function HackathonAdminClient({
               </button>
             </div>
 
-            <div style={{ height: "calc(100vh - 28rem)" }}>
+            <div className="h-[calc(100dvh-18rem)] min-h-[24rem] overflow-hidden">
               <HackathonChat
                 event={event}
                 userId={adminUserId}
@@ -2010,6 +2010,7 @@ export function HackathonAdminClient({
                 members={chatMembers}
                 myTeamId={null}
                 adminCode={adminCode}
+                className="h-full min-h-0 sm:h-full"
               />
             </div>
           </div>

@@ -45,6 +45,7 @@ interface Props {
   onInviteFromProfile?: (member: ChatMember) => void;
   onCancelInviteFromProfile?: (member: ChatMember) => void;
   adminCode?: string;
+  className?: string;
 }
 
 function escapeRegExp(value: string) {
@@ -101,7 +102,7 @@ function isClosableChannel(channel: HackathonChatChannel) {
 export function HackathonChat({
   event, userId, isAdmin, channels: initialChannels,
   initialMessages, initialChannelId, members, myTeamId,
-  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile, adminCode,
+  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile, adminCode, className,
 }: Props) {
   const [channels, setChannels] = useState(initialChannels);
   const [activeChannelId, setActiveChannelId] = useState(initialChannelId);
@@ -965,7 +966,12 @@ export function HackathonChat({
   }, [messages]);
 
   return (
-    <div className="relative flex h-[calc(100dvh-11rem)] min-h-[30rem] flex-col overflow-hidden rounded-[34px] bg-black/50 backdrop-blur-3xl border border-white/10 animate-fade-in sm:h-[calc(100vh-12rem)] shadow-[0_30px_90px_-40px_rgba(0,0,0,0.95)]">
+    <div
+      className={cn(
+        "relative flex h-[calc(100dvh-11rem)] min-h-[30rem] flex-col overflow-hidden rounded-[34px] bg-black/50 backdrop-blur-3xl border border-white/10 animate-fade-in sm:h-[calc(100dvh-12rem)] shadow-[0_30px_90px_-40px_rgba(0,0,0,0.95)]",
+        className
+      )}
+    >
       {/* Subtle noise texture overlay */}
       <div className="absolute inset-0 opacity-[0.015] pointer-events-none mix-blend-screen" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noiseFilter\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.8\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noiseFilter)\'/%3E%3C/svg%3E")' }} />
       
