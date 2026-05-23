@@ -1,12 +1,12 @@
 -- ─── Hackathon Chat ──────────────────────────────────────────────────────────
 
--- Channels (general, announcements, team-specific, resources)
+-- Channels (general, announcements, team-specific, resources, help)
 CREATE TABLE IF NOT EXISTS hackathon_chat_channels (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id uuid NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   team_id uuid REFERENCES hackathon_teams(id) ON DELETE CASCADE,
   name text NOT NULL,
-  channel_type text NOT NULL DEFAULT 'general', -- 'general' | 'announcements' | 'team' | 'resources' | 'dm'
+  channel_type text NOT NULL DEFAULT 'general', -- 'general' | 'announcements' | 'team' | 'resources' | 'help' | 'dm'
   position int NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(event_id, name)
