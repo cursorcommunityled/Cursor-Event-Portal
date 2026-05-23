@@ -50,7 +50,7 @@ const eventQa = [
   {
     question: "How do I redeem my Cursor credits?",
     answer:
-      "Go to Event -> Credits in this portal. Open the credit link or QR code in the same browser where you are logged in to the right Cursor account, redeem the $50 credit, then mark it as redeemed in the portal.",
+      "Go to Event -> Credits in this portal. Sign in to the Cursor account you want credited, open your credit link or QR code in that same browser, redeem the $50 credit, then mark it as redeemed in the portal.",
     icon: CreditCard,
   },
   {
@@ -86,12 +86,12 @@ const eventQa = [
 ];
 
 const creditNotes = [
-  "Credits work for individual Cursor accounts only: Free, Pro, Pro+, or Ultra. They do not work on Team plans.",
-  "Redeeming adds the $50 credit to Dashboard -> Credits. The credit is applied automatically to the next invoice after a Pro trial or paid subscription starts.",
-  "Cursor may require a payment method on file through Stripe for verification. The card should not be charged while credits cover the invoice.",
-  "Free users can use the free plan first. After reaching the plan limit, start a Pro trial or Pro account with a valid payment method so the credit can be consumed.",
-  "If credits do not appear after redeeming, hard refresh Cursor Dashboard, log out and back in, or check the Stripe checkout screen from your dashboard.",
-  "Background Agents and some web features require a paid plan even if credits are available.",
+  "Credits work for individual Cursor accounts: Free, Pro, Pro+, or Ultra. They cannot be applied to Team plans.",
+  "After redeeming, the $50 credit should appear in Cursor Dashboard -> Credits and apply automatically to your next eligible invoice.",
+  "If you are on the Free plan, you can keep using it first. When you are ready to upgrade, start a Pro trial or paid plan and add a payment method for billing verification.",
+  "Your payment method should not be charged while available credits cover the invoice amount.",
+  "If credits do not appear after redeeming, refresh Cursor Dashboard, sign out and back in, and confirm you redeemed with the correct account.",
+  "Some advanced Cursor features require an active paid plan even when account credits are available.",
 ];
 
 export default async function ResourcesPage({ params }: ResourcesPageProps) {
