@@ -75,6 +75,8 @@ interface Props {
   hackathonProfile: HackathonProfile | null;
   mentors: Mentor[];
   judges: Mentor[];
+  mentorSlots: { id: string; mentor_id: string | null; is_full: boolean }[];
+  myMentorSlotId: string | null;
   initialScreenshots?: { id: string; file_url: string }[];
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
   audienceVotePoll?: PollWithVotes | null;
@@ -169,7 +171,7 @@ export function HackathonClient({
   allTeams: initialAllTeams, openPool: initialPool, scores,
   chatChannels, initialMessages, initialChannelId, chatMembers,
   publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
-  audienceVotePoll = null, hackathonProfile, mentors, judges,
+  audienceVotePoll = null, hackathonProfile, mentors, judges, mentorSlots, myMentorSlotId,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -650,6 +652,23 @@ export function HackathonClient({
     (mentor) => mentor.mentorship_mode === "in_person" || mentor.mentorship_mode === "hybrid"
   );
   const onlineMentors = mentors.filter((mentor) => mentor.mentorship_mode === "virtual");
+  const mentorSlotMap = useMemo(() => {
+    const map = new Map<string, typeof mentorSlots>();
+    for (const slot of mentorSlots) {
+      if (!slot.mentor_id) continue;
+      const slots = map.get(slot.mentor_id) ?? [];
+      slots.push(slot);
+      map.set(slot.mentor_id, slots);
+    }
+    return map;
+  }, [mentorSlots]);
+  const getMentorAvailability = (mentorId: string) => {
+    const slots = mentorSlotMap.get(mentorId) ?? [];
+    return {
+      availableSlots: slots.filter((slot) => !slot.is_full).length,
+      isBooked: slots.some((slot) => slot.id === myMentorSlotId),
+    };
+  };
   const teamFinderAvailableUserIds = useMemo(() => pool.map((person) => person.id), [pool]);
   const teamFinder = showTeamFinder ? (
     <TeamFinderPanel
@@ -1693,16 +1712,19 @@ export function HackathonClient({
                     <p className="text-sm uppercase tracking-[0.28em] text-blue-100 font-semibold">Book Online</p>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-4">
-                    {onlineMentors.map((mentor) => (
-                      <MentorCard
-                        key={mentor.id}
-                        mentor={mentor}
-                        eventSlug={event.slug}
-                        availableSlots={0}
-                        isBooked={false}
-                        basePath="hackathon"
-                      />
-                    ))}
+                    {onlineMentors.map((mentor) => {
+                      const availability = getMentorAvailability(mentor.id);
+                      return (
+                        <MentorCard
+                          key={mentor.id}
+                          mentor={mentor}
+                          eventSlug={event.slug}
+                          availableSlots={availability.availableSlots}
+                          isBooked={availability.isBooked}
+                          basePath="hackathon"
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               )}
@@ -1711,16 +1733,19 @@ export function HackathonClient({
                 <section className="space-y-4">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">Live On Site</p>
                   <div className="grid sm:grid-cols-2 gap-4">
-                    {liveMentors.map((mentor) => (
-                      <MentorCard
-                        key={mentor.id}
-                        mentor={mentor}
-                        eventSlug={event.slug}
-                        availableSlots={0}
-                        isBooked={false}
-                        basePath="hackathon"
-                      />
-                    ))}
+                    {liveMentors.map((mentor) => {
+                      const availability = getMentorAvailability(mentor.id);
+                      return (
+                        <MentorCard
+                          key={mentor.id}
+                          mentor={mentor}
+                          eventSlug={event.slug}
+                          availableSlots={availability.availableSlots}
+                          isBooked={availability.isBooked}
+                          basePath="hackathon"
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               )}

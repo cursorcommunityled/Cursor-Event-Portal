@@ -206,6 +206,7 @@ export async function createSessionSlot(
 
   revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
   revalidatePath(`/admin/${adminCode}/event-dashboard`);
   return { success: true };
 }
@@ -231,6 +232,25 @@ export async function updateSessionSlot(
   const auth = await validateAdminAccess(eventId, adminCode);
   if (!auth.valid) return { error: auth.error };
 
+  const supabase = await createServiceClient();
+  const { data: existingSlot, error: existingSlotError } = await supabase
+    .from("demo_slots")
+    .select("starts_at, ends_at")
+    .eq("id", slotId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (existingSlotError) return { error: existingSlotError.message || "Failed to load session" };
+  if (!existingSlot) return { error: "Session not found" };
+
+  const { count: signupCount, error: signupCountError } = await supabase
+    .from("demo_slot_signups")
+    .select("id", { count: "exact", head: true })
+    .eq("slot_id", slotId)
+    .eq("event_id", eventId);
+
+  if (signupCountError) return { error: signupCountError.message || "Failed to load session bookings" };
+
   const timezone = data.timezone || "America/Edmonton";
   let startsAt: string;
   let endsAt: string;
@@ -246,7 +266,20 @@ export async function updateSessionSlot(
   if (!data.hostName.trim()) return { error: "Host name is required" };
   if (!Number.isFinite(data.capacity) || data.capacity < 1) return { error: "Capacity must be at least 1" };
 
-  const supabase = await createServiceClient();
+  const bookedCount = signupCount ?? 0;
+  if (bookedCount > 0) {
+    const requestedStartMs = new Date(startsAt).getTime();
+    const requestedEndMs = new Date(endsAt).getTime();
+    const existingStartMs = new Date(existingSlot.starts_at).getTime();
+    const existingEndMs = new Date(existingSlot.ends_at).getTime();
+    if (requestedStartMs !== existingStartMs || requestedEndMs !== existingEndMs) {
+      return { error: "Booked session times cannot be changed. Cancel the booking or create a new slot instead." };
+    }
+    if (data.capacity < bookedCount) {
+      return { error: `Capacity cannot be below the ${bookedCount} existing booking${bookedCount === 1 ? "" : "s"}` };
+    }
+  }
+
   const { error } = await supabase
     .from("demo_slots")
     .update({
@@ -267,6 +300,7 @@ export async function updateSessionSlot(
 
   revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
   revalidatePath(`/admin/${adminCode}/event-dashboard`);
   return { success: true };
 }
@@ -291,6 +325,7 @@ export async function deleteSessionSlot(
 
   revalidatePath(`/${eventSlug}/sessions`);
   revalidatePath(`/admin/${adminCode}/sessions`);
+  revalidatePath(`/admin/${adminCode}/hackathon`);
   revalidatePath(`/admin/${adminCode}/event-dashboard`);
   return { success: true };
 }

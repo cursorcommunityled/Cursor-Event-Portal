@@ -125,6 +125,9 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
 
   const totalBookings = slots.reduce((acc, slot) => acc + slot.signup_count, 0);
   const mentorsForSessions = initialMentors.filter((mentor) => mentor.is_mentor);
+  const editingSlot = editingSlotId ? slots.find((slot) => slot.id === editingSlotId) ?? null : null;
+  const editingSlotHasBookings = (editingSlot?.signup_count ?? 0) > 0;
+  const minSlotCapacity = Math.max(1, editingSlot?.signup_count ?? 0);
 
   const resetSlotForm = () => {
     setEditingSlotId(null);
@@ -338,7 +341,7 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
     }));
   };
 
-  const inputClass = "w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20";
+  const inputClass = "w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20 disabled:cursor-not-allowed disabled:opacity-60";
   const getMentorModeLabel = (mode: Mentor["mentorship_mode"]) => {
     if (mode === "in_person") return "In-person";
     if (mode === "hybrid") return "Hybrid";
@@ -439,17 +442,23 @@ export function DemosAdminClient({ event, adminCode, settings, slots, mentors: i
           </label>
           <label className="space-y-2">
             <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Starts</span>
-            <input type="datetime-local" value={form.startsAtLocal} onChange={(e) => setForm({ ...form, startsAtLocal: e.target.value })} className={inputClass} />
+            <input type="datetime-local" value={form.startsAtLocal} onChange={(e) => setForm({ ...form, startsAtLocal: e.target.value })} disabled={editingSlotHasBookings} className={inputClass} />
           </label>
           <label className="space-y-2">
             <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Ends</span>
-            <input type="datetime-local" value={form.endsAtLocal} onChange={(e) => setForm({ ...form, endsAtLocal: e.target.value })} className={inputClass} />
+            <input type="datetime-local" value={form.endsAtLocal} onChange={(e) => setForm({ ...form, endsAtLocal: e.target.value })} disabled={editingSlotHasBookings} className={inputClass} />
           </label>
           <label className="space-y-2">
             <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Capacity</span>
-            <input type="number" min={1} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} className={inputClass} />
+            <input type="number" min={minSlotCapacity} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })} className={inputClass} />
           </label>
         </div>
+
+        {editingSlotHasBookings && (
+          <p className="text-xs text-amber-300/80">
+            This session already has a booking, so its time is locked. Capacity and details can still be updated.
+          </p>
+        )}
 
         <label className="space-y-2 block">
           <span className="block text-[10px] uppercase tracking-[0.2em] text-gray-500">Description</span>
