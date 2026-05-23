@@ -30,6 +30,13 @@ function getDmParticipantIds(channelName: string) {
   return parts.length === 3 && parts[0] === "dm" ? [parts[1], parts[2]] : [];
 }
 
+function isSharedEventChannel(channel: ChatChannelRow) {
+  return (
+    channel.team_id === null &&
+    ["spawn_point", "general", "announcements", "resources", "help"].includes(channel.channel_type)
+  );
+}
+
 async function isCheckedInForEvent(
   supabase: SupabaseServiceClient,
   eventId: string,
@@ -119,23 +126,26 @@ async function canAccessChannel(
   session: PortalSession,
   adminCode?: string
 ) {
-  if (await hasAdminAccessForEvent(supabase, channel.event_id, session.userId, adminCode)) {
-    return true;
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, channel.event_id, session.userId, adminCode);
+
+  if (channel.channel_type === "dm") {
+    if (session.eventId !== channel.event_id) return false;
+    return getDmParticipantIds(channel.name).includes(session.userId);
   }
+
+  if (channel.team_id) {
+    if (session.eventId !== channel.event_id && !currentUserIsAdmin) return false;
+    if (!currentUserIsAdmin && !(await isCheckedInForEvent(supabase, channel.event_id, session.userId))) return false;
+    return isTeamMember(supabase, channel.team_id, session.userId);
+  }
+
+  if (currentUserIsAdmin) return isSharedEventChannel(channel);
 
   if (session.eventId !== channel.event_id) return false;
 
   const checkedIn = await isCheckedInForEvent(supabase, channel.event_id, session.userId);
 
   if (!checkedIn) return false;
-
-  if (channel.channel_type === "dm") {
-    return getDmParticipantIds(channel.name).includes(session.userId);
-  }
-
-  if (channel.team_id) {
-    return isTeamMember(supabase, channel.team_id, session.userId);
-  }
 
   if (channel.channel_type === "spawn_point") {
     return !(await userHasTeamInEvent(supabase, channel.event_id, session.userId));
@@ -301,11 +311,8 @@ export async function sendChatMessage(
   if (!channel) return { error: "Channel not found" };
 
   if (channel.channel_type === "dm") {
-    // Check if the user is part of the DM
     if (!getDmParticipantIds(channel.name).includes(session.userId)) {
-      if (!currentUserIsAdmin) {
-        return { error: "You cannot post in this DM" };
-      }
+      return { error: "You cannot post in this DM" };
     }
   }
 
@@ -319,10 +326,7 @@ export async function sendChatMessage(
       .limit(1);
 
     if (!membership?.length) {
-      // Admins can still post — check user role
-      if (!currentUserIsAdmin) {
-        return { error: "You are not a member of this team" };
-      }
+      return { error: "You are not a member of this team" };
     }
   }
 

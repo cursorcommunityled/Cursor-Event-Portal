@@ -2603,6 +2603,13 @@ function isDmParticipant(channelName: string, userId: string | null | undefined)
   return parts.length === 3 && parts[0] === "dm" && (parts[1] === userId || parts[2] === userId);
 }
 
+function isAdminWideChatChannel(channel: HackathonChatChannel) {
+  return (
+    channel.team_id === null &&
+    ["spawn_point", "general", "announcements", "resources", "help"].includes(channel.channel_type)
+  );
+}
+
 export async function getHackathonChatChannels(
   eventId: string,
   teamId?: string | null,
@@ -2624,9 +2631,10 @@ export async function getHackathonChatChannels(
 
   const rows = (data ?? []) as HackathonChatChannel[];
 
-  // Admin/fallback: no team filter means the caller can administer the event.
+  // Admin/fallback: no team filter means the caller can administer the event,
+  // but private team chats and DMs should still only appear for their participants.
   if (teamId === undefined) {
-    return rows;
+    return rows.filter((ch) => isAdminWideChatChannel(ch) || isDmParticipant(ch.name, userId));
   }
 
   const visibleRows = rows.filter((ch) => {

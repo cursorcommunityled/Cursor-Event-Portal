@@ -69,6 +69,13 @@ function isDmParticipant(channelName: string, participantId: string) {
   return parts.length === 3 && parts[0] === "dm" && (parts[1] === participantId || parts[2] === participantId);
 }
 
+function isAdminWideChannel(channel: HackathonChatChannel) {
+  return (
+    channel.team_id === null &&
+    ["spawn_point", "general", "announcements", "resources", "help"].includes(channel.channel_type)
+  );
+}
+
 function messagesChanged(
   current: LocalHackathonChatMessage[],
   next: HackathonChatMessage[]
@@ -174,9 +181,23 @@ export function HackathonChat({
   const typingClearTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const realtimeChannelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
-  // If active channel is missing (e.g. empty initialChannelId), fall back to first channel
-  const resolvedChannelId = activeChannelId || channels[0]?.id || "";
-  const currentChannel = channels.find((c) => c.id === resolvedChannelId);
+  const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
+    if (channel.channel_type === "dm") return isDmParticipant(channel.name, userId);
+    if (isAdmin) return isAdminWideChannel(channel);
+    return isAdminWideChannel(channel) || channel.team_id === myTeamId;
+  }, [isAdmin, myTeamId, userId]);
+
+  const visibleChannels = useMemo(
+    () => channels.filter((channel) => canSeeChannel(channel)),
+    [canSeeChannel, channels]
+  );
+
+  // If active channel is missing or no longer visible, fall back to the first visible channel.
+  const resolvedChannelId =
+    activeChannelId && visibleChannels.some((channel) => channel.id === activeChannelId)
+      ? activeChannelId
+      : visibleChannels[0]?.id || "";
+  const currentChannel = visibleChannels.find((c) => c.id === resolvedChannelId);
   const messages = messageMap[resolvedChannelId] ?? [];
   const pinnedMessages = pinnedMessageMap[resolvedChannelId] ?? messages.filter((message) => message.is_pinned);
 
@@ -187,15 +208,9 @@ export function HackathonChat({
     return m;
   }, [members]);
 
-  const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
-    if (isAdmin) return true;
-    if (channel.channel_type === "dm") return isDmParticipant(channel.name, userId);
-    return !channel.team_id || channel.team_id === myTeamId;
-  }, [isAdmin, myTeamId, userId]);
-
   useEffect(() => {
-    channelsRef.current = channels;
-  }, [channels]);
+    channelsRef.current = visibleChannels;
+  }, [visibleChannels]);
 
   const getChannelLabel = useCallback((channel: HackathonChatChannel | undefined) => {
     if (!channel) return "";
@@ -286,9 +301,9 @@ export function HackathonChat({
   // Check if user can post in this channel
   const canPost = useMemo(() => {
     // No channel loaded yet — don't block, channels may still be initialising
-    if (!currentChannel) return channels.length === 0 ? false : true;
-    if (isAdmin) return true;
+    if (!currentChannel) return visibleChannels.length === 0 ? false : true;
     if (currentChannel.channel_type === "dm") return isDmParticipant(currentChannel.name, userId);
+    if (isAdmin) return true;
     if (currentChannel.channel_type === "announcements") return isAdmin;
     // Spawn Point: only unassigned members (no team yet) can post
     if (currentChannel.channel_type === "spawn_point") return !myTeamId || isAdmin;
@@ -298,7 +313,7 @@ export function HackathonChat({
     }
     // shared channels — all signed-in attendees can post
     return true;
-  }, [currentChannel, channels.length, isAdmin, memberMap, myTeamId, userId]);
+  }, [currentChannel, visibleChannels.length, isAdmin, memberMap, myTeamId, userId]);
 
   const scrollToBottom = useCallback((smooth = false) => {
     if (!listRef.current) return;
@@ -316,7 +331,7 @@ export function HackathonChat({
   // Keep the selected channel stable across refreshes so non-default channel messages
   // don't appear to disappear when the page reloads back to #general.
   useEffect(() => {
-    if (hasAttemptedChannelRestoreRef.current || channels.length === 0) return;
+    if (hasAttemptedChannelRestoreRef.current || visibleChannels.length === 0) return;
     hasAttemptedChannelRestoreRef.current = true;
 
     const storedChannelId = window.localStorage.getItem(storageKey);
@@ -324,7 +339,7 @@ export function HackathonChat({
     if (
       !storedChannelId ||
       storedChannelId === resolvedChannelId ||
-      !channels.some((channel) => channel.id === storedChannelId)
+      !visibleChannels.some((channel) => channel.id === storedChannelId)
     ) {
       setHasRestoredChannel(true);
       return;
@@ -344,7 +359,7 @@ export function HackathonChat({
     setHasRestoredChannel(true);
     // Run once after channels are available; messageMap is intentionally not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adminCode, channels, resolvedChannelId, storageKey]);
+  }, [adminCode, visibleChannels, resolvedChannelId, storageKey]);
 
   useEffect(() => {
     if (!hasRestoredChannel || !resolvedChannelId) return;
@@ -608,17 +623,18 @@ export function HackathonChat({
   };
 
   const closeChannelTab = async (channelId: string) => {
-    const channel = channels.find((ch) => ch.id === channelId);
+    const channel = visibleChannels.find((ch) => ch.id === channelId);
     if (!channel || !isClosableChannel(channel)) return;
 
-    const closedIndex = channels.findIndex((ch) => ch.id === channelId);
+    const closedIndex = visibleChannels.findIndex((ch) => ch.id === channelId);
     const remainingChannels = channels.filter((ch) => ch.id !== channelId);
+    const remainingVisibleChannels = visibleChannels.filter((ch) => ch.id !== channelId);
     setChannels(remainingChannels);
 
     if (channelId !== resolvedChannelId) return;
 
     const fallbackChannel =
-      remainingChannels[Math.min(closedIndex, remainingChannels.length - 1)] ?? remainingChannels[0];
+      remainingVisibleChannels[Math.min(closedIndex, remainingVisibleChannels.length - 1)] ?? remainingVisibleChannels[0];
 
     if (fallbackChannel) {
       await switchChannel(fallbackChannel.id);
@@ -984,7 +1000,7 @@ export function HackathonChat({
       <div className="relative flex items-center gap-2 border-b border-white/10 bg-black/40 px-3 pt-3 pb-2.5 shrink-0 sm:px-4 z-10 backdrop-blur-md">
         <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide">
           <div className="flex w-max flex-nowrap gap-2 pr-1">
-            {channels.map((ch) => {
+            {visibleChannels.map((ch) => {
               const isActiveChannel = ch.id === resolvedChannelId;
               const canCloseChannel = isClosableChannel(ch);
               const channelLabel = getChannelLabel(ch);
@@ -1208,7 +1224,7 @@ export function HackathonChat({
                   ? "Only admins can post in announcements"
                   : currentChannel?.channel_type === "spawn_point"
                     ? "You're on a team now — chat in #general or your team channel"
-                    : channels.length === 0
+                    : visibleChannels.length === 0
                       ? "Chat channels not set up — run the SQL migration in Supabase"
                       : "Only team members can post in this channel"}
               </div>
