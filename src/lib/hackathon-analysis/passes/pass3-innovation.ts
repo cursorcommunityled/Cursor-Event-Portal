@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Pass1Result, Pass2Result, Pass3Result } from '../types';
+import { extractResponseText, parseJsonObject } from './json';
 
 const CLICHE_PATTERNS = [
   'LangChain + Pinecone vector search CRUD',
@@ -56,8 +57,5 @@ Return ONLY valid JSON:
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Pass 3 returned no JSON');
-  return JSON.parse(jsonMatch[0]) as Pass3Result;
+  return parseJsonObject<Pass3Result>(extractResponseText(response), 'Pass 3');
 }

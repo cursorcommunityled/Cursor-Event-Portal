@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Pass4Result } from '../types';
+import { extractResponseText, parseJsonObject } from './json';
 
 interface Pass4Context {
   teamName?: string;
@@ -156,8 +157,5 @@ Return ONLY valid JSON:
     ],
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Pass 4 returned no JSON');
-  return JSON.parse(jsonMatch[0]) as Pass4Result;
+  return parseJsonObject<Pass4Result>(extractResponseText(response), 'Pass 4');
 }

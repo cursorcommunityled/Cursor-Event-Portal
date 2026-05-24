@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Pass1Result, Pass2Result, Pass3Result, Pass5Result, PoolEntry } from '../types';
+import { extractResponseText, parseJsonObject } from './json';
 
 export async function runPass5(
   client: Anthropic,
@@ -67,10 +68,7 @@ Return ONLY valid JSON:
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }],
       });
-      const text = response.content[0].type === 'text' ? response.content[0].text : '';
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Pass 5 returned no JSON');
-      return JSON.parse(jsonMatch[0]) as Pass5Result;
+      return parseJsonObject<Pass5Result>(extractResponseText(response), 'Pass 5');
     } catch (e: unknown) {
       const status = (e as { status?: number }).status;
       if (attempt < 2 && (status === 429 || status === 503 || status === 529)) {
