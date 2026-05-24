@@ -324,6 +324,12 @@ export function HackathonClient({
     router.refresh();
   }, [router]);
 
+  useEffect(() => {
+    if (!formationOpen && tab === "open-pool") {
+      setTab("all-teams");
+    }
+  }, [formationOpen, tab]);
+
   // Keep local interactive state aligned with refreshed server props.
   useEffect(() => {
     setMyTeam(initialMyTeam);
@@ -543,7 +549,7 @@ export function HackathonClient({
       const res = await leaveTeam(myTeam.id);
       if (res.error) { showMsg(res.error, true); return; }
       setMyTeam(null);
-      setTab("open-pool");
+      setTab(formationOpen ? "open-pool" : "all-teams");
       refresh();
     });
   };
@@ -556,7 +562,7 @@ export function HackathonClient({
       if (res.error) { showMsg(res.error, true); return; }
       showMsg(`${res.dissolvedByName ?? "Someone"} dissolved ${res.teamName ?? myTeam.name}`, false, 10000);
       setMyTeam(null);
-      setTab("open-pool");
+      setTab(formationOpen ? "open-pool" : "all-teams");
       refresh();
     });
   };
@@ -643,11 +649,11 @@ export function HackathonClient({
   const tabs: { id: Tab; label: string; count?: number; icon?: React.ReactNode }[] = [
     { id: "overview", label: "Hub", icon: <Swords className="w-3.5 h-3.5" /> },
     { id: "all-teams", label: "Teams", count: allTeams.length },
-    { id: "open-pool", label: "Pool", count: pool.length },
+    ...(formationOpen ? [{ id: "open-pool" as const, label: "Pool", count: pool.length }] : []),
     { id: "people", label: "People", count: peopleCount, icon: <UserPlus className="w-3.5 h-3.5" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
-  const showTeamFinder = !myTeam && (tab === "all-teams" || tab === "open-pool" || tab === "chat");
+  const showTeamFinder = formationOpen && !myTeam && (tab === "all-teams" || tab === "open-pool" || tab === "chat");
   const liveMentors = mentors.filter(
     (mentor) => mentor.mentorship_mode === "in_person" || mentor.mentorship_mode === "hybrid"
   );
@@ -1035,11 +1041,11 @@ export function HackathonClient({
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
                 <button
-                  onClick={() => setTab(myTeam ? "all-teams" : "open-pool")}
+                  onClick={() => setTab(myTeam || !formationOpen ? "all-teams" : "open-pool")}
                   className="group relative overflow-hidden rounded-2xl bg-white px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.15em] text-black transition-all hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="relative">{myTeam ? "Open Team" : "Open Pool"}</span>
+                  <span className="relative">{myTeam || !formationOpen ? "View Teams" : "Open Pool"}</span>
                 </button>
                 <button
                   onClick={() => setTab("chat")}
@@ -1561,23 +1567,8 @@ export function HackathonClient({
       )}
 
       {/* Open Pool tab */}
-      {tab === "open-pool" && (
+      {formationOpen && tab === "open-pool" && (
         <div className="space-y-4 animate-slide-up">
-          {!formationOpen && (
-            <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 backdrop-blur-md">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.1)_0,transparent_100%)]" />
-              <div className="relative flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-amber-500/30 bg-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-[14px] font-bold uppercase tracking-wider text-amber-400">Formation Closed</p>
-                  <p className="text-[13px] text-amber-200/80">Teams are locked and no new invites can be sent.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {pool.length === 0 && (
             <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
