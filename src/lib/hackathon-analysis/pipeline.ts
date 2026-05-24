@@ -173,6 +173,7 @@ export async function runAnalysisPipeline(ctx: ProjectContext): Promise<void> {
       const { result: pass6, modelUsed } = await runPass6WithModel(
         anthropic,
         ctx.teamName,
+        ctx.eventPrompt,
         ctx.pitchText,
         p1, p2, p3,
         p4 as Awaited<ReturnType<typeof runPass4>>,

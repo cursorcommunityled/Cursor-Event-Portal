@@ -25,6 +25,7 @@ const JUDGING_PHASES = [
       "Claude runs 6 passes: repo structure, code quality, innovation, visual UX, pool comparison, and final synthesis.",
       "Analysis takes about 3 minutes per team. You will see live progress on your dashboard.",
       "Projects are scored across 6 weighted criteria.",
+      "Problem-Solution Fit is judged against the event prompt and whether the project solves a real personal pain point.",
       "You will NOT see your AI score. Results stay pending until admin review.",
     ],
   },
@@ -68,7 +69,7 @@ const SCORING_CRITERIA = [
   {
     name: "Problem-Solution Fit",
     weight: "20%",
-    description: "Solving a real problem convincingly.",
+    description: "Solving a real personal pain point in line with the event prompt.",
   },
   {
     name: "UX & Design",

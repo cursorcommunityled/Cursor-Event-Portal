@@ -135,7 +135,7 @@ const aiScreeningPasses = [
     title: "Synthesis",
     model: "Claude Opus + extended thinking",
     description:
-      "Ingests all previous pass outputs and uses an 8,000-token thinking budget to produce calibrated scores across six criteria. Scoring anchors prevent compression: 9-10 is genuinely exceptional, 5-6 is average and competent, and missing UI or a non-functional core product must score 1-4 instead of being softened to 5.",
+      "Ingests all previous pass outputs and the event prompt, then uses an 8,000-token thinking budget to produce calibrated scores across six criteria. Problem-Solution Fit explicitly checks whether the project solves a real personal pain point. Scoring anchors prevent compression: 9-10 is genuinely exceptional, 5-6 is average and competent, and missing UI or a non-functional core product must score 1-4 instead of being softened to 5.",
   },
 ];
 
@@ -351,6 +351,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                   "Claude runs 6 passes: repo structure, code quality, innovation, visual UX, pool comparison, and final synthesis",
                   "Takes about 3 minutes per team — you'll see live progress on your dashboard",
                   "Your project is scored across 6 criteria (Innovation 25%, Technical Execution 25%, Functional Completeness 20%, Problem-Solution Fit 20%, UX 5%, Ambition 5%)",
+                  "Problem-Solution Fit is prompt-aware: Claude checks whether the project addresses a real personal pain point",
                   "You will NOT see your AI score — results pending admin review",
                 ],
               },
@@ -437,7 +438,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                 { label: "Innovation & Originality", weight: "25%", note: "How novel and surprising is the concept?" },
                 { label: "Technical Execution", weight: "25%", note: "Cleverness of the engineering" },
                 { label: "Functional Completeness", weight: "20%", note: "Does the core loop actually work?" },
-                { label: "Problem-Solution Fit", weight: "20%", note: "Solving a real problem convincingly" },
+                { label: "Problem-Solution Fit", weight: "20%", note: "Solving a real personal pain point from the event prompt" },
                 { label: "UX & Design", weight: "5%", note: "Visual polish and usability" },
                 { label: "Learning & Ambition", weight: "5%", note: "Did the team stretch themselves?" },
               ].map((row, i) => (

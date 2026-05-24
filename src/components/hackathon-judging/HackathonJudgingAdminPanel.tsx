@@ -240,6 +240,10 @@ export function HackathonJudgingAdminPanel({
   const published = competition.results.filter((result) => result.is_published);
   const hasResettableState = competition.scorecards.length > 0 || competition.results.length > 0;
   const uniqueJudgeCount = new Set(competition.scorecards.map((card) => card.judge_id)).size;
+  const winnerCandidates = competition.standings.slice(0, 3);
+  const unscoredFinalists = competition.standings.filter((standing) => standing.judge_count === 0);
+  const unscoredWinnerCandidates = winnerCandidates.filter((standing) => standing.judge_count === 0);
+  const publishBlockedByUnscoredWinners = unscoredWinnerCandidates.length > 0;
 
   const saveEntryScore = (entryId: string) => {
     setActiveEntryId(entryId);
@@ -550,7 +554,7 @@ export function HackathonJudgingAdminPanel({
               </button>
             )}
             <button
-              disabled={isPending || competition.standings.length === 0}
+              disabled={isPending || competition.standings.length === 0 || publishBlockedByUnscoredWinners}
               onClick={publishResults}
               className="inline-flex items-center gap-2 rounded-[20px] bg-yellow-500/20 border border-yellow-500/30 px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-yellow-300 hover:bg-yellow-500/30 disabled:opacity-50 transition-all hover:scale-105 shadow-neon"
             >
@@ -559,6 +563,22 @@ export function HackathonJudgingAdminPanel({
             </button>
           </div>
         </div>
+
+        {unscoredFinalists.length > 0 && (
+          <div className="relative rounded-2xl border border-yellow-500/25 bg-yellow-500/10 p-4 text-[13px] font-medium text-yellow-200 flex gap-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-yellow-300" />
+            <div className="space-y-1">
+              <p className="font-bold">
+                {unscoredFinalists.length} finalist{unscoredFinalists.length === 1 ? "" : "s"} still {unscoredFinalists.length === 1 ? "has" : "have"} no judge scorecards.
+              </p>
+              <p className="text-yellow-100/80">
+                {publishBlockedByUnscoredWinners
+                  ? "Publishing is blocked because at least one Top 3 candidate has no saved scorecard."
+                  : "They will remain at 0 points unless a judge saves a scorecard before publishing."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {competition.standings.length === 0 ? (
           <p className="relative text-[14px] font-medium text-gray-500">No standings yet. Select finalists and save at least one scorecard.</p>

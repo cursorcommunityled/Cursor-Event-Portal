@@ -20,6 +20,7 @@ function errorMessage(error: unknown): string {
 export async function runPass6(
   client: Anthropic,
   teamName: string,
+  eventPrompt: string | null,
   pitchText: string | null,
   pass1: Pass1Result,
   pass2: Pass2Result,
@@ -27,13 +28,14 @@ export async function runPass6(
   pass4: Pass4Result,
   pass5: Pass5Result
 ): Promise<Pass6Result> {
-  const { result } = await runPass6WithModel(client, teamName, pitchText, pass1, pass2, pass3, pass4, pass5);
+  const { result } = await runPass6WithModel(client, teamName, eventPrompt, pitchText, pass1, pass2, pass3, pass4, pass5);
   return result;
 }
 
 export async function runPass6WithModel(
   client: Anthropic,
   teamName: string,
+  eventPrompt: string | null,
   pitchText: string | null,
   pass1: Pass1Result,
   pass2: Pass2Result,
@@ -55,6 +57,7 @@ CALIBRATION RULES:
 
 EVIDENCE:
 Team: ${teamName}
+Event prompt: ${eventPrompt?.trim() || '(none configured)'}
 Pitch: ${pitchText ?? '(none provided)'}
 
 Pass 1 (Repo):
@@ -97,6 +100,13 @@ Pass 5 (Pool):
 
 SCORING CRITERIA (6 dimensions):
 ${criteriaBlock}
+
+EVENT PROMPT ALIGNMENT:
+- The event prompt is part of the judging evidence, especially for problem_solution_fit.
+- For problem_solution_fit, explicitly evaluate whether the project solves the event prompt: "${eventPrompt?.trim() || 'Build something that solves a real pain point in your personal life.'}"
+- A high problem_solution_fit score requires a clear real pain point, preferably grounded in the team's personal life or direct lived experience, plus a solution that convincingly addresses that pain.
+- Penalize generic demos, novelty-only tools, or projects where the personal pain point is unclear, even if the engineering is competent.
+- The problem_solution_fit reasoning MUST mention how well the project does or does not satisfy the event prompt.
 
 For each criterion, provide:
 - score: 0-10 (use full range, calibrated to the anchors above)
