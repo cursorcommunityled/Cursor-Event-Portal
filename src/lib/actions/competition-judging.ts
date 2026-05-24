@@ -312,6 +312,14 @@ export async function publishCompetitionJudgingResults(
   if (standings.length === 0) return { error: "Select finalists before publishing winners." };
 
   const winners = standings.slice(0, Math.max(1, placementCount));
+  const unscoredWinners = winners.filter((standing) => standing.judge_count === 0);
+  if (unscoredWinners.length > 0) {
+    const projectList = unscoredWinners
+      .map((standing) => standing.entry?.title ?? "Untitled project")
+      .join(", ");
+    return { error: `Cannot publish until every winner candidate has at least one judge scorecard. Missing scores: ${projectList}.` };
+  }
+
   const now = new Date().toISOString();
 
   const { error: deleteError } = await supabase

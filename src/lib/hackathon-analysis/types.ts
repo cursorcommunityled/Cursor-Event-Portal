@@ -104,6 +104,7 @@ export interface ProjectContext {
   eventId: string;
   teamName: string;
   repoUrl: string;
+  eventPrompt: string | null;
   pitchText: string | null;
   screenshotUrls: string[];
 }

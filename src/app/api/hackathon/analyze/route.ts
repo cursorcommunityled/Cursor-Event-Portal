@@ -23,10 +23,11 @@ export async function POST(req: NextRequest) {
     if (!adminEvent) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
 
     // Fetch team + project + screenshots
-    const [{ data: team }, { data: project }, { data: screenshots }] = await Promise.all([
+    const [{ data: team }, { data: project }, { data: screenshots }, { data: settings }] = await Promise.all([
       supabase.from('hackathon_teams').select('id, name, event_id').eq('id', teamId).eq('event_id', eventId).single(),
       supabase.from('hackathon_projects').select('*').eq('team_id', teamId).maybeSingle(),
       supabase.from('hackathon_project_screenshots').select('file_url, sort_order').eq('team_id', teamId).order('sort_order'),
+      supabase.from('hackathon_settings').select('prompt_text').eq('event_id', eventId).maybeSingle(),
     ]);
 
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
@@ -67,6 +68,7 @@ export async function POST(req: NextRequest) {
       eventId,
       teamName: team.name as string,
       repoUrl: project.repo_url as string,
+      eventPrompt: (settings?.prompt_text as string | null) ?? null,
       pitchText: (project.description as string | null) ?? null,
       screenshotUrls,
     });
