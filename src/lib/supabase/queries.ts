@@ -1836,7 +1836,69 @@ export async function getPublishedCompetitionJudgingResults(
     console.error("[getPublishedCompetitionJudgingResults] Error:", error);
     return [];
   }
-  return (data ?? []) as unknown as CompetitionJudgingResult[];
+  return attachCompetitionEntryTeams(
+    supabase,
+    eventId,
+    (data ?? []) as unknown as CompetitionJudgingResult[]
+  );
+}
+
+async function attachCompetitionEntryTeams(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  eventId: string,
+  results: CompetitionJudgingResult[]
+): Promise<CompetitionJudgingResult[]> {
+  const userIds = Array.from(
+    new Set(results.map((result) => result.entry?.user_id).filter((id): id is string => Boolean(id)))
+  );
+  if (userIds.length === 0) return results;
+
+  const { data: teamMembers } = await supabase
+    .from("hackathon_team_members")
+    .select("user_id, team:hackathon_teams!hackathon_team_members_team_id_fkey(id, name, icon_photo_id, event_id)")
+    .in("user_id", userIds)
+    .eq("hackathon_teams.event_id", eventId);
+
+  type RawTeam = { id: string; name: string; icon_photo_id: string | null; event_id: string };
+  type RawTeamMember = { user_id: string; team: RawTeam | RawTeam[] | null };
+
+  const normalizedMembers = (teamMembers ?? []) as RawTeamMember[];
+  const iconPhotoIds = normalizedMembers
+    .map((member) => {
+      const team = Array.isArray(member.team) ? member.team[0] : member.team;
+      return team?.icon_photo_id;
+    })
+    .filter((id): id is string => Boolean(id));
+
+  const { data: photos } = iconPhotoIds.length
+    ? await supabase
+        .from("event_photos")
+        .select("*")
+        .in("id", iconPhotoIds)
+        .eq("status", "approved")
+    : { data: [] };
+  const photosById = new Map((photos ?? []).map((photo) => [photo.id, photo as EventPhoto]));
+
+  const teamByUserId = new Map<string, NonNullable<CompetitionEntry["team"]>>();
+  for (const member of normalizedMembers) {
+    const team = Array.isArray(member.team) ? member.team[0] : member.team;
+    if (!team) continue;
+    teamByUserId.set(member.user_id, {
+      id: team.id,
+      name: team.name,
+      icon_photo: team.icon_photo_id ? photosById.get(team.icon_photo_id) ?? null : null,
+    });
+  }
+
+  return results.map((result) => ({
+    ...result,
+    entry: result.entry
+      ? {
+          ...result.entry,
+          team: teamByUserId.get(result.entry.user_id) ?? null,
+        }
+      : result.entry,
+  }));
 }
 
 // ─── Conversation Themes ──────────────────────────────────────────────────────
@@ -2613,7 +2675,8 @@ function isAdminWideChatChannel(channel: HackathonChatChannel) {
 export async function getHackathonChatChannels(
   eventId: string,
   teamId?: string | null,
-  userId?: string | null
+  userId?: string | null,
+  options: { includeTeamChannels?: boolean } = {}
 ): Promise<HackathonChatChannel[]> {
   noStore();
   const supabase = await createServiceClient();
@@ -2634,7 +2697,12 @@ export async function getHackathonChatChannels(
   // Admin/fallback: no team filter means the caller can administer the event,
   // but private team chats and DMs should still only appear for their participants.
   if (teamId === undefined) {
-    return rows.filter((ch) => isAdminWideChatChannel(ch) || isDmParticipant(ch.name, userId));
+    return rows.filter(
+      (ch) =>
+        isAdminWideChatChannel(ch) ||
+        (options.includeTeamChannels && ch.team_id !== null) ||
+        isDmParticipant(ch.name, userId)
+    );
   }
 
   const visibleRows = rows.filter((ch) => {

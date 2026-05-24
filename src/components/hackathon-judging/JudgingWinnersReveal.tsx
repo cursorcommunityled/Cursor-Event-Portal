@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { X, Trophy, Medal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { WinnerCelebration } from "@/components/competitions/Confetti";
+import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import { cn } from "@/lib/utils";
-import type { CompetitionJudgingResult } from "@/types";
+import type { CompetitionEntry, CompetitionJudgingResult, EventPhoto } from "@/types";
 
 interface Props {
   eventId: string;
@@ -33,6 +34,68 @@ function groupLatestResults(results: CompetitionJudgingResult[]) {
       return bTime - aTime;
     })
     .map((group) => group.sort((a, b) => a.placement - b.placement))[0] ?? [];
+}
+
+function resultTeamLabel(result: CompetitionJudgingResult) {
+  return result.entry?.team?.name ?? result.entry?.user?.name ?? "Team";
+}
+
+async function attachResultTeams(
+  supabase: ReturnType<typeof createClient>,
+  eventId: string,
+  results: CompetitionJudgingResult[]
+): Promise<CompetitionJudgingResult[]> {
+  const userIds = Array.from(
+    new Set(results.map((result) => result.entry?.user_id).filter((id): id is string => Boolean(id)))
+  );
+  if (userIds.length === 0) return results;
+
+  const { data: teamMembers } = await supabase
+    .from("hackathon_team_members")
+    .select("user_id, team:hackathon_teams!hackathon_team_members_team_id_fkey(id, name, icon_photo_id, event_id)")
+    .in("user_id", userIds)
+    .eq("hackathon_teams.event_id", eventId);
+
+  type RawTeam = { id: string; name: string; icon_photo_id: string | null; event_id: string };
+  type RawTeamMember = { user_id: string; team: RawTeam | RawTeam[] | null };
+
+  const normalizedMembers = (teamMembers ?? []) as RawTeamMember[];
+  const iconPhotoIds = normalizedMembers
+    .map((member) => {
+      const team = Array.isArray(member.team) ? member.team[0] : member.team;
+      return team?.icon_photo_id;
+    })
+    .filter((id): id is string => Boolean(id));
+
+  const { data: photos } = iconPhotoIds.length
+    ? await supabase
+        .from("event_photos")
+        .select("*")
+        .in("id", iconPhotoIds)
+        .eq("status", "approved")
+    : { data: [] };
+  const photosById = new Map((photos ?? []).map((photo) => [photo.id, photo as EventPhoto]));
+
+  const teamByUserId = new Map<string, NonNullable<CompetitionEntry["team"]>>();
+  for (const member of normalizedMembers) {
+    const team = Array.isArray(member.team) ? member.team[0] : member.team;
+    if (!team) continue;
+    teamByUserId.set(member.user_id, {
+      id: team.id,
+      name: team.name,
+      icon_photo: team.icon_photo_id ? photosById.get(team.icon_photo_id) ?? null : null,
+    });
+  }
+
+  return results.map((result) => ({
+    ...result,
+    entry: result.entry
+      ? {
+          ...result.entry,
+          team: teamByUserId.get(result.entry.user_id) ?? result.entry.team ?? null,
+        }
+      : result.entry,
+  }));
 }
 
 export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
@@ -64,7 +127,7 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
         .eq("is_published", true)
         .order("placement", { ascending: true });
 
-      const next = data as unknown as CompetitionJudgingResult[];
+      const next = await attachResultTeams(supabase, eventId, data as unknown as CompetitionJudgingResult[]);
       setResults((prev) => [
         ...prev.filter((result) => result.competition_id !== competitionId),
         ...next,
@@ -171,10 +234,27 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent" />
                 <div className="relative">
-                  <Medal className={cn(
-                    "w-10 h-10 mx-auto mb-4 drop-shadow-lg",
-                    placement === 1 ? "text-yellow-400" : placement === 2 ? "text-gray-300" : "text-orange-400"
-                  )} />
+                  <div className="relative mx-auto mb-5 w-fit">
+                    <TeamIcon
+                      photo={result.entry?.team?.icon_photo}
+                      name={resultTeamLabel(result)}
+                      className={cn(
+                        "rounded-[24px] border-white/15 shadow-xl",
+                        placement === 1 ? "h-24 w-24" : "h-20 w-20"
+                      )}
+                      fallbackClassName={placement === 1 ? "opacity-25" : "opacity-20"}
+                      sizes={placement === 1 ? "96px" : "80px"}
+                    />
+                    <div className={cn(
+                      "absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border bg-black/80 shadow-lg",
+                      placement === 1 ? "border-yellow-500/50" : placement === 2 ? "border-gray-400/40" : "border-orange-500/40"
+                    )}>
+                      <Medal className={cn(
+                        "h-5 w-5 drop-shadow-lg",
+                        placement === 1 ? "text-yellow-400" : placement === 2 ? "text-gray-300" : "text-orange-400"
+                      )} />
+                    </div>
+                  </div>
                   <p className={cn(
                     "text-[11px] font-bold uppercase tracking-[0.3em]",
                     placement === 1 ? "text-yellow-500/80" : placement === 2 ? "text-gray-400/80" : "text-orange-500/80"
@@ -182,7 +262,7 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
                     Place {placement}
                   </p>
                   <h3 className="text-2xl font-black tracking-tight text-white mt-2">{result.entry?.title ?? "Project"}</h3>
-                  <p className="text-[13px] font-medium text-gray-400 mt-1">{result.entry?.user?.name ?? "Team"}</p>
+                  <p className="text-[13px] font-medium text-gray-300 mt-1">{resultTeamLabel(result)}</p>
                   <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-black/40 px-4 py-2 border border-white/10">
                     <span className="text-[15px] font-bold text-white">{Number(result.final_score).toFixed(1)}</span>
                     <span className="text-[11px] font-bold text-gray-500">/ {Number(result.max_score).toFixed(0)}</span>
@@ -262,8 +342,19 @@ export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingR
                       "text-orange-400"
                     )} />
                   </div>
-                  <p className="text-[15px] font-bold text-white">{result.entry?.title ?? "Project"}</p>
-                  <p className="text-[12px] font-medium text-gray-400 mt-1">{result.entry?.user?.name ?? "Team"}</p>
+                  <div className="flex items-center gap-3">
+                    <TeamIcon
+                      photo={result.entry?.team?.icon_photo}
+                      name={resultTeamLabel(result)}
+                      className="h-11 w-11 rounded-xl border-white/10"
+                      fallbackClassName="opacity-20"
+                      sizes="44px"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-bold text-white">{result.entry?.title ?? "Project"}</p>
+                      <p className="mt-1 truncate text-[12px] font-medium text-gray-400">{resultTeamLabel(result)}</p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

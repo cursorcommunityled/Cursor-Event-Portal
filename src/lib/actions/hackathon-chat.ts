@@ -129,12 +129,15 @@ async function canAccessChannel(
   const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, channel.event_id, session.userId, adminCode);
 
   if (channel.channel_type === "dm") {
-    if (session.eventId !== channel.event_id) return false;
-    return getDmParticipantIds(channel.name).includes(session.userId);
+    return (
+      (session.eventId === channel.event_id || currentUserIsAdmin) &&
+      getDmParticipantIds(channel.name).includes(session.userId)
+    );
   }
 
   if (channel.team_id) {
     if (session.eventId !== channel.event_id && !currentUserIsAdmin) return false;
+    if (currentUserIsAdmin) return true;
     if (!currentUserIsAdmin && !(await isCheckedInForEvent(supabase, channel.event_id, session.userId))) return false;
     return isTeamMember(supabase, channel.team_id, session.userId);
   }
@@ -171,12 +174,14 @@ async function getAuthorizedChannel(
 }
 
 // Auto-provision the three default channels for a hackathon event
-export async function getOrCreateDMChannel(eventId: string, otherUserId: string) {
+export async function getOrCreateDMChannel(eventId: string, otherUserId: string, adminCode?: string) {
   const session = await getSession();
-  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+  if (!session) return { error: "Not authenticated" };
   if (session.userId === otherUserId) return { error: "Cannot create a DM with yourself" };
 
   const supabase = await createServiceClient();
+  const currentUserIsAdmin = await hasAdminAccessForEvent(supabase, eventId, session.userId, adminCode);
+  if (!currentUserIsAdmin && session.eventId !== eventId) return { error: "Not authenticated" };
 
   const otherUserCheckedIn = await isCheckedInForEvent(supabase, eventId, otherUserId);
   if (!otherUserCheckedIn) return { error: "User is not checked in for this event" };
@@ -325,7 +330,7 @@ export async function sendChatMessage(
       .eq("user_id", session.userId)
       .limit(1);
 
-    if (!membership?.length) {
+    if (!membership?.length && !currentUserIsAdmin) {
       return { error: "You are not a member of this team" };
     }
   }

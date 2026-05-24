@@ -43,8 +43,8 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
     getHackathonSettings(event.id),
     getHackathonTeamsWithMembers(event.id),
     getHackathonScores(event.id),
-    // Admins see shared/admin channels plus their own DMs.
-    getHackathonChatChannels(event.id, undefined, session?.userId ?? null),
+    // Admin panel can moderate team channels; DMs are still limited to the admin's own DMs.
+    getHackathonChatChannels(event.id, undefined, session?.userId ?? null, { includeTeamChannels: true }),
     getEventChatMembers(event.id),
     getCompetitionJudgingData(event.id),
     // All checked-in attendees not yet on a team (no user to exclude)

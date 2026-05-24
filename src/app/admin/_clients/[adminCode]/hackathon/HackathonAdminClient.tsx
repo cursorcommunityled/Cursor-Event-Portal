@@ -2010,6 +2010,7 @@ export function HackathonAdminClient({
                 members={chatMembers}
                 myTeamId={null}
                 adminCode={adminCode}
+                showAdminTeamChannels={true}
                 className="h-full min-h-0 sm:h-full"
               />
             </div>
