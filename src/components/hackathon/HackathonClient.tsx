@@ -700,13 +700,11 @@ export function HackathonClient({
   ) : null;
 
   const header = (
-    <div className="relative overflow-hidden rounded-[34px] border border-white/15 bg-black/40 px-5 py-6 shadow-2xl backdrop-blur-3xl sm:px-8 sm:py-8 group">
+    <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-black/40 px-5 py-6 shadow-lg backdrop-blur-3xl sm:px-8 sm:py-8 group">
       {/* Animated background grid */}
       <div className="absolute inset-0 bg-grid-red/[0.05] bg-[size:30px_30px] opacity-20" />
       
-      {/* Glowing orbs */}
-      <div className="absolute -left-20 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-red-600/30 blur-[80px] group-hover:bg-red-500/40 transition-colors duration-700" />
-      <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-red-600/20 blur-[60px] group-hover:bg-red-500/30 transition-colors duration-700" />
+      {/* Glowing orbs removed for sleekness */}
       
       {/* Top highlight line */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-400/50 to-transparent" />
@@ -714,9 +712,8 @@ export function HackathonClient({
 
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-5">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-red-400/30 bg-red-500/20 shadow-neon overflow-hidden">
-            <div className="absolute inset-0 rounded-2xl bg-red-400/10 animate-pulse-soft" />
-            <img src="/cursor-logo.svg" alt="Cursor" className="w-8 h-8 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+            <img src="/cursor-logo.svg" alt="Cursor" className="w-8 h-8 relative z-10 drop-shadow-sm brightness-150" />
           </div>
           <div className="min-w-0">
             <h1 className="truncate text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-red-200 sm:text-5xl drop-shadow-lg">
@@ -728,14 +725,14 @@ export function HackathonClient({
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 self-start rounded-2xl border border-white/10 bg-black/40 p-3 backdrop-blur-md sm:self-center">
+        <div className="flex flex-wrap items-center gap-3 self-start rounded-xl border border-white/10 bg-black/40 p-3 backdrop-blur-md sm:self-center">
           <HackathonRulesButton compact />
           <div className="hidden h-10 w-px bg-white/10 sm:block" />
           <div className="relative w-24 h-10 sm:w-28 sm:h-12 opacity-80 hover:opacity-100 transition-opacity mix-blend-screen filter brightness-125">
             <Image src="/sait.jpeg" alt="SAIT" fill className="object-contain object-right" />
           </div>
           <div className="w-px h-10 bg-white/10 hidden sm:block" />
-          <div className="relative w-12 h-12 sm:w-14 sm:h-14 opacity-80 hover:opacity-100 transition-opacity rounded-xl overflow-hidden shadow-lg ring-1 ring-white/10">
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 opacity-80 hover:opacity-100 transition-opacity rounded-lg overflow-hidden ring-1 ring-white/10">
             <Image src="/megabyte-sait.jpeg" alt="Megabyte" fill className="object-cover" />
           </div>
         </div>
@@ -762,15 +759,15 @@ export function HackathonClient({
           {header}
         </div>
         {/* Tab bar — stays above chat */}
-        <div className="relative mx-auto mb-5 flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-2xl">
+        <div className="relative mx-auto mb-5 flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-xl border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-lg">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               className={cn(
-                "relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
+                "relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
                 t.id === tab
-                  ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105"
+                  ? "bg-white text-black"
                   : "text-gray-400 hover:bg-white/10 hover:text-white"
               )}
             >
@@ -845,7 +842,7 @@ export function HackathonClient({
             const teamIcon = invite.team?.icon_photo;
 
             return (
-              <div key={invite.id} className="relative overflow-hidden rounded-[24px] border border-red-500/30 bg-red-500/10 p-5 backdrop-blur-xl shadow-neon">
+              <div key={invite.id} className="relative overflow-hidden rounded-xl border border-red-500/30 bg-red-500/10 p-5 backdrop-blur-xl shadow-lg">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.15)_0,transparent_100%)]" />
                 <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -896,15 +893,15 @@ export function HackathonClient({
       {success && <div className="glass rounded-xl p-3 border border-green-400/30 text-green-400 text-sm">{success}</div>}
 
       {/* Tab bar */}
-      <div className="relative mx-auto flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-2xl">
+      <div className="relative mx-auto flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-xl border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-lg">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "relative flex items-center gap-2 rounded-full px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
+              "relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] transition-all duration-300",
               tab === t.id
-                ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] scale-105"
+                ? "bg-white text-black"
                 : "text-gray-400 hover:bg-white/10 hover:text-white"
             )}
           >
@@ -927,16 +924,14 @@ export function HackathonClient({
       {/* Overview tab */}
       {tab === "overview" && (
         <div className="space-y-4 animate-slide-up">
-          <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/60 p-8 shadow-2xl backdrop-blur-2xl sm:p-10">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/60 p-8 shadow-lg backdrop-blur-2xl sm:p-10">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px] [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-            <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-red-600/20 blur-[100px]" />
             <div className="absolute left-1/2 top-0 h-px w-1/2 -translate-x-1/2 bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
             
             <div className="relative flex flex-col gap-8 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2.5 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-red-300 shadow-neon">
+                <div className="inline-flex items-center gap-2.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">
                   <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                   </span>
                   Hackathon Hub
@@ -945,7 +940,7 @@ export function HackathonClient({
                   <p className="text-[12px] font-bold uppercase tracking-[0.3em] text-gray-500 mb-2">
                     {eventHasStarted ? "Event status" : "Event starts in"}
                   </p>
-                  <h2 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 sm:text-7xl drop-shadow-2xl">
+                  <h2 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 sm:text-7xl drop-shadow-md">
                     {formatCountdown(event.start_time, now)}
                   </h2>
                   <div className="mt-4 flex items-center gap-3 text-sm font-medium text-gray-400 uppercase tracking-wider">
@@ -965,15 +960,11 @@ export function HackathonClient({
               </div>
               
               <div className={cn(
-                "relative overflow-hidden rounded-3xl border px-6 py-5 shadow-2xl sm:min-w-56 backdrop-blur-md",
+                "relative overflow-hidden rounded-xl border px-6 py-5 shadow-lg sm:min-w-56 backdrop-blur-md",
                 formationOpen
                   ? "border-white/20 bg-white/5"
                   : "border-amber-500/30 bg-amber-500/10"
               )}>
-                <div className={cn(
-                  "absolute inset-0 opacity-20",
-                  formationOpen ? "bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8)_0,transparent_100%)]" : "bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.8)_0,transparent_100%)]"
-                )} />
                 <div className="relative">
                   <div className={cn(
                     "flex items-center gap-2.5 text-[13px] font-black uppercase tracking-[0.2em]",
@@ -1001,9 +992,8 @@ export function HackathonClient({
             <HubMetric label="Open Slots" value={openTeamSlots} detail={`max ${maxTeamSize} per team`} muted={!formationOpen} />
           </div>
 
-          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.03] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+          <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] p-6 shadow-lg backdrop-blur-xl sm:p-8">
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
-            <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-red-500/10 blur-[55px]" />
             <div className="relative space-y-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">Prompt</p>
               <p className="whitespace-pre-wrap text-2xl italic leading-relaxed tracking-tight text-white/90 sm:text-3xl">
@@ -1012,9 +1002,8 @@ export function HackathonClient({
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-[34px] border border-red-500/20 bg-black/50 p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/50 p-6 sm:p-8 shadow-lg backdrop-blur-xl">
             <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-red-500/10" />
-            <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-red-600/20 blur-[50px]" />
             
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-2">
@@ -1074,9 +1063,8 @@ export function HackathonClient({
           </div>
 
           {(leaderboardVisible || leadingTeam) && (
-            <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-[34px] border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+            <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
-              <div className="absolute -left-20 -bottom-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[50px]" />
               
               <div className="relative flex items-center gap-5">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-yellow-500/30 bg-yellow-500/10 text-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.2)] overflow-hidden relative">
@@ -1094,7 +1082,7 @@ export function HackathonClient({
               </div>
               <button
                 onClick={() => setTab("all-teams")}
-                className="relative shrink-0 rounded-[20px] border border-white/10 bg-white/5 px-6 py-3.5 text-[12px] font-bold uppercase tracking-wider text-white transition-all hover:bg-white/10 hover:border-white/30 hover:scale-105"
+                className="relative shrink-0 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-[12px] font-bold uppercase tracking-wider text-white transition-all hover:bg-white/10 hover:border-white/30 hover:scale-105"
               >
                 View Teams
               </button>
@@ -1107,9 +1095,8 @@ export function HackathonClient({
       {(tab === "my-team" || tab === "all-teams") && (
         <div className="space-y-4 animate-slide-up">
           {!myTeam ? (
-            <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
               
               <div className="relative space-y-6">
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-white/5 shadow-xl">
@@ -1131,13 +1118,12 @@ export function HackathonClient({
             </div>
           ) : (
             <>
-              <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-black/40 p-6 sm:p-10 backdrop-blur-xl shadow-2xl space-y-8">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 sm:p-10 backdrop-blur-xl shadow-lg space-y-8">
                 <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-red-500/10 blur-[60px]" />
                 
                 <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-5 min-w-0">
-                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[24px] border border-white/15 bg-white/5 shadow-xl group">
+                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/5 shadow-lg group">
                       {myTeam.icon_photo?.status === "approved" ? (
                         <Image
                           src={myTeam.icon_photo.file_url}
@@ -1267,12 +1253,12 @@ export function HackathonClient({
 
                 <div className="relative space-y-3">
                   {myTeam.members.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between rounded-[20px] border border-white/5 bg-white/[0.02] px-5 py-4 transition-colors hover:bg-white/[0.04]">
+                    <div key={m.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-5 py-4 transition-colors hover:bg-white/[0.04]">
                       <span className="text-[16px] font-medium text-white">{m.user?.name ?? "Unknown"}</span>
                       <span className={cn(
                         "text-[10px] font-bold uppercase tracking-[0.2em] rounded-full px-3 py-1.5",
                         m.role === "leader"
-                          ? "bg-red-500/20 text-red-300 border border-red-500/30 shadow-neon"
+                          ? "bg-red-500/20 text-red-300 border border-red-500/30"
                           : "bg-white/10 text-gray-400 border border-white/5"
                       )}>
                         {m.role}
@@ -1284,7 +1270,7 @@ export function HackathonClient({
                 {!teamLocked && myTeam.members.length < (settings?.max_team_size ?? 4) && (
                   <button
                     onClick={() => setTab("open-pool")}
-                    className="relative w-full flex items-center justify-center gap-2.5 rounded-[20px] border border-dashed border-white/20 bg-white/[0.01] py-4 text-[14px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:border-red-500/40 hover:bg-red-500/5 hover:text-red-300"
+                    className="relative w-full flex items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/20 bg-white/[0.01] py-4 text-[14px] font-bold uppercase tracking-wider text-gray-400 transition-all hover:border-red-500/40 hover:bg-red-500/5 hover:text-red-300"
                   >
                     <UserPlus className="w-5 h-5" />
                     Invite from Open Pool
@@ -1293,7 +1279,7 @@ export function HackathonClient({
               </div>
 
               {/* Project submission */}
-              <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-lg">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
                 
                 <button
@@ -1324,7 +1310,7 @@ export function HackathonClient({
                 {showProjectForm && (
                   <div className="relative space-y-5 mt-8 animate-fade-in border-t border-white/10 pt-8">
                     {projectSubmitted ? (
-                      <div className="space-y-4 rounded-[24px] border border-green-500/20 bg-green-500/[0.05] p-5">
+                      <div className="space-y-4 rounded-xl border border-green-500/20 bg-green-500/[0.05] p-5">
                         <div>
                           <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-green-300">Submission Locked</p>
                           <p className="mt-2 text-sm font-medium leading-relaxed text-gray-300">
@@ -1354,7 +1340,7 @@ export function HackathonClient({
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         placeholder="What are you building?"
-                        className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                       />
                     </div>
                     <div className="space-y-2">
@@ -1364,7 +1350,7 @@ export function HackathonClient({
                         onChange={(e) => setProjectDesc(e.target.value)}
                         rows={3}
                         placeholder="Brief description of your project..."
-                        className="w-full resize-none rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                        className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                       />
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -1376,7 +1362,7 @@ export function HackathonClient({
                           value={projectRepo}
                           onChange={(e) => setProjectRepo(e.target.value)}
                           placeholder="https://github.com/..."
-                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                         />
                       </div>
                       <div className="space-y-2">
@@ -1387,7 +1373,7 @@ export function HackathonClient({
                           value={projectDemo}
                           onChange={(e) => setProjectDemo(e.target.value)}
                           placeholder="https://..."
-                          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-red-500/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-red-500/50"
                         />
                       </div>
                     </div>
@@ -1398,7 +1384,7 @@ export function HackathonClient({
                       </label>
                       <div className="flex flex-wrap gap-3">
                         {screenshots.map((s) => (
-                          <div key={s.id} className="relative w-24 h-24 rounded-[20px] overflow-hidden border border-white/10 bg-white/5 group shadow-lg">
+                          <div key={s.id} className="relative w-24 h-24 rounded-xl overflow-hidden border border-white/10 bg-white/5 group shadow-lg">
                             <img src={s.file_url} alt="screenshot" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             <button
                               onClick={() => handleScreenshotDelete(s.id)}
@@ -1415,7 +1401,7 @@ export function HackathonClient({
                             type="button"
                             disabled={uploadingScreenshot}
                             onClick={() => screenshotInputRef.current?.click()}
-                            className="w-24 h-24 rounded-[20px] border border-dashed border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 flex items-center justify-center transition-all disabled:opacity-40 group"
+                            className="w-24 h-24 rounded-xl border border-dashed border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/40 flex items-center justify-center transition-all disabled:opacity-40 group"
                           >
                             {uploadingScreenshot
                               ? <Loader2 className="w-6 h-6 text-red-400 animate-spin" />
@@ -1441,7 +1427,7 @@ export function HackathonClient({
                     <button
                       disabled={isPending || !projectName.trim() || !projectSubmissionOpen}
                       onClick={handleProjectSubmit}
-                      className="relative w-full overflow-hidden rounded-[20px] bg-white py-4 text-[15px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
+                      className="relative w-full overflow-hidden rounded-xl bg-white py-4 text-[15px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                     >
                       <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       <span className="relative">{projectSubmissionOpen ? "Submit Project" : "Submissions Locked"}</span>
@@ -1472,7 +1458,7 @@ export function HackathonClient({
                 if (scoresApplied) return null; // score card handles this
 
                 return (
-                  <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl space-y-4">
+                  <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-lg space-y-4">
                     <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
                     <div className="relative flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1499,9 +1485,9 @@ export function HackathonClient({
                             key={passName}
                             title={PASS_LABELS[passName]}
                             className={`flex-1 h-2 rounded-full transition-all duration-500 ${
-                              isDone ? "bg-red-500 shadow-neon" :
-                              isRunning ? "bg-red-500/50 animate-pulse shadow-neon" :
-                              isError ? "bg-red-500/60 shadow-neon-red" :
+                              isDone ? "bg-red-500" :
+                              isRunning ? "bg-red-500/50 animate-pulse" :
+                              isError ? "bg-red-500/60" :
                               "bg-white/5"
                             }`}
                           />
@@ -1541,9 +1527,8 @@ export function HackathonClient({
             </div>
 
           {allTeams.length === 0 && (
-            <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
               <div className="relative">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 mb-4 shadow-xl">
                   <Swords className="h-8 w-8 text-gray-400" />
@@ -1570,9 +1555,8 @@ export function HackathonClient({
       {formationOpen && tab === "open-pool" && (
         <div className="space-y-4 animate-slide-up">
           {pool.length === 0 && (
-            <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
-              <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/10 blur-[60px]" />
               <div className="relative">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 mb-4 shadow-xl">
                   <Users className="h-8 w-8 text-gray-400" />
@@ -1586,8 +1570,7 @@ export function HackathonClient({
             {pool.map((person) => {
               const alreadyInvited = sentIds.has(person.id);
               return (
-                <div key={person.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group">
-                  <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div key={person.id} className="relative overflow-hidden rounded-xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group">
                   <div className="relative flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-gray-400 shadow-inner group-hover:border-red-500/30 group-hover:text-red-300 transition-colors">
@@ -1639,7 +1622,7 @@ export function HackathonClient({
                           type="button"
                           disabled={isPending}
                           onClick={() => handleCancelSentInvite(person.id, person.name)}
-                          className="group flex min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-green-400 shadow-neon-green transition-all hover:border-red-500/40 hover:bg-red-500/15 hover:text-red-200 disabled:opacity-50"
+                          className="group flex min-w-[112px] items-center justify-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-green-400 transition-all hover:border-red-500/40 hover:bg-red-500/15 hover:text-red-200 disabled:opacity-50"
                           aria-label={`Cancel invite to ${person.name}`}
                         >
                           <span className="flex items-center gap-1.5 group-hover:hidden">
@@ -1651,7 +1634,7 @@ export function HackathonClient({
                         <button
                           disabled={isPending}
                           onClick={() => setInviteTarget(person)}
-                          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/50 hover:bg-red-500/20 hover:text-red-200 hover:shadow-neon"
+                          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-red-500/50 hover:bg-red-500/20 hover:text-red-200"
                         >
                           <UserPlus className="w-4 h-4" />
                           Invite
@@ -1669,8 +1652,7 @@ export function HackathonClient({
       {/* People tab */}
       {tab === "people" && (
         <div className="space-y-8 animate-slide-up">
-          <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/10 blur-[50px]" />
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
             <div className="relative space-y-2">
               <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
               <h2 className="text-4xl font-light text-white tracking-tight">People</h2>
@@ -1746,7 +1728,7 @@ export function HackathonClient({
               )}
 
               {mentors.length === 0 && (
-                <div className="glass rounded-[32px] p-8 border-white/10 text-center">
+                <div className="glass rounded-2xl p-8 border-white/10 text-center">
                   <p className="text-sm text-gray-500">Mentors will be announced soon.</p>
                 </div>
               )}
@@ -1761,7 +1743,7 @@ export function HackathonClient({
                 ))}
               </section>
             ) : (
-              <div className="glass rounded-[32px] p-8 border-white/10 text-center">
+              <div className="glass rounded-2xl p-8 border-white/10 text-center">
                 <p className="text-sm text-gray-500">Judges will be announced soon.</p>
               </div>
             )
@@ -1773,9 +1755,8 @@ export function HackathonClient({
       {inviteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={closeInviteModal} />
-          <div className="relative overflow-hidden rounded-[34px] border border-red-500/30 bg-black/80 p-8 w-full max-w-md space-y-6 z-10 shadow-2xl backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-black/80 p-8 w-full max-w-md space-y-6 z-10 shadow-lg backdrop-blur-xl">
             <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:20px_20px]" />
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-red-500/20 blur-[50px]" />
             
             <div className="relative">
               <h3 className="text-3xl font-black tracking-tight text-white drop-shadow-md">Invite {inviteTarget.name}</h3>
@@ -1829,7 +1810,7 @@ export function HackathonClient({
                   <button
                     type="button"
                     onClick={() => inviteLogoInputRef.current?.click()}
-                    className="flex min-w-0 flex-1 items-center gap-3 rounded-[20px] border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-white/20 hover:bg-white/10"
+                    className="flex min-w-0 flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-left transition-all hover:border-white/20 hover:bg-white/10"
                   >
                     <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-black/40">
                       {inviteLogoPreviewUrl || myTeam?.icon_photo?.file_url ? (
@@ -1867,14 +1848,14 @@ export function HackathonClient({
                 <button
                   disabled={isPending || uploadingIcon || (!myTeam && !newTeamName.trim())}
                   onClick={handleSendInvite}
-                  className="relative flex-1 overflow-hidden rounded-[20px] bg-white py-4 text-[14px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
+                  className="relative flex-1 overflow-hidden rounded-xl bg-white py-4 text-[14px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-white via-red-100 to-white opacity-0 group-hover:opacity-100 transition-opacity" />
                   <span className="relative">{uploadingIcon ? "Uploading..." : "Send Invite"}</span>
                 </button>
                 <button
                   onClick={closeInviteModal}
-                  className="px-6 rounded-[20px] border border-white/10 bg-white/5 text-[14px] font-bold uppercase tracking-wider text-gray-400 hover:bg-white/10 hover:text-white transition-all"
+                  className="px-6 rounded-xl border border-white/10 bg-white/5 text-[14px] font-bold uppercase tracking-wider text-gray-400 hover:bg-white/10 hover:text-white transition-all"
                 >
                   Cancel
                 </button>
@@ -1901,11 +1882,10 @@ function HubMetric({
 }) {
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:border-red-500/30 hover:bg-white/[0.04] group",
+      "relative overflow-hidden rounded-xl border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:border-white/20 hover:bg-white/[0.04] group",
       muted && "opacity-60"
     )}>
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] group-hover:bg-red-500/20 transition-all duration-500" />
-      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-red-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       
       <div className="relative">
         <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-300/70">{label}</p>
@@ -1927,9 +1907,9 @@ function TimelineItem({
 }) {
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-[24px] border p-5 backdrop-blur-md transition-all",
+      "relative overflow-hidden rounded-xl border p-5 backdrop-blur-md transition-all",
       active 
-        ? "border-red-500/40 bg-red-500/[0.05] shadow-neon" 
+        ? "border-red-500/40 bg-red-500/[0.05]" 
         : "border-white/10 bg-black/40 hover:bg-white/[0.03]"
     )}>
       {active && (
@@ -1962,18 +1942,17 @@ function TeamCard({ team, rank, score, formationOpen }: {
 }) {
   return (
     <div className={cn(
-      "relative overflow-hidden rounded-[28px] border p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group",
+      "relative overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group",
       rank === 1 ? "border-yellow-500/30 bg-yellow-500/[0.02]" : "border-white/10 bg-black/40"
     )}>
       {rank === 1 && (
-        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[40px]" />
       )}
       
       <div className="relative flex items-start justify-between gap-3">
         <div className="flex items-center gap-4">
           {rank != null && (
             <div className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[16px] font-black shadow-neon",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[16px] font-black",
               rank === 1 ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
               rank === 2 ? "bg-gray-400/10 text-gray-300 border border-gray-400/20" :
               rank === 3 ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
@@ -2053,9 +2032,8 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
   };
   const total = calculateAverageHackathonWeightedScore(teamScores);
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-red-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
+    <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
       <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px]" />
       
       <div className="relative flex items-center justify-between mb-6">
         <div>
@@ -2075,7 +2053,7 @@ function ScoreCard({ teamId, scores }: { teamId: string; scores: HackathonScore[
               <span className="text-[13px] font-medium text-gray-300">{c.shortLabel}</span>
               <div className="flex items-center gap-4">
                 <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden shadow-inner">
-                  <div className="h-full bg-gradient-to-r from-red-500 to-red-300 rounded-full shadow-neon" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
+                  <div className="h-full bg-gradient-to-r from-red-500 to-red-300 rounded-full" style={{ width: `${((v ?? 0) / 10) * 100}%` }} />
                 </div>
                 <span className="text-[14px] font-bold tabular-nums text-white w-12 text-right">{v ?? "—"}/10</span>
               </div>
