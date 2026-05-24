@@ -8,19 +8,46 @@ interface Pass4Context {
   repoSummary?: string | null;
 }
 
-async function urlToBase64(url: string): Promise<{ data: string; mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' } | null> {
+type SupportedImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+function detectImageMediaType(buffer: Buffer, contentType: string | null): SupportedImageMediaType {
+  if (buffer.length >= 12) {
+    if (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    ) {
+      return 'image/png';
+    }
+    if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+      return 'image/jpeg';
+    }
+    if (buffer.subarray(0, 3).toString('ascii') === 'GIF') {
+      return 'image/gif';
+    }
+    if (
+      buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+    ) {
+      return 'image/webp';
+    }
+  }
+
+  const normalizedContentType = contentType?.toLowerCase() ?? '';
+  if (normalizedContentType.includes('png')) return 'image/png';
+  if (normalizedContentType.includes('gif')) return 'image/gif';
+  if (normalizedContentType.includes('webp')) return 'image/webp';
+  return 'image/jpeg';
+}
+
+async function urlToBase64(url: string): Promise<{ data: string; mediaType: SupportedImageMediaType } | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
-    const contentType = res.headers.get('content-type') ?? 'image/jpeg';
-    const mediaType = (
-      contentType.includes('png') ? 'image/png' :
-      contentType.includes('gif') ? 'image/gif' :
-      contentType.includes('webp') ? 'image/webp' :
-      'image/jpeg'
-    ) as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-    const buffer = await res.arrayBuffer();
-    const data = Buffer.from(buffer).toString('base64');
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const mediaType = detectImageMediaType(buffer, res.headers.get('content-type'));
+    const data = buffer.toString('base64');
     return { data, mediaType };
   } catch {
     return null;
