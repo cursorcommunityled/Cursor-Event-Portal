@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import sharp from 'sharp';
 import type { Pass4Result } from '../types';
 import { extractResponseText, parseJsonObject } from './json';
 
@@ -10,6 +11,15 @@ interface Pass4Context {
 }
 
 type SupportedImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+
+const ANTHROPIC_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const IMAGE_COMPRESSION_ATTEMPTS = [
+  { maxDimension: 1800, quality: 82 },
+  { maxDimension: 1400, quality: 78 },
+  { maxDimension: 1100, quality: 72 },
+  { maxDimension: 900, quality: 68 },
+  { maxDimension: 700, quality: 62 },
+] as const;
 
 function detectImageMediaType(buffer: Buffer, contentType: string | null): SupportedImageMediaType {
   if (buffer.length >= 12) {
@@ -42,14 +52,46 @@ function detectImageMediaType(buffer: Buffer, contentType: string | null): Suppo
   return 'image/jpeg';
 }
 
+async function prepareImageForAnthropic(
+  buffer: Buffer,
+  contentType: string | null
+): Promise<{ buffer: Buffer; mediaType: SupportedImageMediaType } | null> {
+  const mediaType = detectImageMediaType(buffer, contentType);
+  if (buffer.length <= ANTHROPIC_MAX_IMAGE_BYTES) {
+    return { buffer, mediaType };
+  }
+
+  for (const attempt of IMAGE_COMPRESSION_ATTEMPTS) {
+    const compressed = await sharp(buffer, { animated: false })
+      .rotate()
+      .resize({
+        width: attempt.maxDimension,
+        height: attempt.maxDimension,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .flatten({ background: '#ffffff' })
+      .jpeg({ quality: attempt.quality, mozjpeg: true })
+      .toBuffer();
+
+    if (compressed.length <= ANTHROPIC_MAX_IMAGE_BYTES) {
+      return { buffer: compressed, mediaType: 'image/jpeg' };
+    }
+  }
+
+  return null;
+}
+
 async function urlToBase64(url: string): Promise<{ data: string; mediaType: SupportedImageMediaType } | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
     const buffer = Buffer.from(await res.arrayBuffer());
-    const mediaType = detectImageMediaType(buffer, res.headers.get('content-type'));
-    const data = buffer.toString('base64');
-    return { data, mediaType };
+    const image = await prepareImageForAnthropic(buffer, res.headers.get('content-type'));
+    if (!image) return null;
+
+    const data = image.buffer.toString('base64');
+    return { data, mediaType: image.mediaType };
   } catch {
     return null;
   }
