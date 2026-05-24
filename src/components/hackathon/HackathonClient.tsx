@@ -35,6 +35,7 @@ import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinn
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
+import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import { MentorCard } from "@/components/demos/MentorCard";
 import { JudgeBadge } from "@/components/hackathon/JudgeBadge";
 import type { PollWithVotes } from "@/types";
@@ -846,19 +847,13 @@ export function HackathonClient({
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.15)_0,transparent_100%)]" />
                 <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/10 shadow-lg">
-                      {teamIcon?.file_url ? (
-                        <Image
-                          src={teamIcon.file_url}
-                          alt={`${teamName} logo`}
-                          fill
-                          className="object-cover"
-                          sizes="40px"
-                        />
-                      ) : (
-                        <ImageIcon className="h-4 w-4 text-red-100/70" />
-                      )}
-                    </div>
+                    <TeamIcon
+                      photo={teamIcon}
+                      name={teamName}
+                      className="h-10 w-10 rounded-xl border-white/15 bg-white/10 shadow-lg"
+                      fallbackClassName="opacity-20"
+                      sizes="40px"
+                    />
                     <p className="text-[15px] font-medium leading-relaxed text-red-100">
                       <span className="font-bold text-white">{invite.inviter?.name ?? "Someone"}</span>
                       {" invited you to join "}
@@ -1123,19 +1118,14 @@ export function HackathonClient({
                 
                 <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex items-start gap-5 min-w-0">
-                    <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-white/5 shadow-lg group">
-                      {myTeam.icon_photo?.status === "approved" ? (
-                        <Image
-                          src={myTeam.icon_photo.file_url}
-                          alt={`${myTeam.name} icon`}
-                          fill
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
-                          sizes="80px"
-                        />
-                      ) : (
-                        <ImageIcon className="w-8 h-8 text-gray-500" />
-                      )}
-                    </div>
+                    <TeamIcon
+                      photo={myTeam.icon_photo}
+                      name={myTeam.name}
+                      className="h-20 w-20 rounded-xl border-white/15 bg-white/5 shadow-lg group"
+                      imageClassName="transition-transform duration-500 group-hover:scale-110"
+                      fallbackClassName="opacity-20"
+                      sizes="80px"
+                    />
                     <div className="min-w-0 pt-1">
                       {editingTeamName ? (
                         <div className="space-y-3">
@@ -1958,19 +1948,13 @@ function TeamCard({ team, rank, score, formationOpen }: {
               {rank}
             </div>
           )}
-          <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-lg group-hover:border-red-500/30 transition-colors">
-            {team.icon_photo?.status === "approved" ? (
-              <Image
-                src={team.icon_photo.file_url}
-                alt={`${team.name} icon`}
-                fill
-                className="object-cover"
-                sizes="56px"
-              />
-            ) : (
-              <ImageIcon className="h-5 w-5 text-gray-500" />
-            )}
-          </div>
+          <TeamIcon
+            photo={team.icon_photo}
+            name={team.name}
+            className="h-14 w-14 rounded-2xl border-white/10 bg-white/5 shadow-lg transition-colors group-hover:border-red-500/30"
+            fallbackClassName="opacity-20"
+            sizes="56px"
+          />
           <div>
             <h3 className="text-lg font-bold text-white tracking-tight">{team.name}</h3>
             <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">

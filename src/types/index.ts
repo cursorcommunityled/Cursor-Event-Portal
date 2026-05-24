@@ -512,6 +512,7 @@ export interface CompetitionEntry {
   created_at: string;
   // Joined fields
   user?: User;
+  team?: { id: string; name: string; icon_photo?: EventPhoto | null } | null;
   vote_count?: number;
   avg_score?: number;
 }

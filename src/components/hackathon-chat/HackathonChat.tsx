@@ -3,7 +3,6 @@
 import {
   useState, useEffect, useRef, useCallback, useTransition, useMemo,
 } from "react";
-import Image from "next/image";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -30,6 +29,7 @@ import { ChatMsg } from "./ChatMsg";
 import { MemberRow } from "./MemberRow";
 import { PinnedMessagesPanel } from "./PinnedMessagesPanel";
 import { Avatar } from "./Avatar";
+import { TeamIcon } from "@/components/hackathon/TeamIcon";
 
 interface Props {
   event: Event;
@@ -45,6 +45,7 @@ interface Props {
   onInviteFromProfile?: (member: ChatMember) => void;
   onCancelInviteFromProfile?: (member: ChatMember) => void;
   adminCode?: string;
+  showAdminTeamChannels?: boolean;
   className?: string;
 }
 
@@ -109,7 +110,7 @@ function isClosableChannel(channel: HackathonChatChannel) {
 export function HackathonChat({
   event, userId, isAdmin, channels: initialChannels,
   initialMessages, initialChannelId, members, myTeamId,
-  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile, adminCode, className,
+  sentInviteUserIds = [], onInviteFromProfile, onCancelInviteFromProfile, adminCode, showAdminTeamChannels = false, className,
 }: Props) {
   const [channels, setChannels] = useState(initialChannels);
   const [activeChannelId, setActiveChannelId] = useState(initialChannelId);
@@ -149,7 +150,7 @@ export function HackathonChat({
     if (otherUserId === userId) return; // Can't DM yourself
     const toastId = toast.loading("Starting chat...");
     try {
-      const result = await getOrCreateDMChannel(event.id, otherUserId);
+      const result = await getOrCreateDMChannel(event.id, otherUserId, adminCode);
       if (result.error) throw new Error(result.error);
       if (result.channelId) {
         // Check if channel already exists in state
@@ -183,9 +184,10 @@ export function HackathonChat({
 
   const canSeeChannel = useCallback((channel: HackathonChatChannel) => {
     if (channel.channel_type === "dm") return isDmParticipant(channel.name, userId);
+    if (isAdmin && showAdminTeamChannels && channel.team_id) return true;
     if (isAdmin) return isAdminWideChannel(channel);
     return isAdminWideChannel(channel) || channel.team_id === myTeamId;
-  }, [isAdmin, myTeamId, userId]);
+  }, [isAdmin, myTeamId, showAdminTeamChannels, userId]);
 
   const visibleChannels = useMemo(
     () => channels.filter((channel) => canSeeChannel(channel)),
@@ -1392,11 +1394,13 @@ export function HackathonChat({
                 return (
                   <div key={teamId} className="mb-4">
                     <div className="flex items-center gap-2 px-3 mb-2">
-                      {team?.icon_photo?.status === "approved" ? (
-                        <div className="w-5 h-5 rounded-lg overflow-hidden relative shrink-0 ring-1 ring-white/15 shadow-sm">
-                          <Image src={team.icon_photo.file_url} alt={team.name} fill className="object-cover" sizes="20px" />
-                        </div>
-                      ) : null}
+                      <TeamIcon
+                        photo={team?.icon_photo}
+                        name={team?.name}
+                        className="h-5 w-5 rounded-lg border-white/10 ring-1 ring-white/15 shadow-sm"
+                        fallbackClassName="opacity-20"
+                        sizes="20px"
+                      />
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 truncate">
                         {team?.name ?? "Team"}
                       </p>

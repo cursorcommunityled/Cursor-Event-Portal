@@ -1,8 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import type { ChatMember } from "@/types";
 
 export function Avatar({
@@ -13,14 +12,16 @@ export function Avatar({
 }) {
   const dim = size === "sm" ? "w-10 h-10" : "w-12 h-12";
   const font = size === "sm" ? "text-[14px]" : "text-[16px]";
-  const iconDim = size === "sm" ? "w-4 h-4" : "w-5 h-5";
 
-  const photo = member?.team?.icon_photo;
-  if (photo?.status === "approved" && photo.file_url) {
+  if (member?.team) {
     return (
-      <div className={cn(dim, "rounded-2xl overflow-hidden shrink-0 relative bg-white/5 ring-1 ring-white/10")}>
-        <Image src={photo.file_url} alt={member!.team!.name} fill className="object-cover" sizes="48px" />
-      </div>
+      <TeamIcon
+        photo={member.team.icon_photo}
+        name={member.team.name}
+        className={cn(dim, "rounded-2xl bg-white/5 ring-1 ring-white/10")}
+        fallbackClassName="opacity-20"
+        sizes={size === "sm" ? "40px" : "48px"}
+      />
     );
   }
 
@@ -40,11 +41,7 @@ export function Avatar({
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.2)`
       }}
     >
-      {member?.team?.icon_photo ? (
-        <ImageIcon className={cn(iconDim, "text-white/50")} />
-      ) : (
-        initials
-      )}
+      {initials}
     </div>
   );
 }
