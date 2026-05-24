@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { RepoData, Pass1Result, Pass2Result } from '../types';
+import { extractResponseText, parseJsonObject } from './json';
 
 export async function runPass2(
   client: Anthropic,
@@ -44,14 +45,24 @@ Return ONLY valid JSON:
   "functional_score_raw": number (0-10, does the core loop appear to work?)
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const attempts = [prompt, `${prompt}
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Pass 2 returned no JSON');
-  return JSON.parse(jsonMatch[0]) as Pass2Result;
+CRITICAL: Your previous response did not produce parseable JSON. Return exactly one JSON object now. Do not include markdown, code fences, commentary, apologies, or preamble.`];
+  const failures: string[] = [];
+
+  for (const attemptPrompt of attempts) {
+    try {
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 3072,
+        messages: [{ role: 'user', content: attemptPrompt }],
+      });
+
+      return parseJsonObject<Pass2Result>(extractResponseText(response), 'Pass 2');
+    } catch (error) {
+      failures.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  throw new Error(`Pass 2 failed after JSON retry. ${failures.join(' | ')}`);
 }

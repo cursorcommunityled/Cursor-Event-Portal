@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { Pass1Result, Pass2Result, Pass3Result, Pass4Result, Pass5Result, Pass6Result } from '../types';
 import { DEFAULT_CRITERIA } from '../criteria';
+import { extractResponseText, parseJsonObject } from './json';
 
 export type Pass6RunResult = {
   result: Pass6Result;
@@ -8,9 +9,7 @@ export type Pass6RunResult = {
 };
 
 function parsePass6Json(text: string): Pass6Result {
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Pass 6 returned no JSON');
-  return JSON.parse(jsonMatch[0]) as Pass6Result;
+  return parseJsonObject<Pass6Result>(text, 'Pass 6');
 }
 
 function errorMessage(error: unknown): string {
@@ -153,10 +152,7 @@ Return ONLY valid JSON:
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any) as Awaited<ReturnType<typeof client.messages.create>>;
 
-      // Thinking blocks are separate from the final text response.
-      const content = (response as { content: { type: string; text?: string }[] }).content;
-      const textBlock = content.find((b) => b.type === 'text');
-      const result = parsePass6Json(textBlock?.text ?? '');
+      const result = parsePass6Json(extractResponseText(response as { content: { type: string; text?: string }[] }));
       return { result, modelUsed: attempt.model };
     } catch (error) {
       failures.push(`${attempt.model}: ${errorMessage(error)}`);

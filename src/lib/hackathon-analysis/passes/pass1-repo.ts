@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { RepoData, Pass1Result } from '../types';
+import { extractResponseText, parseJsonObject } from './json';
 
 export async function runPass1(client: Anthropic, repoData: RepoData): Promise<Pass1Result> {
   const fileTreeSample = repoData.file_tree.slice(0, 80).join('\n');
@@ -47,8 +48,5 @@ Return ONLY valid JSON matching this exact structure (no markdown, no explanatio
     messages: [{ role: 'user', content: prompt }],
   });
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('Pass 1 returned no JSON');
-  return JSON.parse(jsonMatch[0]) as Pass1Result;
+  return parseJsonObject<Pass1Result>(extractResponseText(response), 'Pass 1');
 }
