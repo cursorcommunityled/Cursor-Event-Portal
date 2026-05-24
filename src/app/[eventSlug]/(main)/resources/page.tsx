@@ -56,7 +56,7 @@ const eventQa = [
   {
     question: "How do project submissions work?",
     answer:
-      "Go to Hackathon -> My Team -> Submit Project. Add your project name, concise description, public GitHub repo URL, up to 5 screenshots, and an optional demo URL before the deadline.",
+      "Go to Hackathon -> My Team -> Submit Project. Add your project name, concise description, public GitHub repo URL, up to 5 screenshots, and an optional Hosted URL before the deadline.",
     icon: Upload,
   },
   {
@@ -135,7 +135,7 @@ const aiScreeningPasses = [
     title: "Synthesis",
     model: "Claude Opus + extended thinking",
     description:
-      "Ingests all previous pass outputs and uses an 8,000-token thinking budget to produce calibrated scores across seven criteria. Scoring anchors prevent compression: 9-10 is genuinely exceptional, 5-6 is average and competent, and missing UI or a no-show demo must score 1-4 instead of being softened to 5.",
+      "Ingests all previous pass outputs and uses an 8,000-token thinking budget to produce calibrated scores across six criteria. Scoring anchors prevent compression: 9-10 is genuinely exceptional, 5-6 is average and competent, and missing UI or a non-functional core product must score 1-4 instead of being softened to 5.",
   },
 ];
 
@@ -339,7 +339,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                   "Go to Hackathon → My Team → Submit Project",
                   "Add your project name, description, and public GitHub repo URL",
                   "Upload up to 5 screenshots — these are used for AI visual review",
-                  "Add a demo URL if you have one",
+                  "Add a Hosted URL if you have one",
                   "You can update your submission anytime before the deadline",
                 ],
               },
@@ -350,7 +350,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                   "After build time, admins run Claude AI analysis on all projects",
                   "Claude runs 6 passes: repo structure, code quality, innovation, visual UX, pool comparison, and final synthesis",
                   "Takes about 3 minutes per team — you'll see live progress on your dashboard",
-                  "Your project is scored across 7 criteria (Innovation 25%, Technical Execution 20%, Functional Completeness 20%, Problem-Solution Fit 20%, UX 5%, Demo 5%, Ambition 5%)",
+                  "Your project is scored across 6 criteria (Innovation 25%, Technical Execution 25%, Functional Completeness 20%, Problem-Solution Fit 20%, UX 5%, Ambition 5%)",
                   "You will NOT see your AI score — results pending admin review",
                 ],
               },
@@ -435,11 +435,10 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
               </div>
               {[
                 { label: "Innovation & Originality", weight: "25%", note: "How novel and surprising is the concept?" },
-                { label: "Technical Execution", weight: "20%", note: "Cleverness of the engineering" },
+                { label: "Technical Execution", weight: "25%", note: "Cleverness of the engineering" },
                 { label: "Functional Completeness", weight: "20%", note: "Does the core loop actually work?" },
                 { label: "Problem-Solution Fit", weight: "20%", note: "Solving a real problem convincingly" },
                 { label: "UX & Design", weight: "5%", note: "Visual polish and usability" },
-                { label: "Demo & Communication", weight: "5%", note: "How clearly the project is presented" },
                 { label: "Learning & Ambition", weight: "5%", note: "Did the team stretch themselves?" },
               ].map((row, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.03] last:border-0">

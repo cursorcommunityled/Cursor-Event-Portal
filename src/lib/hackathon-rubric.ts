@@ -12,7 +12,7 @@ export const HACKATHON_SCORE_CATEGORIES = [
     key: "technical_execution",
     label: "Technical Execution",
     shortLabel: "Technical",
-    weight: 20,
+    weight: 25,
     description: "Cleverness and quality of the engineering",
   },
   {
@@ -35,13 +35,6 @@ export const HACKATHON_SCORE_CATEGORIES = [
     shortLabel: "UX / Design",
     weight: 5,
     description: "Visual polish and usability",
-  },
-  {
-    key: "demo_communication",
-    label: "Demo & Communication",
-    shortLabel: "Demo",
-    weight: 5,
-    description: "How clearly the project is presented",
   },
   {
     key: "learning_ambition",

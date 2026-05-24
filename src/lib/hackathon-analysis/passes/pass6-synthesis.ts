@@ -95,7 +95,7 @@ Pass 5 (Pool):
 - Outperforms on: ${pass5.outperforms_pool_on.join(', ') || 'nothing notable'}
 - Underperforms on: ${pass5.underperforms_pool_on.join(', ') || 'nothing notable'}
 
-SCORING CRITERIA (7 dimensions):
+SCORING CRITERIA (6 dimensions):
 ${criteriaBlock}
 
 For each criterion, provide:
@@ -114,7 +114,7 @@ Return ONLY valid JSON:
       "reasoning": "string",
       "confidence": "low" | "medium" | "high"
     }
-    // ... all 7 criteria
+    // ... all 6 criteria
   ],
   "overall_score": number (weighted composite, 0-10),
   "most_impressive_aspect": "1-2 sentences on the single strongest thing",

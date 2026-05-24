@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { autoAssignLateArrival } from "@/lib/actions/groups";
-import { assignCursorCreditForAttendee } from "@/lib/actions/cursor-credits";
 import { verifyCheckInToken } from "@/lib/auth/checkin-token";
 import {
   PORTAL_SESSION_COOKIE_NAME,
@@ -69,22 +68,6 @@ export async function POST(request: NextRequest) {
           checked_in_at: new Date().toISOString(),
         })
         .eq("id", registration.id);
-    }
-
-    try {
-      const assignment = await assignCursorCreditForAttendee(
-        eventId,
-        attendeeId,
-        registration.id
-      );
-      if (assignment.assigned) {
-        console.log(`[checkin] Cursor credit assigned to ${user.name}`);
-      } else if (assignment.error) {
-        console.error("[checkin] Cursor credit assignment failed:", assignment.error);
-      }
-    } catch (creditErr) {
-      // Non-fatal — check-in still succeeds even if the credit pool is empty or unavailable.
-      console.error("[checkin] Cursor credit assignment failed:", creditErr);
     }
 
     // If bringing a guest, create a guest registration

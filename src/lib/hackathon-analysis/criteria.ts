@@ -23,7 +23,7 @@ export const DEFAULT_CRITERIA: CriterionConfig[] = [
   {
     key: 'technical_execution',
     label: 'Technical Execution',
-    weight: 0.20,
+    weight: 0.25,
     description: 'Quality and cleverness of the engineering',
     subQuestions: [
       'Are there clever solutions that go beyond the obvious approach?',
@@ -62,16 +62,6 @@ export const DEFAULT_CRITERIA: CriterionConfig[] = [
       'Is there clear visual hierarchy and consistent design?',
       'Could a new user navigate it without guidance?',
       'Is there a distinct visual identity or brand?',
-    ],
-  },
-  {
-    key: 'demo_communication',
-    label: 'Demo & Communication',
-    weight: 0.05,
-    description: 'How clearly is the project communicated?',
-    subQuestions: [
-      'Does the pitch clearly explain what it does and why?',
-      'Does the demo highlight the most impressive parts?',
     ],
   },
   {

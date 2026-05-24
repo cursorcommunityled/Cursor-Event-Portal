@@ -1537,7 +1537,7 @@ export function HackathonAdminClient({
                     <p className="text-[10px] uppercase tracking-[0.2em] text-red-400 mb-1">How AI Screening Works</p>
                     <p className="text-[13px] text-gray-400 leading-relaxed">
                       Step 1: Teams submit project + repo URL + screenshots.<br/>
-                      Step 2: Run AI analysis per team below — Cursor scores across 7 criteria (~3 min each).<br/>
+                      Step 2: Run AI analysis per team below — Cursor scores across 6 criteria (~3 min each).<br/>
                       Step 3: Push the top scored projects to Final Round, or hand-pick them.<br/>
                       Step 4: Go to <strong className="text-white">Final Round</strong> tab to add your own judge scores.
                     </p>

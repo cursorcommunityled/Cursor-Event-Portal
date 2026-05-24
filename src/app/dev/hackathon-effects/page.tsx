@@ -20,6 +20,8 @@ export default function HackathonEffectsDevPage() {
       </section>
 
       <HackathonEffects
+        eventId="dev-hackathon-effects"
+        userId="dev-user"
         scoresCount={0}
         projectSubmitted={false}
         eventStarted={false}
