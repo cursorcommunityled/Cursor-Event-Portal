@@ -177,7 +177,7 @@ export function HackathonClient({
   const [isPending, startTransition] = useTransition();
   const [tab, setTab] = useState<Tab>("overview");
   const [peopleTab, setPeopleTab] = useState<PeopleTab>("mentors");
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
   const tabStorageKey = `hackathon:${event.id}:${userId}:tab`;
 
   // Local state (updated by realtime or optimistic)
@@ -301,7 +301,7 @@ export function HackathonClient({
   const totalTeamMembers = allTeams.reduce((sum, team) => sum + team.members.length, 0);
   const submittedProjects = allTeams.filter((team) => team.project?.submitted_at).length;
   const totalParticipants = totalTeamMembers + pool.length;
-  const eventHasStarted = !!event.start_time && !!now && new Date(event.start_time) <= now;
+  const eventHasStarted = !!event.start_time && new Date(event.start_time) <= now;
   const promptText = settings?.prompt_text?.trim() || DEFAULT_HACKATHON_PROMPT;
   const projectSubmitted = Boolean(myTeam?.project?.submitted_at);
   const projectSubmissionOpen = isProjectSubmissionOpen(settings, now);
@@ -745,6 +745,8 @@ export function HackathonClient({
           <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,white,transparent_80%)]" />
         </div>
         <HackathonEffects 
+          eventId={event.id}
+          userId={userId}
           scoresCount={scores.length} 
           projectSubmitted={!!myTeam?.project?.submitted_at} 
           eventStarted={eventHasStarted} 
@@ -811,6 +813,8 @@ export function HackathonClient({
       </div>
 
       <HackathonEffects 
+        eventId={event.id}
+        userId={userId}
         scoresCount={scores.length} 
         projectSubmitted={!!myTeam?.project?.submitted_at} 
         eventStarted={eventHasStarted} 

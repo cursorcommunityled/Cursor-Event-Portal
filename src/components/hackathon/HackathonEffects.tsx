@@ -5,13 +5,17 @@ import { Confetti } from "@/components/competitions/Confetti";
 import Image from "next/image";
 
 interface Props {
+  eventId: string;
+  userId: string;
   scoresCount: number;
   projectSubmitted: boolean;
   eventStarted: boolean;
   teamFormed: boolean;
 }
 
-export function HackathonEffects({ scoresCount, projectSubmitted, eventStarted, teamFormed }: Props) {
+const START_EFFECT_DURATION_MS = 8000;
+
+export function HackathonEffects({ eventId, userId, scoresCount, projectSubmitted, eventStarted, teamFormed }: Props) {
   const [showScoreEffect, setShowScoreEffect] = useState(false);
   const [showSubmitEffect, setShowSubmitEffect] = useState(false);
   const [showStartEffect, setShowStartEffect] = useState(false);
@@ -19,12 +23,13 @@ export function HackathonEffects({ scoresCount, projectSubmitted, eventStarted, 
   
   const isFirstRenderScore = useRef(true);
   const isFirstRenderSubmit = useRef(true);
-  const isFirstRenderStart = useRef(true);
   const isFirstRenderTeam = useRef(true);
   const prevScoresCount = useRef(scoresCount);
   const prevProjectSubmitted = useRef(projectSubmitted);
   const prevEventStarted = useRef(eventStarted);
   const prevTeamFormed = useRef(teamFormed);
+  const startEffectShownThisMount = useRef(false);
+  const startEffectStorageKey = `hackathon:start-effect:${eventId}:${userId}`;
 
   // Trigger on new score
   useEffect(() => {
@@ -54,16 +59,21 @@ export function HackathonEffects({ scoresCount, projectSubmitted, eventStarted, 
 
   // Trigger on event start
   useEffect(() => {
-    if (isFirstRenderStart.current) {
-      isFirstRenderStart.current = false;
-      return;
+    if (!eventStarted) return;
+
+    try {
+      if (window.localStorage.getItem(startEffectStorageKey) === "seen") return;
+      window.localStorage.setItem(startEffectStorageKey, "seen");
+    } catch {
+      // If storage is unavailable, keep the effect scoped to this mount.
+      if (startEffectShownThisMount.current) return;
+      startEffectShownThisMount.current = true;
     }
-    if (eventStarted && !prevEventStarted.current) {
-      setShowStartEffect(true);
-      const t = setTimeout(() => setShowStartEffect(false), 8000);
-      return () => clearTimeout(t);
-    }
-  }, [eventStarted]);
+
+    setShowStartEffect(true);
+    const t = setTimeout(() => setShowStartEffect(false), START_EFFECT_DURATION_MS);
+    return () => clearTimeout(t);
+  }, [eventStarted, startEffectStorageKey]);
 
   // Trigger on team formed
   useEffect(() => {
@@ -105,7 +115,7 @@ export function HackathonEffects({ scoresCount, projectSubmitted, eventStarted, 
     setShowStartEffect(false);
     setTimeout(() => {
       setShowStartEffect(true);
-      setTimeout(() => setShowStartEffect(false), 8000);
+      setTimeout(() => setShowStartEffect(false), START_EFFECT_DURATION_MS);
     }, 50);
   };
   const triggerTeam = () => {
@@ -139,7 +149,7 @@ export function HackathonEffects({ scoresCount, projectSubmitted, eventStarted, 
 
       {(showScoreEffect || showSubmitEffect || showStartEffect || showTeamEffect) ? (
         <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
-          <Confetti duration={8000} particleCount={showStartEffect || showSubmitEffect || showTeamEffect ? 150 : 50} />
+          <Confetti duration={showStartEffect ? START_EFFECT_DURATION_MS : 8000} particleCount={showStartEffect || showSubmitEffect || showTeamEffect ? 150 : 50} />
 
           {showScoreEffect ? (
             <div className="animate-in fade-in zoom-in duration-500 slide-out-to-top-8 fade-out duration-1000 delay-3000 absolute top-20 flex flex-col items-center">

@@ -71,15 +71,15 @@ Claude runs 6 sequential passes (~3 minutes per team):
 | 3 · Innovation Check | Scores against 13 common hackathon clichés; rates surprise factor |
 | 4 · Visual Review | Reviews all 5 screenshots for hierarchy, consistency, UX flow, brand |
 | 5 · Pool Comparison | Ranks this team relative to all other analyzed teams |
-| 6 · Final Synthesis | Claude Opus produces weighted 7-criteria scorecard with reasoning |
+| 6 · Final Synthesis | Claude Opus produces weighted 6-criteria scorecard with reasoning |
 
 Teams see live pass progress on their own dashboard (pass 1/6, 2/6…).
 They do **not** see scores — only "Analysis complete — awaiting admin review."
 
 **11. Review AI Scores**
-Each team card shows a full AI report: 7 criteria (Innovation, Technical Execution,
-Functional Completeness, Problem-Solution Fit, UX & Design, Demo & Communication,
-Learning & Ambition), each with a score, reasoning, and confidence level.
+Each team card shows a full AI report: 6 criteria (Innovation, Technical Execution,
+Functional Completeness, Problem-Solution Fit, UX & Design, Learning & Ambition),
+each with a score, reasoning, and confidence level.
 Also shows: most impressive aspect, concerns, suggested award categories.
 
 **12. Push Top 8 to Final Round**
@@ -152,16 +152,15 @@ Admin: Publish Top 3 → results go live for attendees
 
 ---
 
-## Scoring Criteria (7 Dimensions)
+## Scoring Criteria (6 Dimensions)
 
 | Criterion | Weight | What It Measures |
 |-----------|--------|-----------------|
 | Innovation & Originality | 25% | How novel and surprising is the concept? |
-| Technical Execution | 20% | Cleverness and quality of the engineering |
+| Technical Execution | 25% | Cleverness and quality of the engineering |
 | Functional Completeness | 20% | Does the core loop actually work? |
 | Problem-Solution Fit | 20% | Is it solving a real problem convincingly? |
 | UX & Design | 5% | Visual polish and usability |
-| Demo & Communication | 5% | How clearly is the project communicated? |
 | Learning & Ambition | 5% | Did the team stretch themselves? |
 
 ---

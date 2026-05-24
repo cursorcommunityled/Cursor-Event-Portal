@@ -24,7 +24,7 @@ const JUDGING_PHASES = [
       "After build time, admins run Claude AI analysis on all projects.",
       "Claude runs 6 passes: repo structure, code quality, innovation, visual UX, pool comparison, and final synthesis.",
       "Analysis takes about 3 minutes per team. You will see live progress on your dashboard.",
-      "Projects are scored across 7 weighted criteria.",
+      "Projects are scored across 6 weighted criteria.",
       "You will NOT see your AI score. Results stay pending until admin review.",
     ],
   },
@@ -57,7 +57,7 @@ const SCORING_CRITERIA = [
   },
   {
     name: "Technical Execution",
-    weight: "20%",
+    weight: "25%",
     description: "Cleverness of the engineering.",
   },
   {
@@ -74,11 +74,6 @@ const SCORING_CRITERIA = [
     name: "UX & Design",
     weight: "5%",
     description: "Visual polish and usability.",
-  },
-  {
-    name: "Demo & Communication",
-    weight: "5%",
-    description: "How clearly the project is presented.",
   },
   {
     name: "Learning & Ambition",

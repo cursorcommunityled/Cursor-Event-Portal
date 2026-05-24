@@ -138,6 +138,12 @@ export function CreditsAdminTab({
   };
 
   const handleAutoAssign = () => {
+    const confirmed = window.confirm(
+      `Assign one $${creditAmount} credit to every currently checked-in attendee without a participant credit?\n\n` +
+      "Before continuing, cross-check the checked-in list against Luma and un-check anyone who did not physically attend. This action immediately assigns real Cursor credit codes."
+    );
+    if (!confirmed) return;
+
     startTransition(async () => {
       setAutoMsg(null);
       const result = await autoAssignCredits(eventId, adminCode);
@@ -313,7 +319,7 @@ export function CreditsAdminTab({
           Auto-Assign
         </p>
         <p className="text-sm text-gray-400">
-          Assigns one {`$${creditAmount}`} code to every checked-in attendee that doesn&apos;t yet have a participant credit.
+          Admin-only credit assignment. First cross-check this portal&apos;s checked-in list against Luma and un-check anyone who did not physically attend, then assign one {`$${creditAmount}`} code to each remaining checked-in attendee without a participant credit.
         </p>
         <button
           onClick={handleAutoAssign}

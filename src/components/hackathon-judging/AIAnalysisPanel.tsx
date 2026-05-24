@@ -6,7 +6,7 @@ import { triggerAnalysis } from "@/lib/actions/hackathon-analysis";
 import { createClient } from "@/lib/supabase/client";
 import {
   Cpu, ChevronDown, ChevronUp, Check, AlertCircle, Loader2,
-  Star, TrendingUp, Eye, Users, MessageSquare, Lightbulb,
+  Star, TrendingUp, Eye, Users, Lightbulb,
 } from "lucide-react";
 import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 import type { Pass6Result } from "@/lib/hackathon-analysis/types";
@@ -54,7 +54,6 @@ const CRITERIA_ICONS: Record<string, React.ReactNode> = {
   functional_completeness: <Check className="w-3.5 h-3.5" />,
   problem_solution_fit: <TrendingUp className="w-3.5 h-3.5" />,
   ux_design: <Eye className="w-3.5 h-3.5" />,
-  demo_communication: <MessageSquare className="w-3.5 h-3.5" />,
   learning_ambition: <Star className="w-3.5 h-3.5" />,
 };
 

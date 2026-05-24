@@ -32,6 +32,8 @@ VALUES
   ('dlynch@openhouse.ai', 'David Lynch'),
   ('ethan.bayarsaikhan@edu.sait.ca', 'Ethan Bayarsaikhan'),
   ('mayurrajendrakumar.brahmbhatt@edu.sait.ca', 'Mayur Rajendrakumar Brahmbhatt'),
+  ('smijalmathewthomas@edu.sait.ca', 'Smijal Mathew Thomas'),
+  ('dilshadineshan@edu.sait.ca', 'Dilshad Ineshan'),
   ('apalamattam@google.com', 'Anvil Palamattam'),
   ('suprita.shankar@gmail.com', 'Suprita Shankar'),
   ('nawroz.riti@gmail.com', 'Riti Nawroz'),
