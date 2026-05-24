@@ -22,10 +22,18 @@ import { HackathonClient } from "@/components/hackathon/HackathonClient";
 import { withDefaultHackathonLinkedIn } from "@/lib/hackathon-profile-defaults";
 import { getDemoSlotsWithCounts } from "@/lib/demo/service";
 import type { HackathonProfile } from "@/types";
+import type { Pass6Result } from "@/lib/hackathon-analysis/types";
 
 interface Props {
   params: Promise<{ eventSlug: string }>;
 }
+
+type PublicAIScore = {
+  team_id: string;
+  overall_score: number;
+  criteria_scores: { criteria_key: string; score: number }[];
+  updated_at: string;
+};
 
 export default async function HackathonPage({ params }: Props) {
   const { eventSlug } = await params;
@@ -54,7 +62,7 @@ export default async function HackathonPage({ params }: Props) {
   // Ensure default channels exist (idempotent)
   await ensureDefaultChannels(event.id);
 
-  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults, mentors, judges, mentorSlots, myMentorSignup] =
+  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, publicAIAnalyses, chatMembers, judgingResults, mentors, judges, mentorSlots, myMentorSignup] =
     await Promise.all([
       getHackathonSettings(event.id),
       getMyHackathonTeam(event.id, session.userId),
@@ -62,6 +70,12 @@ export default async function HackathonPage({ params }: Props) {
       getHackathonTeamsWithMembers(event.id),
       getCheckedInAttendeesWithoutTeams(event.id, session.userId),
       getHackathonScores(event.id),
+      supabase
+        .from("hackathon_ai_analyses")
+        .select("team_id, result, updated_at")
+        .eq("event_id", event.id)
+        .eq("pass_name", "pass6_synthesis")
+        .eq("status", "complete"),
       getEventChatMembers(event.id),
       getPublishedCompetitionJudgingResults(event.id),
       getHackathonMentors(event.id),
@@ -96,6 +110,28 @@ export default async function HackathonPage({ params }: Props) {
 
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
+  const publicAIScores: PublicAIScore[] = ((publicAIAnalyses.data ?? []) as {
+    team_id: string;
+    result: Pass6Result | null;
+    updated_at: string;
+  }[]).flatMap((row) => {
+    const result = row.result;
+    if (!result || typeof result.overall_score !== "number" || !Array.isArray(result.criteria_scores)) {
+      return [];
+    }
+
+    return [{
+      team_id: row.team_id,
+      overall_score: result.overall_score,
+      criteria_scores: result.criteria_scores
+        .filter((criterion) => typeof criterion.criteria_key === "string" && typeof criterion.score === "number")
+        .map((criterion) => ({
+          criteria_key: criterion.criteria_key,
+          score: criterion.score,
+        })),
+      updated_at: row.updated_at,
+    }];
+  });
   const [{ data: hackathonProfile }, { data: intakeProfile }, { data: userProfile }, { data: audienceVoteRow }] = await Promise.all([
     supabase
       .from("hackathon_profiles")
@@ -168,6 +204,7 @@ export default async function HackathonPage({ params }: Props) {
       allTeams={allTeams}
       openPool={openPool}
       scores={scores}
+      publicAIScores={publicAIScores}
       chatChannels={chatChannels}
       initialMessages={initialMessages}
       initialChannelId={defaultChannel?.id ?? ""}

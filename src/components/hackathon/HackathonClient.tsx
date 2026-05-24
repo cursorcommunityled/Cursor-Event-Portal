@@ -67,6 +67,7 @@ interface Props {
     looking_for_teammates: string | null;
   }[];
   scores: HackathonScore[];
+  publicAIScores?: PublicAIScore[];
   chatChannels: HackathonChatChannel[];
   initialMessages: HackathonChatMessage[];
   initialChannelId: string;
@@ -82,6 +83,13 @@ interface Props {
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
   audienceVotePoll?: PollWithVotes | null;
 }
+
+type PublicAIScore = {
+  team_id: string;
+  overall_score: number;
+  criteria_scores: { criteria_key: string; score: number }[];
+  updated_at: string;
+};
 
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "chat";
 type PeopleTab = "mentors" | "judges";
@@ -120,6 +128,10 @@ function isFormationOpen(settings: HackathonSettings | null): boolean {
 function totalScore(teamId: string, scores: HackathonScore[]): number {
   const s = scores.filter((x) => x.team_id === teamId);
   return calculateAverageHackathonWeightedScore(s);
+}
+
+function aiScorePoints(score: PublicAIScore | null | undefined): number | null {
+  return score ? Math.round(score.overall_score * 10) : null;
 }
 
 function plural(count: number, singular: string, pluralWord = `${singular}s`) {
@@ -169,7 +181,7 @@ function isProjectSubmissionOpen(settings: HackathonSettings | null, now: Date |
 export function HackathonClient({
   event, userId, isAdmin, settings, myTeam: initialMyTeam,
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
-  allTeams: initialAllTeams, openPool: initialPool, scores,
+  allTeams: initialAllTeams, openPool: initialPool, scores, publicAIScores = [],
   chatChannels, initialMessages, initialChannelId, chatMembers,
   publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
   audienceVotePoll = null, hackathonProfile, mentors, judges, mentorSlots, myMentorSlotId,
@@ -310,16 +322,49 @@ export function HackathonClient({
   const projectSubmissionCutoffLabel = projectSubmissionCutoff
     ? formatEventDateTime(projectSubmissionCutoff.toISOString(), event.timezone)
     : null;
+  const publicAIScoreByTeamId = useMemo(
+    () => new Map(publicAIScores.map((score) => [score.team_id, score])),
+    [publicAIScores]
+  );
+  const hasPublicAIScores = publicAIScores.length > 0;
+  const myTeamPublicAIScore = myTeam ? publicAIScoreByTeamId.get(myTeam.id) ?? null : null;
   const openTeamSlots = formationOpen
     ? allTeams.reduce((sum, team) => sum + Math.max(0, maxTeamSize - team.members.length), 0)
     : 0;
-  const rankedTeams = useMemo(
-    () => [...allTeams]
-      .filter((t) => scores.some((s) => s.team_id === t.id))
-      .sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)),
-    [allTeams, scores]
-  );
-  const leadingTeam = leaderboardVisible ? rankedTeams[0] : null;
+  const rankedTeams = useMemo(() => {
+    const scoreForTeam = (teamId: string) => {
+      const hasManualScore = scores.some((score) => score.team_id === teamId);
+      if (leaderboardVisible && hasManualScore) {
+        return totalScore(teamId, scores);
+      }
+
+      return aiScorePoints(publicAIScoreByTeamId.get(teamId));
+    };
+
+    return [...allTeams]
+      .map((team) => ({ team, score: scoreForTeam(team.id) }))
+      .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
+      .sort((a, b) => b.score - a.score);
+  }, [allTeams, leaderboardVisible, publicAIScoreByTeamId, scores]);
+  const leadingTeam = rankedTeams[0]?.team ?? null;
+  const leadingTeamScore = rankedTeams[0]?.score ?? null;
+  const showTeamScores = leaderboardVisible || hasPublicAIScores;
+  const teamsForDisplay = useMemo(() => {
+    if (!showTeamScores) {
+      return allTeams.map((team) => ({ team, rank: null, score: null }));
+    }
+
+    const rankByTeamId = new Map(rankedTeams.map((entry, index) => [entry.team.id, index + 1]));
+    const scoreByTeamId = new Map(rankedTeams.map((entry) => [entry.team.id, entry.score]));
+
+    return [...allTeams]
+      .sort((a, b) => (scoreByTeamId.get(b.id) ?? -1) - (scoreByTeamId.get(a.id) ?? -1))
+      .map((team) => ({
+        team,
+        rank: rankByTeamId.get(team.id) ?? null,
+        score: scoreByTeamId.get(team.id) ?? null,
+      }));
+  }, [allTeams, rankedTeams, showTeamScores]);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -360,7 +405,7 @@ export function HackathonClient({
     return () => window.clearInterval(timer);
   }, []);
 
-  // AI analysis status state (status only — no scores until admin applies)
+  // AI analysis status state for the attendee's own team.
   const [teamAnalyses, setTeamAnalyses] = useState(initialTeamAnalyses);
 
   // Realtime subscription
@@ -394,6 +439,7 @@ export function HackathonClient({
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_members" }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_projects", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_ai_analyses", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_settings", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "event_photos", filter: `event_id=eq.${event.id}` }, refresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "competition_judging_results", filter: `event_id=eq.${event.id}` }, refresh)
@@ -1067,11 +1113,13 @@ export function HackathonClient({
                   <img src="/cursor-logo.svg" alt="Cursor" className="w-7 h-7 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-500/80">Leaderboard</p>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-500/80">
+                    {leaderboardVisible ? "Leaderboard" : "AI Standings"}
+                  </p>
                   <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-gray-300">
-                    {leadingTeam
-                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading with <span className="text-yellow-400 font-bold">{totalScore(leadingTeam.id, scores)}</span> points.</>
-                      : "Leaderboard is visible once scores are available."}
+                    {leadingTeam && leadingTeamScore != null
+                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading {leaderboardVisible ? "the leaderboard" : "AI screening"} with <span className="text-yellow-400 font-bold">{leadingTeamScore}</span> points.</>
+                      : leaderboardVisible ? "Leaderboard is visible once scores are available." : "AI screening scores appear once analysis completes."}
                   </p>
                 </div>
               </div>
@@ -1498,6 +1546,10 @@ export function HackathonClient({
                 );
               })()}
 
+              {myTeamPublicAIScore && (
+                <PublicAIScoreCard aiScore={myTeamPublicAIScore} title="Your AI Screening Score" />
+              )}
+
               {/* Leaderboard (if visible) */}
               {leaderboardVisible && (
                 <ScoreCard teamId={myTeam.id} scores={scores} />
@@ -1528,14 +1580,16 @@ export function HackathonClient({
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            {leaderboardVisible
-              ? [...allTeams].sort((a, b) => totalScore(b.id, scores) - totalScore(a.id, scores)).map((team, i) => (
-                <TeamCard key={team.id} team={team} rank={i + 1} score={leaderboardVisible ? totalScore(team.id, scores) : null} formationOpen={formationOpen} />
-              ))
-              : allTeams.map((team) => (
-                <TeamCard key={team.id} team={team} rank={null} score={null} formationOpen={formationOpen} />
-              ))
-            }
+            {teamsForDisplay.map(({ team, rank, score }) => (
+              <TeamCard
+                key={team.id}
+                team={team}
+                rank={rank}
+                score={score}
+                aiScore={publicAIScoreByTeamId.get(team.id) ?? null}
+                formationOpen={formationOpen}
+              />
+            ))}
           </div>
           </div>
         </div>
@@ -1924,12 +1978,81 @@ function TimelineItem({
   );
 }
 
-function TeamCard({ team, rank, score, formationOpen }: {
+function PublicAIScoreBreakdown({ aiScore, compact = false }: { aiScore: PublicAIScore; compact?: boolean }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-red-300">
+          AI screening only · judge scores open in Final Round
+        </p>
+        <p className="shrink-0 text-[11px] font-black text-white">
+          Cursor <span className="text-red-300">AI Judge</span> {aiScore.overall_score.toFixed(1)}/10
+        </p>
+      </div>
+
+      <div className={cn("space-y-2", compact && "space-y-1.5")}>
+        {HACKATHON_SCORE_CATEGORIES.map((category) => {
+          const criterion = aiScore.criteria_scores.find((score) => score.criteria_key === category.key);
+          const value = criterion?.score ?? null;
+          const pct = value == null ? 0 : (value / 10) * 100;
+
+          return (
+            <div key={category.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+              <div className="min-w-0">
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <span className="truncate text-[12px] font-semibold text-gray-300">{category.label}</span>
+                  <span className="text-[10px] font-bold text-gray-500">{category.weight}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-300"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+              <span className="w-14 text-right text-[12px] font-black tabular-nums text-white">
+                {value == null ? "—" : value.toFixed(1)}/10
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PublicAIScoreCard({ aiScore, title }: { aiScore: PublicAIScore; title: string }) {
+  const points = aiScorePoints(aiScore);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-red-500/20 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
+      <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent" />
+      <div className="relative mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">{title}</h3>
+          <p className="mt-1 text-[10px] font-medium text-gray-500">Public AI screening result</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{points}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">/ {HACKATHON_SCORE_MAX} pts</p>
+        </div>
+      </div>
+      <div className="relative">
+        <PublicAIScoreBreakdown aiScore={aiScore} />
+      </div>
+    </div>
+  );
+}
+
+function TeamCard({ team, rank, score, aiScore, formationOpen }: {
   team: HackathonTeamWithMembers;
   rank: number | null;
   score: number | null;
+  aiScore: PublicAIScore | null;
   formationOpen: boolean;
 }) {
+  const displayScore = score ?? aiScorePoints(aiScore);
+
   return (
     <div className={cn(
       "relative overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group",
@@ -1963,10 +2086,12 @@ function TeamCard({ team, rank, score, formationOpen }: {
             </p>
           </div>
         </div>
-        {score != null && (
+        {displayScore != null && (
           <div className="shrink-0 text-right">
-            <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{score}</p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">/ {HACKATHON_SCORE_MAX} pts</p>
+            <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{displayScore}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">
+              {score != null ? `/ ${HACKATHON_SCORE_MAX} pts` : "AI score"}
+            </p>
           </div>
         )}
       </div>
@@ -1997,6 +2122,12 @@ function TeamCard({ team, rank, score, formationOpen }: {
               </a>
             )}
           </div>
+        </div>
+      )}
+
+      {aiScore && (
+        <div className="relative mt-5 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-4">
+          <PublicAIScoreBreakdown aiScore={aiScore} compact />
         </div>
       )}
     </div>
