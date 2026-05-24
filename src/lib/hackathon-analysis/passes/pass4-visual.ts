@@ -12,13 +12,15 @@ interface Pass4Context {
 
 type SupportedImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
 
-const ANTHROPIC_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const ANTHROPIC_MAX_BASE64_IMAGE_BYTES = 5 * 1024 * 1024;
+const ANTHROPIC_BASE64_SAFETY_MARGIN_BYTES = 128 * 1024;
+const ANTHROPIC_SAFE_BASE64_IMAGE_BYTES = ANTHROPIC_MAX_BASE64_IMAGE_BYTES - ANTHROPIC_BASE64_SAFETY_MARGIN_BYTES;
 const IMAGE_COMPRESSION_ATTEMPTS = [
-  { maxDimension: 1800, quality: 82 },
-  { maxDimension: 1400, quality: 78 },
-  { maxDimension: 1100, quality: 72 },
-  { maxDimension: 900, quality: 68 },
-  { maxDimension: 700, quality: 62 },
+  { maxDimension: 1600, quality: 78 },
+  { maxDimension: 1200, quality: 72 },
+  { maxDimension: 900, quality: 66 },
+  { maxDimension: 700, quality: 60 },
+  { maxDimension: 550, quality: 55 },
 ] as const;
 
 function detectImageMediaType(buffer: Buffer, contentType: string | null): SupportedImageMediaType {
@@ -52,12 +54,20 @@ function detectImageMediaType(buffer: Buffer, contentType: string | null): Suppo
   return 'image/jpeg';
 }
 
+function estimatedBase64Bytes(byteLength: number): number {
+  return Math.ceil(byteLength / 3) * 4;
+}
+
+function fitsAnthropicImageLimit(buffer: Buffer): boolean {
+  return estimatedBase64Bytes(buffer.length) <= ANTHROPIC_SAFE_BASE64_IMAGE_BYTES;
+}
+
 async function prepareImageForAnthropic(
   buffer: Buffer,
   contentType: string | null
 ): Promise<{ buffer: Buffer; mediaType: SupportedImageMediaType } | null> {
   const mediaType = detectImageMediaType(buffer, contentType);
-  if (buffer.length <= ANTHROPIC_MAX_IMAGE_BYTES) {
+  if (fitsAnthropicImageLimit(buffer)) {
     return { buffer, mediaType };
   }
 
@@ -74,7 +84,7 @@ async function prepareImageForAnthropic(
       .jpeg({ quality: attempt.quality, mozjpeg: true })
       .toBuffer();
 
-    if (compressed.length <= ANTHROPIC_MAX_IMAGE_BYTES) {
+    if (fitsAnthropicImageLimit(compressed)) {
       return { buffer: compressed, mediaType: 'image/jpeg' };
     }
   }
@@ -91,6 +101,8 @@ async function urlToBase64(url: string): Promise<{ data: string; mediaType: Supp
     if (!image) return null;
 
     const data = image.buffer.toString('base64');
+    if (Buffer.byteLength(data, 'utf8') > ANTHROPIC_MAX_BASE64_IMAGE_BYTES) return null;
+
     return { data, mediaType: image.mediaType };
   } catch {
     return null;
