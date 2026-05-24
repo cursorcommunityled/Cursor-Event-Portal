@@ -1945,9 +1945,6 @@ function TeamCard({ team, rank, score, formationOpen }: {
       "relative overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] group",
       rank === 1 ? "border-yellow-500/30 bg-yellow-500/[0.02]" : "border-white/10 bg-black/40"
     )}>
-      {rank === 1 && (
-      )}
-      
       <div className="relative flex items-start justify-between gap-3">
         <div className="flex items-center gap-4">
           {rank != null && (
