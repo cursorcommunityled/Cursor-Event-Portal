@@ -479,6 +479,15 @@ export type CompetitionStatus = "draft" | "active" | "voting" | "ended";
 export type VotingMode = "group" | "judges" | "both" | "top3";
 export type WinnerMethod = "auto" | "manual";
 
+export interface HackathonPrize {
+  placement: number;
+  label: string;
+  cashValue: number | null;
+  cursorCredits: number | null;
+  notes: string | null;
+  isPublic: boolean;
+}
+
 export interface Competition {
   id: string;
   event_id: string;
@@ -597,6 +606,7 @@ export interface CompetitionJudgingResult {
   judge_count: number;
   is_published: boolean;
   published_at: string | null;
+  prize: HackathonPrize | null;
   created_at: string;
   updated_at: string;
   entry?: CompetitionEntry;
@@ -860,6 +870,10 @@ export interface HackathonSettings {
   min_team_size: number;
   max_team_size: number;
   leaderboard_visible: boolean;
+  ai_scores_visible: boolean;
+  audience_favorite_results_visible: boolean;
+  final_round_paid_places: number;
+  final_round_prizes: HackathonPrize[];
   prompt_text: string;
   created_at: string;
   updated_at: string;

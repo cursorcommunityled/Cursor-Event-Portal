@@ -18,11 +18,19 @@ import {
   publishCompetitionJudgingResults,
   resetCompetitionFinalRound,
   saveCompetitionJudgingScorecard,
+  setCompetitionFinalists,
   unpublishCompetitionJudgingResults,
 } from "@/lib/actions/competition-judging";
+import { saveFinalRoundPrizeSettings } from "@/lib/actions/hackathon";
 import { cn } from "@/lib/utils";
 import { HACKATHON_SCORE_CATEGORIES } from "@/lib/hackathon-rubric";
-import type { CompetitionJudgingCompetition, HackathonTeamWithMembers } from "@/types";
+import type {
+  CompetitionEntry,
+  CompetitionJudgingCompetition,
+  HackathonPrize,
+  HackathonSettings,
+  HackathonTeamWithMembers,
+} from "@/types";
 import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
 
 interface Props {
@@ -30,6 +38,7 @@ interface Props {
   eventSlug: string;
   adminUserId: string | null;
   competitions: CompetitionJudgingCompetition[];
+  settings: HackathonSettings | null;
   teams?: HackathonTeamWithMembers[];
   aiAnalyses?: Record<string, HackathonAIAnalysis[]>;
 }
@@ -152,6 +161,56 @@ function EntryAISummary({ repoUrl, teams, aiAnalyses }: {
 }
 
 type ScoreDraft = Record<string, Record<string, number>>;
+type FinalistDrafts = Record<string, string[]>;
+
+const MAX_PAID_PLACES = 10;
+
+function placementLabel(placement: number) {
+  if (placement === 1) return "1st Place";
+  if (placement === 2) return "2nd Place";
+  if (placement === 3) return "3rd Place";
+  return `${placement}th Place`;
+}
+
+function defaultPrize(placement: number): HackathonPrize {
+  return {
+    placement,
+    label: placementLabel(placement),
+    cashValue: null,
+    cursorCredits: null,
+    notes: null,
+    isPublic: true,
+  };
+}
+
+function normalizePrizeDrafts(paidPlaces: number, prizes: HackathonPrize[] | null | undefined) {
+  const clampedPlaces = Math.min(Math.max(Math.floor(paidPlaces || 1), 1), MAX_PAID_PLACES);
+  const byPlacement = new Map((prizes ?? []).map((prize) => [Number(prize.placement), prize]));
+
+  return Array.from({ length: clampedPlaces }, (_, index) => {
+    const placement = index + 1;
+    const existing = byPlacement.get(placement);
+    return {
+      ...defaultPrize(placement),
+      ...existing,
+      placement,
+      label: existing?.label?.trim() || placementLabel(placement),
+      cashValue: existing?.cashValue ?? null,
+      cursorCredits: existing?.cursorCredits ?? null,
+      notes: existing?.notes ?? null,
+      isPublic: existing?.isPublic ?? true,
+    };
+  });
+}
+
+function formatPrizeValue(prize: HackathonPrize | null | undefined) {
+  if (!prize) return "No prize configured";
+  const parts = [
+    prize.cashValue ? `$${prize.cashValue.toLocaleString()}` : null,
+    prize.cursorCredits ? `${prize.cursorCredits.toLocaleString()} Cursor credits` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" + ") : "Prize details TBD";
+}
 
 function formatScore(score: number, maxScore: number) {
   return `${score.toFixed(score % 1 === 0 ? 0 : 1)} / ${maxScore}`;
@@ -162,6 +221,7 @@ export function HackathonJudgingAdminPanel({
   eventSlug,
   adminUserId,
   competitions,
+  settings,
   teams = [],
   aiAnalyses = {},
 }: Props) {
@@ -172,6 +232,13 @@ export function HackathonJudgingAdminPanel({
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
+  const [finalistDrafts, setFinalistDrafts] = useState<FinalistDrafts>({});
+  const [finalistStatus, setFinalistStatus] = useState<"idle" | "pending" | "saved">("idle");
+  const [paidPlaces, setPaidPlaces] = useState(settings?.final_round_paid_places ?? 3);
+  const [prizeDrafts, setPrizeDrafts] = useState<HackathonPrize[]>(
+    () => normalizePrizeDrafts(settings?.final_round_paid_places ?? 3, settings?.final_round_prizes)
+  );
+  const [prizeStatus, setPrizeStatus] = useState<"idle" | "pending" | "saved">("idle");
   const [isPending, startTransition] = useTransition();
 
   // Track which entries have unsaved local changes so remote refreshes don't
@@ -226,6 +293,25 @@ export function HackathonJudgingAdminPanel({
     setNotesDrafts((prev) => ({ ...prev, ...nextNotes }));
   }, [competition, adminUserId]);
 
+  useEffect(() => {
+    if (!competition) return;
+    setFinalistDrafts((prev) => ({
+      ...prev,
+      [competition.id]: competition.finalists
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((finalist) => finalist.entry_id),
+    }));
+    setFinalistStatus("idle");
+  }, [competition]);
+
+  useEffect(() => {
+    const nextPaidPlaces = settings?.final_round_paid_places ?? 3;
+    setPaidPlaces(nextPaidPlaces);
+    setPrizeDrafts(normalizePrizeDrafts(nextPaidPlaces, settings?.final_round_prizes));
+    setPrizeStatus("idle");
+  }, [settings?.final_round_paid_places, settings?.final_round_prizes]);
+
   if (competitions.length === 0) {
     return (
       <div className="glass rounded-[32px] p-12 border-white/20 text-center text-gray-500">
@@ -240,10 +326,66 @@ export function HackathonJudgingAdminPanel({
   const published = competition.results.filter((result) => result.is_published);
   const hasResettableState = competition.scorecards.length > 0 || competition.results.length > 0;
   const uniqueJudgeCount = new Set(competition.scorecards.map((card) => card.judge_id)).size;
-  const winnerCandidates = competition.standings.slice(0, 3);
+  const winnerCandidates = competition.standings.slice(0, paidPlaces);
   const unscoredFinalists = competition.standings.filter((standing) => standing.judge_count === 0);
   const unscoredWinnerCandidates = winnerCandidates.filter((standing) => standing.judge_count === 0);
   const publishBlockedByUnscoredWinners = unscoredWinnerCandidates.length > 0;
+  const finalistDraftEntryIds = finalistDrafts[competition.id] ?? competition.finalists.map((finalist) => finalist.entry_id);
+  const finalistDraftSet = new Set(finalistDraftEntryIds);
+  const entryById = new Map(competition.entries.map((entry) => [entry.id, entry]));
+  const finalistDraftEntries = finalistDraftEntryIds
+    .map((entryId) => entryById.get(entryId))
+    .filter((entry): entry is CompetitionEntry => Boolean(entry));
+  const availableEntries = competition.entries.filter((entry) => !finalistDraftSet.has(entry.id));
+
+  const setPaidPlaceCount = (value: number) => {
+    const next = Math.min(Math.max(Math.floor(value || 1), 1), MAX_PAID_PLACES);
+    setPaidPlaces(next);
+    setPrizeDrafts((prev) => normalizePrizeDrafts(next, prev));
+    setPrizeStatus("idle");
+  };
+
+  const updatePrizeDraft = (placement: number, patch: Partial<HackathonPrize>) => {
+    setPrizeDrafts((prev) => normalizePrizeDrafts(paidPlaces, prev).map((prize) => (
+      prize.placement === placement ? { ...prize, ...patch } : prize
+    )));
+    setPrizeStatus("idle");
+  };
+
+  const moveFinalistDraft = (entryId: string, direction: -1 | 1) => {
+    setFinalistDrafts((prev) => {
+      const current = prev[competition.id] ?? finalistDraftEntryIds;
+      const index = current.indexOf(entryId);
+      const nextIndex = index + direction;
+      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return prev;
+      const next = [...current];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      return { ...prev, [competition.id]: next };
+    });
+    setFinalistStatus("idle");
+  };
+
+  const addFinalistDraft = (entryId: string) => {
+    setFinalistDrafts((prev) => {
+      const current = prev[competition.id] ?? finalistDraftEntryIds;
+      if (current.includes(entryId)) return prev;
+      return { ...prev, [competition.id]: [...current, entryId] };
+    });
+    setFinalistStatus("idle");
+  };
+
+  const removeFinalistDraft = (entryId: string) => {
+    const scorecardCount = competition.scorecards.filter((card) => card.entry_id === entryId).length;
+    if (scorecardCount > 0 && !confirm("Remove this finalist from the round? Existing scorecards for this project will no longer count in standings.")) {
+      return;
+    }
+
+    setFinalistDrafts((prev) => {
+      const current = prev[competition.id] ?? finalistDraftEntryIds;
+      return { ...prev, [competition.id]: current.filter((candidateId) => candidateId !== entryId) };
+    });
+    setFinalistStatus("idle");
+  };
 
   const saveEntryScore = (entryId: string) => {
     setActiveEntryId(entryId);
@@ -271,10 +413,69 @@ export function HackathonJudgingAdminPanel({
     });
   };
 
+  const saveFinalistRoster = () => {
+    setError(null);
+    setFinalistStatus("pending");
+    startTransition(async () => {
+      const removedScoredFinalists = competition.finalists.filter((finalist) => (
+        !finalistDraftSet.has(finalist.entry_id) &&
+        competition.scorecards.some((card) => card.entry_id === finalist.entry_id)
+      ));
+
+      if (
+        removedScoredFinalists.length > 0 &&
+        !confirm(`${removedScoredFinalists.length} removed finalist${removedScoredFinalists.length === 1 ? " has" : "s have"} saved scorecards. Save the new roster anyway?`)
+      ) {
+        setFinalistStatus("idle");
+        return;
+      }
+
+      const res = await setCompetitionFinalists(competition.id, eventSlug, finalistDraftEntryIds, adminCode);
+      if (res.error) {
+        setError(res.error);
+        setFinalistStatus("idle");
+        return;
+      }
+
+      setFinalistStatus("saved");
+      router.refresh();
+    });
+  };
+
+  const savePrizeSettings = () => {
+    setError(null);
+    setPrizeStatus("pending");
+    startTransition(async () => {
+      const normalizedPrizes = normalizePrizeDrafts(paidPlaces, prizeDrafts);
+      const res = await saveFinalRoundPrizeSettings(adminCode, paidPlaces, normalizedPrizes);
+      if (res.error) {
+        setError(res.error);
+        setPrizeStatus("idle");
+        return;
+      }
+      setPrizeDrafts(res.prizes ?? normalizedPrizes);
+      setPrizeStatus("saved");
+      router.refresh();
+    });
+  };
+
   const publishResults = () => {
     setError(null);
     startTransition(async () => {
-      const res = await publishCompetitionJudgingResults(competition.id, eventSlug, adminCode, 3);
+      const normalizedPrizes = normalizePrizeDrafts(paidPlaces, prizeDrafts);
+      const prizeRes = await saveFinalRoundPrizeSettings(adminCode, paidPlaces, normalizedPrizes);
+      if (prizeRes.error) {
+        setError(prizeRes.error);
+        return;
+      }
+
+      const res = await publishCompetitionJudgingResults(
+        competition.id,
+        eventSlug,
+        adminCode,
+        paidPlaces,
+        prizeRes.prizes ?? normalizedPrizes
+      );
       if (res.error) setError(res.error);
       else router.refresh();
     });
@@ -383,12 +584,185 @@ export function HackathonJudgingAdminPanel({
         )}
       </div>
 
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl space-y-5">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+          <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">Finalist Roster</p>
+              <h4 className="mt-1 text-xl font-black tracking-tight text-white">Add, remove, and order final-round projects</h4>
+              <p className="mt-1 text-[12px] font-medium text-gray-500">Saving this list replaces the active finalists for judging.</p>
+            </div>
+            <button
+              disabled={isPending || finalistStatus === "pending"}
+              onClick={saveFinalistRoster}
+              className="shrink-0 rounded-2xl border border-red-400/40 bg-red-500/15 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider text-red-200 transition-colors hover:bg-red-500/25 disabled:opacity-50"
+            >
+              {finalistStatus === "pending" ? "Saving..." : finalistStatus === "saved" ? "Roster Saved" : "Save Roster"}
+            </button>
+          </div>
+
+          <div className="relative space-y-3">
+            {finalistDraftEntries.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium text-gray-500">
+                No finalists selected. Add projects below to build the final round.
+              </p>
+            ) : finalistDraftEntries.map((entry, index) => {
+              const scorecardCount = competition.scorecards.filter((card) => card.entry_id === entry.id).length;
+              return (
+                <div key={entry.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-[13px] font-black text-red-200">
+                    {index + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-bold text-white">{entry.title}</p>
+                    <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
+                      {entry.user?.name ?? "Unknown submitter"} · {scorecardCount} scorecard{scorecardCount === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <button
+                      disabled={index === 0}
+                      onClick={() => moveFinalistDraft(entry.id, -1)}
+                      className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-bold text-gray-300 disabled:opacity-30"
+                    >
+                      Up
+                    </button>
+                    <button
+                      disabled={index === finalistDraftEntries.length - 1}
+                      onClick={() => moveFinalistDraft(entry.id, 1)}
+                      className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-bold text-gray-300 disabled:opacity-30"
+                    >
+                      Down
+                    </button>
+                    <button
+                      onClick={() => removeFinalistDraft(entry.id)}
+                      className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-2 py-1 text-[11px] font-bold text-orange-200"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="relative space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gray-500">Available Projects</p>
+            {availableEntries.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-[12px] font-medium text-gray-500">
+                Every competition entry is already in the finalist roster.
+              </p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {availableEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    onClick={() => addFinalistDraft(entry.id)}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left transition-colors hover:border-red-400/40 hover:bg-red-500/10"
+                  >
+                    <p className="truncate text-[12px] font-bold text-white">{entry.title}</p>
+                    <p className="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">
+                      Add to final round
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="relative overflow-hidden rounded-[34px] border border-yellow-500/25 bg-black/40 p-6 backdrop-blur-xl shadow-2xl space-y-5">
+          <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-yellow-500/10 blur-[55px]" />
+          <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-300">Prize Ladder</p>
+              <h4 className="mt-1 text-xl font-black tracking-tight text-white">Paid places and Cursor credits</h4>
+              <p className="mt-1 text-[12px] font-medium text-yellow-100/60">These values are snapshotted when winners are published.</p>
+            </div>
+            <button
+              disabled={isPending || prizeStatus === "pending"}
+              onClick={savePrizeSettings}
+              className="shrink-0 rounded-2xl border border-yellow-400/40 bg-yellow-500/15 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider text-yellow-100 transition-colors hover:bg-yellow-500/25 disabled:opacity-50"
+            >
+              {prizeStatus === "pending" ? "Saving..." : prizeStatus === "saved" ? "Prizes Saved" : "Save Prizes"}
+            </button>
+          </div>
+
+          <label className="relative block space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Paid placements to publish</span>
+            <input
+              type="number"
+              min={1}
+              max={MAX_PAID_PLACES}
+              value={paidPlaces}
+              onChange={(event) => setPaidPlaceCount(Number(event.target.value))}
+              className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-[14px] font-bold text-white outline-none focus:border-yellow-400/50"
+            />
+          </label>
+
+          <div className="relative space-y-3">
+            {normalizePrizeDrafts(paidPlaces, prizeDrafts).map((prize) => (
+              <div key={prize.placement} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <input
+                    value={prize.label}
+                    onChange={(event) => updatePrizeDraft(prize.placement, { label: event.target.value })}
+                    className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-yellow-400/50"
+                  />
+                  <label className="flex shrink-0 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                    <input
+                      type="checkbox"
+                      checked={prize.isPublic}
+                      onChange={(event) => updatePrizeDraft(prize.placement, { isPublic: event.target.checked })}
+                      className="accent-yellow-400"
+                    />
+                    Public
+                  </label>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label className="space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Cash value</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={prize.cashValue ?? ""}
+                      onChange={(event) => updatePrizeDraft(prize.placement, { cashValue: event.target.value ? Number(event.target.value) : null })}
+                      placeholder="0"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-yellow-400/50"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Cursor credits</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={prize.cursorCredits ?? ""}
+                      onChange={(event) => updatePrizeDraft(prize.placement, { cursorCredits: event.target.value ? Number(event.target.value) : null })}
+                      placeholder="0"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[13px] font-bold text-white outline-none focus:border-yellow-400/50"
+                    />
+                  </label>
+                </div>
+                <input
+                  value={prize.notes ?? ""}
+                  onChange={(event) => updatePrizeDraft(prize.placement, { notes: event.target.value })}
+                  placeholder="Optional prize note"
+                  className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[12px] font-medium text-white outline-none placeholder:text-gray-600 focus:border-yellow-400/50"
+                />
+                <p className="text-[11px] font-bold text-yellow-100/70">{formatPrizeValue(prize)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {competition.finalists.length === 0 && (
         <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-2xl space-y-3">
           <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
           <p className="relative text-[16px] font-bold text-white">No finalists selected yet.</p>
           <p className="relative text-[13px] font-medium text-gray-400 max-w-md mx-auto leading-relaxed">
-            Go to the <strong className="text-gray-300">Competitions</strong> admin page → select entries → click <strong className="text-gray-300">&ldquo;Add to Final Round&rdquo;</strong> to bring them here for judging.
+            Use the <strong className="text-gray-300">Finalist Roster</strong> controls above to add projects and save the round.
           </p>
         </div>
       )}
@@ -535,6 +909,9 @@ export function HackathonJudgingAdminPanel({
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">Aggregate Standings</p>
             <h4 className="text-xl font-black tracking-tight text-white mt-1">Calculated from judge scorecards</h4>
+            <p className="mt-1 text-[12px] font-medium text-gray-500">
+              Publishing will reveal the top {paidPlaces} paid place{paidPlaces === 1 ? "" : "s"} with the configured prize ladder.
+            </p>
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -559,7 +936,7 @@ export function HackathonJudgingAdminPanel({
               className="inline-flex items-center gap-2 rounded-[20px] bg-yellow-500/20 border border-yellow-500/30 px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-yellow-300 hover:bg-yellow-500/30 disabled:opacity-50 transition-all hover:scale-105 shadow-neon"
             >
               <Trophy className="w-4 h-4" />
-              Publish Top 3
+              Publish Top {paidPlaces}
             </button>
           </div>
         </div>
@@ -573,7 +950,7 @@ export function HackathonJudgingAdminPanel({
               </p>
               <p className="text-yellow-100/80">
                 {publishBlockedByUnscoredWinners
-                  ? "Publishing is blocked because at least one Top 3 candidate has no saved scorecard."
+                  ? `Publishing is blocked because at least one Top ${paidPlaces} candidate has no saved scorecard.`
                   : "They will remain at 0 points unless a judge saves a scorecard before publishing."}
               </p>
             </div>
@@ -610,6 +987,11 @@ export function HackathonJudgingAdminPanel({
                       <Users className="w-2.5 h-2.5" />
                       {standing.judge_count} {standing.judge_count === 1 ? "judge" : "judges"}
                     </span>
+                    {standing.placement <= paidPlaces && (
+                      <span className="inline-flex rounded-lg bg-yellow-500/15 border border-yellow-500/25 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.15em] text-yellow-200">
+                        {formatPrizeValue(normalizePrizeDrafts(paidPlaces, prizeDrafts).find((prize) => prize.placement === standing.placement))}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <p className="text-2xl font-black tabular-nums tracking-tight text-white drop-shadow-md">

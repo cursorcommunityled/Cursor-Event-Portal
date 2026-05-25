@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { votePoll } from "@/lib/actions/polls";
 import { cn } from "@/lib/utils";
-import { Check, Trophy } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import type { PollWithVotes } from "@/types";
 import { RaceCar } from "@/components/polls/RaceCar";
 
@@ -25,6 +24,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
   const [celebrated, setCelebrated] = useState(!!poll.user_vote);
 
   const hasVoted = selected !== null;
+  const showResults = poll.show_results;
   const maxVotes = Math.max(...voteCounts, 1);
 
   const handleVote = async (idx: number) => {
@@ -91,13 +91,14 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
       <div className="relative p-8 sm:p-10 space-y-7">
         {/* Header */}
         <div className="flex items-start gap-5">
-          <div className="relative shrink-0 w-20 h-20 rounded-[20px] overflow-hidden border border-yellow-500/30 bg-yellow-500/10 shadow-[0_0_30px_rgba(234,179,8,0.25)]">
-            <Image src="/trophy.jpeg" alt="Trophy" fill className="object-cover" sizes="80px" />
+          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-red-400/30 bg-red-500/10 text-red-200 shadow-[0_0_30px_rgba(239,68,68,0.18)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.2),transparent_70%)]" />
+            <Star className="relative h-9 w-9 fill-red-300/20" />
           </div>
           <div className="min-w-0 pt-1">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-500/40 bg-yellow-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.2)]">
-                <Trophy className="w-3 h-3" /> $250 Cash Prize
+                <Star className="w-3 h-3" /> Audience Award
               </span>
               {poll.is_active ? (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-green-400">
@@ -119,7 +120,9 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
             <p className="mt-1 text-[14px] font-medium text-gray-400">
               {poll.is_active
                 ? "One vote per attendee — choose the project you loved most."
-                : `Voting closed · ${totalVotes} vote${totalVotes !== 1 ? "s" : ""} cast`}
+                : showResults
+                  ? `Voting closed · ${totalVotes} vote${totalVotes !== 1 ? "s" : ""} cast`
+                  : "Voting closed · results will be shared by the host"}
             </p>
           </div>
         </div>
@@ -128,9 +131,11 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
         <div className="space-y-3">
           {poll.options.map((option, idx) => {
             const isChosen = selected === idx;
-            const isLeading = voteCounts[idx] === maxVotes && voteCounts[idx] > 0;
-            const raceProgress = Math.min((voteCounts[idx] / EXPECTED_AUDIENCE_VOTES) * 100, 100);
-            const carIsMoving = hasVoted && voteCounts[idx] > 0;
+            const isLeading = showResults && voteCounts[idx] === maxVotes && voteCounts[idx] > 0;
+            const raceProgress = showResults
+              ? Math.min((voteCounts[idx] / EXPECTED_AUDIENCE_VOTES) * 100, 100)
+              : isChosen ? 100 : 0;
+            const carIsMoving = hasVoted && (showResults ? voteCounts[idx] > 0 : isChosen);
 
             return (
               <button
@@ -186,7 +191,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                       {option}
                     </span>
                   </div>
-                  {hasVoted && (
+                  {showResults && hasVoted && (
                     <span className={cn(
                       "text-[11px] font-black tabular-nums",
                       isChosen ? "text-red-300" : isLeading ? "text-yellow-400" : "text-gray-500"
@@ -221,7 +226,9 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-white/5">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-600">
-            {totalVotes} vote{totalVotes !== 1 ? "s" : ""} cast
+            {showResults
+              ? `${totalVotes} vote${totalVotes !== 1 ? "s" : ""} cast`
+              : "Live results hidden"}
           </p>
           {celebrated && (
             <p className="text-[12px] font-bold text-red-400 animate-pulse">

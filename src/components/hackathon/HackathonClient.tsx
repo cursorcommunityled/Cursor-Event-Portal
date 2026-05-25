@@ -310,6 +310,7 @@ export function HackathonClient({
   const formationOpen = isFormationOpen(settings);
   const teamLocked = !formationOpen;
   const leaderboardVisible = settings?.leaderboard_visible ?? false;
+  const aiScoresVisible = settings?.ai_scores_visible ?? false;
   const maxTeamSize = settings?.max_team_size ?? 4;
   const totalTeamMembers = allTeams.reduce((sum, team) => sum + team.members.length, 0);
   const submittedProjects = allTeams.filter((team) => team.project?.submitted_at).length;
@@ -322,33 +323,44 @@ export function HackathonClient({
   const projectSubmissionCutoffLabel = projectSubmissionCutoff
     ? formatEventDateTime(projectSubmissionCutoff.toISOString(), event.timezone)
     : null;
-  const publicAIScoreByTeamId = useMemo(
-    () => new Map(publicAIScores.map((score) => [score.team_id, score])),
-    [publicAIScores]
+  const visiblePublicAIScores = useMemo(
+    () => aiScoresVisible ? publicAIScores : [],
+    [aiScoresVisible, publicAIScores]
   );
-  const hasPublicAIScores = publicAIScores.length > 0;
+  const publicAIScoreByTeamId = useMemo(
+    () => new Map(visiblePublicAIScores.map((score) => [score.team_id, score])),
+    [visiblePublicAIScores]
+  );
+  const hasPublicAIScores = visiblePublicAIScores.length > 0;
   const myTeamPublicAIScore = myTeam ? publicAIScoreByTeamId.get(myTeam.id) ?? null : null;
   const openTeamSlots = formationOpen
     ? allTeams.reduce((sum, team) => sum + Math.max(0, maxTeamSize - team.members.length), 0)
     : 0;
   const rankedTeams = useMemo(() => {
-    const scoreForTeam = (teamId: string) => {
-      const hasManualScore = scores.some((score) => score.team_id === teamId);
-      if (leaderboardVisible && hasManualScore) {
-        return totalScore(teamId, scores);
-      }
-
-      return aiScorePoints(publicAIScoreByTeamId.get(teamId));
-    };
+    if (!leaderboardVisible) return [];
 
     return [...allTeams]
-      .map((team) => ({ team, score: scoreForTeam(team.id) }))
+      .map((team) => {
+        const hasManualScore = scores.some((score) => score.team_id === team.id);
+        return { team, score: hasManualScore ? totalScore(team.id, scores) : null };
+      })
       .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
       .sort((a, b) => b.score - a.score);
-  }, [allTeams, leaderboardVisible, publicAIScoreByTeamId, scores]);
-  const leadingTeam = rankedTeams[0]?.team ?? null;
-  const leadingTeamScore = rankedTeams[0]?.score ?? null;
-  const showTeamScores = leaderboardVisible || hasPublicAIScores;
+  }, [allTeams, leaderboardVisible, scores]);
+  const aiRankedTeams = useMemo(() => (
+    [...allTeams]
+      .map((team) => ({ team, score: aiScorePoints(publicAIScoreByTeamId.get(team.id)) }))
+      .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
+      .sort((a, b) => b.score - a.score)
+  ), [allTeams, publicAIScoreByTeamId]);
+  const leadingLeaderboardTeam = rankedTeams[0]?.team ?? null;
+  const leadingLeaderboardScore = rankedTeams[0]?.score ?? null;
+  const leadingAITeam = aiRankedTeams[0]?.team ?? null;
+  const leadingAIScore = aiRankedTeams[0]?.score ?? null;
+  const leadingTeam = leadingLeaderboardTeam ?? leadingAITeam;
+  const leadingTeamScore = leadingLeaderboardScore ?? leadingAIScore;
+  const leadingSource = leadingLeaderboardTeam ? "leaderboard" : "AI screening";
+  const showTeamScores = leaderboardVisible;
   const teamsForDisplay = useMemo(() => {
     if (!showTeamScores) {
       return allTeams.map((team) => ({ team, rank: null, score: null }));
@@ -1103,7 +1115,7 @@ export function HackathonClient({
             />
           </div>
 
-          {(leaderboardVisible || leadingTeam) && (
+          {(leaderboardVisible || hasPublicAIScores) && (
             <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
               
@@ -1114,11 +1126,11 @@ export function HackathonClient({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-500/80">
-                    {leaderboardVisible ? "Leaderboard" : "AI Standings"}
+                    {leadingLeaderboardTeam ? "Public Leaderboard" : "AI Screening"}
                   </p>
                   <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-gray-300">
                     {leadingTeam && leadingTeamScore != null
-                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading {leaderboardVisible ? "the leaderboard" : "AI screening"} with <span className="text-yellow-400 font-bold">{leadingTeamScore}</span> points.</>
+                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading the {leadingSource} with <span className="text-yellow-400 font-bold">{leadingTeamScore}</span> points.</>
                       : leaderboardVisible ? "Leaderboard is visible once scores are available." : "AI screening scores appear once analysis completes."}
                   </p>
                 </div>
@@ -2051,7 +2063,7 @@ function TeamCard({ team, rank, score, aiScore, formationOpen }: {
   aiScore: PublicAIScore | null;
   formationOpen: boolean;
 }) {
-  const displayScore = score ?? aiScorePoints(aiScore);
+  const displayScore = score;
 
   return (
     <div className={cn(

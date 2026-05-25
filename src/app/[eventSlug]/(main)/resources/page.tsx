@@ -352,7 +352,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                   "Takes about 3 minutes per team — you'll see live progress on your dashboard",
                   "Your project is scored across 6 criteria (Innovation 25%, Technical Execution 25%, Functional Completeness 20%, Problem-Solution Fit 20%, UX 5%, Ambition 5%)",
                   "Problem-Solution Fit is prompt-aware: Claude checks whether the project addresses a real personal pain point",
-                  "You will NOT see your AI score — results pending admin review",
+                  "AI screening scores are only shown when admins choose to publish them",
                 ],
               },
               {
@@ -369,7 +369,7 @@ export default async function ResourcesPage({ params }: ResourcesPageProps) {
                 icon: <Trophy className="w-4 h-4" />,
                 phase: "Phase 4 · Results",
                 steps: [
-                  "Admin publishes the Top 3 — visible on the Competitions page",
+                  "Admin publishes the paid placements after final judging",
                   "Leaderboard becomes visible once admin approves scores",
                   "Winners announced in the #announcements channel",
                 ],

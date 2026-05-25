@@ -62,7 +62,7 @@ export default async function HackathonPage({ params }: Props) {
   // Ensure default channels exist (idempotent)
   await ensureDefaultChannels(event.id);
 
-  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, publicAIAnalyses, chatMembers, judgingResults, mentors, judges, mentorSlots, myMentorSignup] =
+  const [settings, myTeam, receivedInvites, allTeams, openPool, scores, chatMembers, judgingResults, mentors, judges, mentorSlots, myMentorSignup] =
     await Promise.all([
       getHackathonSettings(event.id),
       getMyHackathonTeam(event.id, session.userId),
@@ -70,12 +70,6 @@ export default async function HackathonPage({ params }: Props) {
       getHackathonTeamsWithMembers(event.id),
       getCheckedInAttendeesWithoutTeams(event.id, session.userId),
       getHackathonScores(event.id),
-      supabase
-        .from("hackathon_ai_analyses")
-        .select("team_id, result, updated_at")
-        .eq("event_id", event.id)
-        .eq("pass_name", "pass6_synthesis")
-        .eq("status", "complete"),
       getEventChatMembers(event.id),
       getPublishedCompetitionJudgingResults(event.id),
       getHackathonMentors(event.id),
@@ -88,6 +82,15 @@ export default async function HackathonPage({ params }: Props) {
         .eq("user_id", session.userId)
         .maybeSingle(),
     ]);
+
+  const publicAIAnalyses = settings?.ai_scores_visible
+    ? await supabase
+        .from("hackathon_ai_analyses")
+        .select("team_id, result, updated_at")
+        .eq("event_id", event.id)
+        .eq("pass_name", "pass6_synthesis")
+        .eq("status", "complete")
+    : { data: [] };
 
   // Admins need all shared channels so they can monitor unassigned attendees in Spawn Point.
   const currentMember = chatMembers.find((m) => m.id === session.userId);
@@ -132,6 +135,13 @@ export default async function HackathonPage({ params }: Props) {
       updated_at: row.updated_at,
     }];
   });
+  const attendeeJudgingResults = settings?.audience_favorite_results_visible
+    ? judgingResults
+    : judgingResults.filter((result) => {
+        const title = result.competition?.title?.trim().toLowerCase() ?? "";
+        return title !== "audience favourite" && title !== "audience favorite";
+      });
+
   const [{ data: hackathonProfile }, { data: intakeProfile }, { data: userProfile }, { data: audienceVoteRow }] = await Promise.all([
     supabase
       .from("hackathon_profiles")
@@ -172,12 +182,14 @@ export default async function HackathonPage({ params }: Props) {
     const userVote = allVotes.find((v) => v.user_id === session.userId) ?? null;
     const options = audienceVoteRow.options as string[];
     const voteCounts = options.map((_, i) => allVotes.filter((v) => v.option_index === i).length);
+    const audienceResultsVisible = settings?.audience_favorite_results_visible ?? false;
     audienceVotePoll = {
       ...audienceVoteRow,
-      votes: allVotes,
+      show_results: audienceResultsVisible,
+      votes: audienceResultsVisible ? allVotes : userVote ? [userVote] : [],
       user_vote: userVote,
-      vote_counts: voteCounts,
-      total_votes: allVotes.length,
+      vote_counts: audienceResultsVisible ? voteCounts : options.map(() => 0),
+      total_votes: audienceResultsVisible ? allVotes.length : 0,
     };
   }
 
@@ -209,7 +221,7 @@ export default async function HackathonPage({ params }: Props) {
       initialMessages={initialMessages}
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
-      publishedJudgingResults={judgingResults}
+      publishedJudgingResults={attendeeJudgingResults}
       needsTeam={profileWithDefaults?.needs_team === true}
       hackathonProfile={profileWithDefaults}
       mentors={mentors}

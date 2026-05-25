@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getEventBySlug, getAnnouncements, getPublishedCompetitionJudgingResults } from "@/lib/supabase/queries";
+import { getEventBySlug, getAnnouncements, getHackathonSettings, getPublishedCompetitionJudgingResults } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EventHeader } from "@/components/layout/EventHeader";
@@ -25,11 +25,19 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
     notFound();
   }
 
-  const [session, announcements, judgingResults] = await Promise.all([
+  const [session, announcements, judgingResults, hackathonSettings] = await Promise.all([
     getSession(),
     getAnnouncements(event.id),
     getPublishedCompetitionJudgingResults(event.id),
+    event.is_hackathon ? getHackathonSettings(event.id) : Promise.resolve(null),
   ]);
+  const hideAudienceFavoriteResults = event.is_hackathon && !hackathonSettings?.audience_favorite_results_visible;
+  const visibleJudgingResults = hideAudienceFavoriteResults
+    ? judgingResults.filter((result) => {
+        const title = result.competition?.title?.trim().toLowerCase() ?? "";
+        return title !== "audience favourite" && title !== "audience favorite";
+      })
+    : judgingResults;
   const latestAnnouncement = announcements[0] || null;
   const userId = session?.eventId === event.id ? session.userId : undefined;
 
@@ -81,7 +89,11 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
 
       <EventNavWrapper eventSlug={eventSlug} event={event} userId={userId} />
       <AttendeeChatWidget eventSlug={eventSlug} eventName={event.name} userId={userId} />
-      <JudgingWinnersReveal eventId={event.id} initialResults={judgingResults} />
+      <JudgingWinnersReveal
+        eventId={event.id}
+        initialResults={visibleJudgingResults}
+        hideAudienceFavorite={hideAudienceFavoriteResults}
+      />
       {eventSlug === "calgary-march-2026" && (
         <EasterEggOverlay eventSlug={eventSlug} eventId={event.id} userId={userId} />
       )}
