@@ -6,9 +6,11 @@ export interface CursorEvent {
   titleLocal?: string;
   date: string;
   displayDate: string;
+  description?: string;
   attendees?: number;
   location: string;
   lumaUrl?: string;
+  portalPath?: string;
   recapPath?: string;
   thumbnail?: string;
   galleryImages?: string[];

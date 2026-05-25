@@ -59,6 +59,9 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
 
           <div className="space-y-3">
+            <h1 className="text-3xl font-light text-white tracking-tight">
+              {event.name}
+            </h1>
             <div className="flex flex-col items-center gap-1 text-gray-400 text-sm font-light tracking-wide">
               {event.start_time && (
                 <p className="text-white/70">

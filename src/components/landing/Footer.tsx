@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
@@ -12,6 +13,7 @@ import Partners from '@/components/landing/Partners';
 const LandingFooter: React.FC = () => {
   const { t } = useI18n();
   const nextEvent = upcomingEvents[0];
+  const nextEventHref = nextEvent?.lumaUrl ?? nextEvent?.portalPath;
 
   return (
     <motion.footer
@@ -69,16 +71,16 @@ const LandingFooter: React.FC = () => {
         </div>
 
         <div className="md:text-right">
-          {nextEvent?.lumaUrl && (
-            <a
-              href={nextEvent.lumaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+          {nextEventHref && (
+            <Link
+              href={nextEventHref}
+              target={nextEvent?.lumaUrl ? '_blank' : undefined}
+              rel={nextEvent?.lumaUrl ? 'noopener noreferrer' : undefined}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white border border-white/20 rounded-md hover:bg-white/20 transition-colors text-sm font-medium"
             >
               {t('footer.joinNext')}
               <ExternalLink className="w-3.5 h-3.5" />
-            </a>
+            </Link>
           )}
         </div>
       </div>
