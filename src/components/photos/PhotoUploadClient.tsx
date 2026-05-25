@@ -12,6 +12,18 @@ interface PhotoUploadClientProps {
   initialPhotos: EventPhoto[];
 }
 
+type PreviewFile = { file: File; url: string };
+
+const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+const ALLOWED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+function isImageFile(file: File) {
+  if (ALLOWED_IMAGE_TYPES.includes(file.type)) return true;
+  const lower = file.name.toLowerCase();
+  return ALLOWED_IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 export function PhotoUploadClient({
   eventId,
   eventSlug,
@@ -22,78 +34,121 @@ export function PhotoUploadClient({
   const [dragOver, setDragOver] = useState(false);
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<{ file: File; url: string } | null>(null);
+  const [previewFiles, setPreviewFiles] = useState<PreviewFile[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = useCallback((file: File) => {
+  const handleFileSelect = useCallback((files: FileList | File[]) => {
     setError(null);
 
-    const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      setError("Only image files are supported (PNG, JPEG, WebP, GIF)");
-      return;
+    const nextPreviews: PreviewFile[] = [];
+    const errors: string[] = [];
+
+    for (const file of Array.from(files)) {
+      if (!isImageFile(file)) {
+        errors.push(`${file.name}: unsupported file type`);
+        continue;
+      }
+
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        errors.push(`${file.name}: exceeds 10MB limit`);
+        continue;
+      }
+
+      nextPreviews.push({ file, url: URL.createObjectURL(file) });
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File size exceeds 10MB limit");
-      return;
+    if (nextPreviews.length > 0) {
+      setPreviewFiles((prev) => [...prev, ...nextPreviews]);
     }
 
-    const url = URL.createObjectURL(file);
-    setPreviewFile({ file, url });
+    if (errors.length > 0) {
+      setError(errors.join(" · "));
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    if (e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files);
+    }
   }, [handleFileSelect]);
 
   const handleUpload = async () => {
-    if (!previewFile) return;
+    if (previewFiles.length === 0) return;
     setUploading(true);
     setError(null);
+    setUploadProgress({ current: 0, total: previewFiles.length });
 
+    const failedPreviews: PreviewFile[] = [];
+    const errors: string[] = [];
     try {
-      const formData = new FormData();
-      formData.append("file", previewFile.file);
-      formData.append("eventId", eventId);
-      if (caption.trim()) {
-        formData.append("caption", caption.trim());
+      for (let i = 0; i < previewFiles.length; i++) {
+        const preview = previewFiles[i];
+        setUploadProgress({ current: i + 1, total: previewFiles.length });
+
+        try {
+          const formData = new FormData();
+          formData.append("file", preview.file);
+          formData.append("eventId", eventId);
+          if (caption.trim()) {
+            formData.append("caption", caption.trim());
+          }
+
+          const res = await fetch("/api/upload-event-photo", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            failedPreviews.push(preview);
+            errors.push(data.error || `Failed to upload ${preview.file.name}`);
+            continue;
+          }
+
+          setPhotos((prev) => [data.photo, ...prev]);
+          URL.revokeObjectURL(preview.url);
+        } catch {
+          failedPreviews.push(preview);
+          errors.push(`Failed to upload ${preview.file.name}`);
+        }
       }
 
-      const res = await fetch("/api/upload-event-photo", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Upload failed");
-        return;
+      setPreviewFiles(failedPreviews);
+      if (failedPreviews.length === 0) {
+        setCaption("");
       }
-
-      setPhotos((prev) => [data.photo, ...prev]);
-      URL.revokeObjectURL(previewFile.url);
-      setPreviewFile(null);
-      setCaption("");
+      if (errors.length > 0) {
+        setError(errors.join(" · "));
+      }
     } catch {
       setError("Upload failed. Please try again.");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
+  const removePreview = (index: number) => {
+    setPreviewFiles((prev) => {
+      const next = [...prev];
+      const [removed] = next.splice(index, 1);
+      if (removed) URL.revokeObjectURL(removed.url);
+      return next;
+    });
+  };
+
   const cancelPreview = () => {
-    if (previewFile) {
-      URL.revokeObjectURL(previewFile.url);
-      setPreviewFile(null);
-    }
+    previewFiles.forEach((preview) => URL.revokeObjectURL(preview.url));
+    setPreviewFiles([]);
     setCaption("");
     setError(null);
   };
+
+  const totalPreviewSizeMb = previewFiles.reduce((sum, preview) => sum + preview.file.size, 0) / (1024 * 1024);
 
   const statusConfig = (status: PhotoStatus) => {
     switch (status) {
@@ -109,7 +164,7 @@ export function PhotoUploadClient({
   return (
     <div className="space-y-8">
       {/* Upload area */}
-      {!previewFile ? (
+      {previewFiles.length === 0 ? (
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -126,10 +181,12 @@ export function PhotoUploadClient({
             ref={fileInputRef}
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFileSelect(file);
+              if (e.target.files && e.target.files.length > 0) {
+                handleFileSelect(e.target.files);
+              }
               e.target.value = "";
             }}
           />
@@ -139,35 +196,43 @@ export function PhotoUploadClient({
             </div>
             <div>
               <p className="text-sm text-white/80 font-medium">
-                Drop a photo here or click to browse
+                Drop photos here or click to browse
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-2">
-                PNG, JPEG, WebP, GIF up to 10MB
+                PNG, JPEG, WebP, GIF up to 10MB each
               </p>
             </div>
           </div>
         </div>
       ) : (
         <div className="glass rounded-3xl border border-white/10 overflow-hidden">
-          <div className="relative aspect-video">
-            <Image
-              src={previewFile.url}
-              alt="Preview"
-              fill
-              className="object-contain bg-black/50"
-              sizes="(max-width: 768px) 100vw, 768px"
-            />
-            <button
-              onClick={cancelPreview}
-              className="absolute top-3 right-3 p-2 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/80 transition-all"
-            >
-              <X className="w-4 h-4" />
-            </button>
+          <div className={cn(
+            "grid gap-2 bg-black/50 p-3",
+            previewFiles.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3"
+          )}>
+            {previewFiles.map((preview, index) => (
+              <div key={`${preview.file.name}-${preview.url}`} className="relative aspect-square overflow-hidden rounded-2xl bg-black/50">
+                <Image
+                  src={preview.url}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 50vw, 256px"
+                />
+                <button
+                  onClick={() => removePreview(index)}
+                  disabled={uploading}
+                  className="absolute top-2 right-2 p-2 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/80 transition-all disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
           <div className="p-6 space-y-4">
             <input
               type="text"
-              placeholder="Add a caption (optional)"
+              placeholder={previewFiles.length > 1 ? "Add a caption to all photos (optional)" : "Add a caption (optional)"}
               value={caption}
               onChange={(e) => setCaption(e.target.value)}
               maxLength={200}
@@ -175,11 +240,12 @@ export function PhotoUploadClient({
             />
             <div className="flex items-center justify-between">
               <p className="text-[10px] text-gray-600">
-                {previewFile.file.name} · {(previewFile.file.size / (1024 * 1024)).toFixed(1)}MB
+                {previewFiles.length} photo{previewFiles.length !== 1 ? "s" : ""} · {totalPreviewSizeMb.toFixed(1)}MB total
               </p>
               <div className="flex items-center gap-3">
                 <button
                   onClick={cancelPreview}
+                  disabled={uploading}
                   className="px-5 py-2.5 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold text-gray-500 hover:text-white transition-colors"
                 >
                   Cancel
@@ -194,7 +260,11 @@ export function PhotoUploadClient({
                   ) : (
                     <Camera className="w-3.5 h-3.5" />
                   )}
-                  {uploading ? "Uploading..." : "Submit Photo"}
+                  {uploading
+                    ? uploadProgress
+                      ? `Uploading ${uploadProgress.current}/${uploadProgress.total}`
+                      : "Uploading..."
+                    : `Submit ${previewFiles.length} Photo${previewFiles.length !== 1 ? "s" : ""}`}
                 </button>
               </div>
             </div>

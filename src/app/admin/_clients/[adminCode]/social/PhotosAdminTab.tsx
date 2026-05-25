@@ -104,21 +104,53 @@ export function PhotosAdminTab({
   };
 
   const uploadSingleFile = async (file: File): Promise<EventPhoto | null> => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("autoApprove", "true");
-
-    const res = await fetch("/api/admin/upload-event-photo", {
+    const signRes = await fetch("/api/admin/event-photo-upload/sign", {
       method: "POST",
       headers: {
+        "content-type": "application/json",
         "x-admin-code": adminCode,
         "x-event-id": event.id,
       },
-      body: formData,
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || getMimeType(file.name),
+        size: file.size,
+      }),
     });
-    const data = await res.json();
-    if (res.ok && data.photo) return data.photo;
-    throw new Error(data.error || `Failed to upload ${file.name}`);
+
+    const signed = await signRes.json();
+    if (!signRes.ok) {
+      throw new Error(signed.error || `Failed to prepare ${file.name}`);
+    }
+
+    const supabase = createClient();
+    const { error: uploadError } = await supabase.storage
+      .from(signed.bucket)
+      .uploadToSignedUrl(signed.path, signed.token, file, {
+        contentType: signed.contentType || file.type || getMimeType(file.name),
+      });
+
+    if (uploadError) {
+      throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
+    }
+
+    const completeRes = await fetch("/api/admin/event-photo-upload/complete", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-admin-code": adminCode,
+        "x-event-id": event.id,
+      },
+      body: JSON.stringify({
+        path: signed.path,
+        publicUrl: signed.publicUrl,
+        autoApprove: true,
+      }),
+    });
+
+    const data = await completeRes.json();
+    if (completeRes.ok && data.photo) return data.photo;
+    throw new Error(data.error || `Failed to save ${file.name}`);
   };
 
   const handleAdminUpload = useCallback(async (files: FileList | File[]) => {
