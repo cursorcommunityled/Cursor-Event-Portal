@@ -2,6 +2,17 @@ import { CursorEvent } from '@/lib/landing-types';
 
 export const events: CursorEvent[] = [
   {
+    id: 'calgary-june-2026',
+    title: 'Cursor Calgary Meetup - June',
+    date: '2026-06-24',
+    displayDate: 'June 24, 2026 - 5:30-8:30 PM MDT',
+    description: 'Hosted at ZayZoon. Bring your laptop for speakers, a hands-on build session, demos, and networking.',
+    location: 'ZayZoon, Calgary, Canada',
+    lumaUrl: 'https://luma.com/cursor-t2wq',
+    portalPath: '/calgary-june-2026',
+    status: 'upcoming',
+  },
+  {
     id: 'calgary-hackathon-sait-may-2026',
     title: 'Cursor Calgary Hackathon - SAIT',
     date: '2026-05-23',
@@ -43,6 +54,6 @@ export const events: CursorEvent[] = [
 
 export const upcomingEvents = events.filter((e) => e.status === 'upcoming');
 export const pastEvents = events.filter((e) => e.status === 'past');
-export const lumaEvents = events
-  .filter((e) => e.lumaUrl)
+export const eventLinks = events
+  .filter((e) => e.lumaUrl || e.portalPath)
   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

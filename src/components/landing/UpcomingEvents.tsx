@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
-import { lumaEvents } from '@/content/events';
+import { eventLinks } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
 
 const EVENT_LINKS_PER_PAGE = 2;
@@ -12,14 +13,14 @@ const UpcomingEvents: React.FC = () => {
   const { t, locale } = useI18n();
   const [page, setPage] = useState(0);
 
-  const totalPages = Math.max(1, Math.ceil(lumaEvents.length / EVENT_LINKS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(eventLinks.length / EVENT_LINKS_PER_PAGE));
   const currentPage = Math.min(page, totalPages - 1);
   const visibleEvents = useMemo(() => {
     const offset = currentPage * EVENT_LINKS_PER_PAGE;
-    return lumaEvents.slice(offset, offset + EVENT_LINKS_PER_PAGE);
+    return eventLinks.slice(offset, offset + EVENT_LINKS_PER_PAGE);
   }, [currentPage]);
 
-  if (lumaEvents.length === 0) {
+  if (eventLinks.length === 0) {
     return null;
   }
 
@@ -81,17 +82,32 @@ const UpcomingEvents: React.FC = () => {
                 )}
               </div>
               <h3 className="text-2xl font-bold text-cursor-text mb-3">{event.title}</h3>
-              {event.lumaUrl ? (
-                <a
-                  href={event.lumaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-cursor-text text-cursor-bg rounded-md px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  {isPast ? t('home.viewOnLuma') : t('home.register')}
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+              {event.description ? (
+                <p className="text-sm text-cursor-text-muted leading-relaxed mb-4">
+                  {event.description}
+                </p>
               ) : null}
+              <div className="flex flex-wrap gap-2">
+                {event.lumaUrl ? (
+                  <a
+                    href={event.lumaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-cursor-text text-cursor-bg rounded-md px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                  >
+                    {isPast ? t('home.viewOnLuma') : t('home.register')}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : null}
+                {event.portalPath ? (
+                  <Link
+                    href={event.portalPath}
+                    className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-medium text-cursor-text hover:bg-white/10 transition-colors"
+                  >
+                    {t('nav.eventPortal')}
+                  </Link>
+                ) : null}
+              </div>
             </motion.div>
           );
         })}
