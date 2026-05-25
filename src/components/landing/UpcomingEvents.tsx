@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { eventLinks } from '@/content/events';
@@ -87,27 +86,17 @@ const UpcomingEvents: React.FC = () => {
                   {event.description}
                 </p>
               ) : null}
-              <div className="flex flex-wrap gap-2">
-                {event.lumaUrl ? (
-                  <a
-                    href={event.lumaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-cursor-text text-cursor-bg rounded-md px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-                  >
-                    {isPast ? t('home.viewOnLuma') : t('home.register')}
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : null}
-                {event.portalPath ? (
-                  <Link
-                    href={event.portalPath}
-                    className="inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-medium text-cursor-text hover:bg-white/10 transition-colors"
-                  >
-                    {t('nav.eventPortal')}
-                  </Link>
-                ) : null}
-              </div>
+              {event.lumaUrl ? (
+                <a
+                  href={event.lumaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-cursor-text text-cursor-bg rounded-md px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  {isPast ? t('home.viewOnLuma') : t('home.register')}
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : null}
             </motion.div>
           );
         })}
