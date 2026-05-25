@@ -26,7 +26,7 @@ const JUDGING_PHASES = [
       "Analysis takes about 3 minutes per team. You will see live progress on your dashboard.",
       "Projects are scored across 6 weighted criteria.",
       "Problem-Solution Fit is judged against the event prompt and whether the project solves a real personal pain point.",
-      "You will NOT see your AI score. Results stay pending until admin review.",
+      "AI screening scores are only shown when admins choose to publish them.",
     ],
   },
   {
@@ -43,7 +43,7 @@ const JUDGING_PHASES = [
     label: "Phase 4",
     title: "Results",
     points: [
-      "Admin publishes the Top 3, visible on the Competitions page.",
+      "Admin publishes the paid placements once final judging is complete.",
       "Leaderboard becomes visible once admin approves scores.",
       "Winners are announced in the #announcements channel.",
     ],

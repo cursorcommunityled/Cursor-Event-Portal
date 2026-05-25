@@ -8,6 +8,7 @@ import type {
   CompetitionEntry,
   CompetitionJudgingCriterion,
   CompetitionJudgingStanding,
+  HackathonPrize,
 } from "@/types";
 
 const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, index) => ({
@@ -20,6 +21,7 @@ const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, inde
 }));
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
+type PublishedPrize = HackathonPrize & { finalScore: number; maxScore: number };
 
 async function validateAdmin(adminCode: string) {
   const supabase = await createServiceClient();
@@ -299,7 +301,8 @@ export async function publishCompetitionJudgingResults(
   competitionId: string,
   eventSlug: string,
   adminCode: string,
-  placementCount = 3
+  placementCount = 3,
+  prizes: HackathonPrize[] = []
 ): Promise<{ success?: true; standings?: CompetitionJudgingStanding[]; error?: string }> {
   const auth = await validateAdmin(adminCode);
   if (!auth.valid) return { error: auth.error };
@@ -321,6 +324,7 @@ export async function publishCompetitionJudgingResults(
   }
 
   const now = new Date().toISOString();
+  const prizeByPlacement = new Map(prizes.map((prize) => [Number(prize.placement), prize]));
 
   const { error: deleteError } = await supabase
     .from("competition_judging_results")
@@ -330,17 +334,30 @@ export async function publishCompetitionJudgingResults(
   if (deleteError) return { error: deleteError.message };
 
   const { error: insertError } = await supabase.from("competition_judging_results").insert(
-    winners.map((standing) => ({
-      event_id: competition.event_id,
-      competition_id: competitionId,
-      entry_id: standing.entry_id,
-      placement: standing.placement,
-      final_score: standing.final_score,
-      max_score: standing.max_score,
-      judge_count: standing.judge_count,
-      is_published: true,
-      published_at: now,
-    }))
+    winners.map((standing) => {
+      const prize = prizeByPlacement.get(standing.placement);
+      const prizeSnapshot: PublishedPrize | Record<string, never> = prize
+        ? {
+            ...prize,
+            placement: standing.placement,
+            finalScore: standing.final_score,
+            maxScore: standing.max_score,
+          }
+        : {};
+
+      return {
+        event_id: competition.event_id,
+        competition_id: competitionId,
+        entry_id: standing.entry_id,
+        placement: standing.placement,
+        final_score: standing.final_score,
+        max_score: standing.max_score,
+        judge_count: standing.judge_count,
+        prize: prizeSnapshot,
+        is_published: true,
+        published_at: now,
+      };
+    })
   );
 
   if (insertError) return { error: insertError.message };

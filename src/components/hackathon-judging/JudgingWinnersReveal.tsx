@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { X, Trophy, Medal } from "lucide-react";
+import { X, Trophy, Medal, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { WinnerCelebration } from "@/components/competitions/Confetti";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
@@ -11,6 +11,7 @@ import type { CompetitionEntry, CompetitionJudgingResult, EventPhoto } from "@/t
 interface Props {
   eventId: string;
   initialResults: CompetitionJudgingResult[];
+  hideAudienceFavorite?: boolean;
 }
 
 function groupKey(results: CompetitionJudgingResult[]) {
@@ -38,6 +39,22 @@ function groupLatestResults(results: CompetitionJudgingResult[]) {
 
 function resultTeamLabel(result: CompetitionJudgingResult) {
   return result.entry?.team?.name ?? result.entry?.user?.name ?? "Team";
+}
+
+function isAudienceFavoriteResult(result: CompetitionJudgingResult) {
+  const title = result.competition?.title?.trim().toLowerCase() ?? "";
+  return title === "audience favourite" || title === "audience favorite";
+}
+
+function resultPrizeLabel(result: CompetitionJudgingResult) {
+  const prize = result.prize;
+  if (!prize?.isPublic) return null;
+  const parts = [
+    prize.cashValue ? `$${prize.cashValue.toLocaleString()}` : null,
+    prize.cursorCredits ? `${prize.cursorCredits.toLocaleString()} Cursor credits` : null,
+  ].filter(Boolean);
+  if (parts.length === 0 && !prize.label) return null;
+  return [prize.label, ...parts].filter(Boolean).join(" · ");
 }
 
 async function attachResultTeams(
@@ -98,7 +115,7 @@ async function attachResultTeams(
   }));
 }
 
-export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
+export function JudgingWinnersReveal({ eventId, initialResults, hideAudienceFavorite = false }: Props) {
   const [results, setResults] = useState(initialResults);
   const [activeResults, setActiveResults] = useState<CompetitionJudgingResult[]>([]);
 
@@ -127,7 +144,10 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
         .eq("is_published", true)
         .order("placement", { ascending: true });
 
-      const next = await attachResultTeams(supabase, eventId, data as unknown as CompetitionJudgingResult[]);
+      const nextWithTeams = await attachResultTeams(supabase, eventId, data as unknown as CompetitionJudgingResult[]);
+      const next = hideAudienceFavorite
+        ? nextWithTeams.filter((result) => !isAudienceFavoriteResult(result))
+        : nextWithTeams;
       setResults((prev) => [
         ...prev.filter((result) => result.competition_id !== competitionId),
         ...next,
@@ -160,13 +180,16 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId]);
+  }, [eventId, hideAudienceFavorite]);
 
   if (activeResults.length === 0) return null;
 
   const competitionTitle = activeResults[0]?.competition?.title ?? "Hackathon";
+  const isAudienceAward = activeResults.some(isAudienceFavoriteResult);
   const winner = activeResults.find((result) => result.placement === 1) ?? activeResults[0];
-  const podiumPlacements = activeResults.length === 1 ? [winner.placement] : [2, 1, 3];
+  const podiumPlacements = activeResults.length <= 3
+    ? [2, 1, 3].filter((placement) => activeResults.some((result) => result.placement === placement))
+    : activeResults.map((result) => result.placement);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 transition-opacity">
@@ -188,12 +211,17 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
         </button>
 
         <div className="relative text-center space-y-4">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-yellow-500/40 bg-white shadow-[0_0_40px_rgba(234,179,8,0.5)] relative overflow-hidden">
-            <div className="absolute inset-0 bg-yellow-500/10 animate-pulse" />
-            <img src="/trophy.jpeg" alt="Trophy" className="w-full h-full object-cover relative z-10 scale-[1.15]" style={{ mixBlendMode: 'multiply' }} />
+          <div className={cn(
+            "mx-auto flex h-24 w-24 items-center justify-center rounded-full border shadow-[0_0_40px_rgba(234,179,8,0.25)] relative overflow-hidden",
+            isAudienceAward ? "border-red-400/40 bg-red-500/10 text-red-200" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+          )}>
+            <div className="absolute inset-0 bg-white/5 animate-pulse" />
+            {isAudienceAward ? <Star className="relative z-10 h-10 w-10 fill-red-300/20" /> : <Trophy className="relative z-10 h-10 w-10" />}
           </div>
           <div className="space-y-2">
-            <p className="text-[12px] font-bold uppercase tracking-[0.4em] text-yellow-400/90">Winners Announced</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.4em] text-yellow-400/90">
+              {isAudienceAward ? "Audience Award Announced" : "Winners Announced"}
+            </p>
             <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-gray-400 drop-shadow-2xl">{competitionTitle}</h2>
           </div>
           {winner?.entry && (
@@ -205,7 +233,7 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
 
         <div className={cn(
           "relative mt-12 grid gap-4 md:items-end",
-          activeResults.length === 1 ? "mx-auto w-full max-w-xs md:grid-cols-1" : "md:grid-cols-3"
+          activeResults.length === 1 ? "mx-auto w-full max-w-xs md:grid-cols-1" : activeResults.length <= 3 ? "md:grid-cols-3" : "md:grid-cols-4"
         )}>
           {podiumPlacements.map((placement) => {
             const result = activeResults.find((row) => row.placement === placement);
@@ -225,11 +253,15 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
                 key={result.id}
                 className={cn(
                   "relative overflow-hidden rounded-[32px] border p-6 text-center backdrop-blur-md transition-transform hover:scale-105",
-                  placement === 1
+                  isAudienceAward
+                    ? "border-red-400/40 bg-red-500/10 md:pb-8"
+                    : placement === 1
                     ? "md:order-2 border-yellow-500/50 bg-yellow-500/10 md:pb-12 shadow-[0_0_30px_rgba(234,179,8,0.2)]"
                     : placement === 2
                       ? "md:order-1 border-gray-400/40 bg-gray-400/10 md:pb-8 shadow-[0_0_20px_rgba(156,163,175,0.1)]"
-                      : "md:order-3 border-orange-500/40 bg-orange-500/10 md:pb-6 shadow-[0_0_20px_rgba(249,115,22,0.1)]"
+                      : placement === 3
+                        ? "md:order-3 border-orange-500/40 bg-orange-500/10 md:pb-6 shadow-[0_0_20px_rgba(249,115,22,0.1)]"
+                        : "border-white/15 bg-white/[0.04] md:pb-6"
                 )}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent" />
@@ -247,12 +279,12 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
                     />
                     <div className={cn(
                       "absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full border bg-black/80 shadow-lg",
-                      placement === 1 ? "border-yellow-500/50" : placement === 2 ? "border-gray-400/40" : "border-orange-500/40"
+                      placement === 1 ? "border-yellow-500/50" : placement === 2 ? "border-gray-400/40" : placement === 3 ? "border-orange-500/40" : "border-white/20"
                     )}>
-                      <Medal className={cn(
+                      {placement === 1 && !isAudienceAward ? <Trophy className="h-5 w-5 text-yellow-400 drop-shadow-lg" /> : <Medal className={cn(
                         "h-5 w-5 drop-shadow-lg",
-                        placement === 1 ? "text-yellow-400" : placement === 2 ? "text-gray-300" : "text-orange-400"
-                      )} />
+                        isAudienceAward ? "text-red-200" : placement === 2 ? "text-gray-300" : placement === 3 ? "text-orange-400" : "text-gray-400"
+                      )} />}
                     </div>
                   </div>
                   <p className={cn(
@@ -263,6 +295,11 @@ export function JudgingWinnersReveal({ eventId, initialResults }: Props) {
                   </p>
                   <h3 className="text-2xl font-black tracking-tight text-white mt-2">{result.entry?.title ?? "Project"}</h3>
                   <p className="text-[13px] font-medium text-gray-300 mt-1">{resultTeamLabel(result)}</p>
+                  {resultPrizeLabel(result) && (
+                    <p className="mt-3 rounded-full border border-yellow-500/25 bg-yellow-500/10 px-3 py-1.5 text-[11px] font-bold text-yellow-100">
+                      {resultPrizeLabel(result)}
+                    </p>
+                  )}
                   <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-black/40 px-4 py-2 border border-white/10">
                     <span className="text-[15px] font-bold text-white">{Number(result.final_score).toFixed(1)}</span>
                     <span className="text-[11px] font-bold text-gray-500">/ {Number(result.max_score).toFixed(0)}</span>
@@ -304,29 +341,44 @@ export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingR
       {allGroups.map((group) => {
         const competitionTitle = group[0]?.competition?.title ?? "Hackathon";
         const key = `${group[0]?.competition_id}:${group[0]?.published_at ?? group[0]?.created_at}`;
+        const isAudienceAward = group.some(isAudienceFavoriteResult);
 
         return (
-          <div key={key} className="relative overflow-hidden rounded-[34px] border border-yellow-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <div key={key} className={cn(
+            "relative overflow-hidden rounded-[34px] border bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6",
+            isAudienceAward ? "border-red-500/25" : "border-yellow-500/30"
+          )}>
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
-            <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-yellow-500/10 blur-[50px]" />
+            <div className={cn(
+              "absolute -right-20 -top-20 h-40 w-40 rounded-full blur-[50px]",
+              isAudienceAward ? "bg-red-500/10" : "bg-yellow-500/10"
+            )} />
             
             <div className="relative flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-yellow-500/40 bg-white text-yellow-300 shadow-[0_0_20px_rgba(234,179,8,0.4)] relative overflow-hidden">
-                <div className="absolute inset-0 bg-yellow-500/10 animate-pulse" />
-                <img src="/trophy.jpeg" alt="Trophy" className="w-full h-full object-cover relative z-10 scale-[1.15]" style={{ mixBlendMode: 'multiply' }} />
+              <div className={cn(
+                "flex h-12 w-12 items-center justify-center rounded-full border relative overflow-hidden",
+                isAudienceAward
+                  ? "border-red-400/40 bg-red-500/10 text-red-200"
+                  : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+              )}>
+                <div className="absolute inset-0 bg-white/5 animate-pulse" />
+                {isAudienceAward ? <Star className="relative z-10 h-5 w-5 fill-red-300/20" /> : <Trophy className="relative z-10 h-5 w-5" />}
               </div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-400/80">Published Winners</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-400/80">
+                  {isAudienceAward ? "Published Audience Award" : "Published Winners"}
+                </p>
                 <h2 className="text-2xl font-black tracking-tight text-white">{competitionTitle}</h2>
               </div>
             </div>
-            <div className="relative grid gap-4 sm:grid-cols-3">
-              {group.slice(0, 3).map((result) => (
+            <div className="relative grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {group.map((result) => (
                 <div key={result.id} className={cn(
                   "rounded-[24px] border p-5 transition-all hover:scale-[1.02]",
                   result.placement === 1 ? "border-yellow-500/40 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)]" :
                   result.placement === 2 ? "border-gray-400/30 bg-gray-400/10" :
-                  "border-orange-500/30 bg-orange-500/10"
+                  result.placement === 3 ? "border-orange-500/30 bg-orange-500/10" :
+                  "border-white/10 bg-white/[0.03]"
                 )}>
                   <div className="flex items-center justify-between mb-3">
                     <p className={cn(
@@ -335,12 +387,16 @@ export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingR
                       result.placement === 2 ? "text-gray-400" :
                       "text-orange-400"
                     )}>Place {result.placement}</p>
-                    <Medal className={cn(
-                      "w-4 h-4",
-                      result.placement === 1 ? "text-yellow-400" :
-                      result.placement === 2 ? "text-gray-400" :
-                      "text-orange-400"
-                    )} />
+                    {result.placement === 1 && !isAudienceAward ? (
+                      <Trophy className="h-4 w-4 text-yellow-400" />
+                    ) : (
+                      <Medal className={cn(
+                        "w-4 h-4",
+                        result.placement === 2 ? "text-gray-400" :
+                        result.placement === 3 ? "text-orange-400" :
+                        "text-gray-500"
+                      )} />
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <TeamIcon
@@ -353,6 +409,9 @@ export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingR
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-bold text-white">{result.entry?.title ?? "Project"}</p>
                       <p className="mt-1 truncate text-[12px] font-medium text-gray-400">{resultTeamLabel(result)}</p>
+                      {resultPrizeLabel(result) && (
+                        <p className="mt-2 text-[11px] font-bold text-yellow-100/80">{resultPrizeLabel(result)}</p>
+                      )}
                     </div>
                   </div>
                 </div>

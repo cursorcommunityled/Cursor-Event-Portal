@@ -10,6 +10,8 @@ import {
   toggleTeamFormation,
   saveHackathonSettings,
   toggleLeaderboard,
+  toggleAIScoresVisibility,
+  toggleAudienceFavoriteResultsVisibility,
   adminSetTeamLock,
   adminReviewTeamIcon,
   adminRemoveTeamMember,
@@ -709,6 +711,9 @@ export function HackathonAdminClient({
   const rankedTeams = [...teams]
     .filter((t) => scores.some((s) => s.team_id === t.id))
     .sort((a, b) => totalScore(b.id) - totalScore(a.id));
+  const leaderboardVisible = settings?.leaderboard_visible ?? false;
+  const aiScoresVisible = settings?.ai_scores_visible ?? false;
+  const audienceFavoriteResultsVisible = settings?.audience_favorite_results_visible ?? false;
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
@@ -1666,34 +1671,113 @@ export function HackathonAdminClient({
         {/* Leaderboard tab */}
         {tab === "leaderboard" && (
           <div className="space-y-4 animate-slide-up">
-            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl flex items-center justify-between">
+            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/40 p-6 backdrop-blur-xl space-y-5">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:15px_15px]" />
               <div className="relative">
-                <p className="text-[15px] font-bold text-white">Leaderboard Visible to Attendees</p>
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 mt-1">
-                  {settings?.leaderboard_visible ? "Scores are live" : "Hidden during judging"}
+                <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-300">Attendee Visibility</p>
+                <p className="mt-1 text-xl font-black tracking-tight text-white">Control what score surfaces are public</p>
+                <p className="mt-1 text-[12px] font-medium text-gray-500">
+                  These switches control attendee-facing cards only. Admin judging and review data stays available here.
                 </p>
               </div>
-              <button
-                disabled={isPending}
-                onClick={() => startTransition(async () => {
-                  const newVal = !settings?.leaderboard_visible;
-                  const res = await toggleLeaderboard(adminCode, newVal);
-                  if (res.success) setSettings((prev) => prev ? { ...prev, leaderboard_visible: newVal } : prev);
-                  else setError(res.error ?? "Failed");
-                })}
-                className={cn(
-                  "relative w-14 h-7 rounded-full border transition-all duration-300",
-                  settings?.leaderboard_visible
-                    ? "bg-green-500/40 border-green-500/60 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
-                    : "bg-white/5 border-white/10"
-                )}
-              >
-                <div className={cn(
-                  "absolute top-1 w-5 h-5 rounded-full transition-all duration-300",
-                  settings?.leaderboard_visible ? "left-8 bg-green-400" : "left-1 bg-gray-500"
-                )} />
-              </button>
+
+              <div className="relative grid gap-3 md:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-bold text-white">Public Leaderboard</p>
+                      <p className="mt-1 text-[11px] font-medium text-gray-500">Shows applied judge/manual scores on attendee team cards.</p>
+                    </div>
+                    <button
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        const newVal = !leaderboardVisible;
+                        const res = await toggleLeaderboard(adminCode, newVal);
+                        if (res.success) setSettings((prev) => prev ? { ...prev, leaderboard_visible: newVal } : prev);
+                        else setError(res.error ?? "Failed");
+                      })}
+                      className={cn(
+                        "relative h-7 w-14 shrink-0 rounded-full border transition-all duration-300",
+                        leaderboardVisible
+                          ? "bg-green-500/40 border-green-500/60 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
+                          : "bg-white/5 border-white/10"
+                      )}
+                    >
+                      <div className={cn(
+                        "absolute top-1 h-5 w-5 rounded-full transition-all duration-300",
+                        leaderboardVisible ? "left-8 bg-green-400" : "left-1 bg-gray-500"
+                      )} />
+                    </button>
+                  </div>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                    {leaderboardVisible ? "Visible to attendees" : "Hidden during judging"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-bold text-white">AI Screening Scores</p>
+                      <p className="mt-1 text-[11px] font-medium text-gray-500">Shows pass-6 AI scorecards and AI standings separately.</p>
+                    </div>
+                    <button
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        const newVal = !aiScoresVisible;
+                        const res = await toggleAIScoresVisibility(adminCode, newVal);
+                        if (res.success) setSettings((prev) => prev ? { ...prev, ai_scores_visible: newVal } : prev);
+                        else setError(res.error ?? "Failed");
+                      })}
+                      className={cn(
+                        "relative h-7 w-14 shrink-0 rounded-full border transition-all duration-300",
+                        aiScoresVisible
+                          ? "bg-green-500/40 border-green-500/60 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
+                          : "bg-white/5 border-white/10"
+                      )}
+                    >
+                      <div className={cn(
+                        "absolute top-1 h-5 w-5 rounded-full transition-all duration-300",
+                        aiScoresVisible ? "left-8 bg-green-400" : "left-1 bg-gray-500"
+                      )} />
+                    </button>
+                  </div>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                    {aiScoresVisible ? "AI scores public" : "AI scores admin-only"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[13px] font-bold text-white">People&apos;s Favorite Results</p>
+                      <p className="mt-1 text-[11px] font-medium text-gray-500">Shows vote counts and audience award results when enabled.</p>
+                    </div>
+                    <button
+                      disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        const newVal = !audienceFavoriteResultsVisible;
+                        const res = await toggleAudienceFavoriteResultsVisibility(adminCode, newVal);
+                        if (res.success) setSettings((prev) => prev ? { ...prev, audience_favorite_results_visible: newVal } : prev);
+                        else setError(res.error ?? "Failed");
+                      })}
+                      className={cn(
+                        "relative h-7 w-14 shrink-0 rounded-full border transition-all duration-300",
+                        audienceFavoriteResultsVisible
+                          ? "bg-green-500/40 border-green-500/60 shadow-[0_0_15px_rgba(74,222,128,0.3)]"
+                          : "bg-white/5 border-white/10"
+                      )}
+                    >
+                      <div className={cn(
+                        "absolute top-1 h-5 w-5 rounded-full transition-all duration-300",
+                        audienceFavoriteResultsVisible ? "left-8 bg-green-400" : "left-1 bg-gray-500"
+                      )} />
+                    </button>
+                  </div>
+                  <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                    {audienceFavoriteResultsVisible ? "Results visible" : "Results hidden"}
+                  </p>
+                </div>
+              </div>
             </div>
 
             {judgingWinnerError && <p className="text-[11px] text-red-400">{judgingWinnerError}</p>}
@@ -1721,7 +1805,7 @@ export function HackathonAdminClient({
                   </button>
                 </div>
                 <div className="relative grid gap-3 md:grid-cols-3">
-                  {results.slice(0, 3).map((result) => (
+                  {results.map((result) => (
                     <div
                       key={result.id}
                       className={cn(
@@ -1750,7 +1834,7 @@ export function HackathonAdminClient({
               <div className="relative flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <Star className="w-4 h-4 text-yellow-400" />
                     <p className="text-[13px] font-bold text-white">Audience Favourite Vote · $250 Prize</p>
                   </div>
                   <p className="text-[11px] text-gray-500">
@@ -1893,7 +1977,7 @@ export function HackathonAdminClient({
                     onClick={launchAudienceVote}
                     className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-bold border border-yellow-500/40 bg-yellow-500/15 text-yellow-300 hover:bg-yellow-500/30 transition-all disabled:opacity-50"
                   >
-                    <Trophy className="w-3.5 h-3.5" />
+                    <Star className="w-3.5 h-3.5" />
                     {voteStatus === "pending"
                       ? "Launching..."
                       : audienceVoteSelectedCount > 0
@@ -1942,7 +2026,7 @@ export function HackathonAdminClient({
                 </div>
                 <div className="relative text-right shrink-0">
                   <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{totalScore(team.id)}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">/ 40 pts</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">/ {HACKATHON_SCORE_MAX} pts</p>
                 </div>
               </div>
             ))}
@@ -1956,6 +2040,7 @@ export function HackathonAdminClient({
             eventSlug={event.slug}
             adminUserId={adminUserId}
             competitions={judgingCompetitions}
+            settings={settings}
             teams={teams}
             aiAnalyses={aiAnalyses}
           />

@@ -3,7 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "./registration";
 import { revalidatePath } from "next/cache";
-import type { HackathonSettings, HackathonTeamWithMembers, HackathonTeamInvite, HackathonScore } from "@/types";
+import type { HackathonPrize, HackathonSettings, HackathonTeamWithMembers, HackathonTeamInvite, HackathonScore } from "@/types";
 import type { HackathonScoreCategoryKey } from "@/lib/hackathon-rubric";
 import { ensureTeamChannel } from "./hackathon-chat";
 
@@ -32,6 +32,7 @@ function isFormationOpen(settings: HackathonSettings | null): boolean {
 const PROJECT_JUDGING_LOCK_BUFFER_MS = 5 * 60 * 1000;
 const TEAM_NAME_MAX_LENGTH = 60;
 const PENDING_INVITE_TEAM_CATEGORY = "pending_invite";
+const MAX_PAID_PLACES = 10;
 
 function getProjectSubmissionCutoff(settings: Pick<HackathonSettings, "submission_deadline" | "judging_starts_at"> | null): Date | null {
   if (settings?.judging_starts_at) {
@@ -50,6 +51,30 @@ function isProjectSubmissionOpen(
 
 function getTeamChannelName(teamName: string): string {
   return `team-${teamName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+function normalizePrizeNumber(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  const next = Number(value);
+  return Number.isFinite(next) && next >= 0 ? Math.round(next) : null;
+}
+
+function normalizeFinalRoundPrizes(paidPlaces: number, prizes: HackathonPrize[]): HackathonPrize[] {
+  const clampedPaidPlaces = Math.min(Math.max(Math.floor(paidPlaces || 1), 1), MAX_PAID_PLACES);
+  const byPlacement = new Map(prizes.map((prize) => [Number(prize.placement), prize]));
+
+  return Array.from({ length: clampedPaidPlaces }, (_, index) => {
+    const placement = index + 1;
+    const existing = byPlacement.get(placement);
+    return {
+      placement,
+      label: existing?.label?.trim() || `${placement}${placement === 1 ? "st" : placement === 2 ? "nd" : placement === 3 ? "rd" : "th"} Place`,
+      cashValue: normalizePrizeNumber(existing?.cashValue),
+      cursorCredits: normalizePrizeNumber(existing?.cursorCredits),
+      notes: existing?.notes?.trim() || null,
+      isPublic: existing?.isPublic ?? true,
+    };
+  });
 }
 
 async function saveRepoSubmissionBackup(
@@ -131,6 +156,10 @@ export async function saveHackathonSettings(
     min_team_size?: number;
     max_team_size?: number;
     prompt_text?: string;
+    ai_scores_visible?: boolean;
+    audience_favorite_results_visible?: boolean;
+    final_round_paid_places?: number;
+    final_round_prizes?: HackathonPrize[];
   }
 ): Promise<{ success?: true; error?: string }> {
   const auth = await validateAdmin(adminCode);
@@ -242,6 +271,124 @@ export async function toggleLeaderboard(
   if (error) return { error: error.message };
   revalidatePath(`/admin/${adminCode}/hackathon`);
   return { success: true };
+}
+
+export async function toggleAIScoresVisibility(
+  adminCode: string,
+  visible: boolean
+): Promise<{ success?: true; error?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const supabase = await createServiceClient();
+  const payload = {
+    event_id: auth.eventId,
+    ai_scores_visible: visible,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingSettings } = await supabase
+    .from("hackathon_settings")
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .limit(1);
+
+  const { error } = existingSettings?.[0]
+    ? await supabase
+        .from("hackathon_settings")
+        .update(payload)
+        .eq("id", existingSettings[0].id)
+    : await supabase
+        .from("hackathon_settings")
+        .insert(payload);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  return { success: true };
+}
+
+export async function toggleAudienceFavoriteResultsVisibility(
+  adminCode: string,
+  visible: boolean
+): Promise<{ success?: true; error?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const supabase = await createServiceClient();
+  const payload = {
+    event_id: auth.eventId,
+    audience_favorite_results_visible: visible,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingSettings } = await supabase
+    .from("hackathon_settings")
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .limit(1);
+
+  const { error } = existingSettings?.[0]
+    ? await supabase
+        .from("hackathon_settings")
+        .update(payload)
+        .eq("id", existingSettings[0].id)
+    : await supabase
+        .from("hackathon_settings")
+        .insert(payload);
+
+  if (error) return { error: error.message };
+
+  await supabase
+    .from("polls")
+    .update({ show_results: visible })
+    .eq("event_id", auth.eventId)
+    .eq("hackathon_audience_vote", true)
+    .eq("is_active", true);
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}`);
+  return { success: true };
+}
+
+export async function saveFinalRoundPrizeSettings(
+  adminCode: string,
+  paidPlaces: number,
+  prizes: HackathonPrize[]
+): Promise<{ success?: true; prizes?: HackathonPrize[]; error?: string }> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const clampedPaidPlaces = Math.min(Math.max(Math.floor(paidPlaces || 1), 1), MAX_PAID_PLACES);
+  const normalizedPrizes = normalizeFinalRoundPrizes(clampedPaidPlaces, prizes);
+  const supabase = await createServiceClient();
+  const payload = {
+    event_id: auth.eventId,
+    final_round_paid_places: clampedPaidPlaces,
+    final_round_prizes: normalizedPrizes,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingSettings } = await supabase
+    .from("hackathon_settings")
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .limit(1);
+
+  const { error } = existingSettings?.[0]
+    ? await supabase
+        .from("hackathon_settings")
+        .update(payload)
+        .eq("id", existingSettings[0].id)
+    : await supabase
+        .from("hackathon_settings")
+        .insert(payload);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  return { success: true, prizes: normalizedPrizes };
 }
 
 // ─── Admin: lock / unlock a team ──────────────────────────────────────────────
