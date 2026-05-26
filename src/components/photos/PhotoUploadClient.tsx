@@ -8,7 +8,9 @@ import {
   EVENT_PHOTO_MAX_SIZE_BYTES,
   EVENT_PHOTO_MAX_SIZE_MB,
   eventPhotoSizeLimitError,
+  isEventPhotoImageFile,
 } from "@/lib/constants/event-photo-upload";
+import { prepareEventPhotoFile } from "@/lib/utils/prepare-event-photo-file";
 import type { EventPhoto, PhotoStatus } from "@/types";
 
 interface PhotoUploadClientProps {
@@ -18,15 +20,6 @@ interface PhotoUploadClientProps {
 }
 
 type PreviewFile = { file: File; url: string };
-
-const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
-const ALLOWED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
-
-function isImageFile(file: File) {
-  if (ALLOWED_IMAGE_TYPES.includes(file.type)) return true;
-  const lower = file.name.toLowerCase();
-  return ALLOWED_IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
-}
 
 export function PhotoUploadClient({
   eventId,
@@ -49,7 +42,7 @@ export function PhotoUploadClient({
     const errors: string[] = [];
 
     for (const file of Array.from(files)) {
-      if (!isImageFile(file)) {
+      if (!isEventPhotoImageFile(file.name, file.type)) {
         errors.push(`${file.name}: unsupported file type`);
         continue;
       }
@@ -93,8 +86,9 @@ export function PhotoUploadClient({
         setUploadProgress({ current: i + 1, total: previewFiles.length });
 
         try {
+          const preparedFile = await prepareEventPhotoFile(preview.file);
           const formData = new FormData();
-          formData.append("file", preview.file);
+          formData.append("file", preparedFile);
           formData.append("eventId", eventId);
           if (caption.trim()) {
             formData.append("caption", caption.trim());
@@ -203,7 +197,7 @@ export function PhotoUploadClient({
                 Drop photos here or click to browse
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-2">
-                PNG, JPEG, WebP, GIF up to {EVENT_PHOTO_MAX_SIZE_MB}MB each
+                PNG, JPEG, WebP, GIF, HEIC up to {EVENT_PHOTO_MAX_SIZE_MB}MB each
               </p>
             </div>
           </div>

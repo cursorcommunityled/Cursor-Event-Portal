@@ -3,36 +3,14 @@ import { createServiceClient } from "@/lib/supabase/server";
 import {
   EVENT_PHOTO_MAX_SIZE_BYTES,
   eventPhotoSizeLimitError,
+  getEventPhotoMimeType,
+  isEventPhotoImageFile,
+  toJpegFileName,
 } from "@/lib/constants/event-photo-upload";
 
-const ALLOWED_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/gif",
-]);
-
-function isAllowedImage(name: string, contentType?: string | null) {
-  if (contentType && ALLOWED_TYPES.has(contentType)) return true;
-  const lower = name.toLowerCase();
-  return (
-    lower.endsWith(".png") ||
-    lower.endsWith(".jpg") ||
-    lower.endsWith(".jpeg") ||
-    lower.endsWith(".webp") ||
-    lower.endsWith(".gif")
-  );
-}
-
 function getContentType(name: string, contentType?: string | null) {
-  if (contentType && ALLOWED_TYPES.has(contentType)) return contentType;
-  const lower = name.toLowerCase();
-  if (lower.endsWith(".png")) return "image/png";
-  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-  if (lower.endsWith(".webp")) return "image/webp";
-  if (lower.endsWith(".gif")) return "image/gif";
-  return "image/png";
+  if (contentType?.startsWith("image/")) return contentType;
+  return getEventPhotoMimeType(name);
 }
 
 export async function POST(request: NextRequest) {
@@ -64,9 +42,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing file name" }, { status: 400 });
     }
 
-    if (!isAllowedImage(fileName, contentType)) {
+    if (!isEventPhotoImageFile(fileName, contentType)) {
       return NextResponse.json(
-        { error: "Only image files are supported (PNG, JPEG, WebP, GIF)" },
+        { error: "Only image files are supported (PNG, JPEG, WebP, GIF, HEIC)" },
         { status: 400 }
       );
     }
@@ -78,9 +56,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const uploadName = toJpegFileName(fileName);
+    const safeName = uploadName.replace(/[^a-zA-Z0-9._-]/g, "_");
     const filePath = `${headerEventId}/admin/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-    const resolvedContentType = getContentType(fileName, contentType);
+    const resolvedContentType = getContentType(uploadName, contentType);
 
     const { data: signedUpload, error: signError } = await supabase.storage
       .from("event-photos")
