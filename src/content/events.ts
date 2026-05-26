@@ -19,7 +19,7 @@ export const events: CursorEvent[] = [
     displayDate: 'May 23–24, 2026 · 9:00 AM–3:30 PM',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/e4l2gbj2',
-    status: 'upcoming',
+    status: 'past',
   },
   {
     id: 'calgary-may-2026',

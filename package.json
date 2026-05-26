@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "clear-slides": "tsx scripts/clear-slides.ts"
+    "clear-slides": "tsx scripts/clear-slides.ts",
+    "bulk-upload-photos": "tsx scripts/bulk-upload-photos.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
