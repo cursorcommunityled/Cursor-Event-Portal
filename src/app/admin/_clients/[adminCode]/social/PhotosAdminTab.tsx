@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, useRef, useCallback, useEffect } from "react";
+import { useState, useTransition, useRef, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive, Star } from "lucide-react";
+import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import JSZip from "jszip";
 import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos, toggleHeroFeatured } from "@/lib/actions/photos";
 import {
@@ -32,6 +32,8 @@ interface PhotosAdminTabProps {
 
 type FilterStatus = "all" | PhotoStatus;
 
+const PHOTOS_PER_PAGE = 24;
+
 function isTeamIconPhoto(photo: EventPhoto) {
   return photo.photo_usage === "hackathon_team_icon";
 }
@@ -45,6 +47,7 @@ export function PhotosAdminTab({
   const router = useRouter();
   const [photos, setPhotos] = useState(initialPhotos);
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [page, setPage] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [expandedPhoto, setExpandedPhoto] = useState<string | null>(null);
@@ -231,6 +234,17 @@ export function PhotosAdminTab({
   const filteredPhotos = filter === "all"
     ? photos
     : photos.filter((p) => p.status === filter);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPhotos.length / PHOTOS_PER_PAGE));
+
+  const paginatedPhotos = useMemo(() => {
+    const start = page * PHOTOS_PER_PAGE;
+    return filteredPhotos.slice(start, start + PHOTOS_PER_PAGE);
+  }, [filteredPhotos, page]);
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages - 1));
+  }, [totalPages]);
 
   const pendingCount = photos.filter((p) => p.status === "pending").length;
   const approvedCount = photos.filter((p) => p.status === "approved").length;
@@ -441,7 +455,7 @@ export function PhotosAdminTab({
           {FILTERS.map((f) => (
             <button
               key={f.id}
-              onClick={() => { setFilter(f.id); setSelectedIds(new Set()); }}
+              onClick={() => { setFilter(f.id); setSelectedIds(new Set()); setPage(0); }}
               className={cn(
                 "px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold transition-all border",
                 filter === f.id
@@ -490,8 +504,9 @@ export function PhotosAdminTab({
           </p>
         </div>
       ) : (
+        <>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filteredPhotos.map((photo) => (
+          {paginatedPhotos.map((photo) => (
             <div
               key={photo.id}
               className={cn(
@@ -558,6 +573,7 @@ export function PhotosAdminTab({
                   src={photo.file_url}
                   alt={photo.caption || "Event photo"}
                   fill
+                  loading="lazy"
                   className="object-cover"
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 />
@@ -609,6 +625,51 @@ export function PhotosAdminTab({
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between gap-4 pt-2">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 tabular-nums">
+              Page {page + 1} of {totalPages}
+              <span className="mx-2 text-gray-700">·</span>
+              {filteredPhotos.length} photo{filteredPhotos.length !== 1 ? "s" : ""}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-all hover:bg-white/10 disabled:pointer-events-none disabled:opacity-30"
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="hidden sm:flex items-center gap-1.5 max-w-[280px] overflow-x-auto py-1">
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setPage(i)}
+                    className={cn(
+                      "h-1.5 shrink-0 rounded-full transition-all",
+                      i === page ? "w-4 bg-white" : "w-1.5 bg-white/30 hover:bg-white/50"
+                    )}
+                    aria-label={`Go to page ${i + 1}`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-all hover:bg-white/10 disabled:pointer-events-none disabled:opacity-30"
+                aria-label="Next page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {/* Expanded photo modal */}
