@@ -7,6 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { Check, X, Trash2, CheckCheck, ImageIcon, Filter, Upload, Loader2, Archive, Star } from "lucide-react";
 import JSZip from "jszip";
 import { approvePhoto, rejectPhoto, deletePhoto, bulkApprovePhotos, toggleHeroFeatured } from "@/lib/actions/photos";
+import {
+  EVENT_PHOTO_MAX_SIZE_BYTES,
+  EVENT_PHOTO_MAX_SIZE_MB,
+  eventPhotoSizeLimitError,
+} from "@/lib/constants/event-photo-upload";
 import { cn } from "@/lib/utils";
 import type { Event, EventPhoto, PhotoStatus } from "@/types";
 
@@ -95,7 +100,7 @@ export function PhotosAdminTab({
       if (!isImageFile(fileName)) continue;
 
       const blob = await entry.async("blob");
-      if (blob.size > 10 * 1024 * 1024) continue;
+      if (blob.size > EVENT_PHOTO_MAX_SIZE_BYTES) continue;
       const imageFile = new File([blob], fileName, { type: getMimeType(fileName) });
       imageFiles.push(imageFile);
     }
@@ -175,8 +180,8 @@ export function PhotosAdminTab({
           errors.push(`${file.name}: Failed to read ZIP file`);
         }
       } else if (isImageFile(file.name, file.type)) {
-        if (file.size > 10 * 1024 * 1024) {
-          errors.push(`${file.name}: File exceeds 10MB limit`);
+        if (file.size > EVENT_PHOTO_MAX_SIZE_BYTES) {
+          errors.push(eventPhotoSizeLimitError(file.name));
         } else {
           imagesToUpload.push(file);
         }
@@ -408,7 +413,7 @@ export function PhotosAdminTab({
                 : "Drop photos or a ZIP file here, or click to upload"}
             </p>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-1">
-              Auto-approved · Multiple files or ZIP archives · 10MB per image
+              Auto-approved · Multiple files or ZIP archives · {EVENT_PHOTO_MAX_SIZE_MB}MB per image
             </p>
           </div>
         </div>

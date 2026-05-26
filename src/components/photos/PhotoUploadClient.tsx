@@ -4,6 +4,11 @@ import { useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import { Upload, X, Camera, Clock, Check, XCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  EVENT_PHOTO_MAX_SIZE_BYTES,
+  EVENT_PHOTO_MAX_SIZE_MB,
+  eventPhotoSizeLimitError,
+} from "@/lib/constants/event-photo-upload";
 import type { EventPhoto, PhotoStatus } from "@/types";
 
 interface PhotoUploadClientProps {
@@ -16,7 +21,6 @@ type PreviewFile = { file: File; url: string };
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const ALLOWED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
-const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 
 function isImageFile(file: File) {
   if (ALLOWED_IMAGE_TYPES.includes(file.type)) return true;
@@ -50,8 +54,8 @@ export function PhotoUploadClient({
         continue;
       }
 
-      if (file.size > MAX_IMAGE_SIZE_BYTES) {
-        errors.push(`${file.name}: exceeds 10MB limit`);
+      if (file.size > EVENT_PHOTO_MAX_SIZE_BYTES) {
+        errors.push(eventPhotoSizeLimitError(file.name));
         continue;
       }
 
@@ -199,7 +203,7 @@ export function PhotoUploadClient({
                 Drop photos here or click to browse
               </p>
               <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-2">
-                PNG, JPEG, WebP, GIF up to 10MB each
+                PNG, JPEG, WebP, GIF up to {EVENT_PHOTO_MAX_SIZE_MB}MB each
               </p>
             </div>
           </div>

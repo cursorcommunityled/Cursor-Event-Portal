@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import {
+  EVENT_PHOTO_MAX_SIZE_BYTES,
+  eventPhotoSizeLimitError,
+} from "@/lib/constants/event-photo-upload";
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -59,9 +62,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (file.size > MAX_SIZE_BYTES) {
+    if (file.size > EVENT_PHOTO_MAX_SIZE_BYTES) {
       return NextResponse.json(
-        { error: "File size exceeds 10MB limit" },
+        { error: eventPhotoSizeLimitError() },
         { status: 400 }
       );
     }
