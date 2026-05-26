@@ -4,26 +4,11 @@ import { getSession } from "@/lib/actions/registration";
 import {
   EVENT_PHOTO_MAX_SIZE_BYTES,
   eventPhotoSizeLimitError,
+  isEventPhotoImageFile,
 } from "@/lib/constants/event-photo-upload";
 
-const ALLOWED_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "image/gif",
-]);
-
 function isAllowedImage(file: File) {
-  if (ALLOWED_TYPES.has(file.type)) return true;
-  const name = file.name.toLowerCase();
-  return (
-    name.endsWith(".png") ||
-    name.endsWith(".jpg") ||
-    name.endsWith(".jpeg") ||
-    name.endsWith(".webp") ||
-    name.endsWith(".gif")
-  );
+  return isEventPhotoImageFile(file.name, file.type);
 }
 
 export async function POST(request: NextRequest) {
@@ -47,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     if (!isAllowedImage(file)) {
       return NextResponse.json(
-        { error: "Only image files are supported (PNG, JPEG, WebP, GIF)" },
+        { error: "Only image files are supported (PNG, JPEG, WebP, GIF, HEIC)" },
         { status: 400 }
       );
     }

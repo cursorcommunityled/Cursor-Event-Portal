@@ -11,7 +11,15 @@ import {
   EVENT_PHOTO_MAX_SIZE_BYTES,
   EVENT_PHOTO_MAX_SIZE_MB,
   eventPhotoSizeLimitError,
+  getEventPhotoMimeType,
+  isEventPhotoImageFile,
 } from "@/lib/constants/event-photo-upload";
+import {
+  parseJsonResponse,
+  prepareEventPhotoFile,
+  sleep,
+  withUploadRetries,
+} from "@/lib/utils/prepare-event-photo-file";
 import { cn } from "@/lib/utils";
 import type { Event, EventPhoto, PhotoStatus } from "@/types";
 
@@ -49,8 +57,9 @@ export function PhotosAdminTab({
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
-  const IMAGE_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+  const isImageFile = (name: string, type?: string) => isEventPhotoImageFile(name, type);
+
+  const getMimeType = (name: string) => getEventPhotoMimeType(name);
 
   useEffect(() => {
     setPhotos(initialPhotos);
@@ -74,21 +83,6 @@ export function PhotosAdminTab({
     };
   }, [event.id, router]);
 
-  const isImageFile = (name: string, type?: string) => {
-    if (type && IMAGE_TYPES.includes(type)) return true;
-    const lower = name.toLowerCase();
-    return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
-  };
-
-  const getMimeType = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.endsWith(".png")) return "image/png";
-    if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
-    if (lower.endsWith(".webp")) return "image/webp";
-    if (lower.endsWith(".gif")) return "image/gif";
-    return "image/png";
-  };
-
   const extractImagesFromZip = async (file: File): Promise<File[]> => {
     const zip = await JSZip.loadAsync(file);
     const imageFiles: File[] = [];
@@ -109,53 +103,57 @@ export function PhotosAdminTab({
   };
 
   const uploadSingleFile = async (file: File): Promise<EventPhoto | null> => {
-    const signRes = await fetch("/api/admin/event-photo-upload/sign", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-admin-code": adminCode,
-        "x-event-id": event.id,
-      },
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type || getMimeType(file.name),
-        size: file.size,
-      }),
-    });
+    const preparedFile = await prepareEventPhotoFile(file);
 
-    const signed = await signRes.json();
-    if (!signRes.ok) {
-      throw new Error(signed.error || `Failed to prepare ${file.name}`);
-    }
-
-    const supabase = createClient();
-    const { error: uploadError } = await supabase.storage
-      .from(signed.bucket)
-      .uploadToSignedUrl(signed.path, signed.token, file, {
-        contentType: signed.contentType || file.type || getMimeType(file.name),
+    return withUploadRetries(async () => {
+      const signRes = await fetch("/api/admin/event-photo-upload/sign", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-admin-code": adminCode,
+          "x-event-id": event.id,
+        },
+        body: JSON.stringify({
+          fileName: preparedFile.name,
+          contentType: preparedFile.type || getMimeType(preparedFile.name),
+          size: preparedFile.size,
+        }),
       });
 
-    if (uploadError) {
-      throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
-    }
+      const signed = await parseJsonResponse<{ error?: string; bucket: string; path: string; token: string; publicUrl: string; contentType?: string }>(signRes);
+      if (!signRes.ok) {
+        throw new Error(signed.error || `Failed to prepare ${preparedFile.name}`);
+      }
 
-    const completeRes = await fetch("/api/admin/event-photo-upload/complete", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-admin-code": adminCode,
-        "x-event-id": event.id,
-      },
-      body: JSON.stringify({
-        path: signed.path,
-        publicUrl: signed.publicUrl,
-        autoApprove: true,
-      }),
+      const supabase = createClient();
+      const { error: uploadError } = await supabase.storage
+        .from(signed.bucket)
+        .uploadToSignedUrl(signed.path, signed.token, preparedFile, {
+          contentType: signed.contentType || preparedFile.type || getMimeType(preparedFile.name),
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed for ${preparedFile.name}: ${uploadError.message}`);
+      }
+
+      const completeRes = await fetch("/api/admin/event-photo-upload/complete", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-admin-code": adminCode,
+          "x-event-id": event.id,
+        },
+        body: JSON.stringify({
+          path: signed.path,
+          publicUrl: signed.publicUrl,
+          autoApprove: true,
+        }),
+      });
+
+      const data = await parseJsonResponse<{ error?: string; photo?: EventPhoto }>(completeRes);
+      if (completeRes.ok && data.photo) return data.photo;
+      throw new Error(data.error || `Failed to save ${preparedFile.name}`);
     });
-
-    const data = await completeRes.json();
-    if (completeRes.ok && data.photo) return data.photo;
-    throw new Error(data.error || `Failed to save ${file.name}`);
   };
 
   const handleAdminUpload = useCallback(async (files: FileList | File[]) => {
@@ -191,7 +189,7 @@ export function PhotosAdminTab({
     }
 
     if (errors.length > 0) {
-      setUploadError(errors.join(" · "));
+      setUploadError(errors.slice(0, 5).join(" · ") + (errors.length > 5 ? ` · …and ${errors.length - 5} more` : ""));
     }
 
     if (imagesToUpload.length === 0) {
@@ -212,8 +210,9 @@ export function PhotosAdminTab({
         }
       } catch (err) {
         errors.push(err instanceof Error ? err.message : `Failed to upload ${imagesToUpload[i].name}`);
-        setUploadError(errors.join(" · "));
+        setUploadError(errors.slice(0, 5).join(" · ") + (errors.length > 5 ? ` · …and ${errors.length - 5} more` : ""));
       }
+      await sleep(120);
     }
 
     setUploading(false);
@@ -413,7 +412,7 @@ export function PhotosAdminTab({
                 : "Drop photos or a ZIP file here, or click to upload"}
             </p>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mt-1">
-              Auto-approved · Multiple files or ZIP archives · {EVENT_PHOTO_MAX_SIZE_MB}MB per image
+              Auto-approved · Multiple files or ZIP archives · PNG, JPEG, WebP, GIF, HEIC · {EVENT_PHOTO_MAX_SIZE_MB}MB per image
             </p>
           </div>
         </div>
