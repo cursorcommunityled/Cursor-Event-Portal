@@ -32,7 +32,7 @@ const FOLDER = process.argv[2];
 const EVENT_SLUG = process.argv[3];
 
 const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
-const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif"]);
 const MANIFEST_NAME = ".upload-manifest.json";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -71,6 +71,7 @@ function getMime(file: string): string {
   if (ext === ".png") return "image/png";
   if (ext === ".webp") return "image/webp";
   if (ext === ".gif") return "image/gif";
+  if (ext === ".heic" || ext === ".heif") return "image/heic";
   return "image/jpeg";
 }
 
@@ -116,6 +117,8 @@ async function compressIfNeeded(filePath: string): Promise<Buffer> {
     output = await sharp(buf).resize({ width: 2400, withoutEnlargement: true }).png({ quality: 80 }).toBuffer();
   } else if (ext === ".webp") {
     output = await sharp(buf).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 75 }).toBuffer();
+  } else if (ext === ".heic" || ext === ".heif") {
+    output = await sharp(buf).rotate().resize({ width: 2400, withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer();
   } else {
     output = await sharp(buf).resize({ width: 2400, withoutEnlargement: true }).jpeg({ quality: 75 }).toBuffer();
   }
