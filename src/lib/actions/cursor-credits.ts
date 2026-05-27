@@ -142,7 +142,43 @@ export async function importCreditCodes(
 
   if (codes.length === 0) return { inserted: 0, duplicates: 0, error: "No valid codes found" };
 
-  const rows = codes.map((code) => ({ event_id: eventId, credit_code: code, amount_usd: creditAmount }));
+  const seenCodes = new Set<string>();
+  const uniqueCodes: string[] = [];
+  let duplicates = 0;
+
+  for (const code of codes) {
+    if (seenCodes.has(code)) {
+      duplicates++;
+    } else {
+      seenCodes.add(code);
+      uniqueCodes.push(code);
+    }
+  }
+
+  const { data: existingRows, error: existingError } = await supabase
+    .from("cursor_credits")
+    .select("credit_code")
+    .eq("event_id", eventId)
+    .in("credit_code", uniqueCodes);
+
+  if (existingError) {
+    return { inserted: 0, duplicates: 0, error: existingError.message };
+  }
+
+  const existingCodes = new Set((existingRows ?? []).map((row) => row.credit_code));
+  const rows = uniqueCodes
+    .filter((code) => {
+      if (existingCodes.has(code)) {
+        duplicates++;
+        return false;
+      }
+      return true;
+    })
+    .map((code) => ({ event_id: eventId, credit_code: code, amount_usd: creditAmount }));
+
+  if (rows.length === 0) {
+    return { inserted: 0, duplicates };
+  }
 
   const { data, error } = await supabase
     .from("cursor_credits")
@@ -153,13 +189,16 @@ export async function importCreditCodes(
     // If it's a unique constraint violation, try inserting one-by-one to count duplicates
     if (error.code === "23505") {
       let inserted = 0;
-      let duplicates = 0;
       for (const row of rows) {
         const { error: rowErr } = await supabase
           .from("cursor_credits")
           .insert(row);
         if (rowErr) {
-          duplicates++;
+          if (rowErr.code === "23505") {
+            duplicates++;
+          } else {
+            return { inserted, duplicates, error: rowErr.message };
+          }
         } else {
           inserted++;
         }
@@ -171,7 +210,7 @@ export async function importCreditCodes(
   }
 
   revalidatePath(`/admin/${adminCode}/event-dashboard`);
-  return { inserted: data?.length ?? 0, duplicates: 0 };
+  return { inserted: data?.length ?? 0, duplicates };
 }
 
 // ─── Auto-Assign ──────────────────────────────────────────────────────────────
