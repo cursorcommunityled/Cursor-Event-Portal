@@ -2228,6 +2228,23 @@ export async function getUserEventPhotos(eventId: string, userId: string): Promi
   return (data ?? []) as EventPhoto[];
 }
 
+export async function getAllEventGalleryPhotos(eventId: string): Promise<EventPhoto[]> {
+  noStore();
+  const supabase = await createServiceClient();
+  const { data, error } = await supabase
+    .from("event_photos")
+    .select("*, uploader:users!event_photos_uploaded_by_fkey(id, name, email)")
+    .eq("event_id", eventId)
+    .eq("photo_usage", EVENT_GALLERY_PHOTO_USAGE)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getAllEventGalleryPhotos] Error:", error);
+    return [];
+  }
+  return (data ?? []) as EventPhoto[];
+}
+
 export interface EventWithPhotos {
   id: string;
   slug: string;

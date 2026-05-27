@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getEventBySlug, getUserEventPhotos } from "@/lib/supabase/queries";
+import { getAllEventGalleryPhotos, getEventBySlug, getUserEventPhotos } from "@/lib/supabase/queries";
 import { getSession } from "@/lib/actions/registration";
 import { PhotoUploadClient } from "@/components/photos/PhotoUploadClient";
 
@@ -19,6 +19,7 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
   }
 
   const myPhotos = await getUserEventPhotos(event.id, session.userId);
+  const allPhotos = await getAllEventGalleryPhotos(event.id);
 
   return (
     <main className="max-w-3xl mx-auto w-full px-6 py-12 space-y-12 min-w-0">
@@ -30,7 +31,7 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
           Event Photos
         </h1>
         <p className="text-sm text-gray-500">
-          Share your photos from the event. Submissions are reviewed before appearing publicly.
+          Share your photos from the event and browse everything attendees have uploaded.
         </p>
       </div>
 
@@ -39,6 +40,7 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
           eventId={event.id}
           eventSlug={eventSlug}
           initialPhotos={myPhotos}
+          initialGalleryPhotos={allPhotos}
         />
       </div>
     </main>
