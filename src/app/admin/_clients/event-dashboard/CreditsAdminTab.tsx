@@ -352,7 +352,7 @@ export function CreditsAdminTab({
           <div className="space-y-3 pt-1">
             <p className="text-xs text-gray-500">
               One code per line. Imported codes are stored as {`$${creditAmount}`} credits for this event. Accepts plain codes or full{" "}
-              <code className="text-gray-400">https://cursor.com/referral?code=</code> URLs.
+              <code className="text-gray-400">https://cursor.com/referral?code=</code> URLs. Duplicate checks only compare codes already imported for this event.
             </p>
             <textarea
               value={rawInput}
