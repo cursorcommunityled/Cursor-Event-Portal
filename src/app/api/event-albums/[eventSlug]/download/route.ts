@@ -1,11 +1,9 @@
-import { once } from "node:events";
-import { createReadStream } from "node:fs";
 import path from "node:path";
-import { PassThrough, Readable } from "node:stream";
+import { Readable } from "node:stream";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 
-import archiver, { type Archiver } from "archiver";
 import { NextRequest, NextResponse } from "next/server";
+import { ZipFile } from "yazl";
 
 import { pastEvents } from "@/content/events";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -38,62 +36,51 @@ function safePhotoFileName(sourcePath: string, index: number) {
   return `${String(index + 1).padStart(3, "0")}-${cleanName}`;
 }
 
-async function appendArchiveEntry(
-  archive: Archiver,
-  input: Readable,
-  name: string
-) {
-  const entryCompleted = once(archive, "entry");
-  archive.append(input, { name });
-  await entryCompleted;
-}
-
-async function appendRemotePhoto(archive: Archiver, photo: AlbumPhoto, index: number) {
-  const response = await fetch(photo.file_url, { cache: "no-store" });
-
-  if (!response.ok || !response.body) {
-    console.warn("[event-albums/download] Skipping unavailable photo", {
-      photoId: photo.id,
-      storagePath: photo.storage_path,
-      status: response.status,
-    });
-    return;
-  }
-
-  const nodeStream = Readable.fromWeb(
-    response.body as unknown as NodeReadableStream<Uint8Array>
-  );
-  await appendArchiveEntry(archive, nodeStream, safePhotoFileName(photo.storage_path, index));
-}
-
-async function appendStaticPhoto(archive: Archiver, photoPath: string, index: number) {
-  if (!photoPath.startsWith("/")) return;
-
-  const publicPath = photoPath.replace(/^\/+/, "");
-  if (publicPath.includes("..")) return;
-
-  await appendArchiveEntry(
-    archive,
-    createReadStream(path.join(process.cwd(), "public", publicPath)),
-    safePhotoFileName(publicPath, index)
-  );
-}
-
-async function finalizeAlbumArchive(
-  archive: Archiver,
+function addAlbumSourcesToZip(
+  zipFile: ZipFile,
   sources: { photos: AlbumPhoto[] } | { staticPhotos: string[] }
 ) {
   if ("photos" in sources) {
     for (const [index, photo] of sources.photos.entries()) {
-      await appendRemotePhoto(archive, photo, index);
+      zipFile.addReadStreamLazy(
+        safePhotoFileName(photo.storage_path, index),
+        { compress: false, forceZip64Format: true },
+        async (callback) => {
+          try {
+            const response = await fetch(photo.file_url, { cache: "no-store" });
+            if (!response.ok || !response.body) {
+              throw new Error(`Photo request failed with status ${response.status}`);
+            }
+
+            callback(
+              null,
+              Readable.fromWeb(response.body as unknown as NodeReadableStream<Uint8Array>)
+            );
+          } catch (error) {
+            console.error("[event-albums/download] Failed to stream photo", {
+              photoId: photo.id,
+              storagePath: photo.storage_path,
+              error: error instanceof Error ? error.message : error,
+            });
+            callback(error, Readable.from([]));
+          }
+        }
+      );
     }
   } else {
     for (const [index, photoPath] of sources.staticPhotos.entries()) {
-      await appendStaticPhoto(archive, photoPath, index);
+      if (!photoPath.startsWith("/")) continue;
+
+      const publicPath = photoPath.replace(/^\/+/, "");
+      if (publicPath.includes("..")) continue;
+
+      zipFile.addFile(
+        path.join(process.cwd(), "public", publicPath),
+        safePhotoFileName(publicPath, index),
+        { compress: false, forceZip64Format: true }
+      );
     }
   }
-
-  await archive.finalize();
 }
 
 export async function GET(
@@ -154,28 +141,17 @@ export async function GET(
       return NextResponse.json({ error: "No album photos found" }, { status: 404 });
     }
 
-    const output = new PassThrough();
-    const archive = archiver("zip", {
-      forceZip64: true,
-      store: true,
-    });
+    const zipFile = new ZipFile();
     const zipFileName = `${slugifyFilePart(zipBaseName)}-album.zip`;
 
-    archive.on("warning", (error) => {
-      console.warn("[event-albums/download] Archive warning:", error);
-    });
-    archive.on("error", (error) => {
-      console.error("[event-albums/download] Archive stream error:", error);
-      output.destroy(error);
-    });
-    archive.pipe(output);
-
-    void finalizeAlbumArchive(archive, sources).catch((error) => {
-      console.error("[event-albums/download] Failed while streaming album:", error);
-      output.destroy(error);
+    zipFile.on("error", (error) => {
+      console.error("[event-albums/download] Archive error:", error);
     });
 
-    return new NextResponse(Readable.toWeb(output) as ReadableStream, {
+    addAlbumSourcesToZip(zipFile, sources);
+    zipFile.end({ forceZip64Format: true, comment: "" });
+
+    return new NextResponse(Readable.toWeb(zipFile.outputStream as Readable) as ReadableStream, {
       headers: {
         "Cache-Control": "no-store",
         "Content-Disposition": `attachment; filename="${zipFileName}"`,
