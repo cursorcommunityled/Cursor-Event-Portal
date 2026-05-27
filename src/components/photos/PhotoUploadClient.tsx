@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import Image from "next/image";
-import { Upload, X, Camera, Clock, Check, XCircle, Loader2 } from "lucide-react";
+import { Upload, X, Camera, Clock, Check, XCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   EVENT_PHOTO_MAX_SIZE_BYTES,
@@ -17,16 +17,23 @@ interface PhotoUploadClientProps {
   eventId: string;
   eventSlug: string;
   initialPhotos: EventPhoto[];
+  initialGalleryPhotos: EventPhoto[];
 }
 
 type PreviewFile = { file: File; url: string };
+
+const PHOTOS_PER_PAGE = 24;
 
 export function PhotoUploadClient({
   eventId,
   eventSlug,
   initialPhotos,
+  initialGalleryPhotos,
 }: PhotoUploadClientProps) {
   const [photos, setPhotos] = useState(initialPhotos);
+  const [galleryPhotos, setGalleryPhotos] = useState(initialGalleryPhotos);
+  const [galleryPage, setGalleryPage] = useState(0);
+  const [expandedPhoto, setExpandedPhoto] = useState<EventPhoto | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [caption, setCaption] = useState("");
@@ -108,6 +115,7 @@ export function PhotoUploadClient({
           }
 
           setPhotos((prev) => [data.photo, ...prev]);
+          setGalleryPhotos((prev) => [data.photo, ...prev]);
           URL.revokeObjectURL(preview.url);
         } catch {
           failedPreviews.push(preview);
@@ -145,6 +153,12 @@ export function PhotoUploadClient({
     setCaption("");
     setError(null);
   };
+
+  const galleryTotalPages = Math.max(1, Math.ceil(galleryPhotos.length / PHOTOS_PER_PAGE));
+  const paginatedGalleryPhotos = useMemo(() => {
+    const start = galleryPage * PHOTOS_PER_PAGE;
+    return galleryPhotos.slice(start, start + PHOTOS_PER_PAGE);
+  }, [galleryPhotos, galleryPage]);
 
   const totalPreviewSizeMb = previewFiles.reduce((sum, preview) => sum + preview.file.size, 0) / (1024 * 1024);
 
@@ -276,6 +290,118 @@ export function PhotoUploadClient({
         </div>
       )}
 
+      {/* Community gallery */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-[10px] uppercase tracking-[0.4em] text-gray-500 font-bold">
+            All Event Photos ({galleryPhotos.length})
+          </h2>
+          <p className="mt-2 text-xs text-gray-600">
+            Photos uploaded by attendees for this event.
+          </p>
+        </div>
+
+        {galleryPhotos.length === 0 ? (
+          <div className="glass rounded-3xl border border-white/10 p-10 text-center">
+            <Camera className="w-8 h-8 text-gray-600 mx-auto mb-3" />
+            <p className="text-sm text-gray-500">No photos have been uploaded yet.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {paginatedGalleryPhotos.map((photo) => {
+                const config = statusConfig(photo.status as PhotoStatus);
+                const StatusIcon = config.icon;
+                return (
+                  <div
+                    key={photo.id}
+                    className="glass rounded-2xl border border-white/10 overflow-hidden"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setExpandedPhoto(photo)}
+                      className="relative block w-full aspect-square"
+                    >
+                      <Image
+                        src={photo.file_url}
+                        alt={photo.caption || "Event photo"}
+                        fill
+                        loading="lazy"
+                        className="object-cover"
+                        sizes="(max-width: 640px) 50vw, 33vw"
+                      />
+                      <div className={cn(
+                        "absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-[0.15em] font-bold border",
+                        config.color
+                      )}>
+                        <StatusIcon className="w-3 h-3" />
+                        {config.label}
+                      </div>
+                    </button>
+                    {(photo.caption || photo.uploader?.name || photo.created_at) && (
+                      <div className="p-3 space-y-1">
+                        {photo.caption && (
+                          <p className="text-xs text-gray-400 line-clamp-2">{photo.caption}</p>
+                        )}
+                        <p className="text-[10px] text-gray-600">
+                          {photo.uploader?.name || "Attendee"}
+                          <span className="mx-1">·</span>
+                          {new Date(photo.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {galleryTotalPages > 1 && (
+              <div className="flex items-center justify-between gap-4 pt-2">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 tabular-nums">
+                  Page {galleryPage + 1} of {galleryTotalPages}
+                  <span className="mx-2 text-gray-700">·</span>
+                  {galleryPhotos.length} photo{galleryPhotos.length !== 1 ? "s" : ""}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGalleryPage((p) => Math.max(0, p - 1))}
+                    disabled={galleryPage === 0}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-all hover:bg-white/10 disabled:pointer-events-none disabled:opacity-30"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <div className="hidden sm:flex items-center gap-1.5 max-w-[280px] overflow-x-auto py-1">
+                    {Array.from({ length: galleryTotalPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setGalleryPage(i)}
+                        className={cn(
+                          "h-1.5 shrink-0 rounded-full transition-all",
+                          i === galleryPage ? "w-4 bg-white" : "w-1.5 bg-white/30 hover:bg-white/50"
+                        )}
+                        aria-label={`Go to page ${i + 1}`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGalleryPage((p) => Math.min(galleryTotalPages - 1, p + 1))}
+                    disabled={galleryPage >= galleryTotalPages - 1}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80 transition-all hover:bg-white/10 disabled:pointer-events-none disabled:opacity-30"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {/* My submissions */}
       {photos.length > 0 && (
         <div className="space-y-4">
@@ -315,6 +441,56 @@ export function PhotoUploadClient({
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {expandedPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
+          onClick={() => setExpandedPhoto(null)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[85vh] w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setExpandedPhoto(null)}
+              className="absolute -top-10 right-0 text-white/60 hover:text-white transition-colors"
+              aria-label="Close photo"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="relative w-full h-[70vh] rounded-2xl overflow-hidden">
+              <Image
+                src={expandedPhoto.file_url}
+                alt={expandedPhoto.caption || "Event photo"}
+                fill
+                className="object-contain"
+                sizes="100vw"
+              />
+            </div>
+            {(expandedPhoto.caption || expandedPhoto.uploader?.name || expandedPhoto.created_at) && (
+              <div className="mt-4 flex items-start justify-between gap-4">
+                <div>
+                  {expandedPhoto.caption && (
+                    <p className="text-sm text-gray-300">{expandedPhoto.caption}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">
+                    {expandedPhoto.uploader?.name || "Attendee"}
+                    <span className="mx-1">·</span>
+                    {new Date(expandedPhoto.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className={cn(
+                  "shrink-0 flex items-center gap-1 px-2 py-1 rounded-full text-[9px] uppercase tracking-[0.15em] font-bold border",
+                  statusConfig(expandedPhoto.status as PhotoStatus).color
+                )}>
+                  {expandedPhoto.status}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
