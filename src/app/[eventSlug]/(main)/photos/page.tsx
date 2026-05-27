@@ -18,8 +18,10 @@ export default async function PhotosPage({ params }: PhotosPageProps) {
     redirect(`/${eventSlug}`);
   }
 
-  const myPhotos = await getUserEventPhotos(event.id, session.userId);
-  const allPhotos = await getAllEventGalleryPhotos(event.id);
+  const [myPhotos, allPhotos] = await Promise.all([
+    getUserEventPhotos(event.id, session.userId),
+    getAllEventGalleryPhotos(event.id),
+  ]);
 
   return (
     <main className="max-w-3xl mx-auto w-full px-6 py-12 space-y-12 min-w-0">
