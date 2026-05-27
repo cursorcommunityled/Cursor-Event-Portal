@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Calendar, Users, ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
 import { pastEvents } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
 import type { EventWithPhotos } from '@/lib/supabase/queries';
@@ -284,20 +284,33 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
                 <div className="pointer-events-none absolute -inset-px sm:rounded-md bg-[radial-gradient(ellipse_at_bottom,rgba(255,255,255,0.04),transparent_60%)] opacity-0 hover:opacity-100 transition-opacity duration-500 z-10" />
                 <PhotoGallery photos={event.allPhotos} title={event.title} />
                 <div className="px-5 py-4">
-                  <h3 className="text-lg text-cursor-text font-medium mb-1.5">{event.title}</h3>
-                  <div className="flex flex-wrap items-center gap-3 text-sm text-cursor-text-muted">
-                    {displayDate && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4" />
-                        <span>{displayDate}</span>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-lg text-cursor-text font-medium mb-1.5">{event.title}</h3>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-cursor-text-muted">
+                        {displayDate && (
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4" />
+                            <span>{displayDate}</span>
+                          </div>
+                        )}
+                        {typeof event.attendees === 'number' ? (
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4" />
+                            <span>{t('home.attendees', { count: String(event.attendees) })}</span>
+                          </div>
+                        ) : null}
                       </div>
-                    )}
-                    {typeof event.attendees === 'number' ? (
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-4 h-4" />
-                        <span>{t('home.attendees', { count: String(event.attendees) })}</span>
-                      </div>
-                    ) : null}
+                    </div>
+                    <a
+                      href={`/api/event-albums/${encodeURIComponent(event.id)}/download`}
+                      download
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md border border-white/12 bg-white/[0.06] px-3.5 py-2 text-xs font-medium text-cursor-text transition-colors hover:border-white/25 hover:bg-white/[0.1]"
+                      aria-label={`Download full album for ${event.title}`}
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t('home.downloadFullAlbum')}
+                    </a>
                   </div>
                 </div>
               </div>
