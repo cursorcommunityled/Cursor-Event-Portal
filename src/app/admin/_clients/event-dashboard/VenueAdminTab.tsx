@@ -2,13 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { ActiveVenueSelector } from "@/components/admin/ActiveVenueSelector";
 import { updateEventDetails } from "@/lib/actions/agenda";
-import { updateVenue } from "@/lib/actions/event-dashboard";
 import { setEventStatus } from "@/lib/actions/settings";
 import type { EventStatus } from "@/types";
-import type { Event, Venue } from "@/types";
+import type { Event } from "@/types";
 import { readFileToBlob } from "@/lib/utils/read-file";
 
 type EventOption = {
@@ -25,7 +24,6 @@ interface VenueAdminTabProps {
   event: Event;
   eventSlug: string;
   adminCode?: string;
-  venues: Venue[];
   allEvents: EventOption[];
   activeSlug: string;
 }
@@ -34,7 +32,6 @@ export function VenueAdminTab({
   event,
   eventSlug,
   adminCode,
-  venues,
   allEvents,
   activeSlug,
 }: VenueAdminTabProps) {
@@ -46,21 +43,9 @@ export function VenueAdminTab({
   const [currentStatus, setCurrentStatus] = useState<EventStatus>(event.status as EventStatus);
   const [statusPending, setStatusPending] = useState(false);
 
-  // Pre-select the venue that matches the current event
-  const matchingVenue = venues.find((v) => v.name === event.venue);
-  const [selectedVenueId, setSelectedVenueId] = useState<string>(
-    matchingVenue?.id ?? venues[0]?.id ?? ""
-  );
   const [eventVenue, setEventVenue] = useState(event.venue || "");
   const [eventAddress, setEventAddress] = useState(event.address || "");
   const [venueImageUrl, setVenueImageUrl] = useState(event.venue_image_url || "");
-
-  const handleVenueSelect = (v: Venue) => {
-    setSelectedVenueId(v.id);
-    setEventVenue(v.name);
-    setEventAddress(v.address || "");
-    setVenueImageUrl(v.image_url || "");
-  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,11 +75,7 @@ export function VenueAdminTab({
       }
       const data = await response.json();
       if (data.success && data.url) {
-        const newUrl = data.url as string;
-        setVenueImageUrl(newUrl);
-        if (selectedVenueId) {
-          await updateVenue(selectedVenueId, { image_url: newUrl }, adminCode);
-        }
+        setVenueImageUrl(data.url as string);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
@@ -185,72 +166,15 @@ export function VenueAdminTab({
             Venue for This Event
           </p>
           <p className="text-xs text-gray-600 leading-relaxed">
-            Select a venue to apply its name, address, and preview image to the attendee portal header.
+            Set the venue name, address, and preview image shown in the attendee portal header.
           </p>
         </div>
 
         {error && (
-          <div className="glass rounded-2xl p-4 bg-red-500/10 border border-red-500/20">
-            <p className="text-sm text-red-400">{error}</p>
+          <div className="glass rounded-2xl p-4 bg-amber-500/10 border border-amber-500/20">
+            <p className="text-sm text-amber-300">{error}</p>
           </div>
         )}
-
-        {/* Venue cards */}
-        <div className="grid grid-cols-2 gap-4">
-          {venues.map((v) => {
-            const isSelected = selectedVenueId === v.id;
-            return (
-              <div
-                key={v.id}
-                className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 h-44 ${
-                  isSelected
-                    ? "ring-2 ring-white/60 shadow-[0_0_30px_rgba(255,255,255,0.08)]"
-                    : "ring-1 ring-white/[0.06] hover:ring-white/20"
-                }`}
-                onClick={() => handleVenueSelect(v)}
-              >
-                {v.image_url ? (
-                  <img
-                    src={v.image_url}
-                    alt={v.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent" />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
-                {isSelected && (
-                  <div className="absolute inset-0 bg-white/[0.04] pointer-events-none" />
-                )}
-                <div className="relative z-10 h-full flex flex-col justify-between p-4">
-                  <div className="flex justify-end">
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shadow-lg ${
-                        isSelected
-                          ? "border-white bg-white"
-                          : "border-white/30 group-hover:border-white/60 bg-black/30 backdrop-blur-sm"
-                      }`}
-                    >
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-black" />}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-base font-medium text-white tracking-tight leading-tight">
-                      {v.name}
-                    </p>
-                    <div className="flex items-start gap-1.5 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200">
-                      <MapPin className="w-3 h-3 text-white/50 flex-shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-white/55 leading-snug">{v.address}</p>
-                    </div>
-                    <p className="text-[9px] text-white/30 uppercase tracking-[0.15em] group-hover:text-white/50 transition-colors">
-                      {v.city}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
         {/* Editable fields */}
         <div className="grid grid-cols-2 gap-4">
