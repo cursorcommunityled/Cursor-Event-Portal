@@ -231,9 +231,18 @@ export function PhotosAdminTab({
     }
   }, [handleAdminUpload]);
 
-  const filteredPhotos = filter === "all"
-    ? photos
-    : photos.filter((p) => p.status === filter);
+  const filteredPhotos = useMemo(() => {
+    const matchingPhotos = filter === "all"
+      ? photos
+      : photos.filter((p) => p.status === filter);
+
+    return [...matchingPhotos].sort((a, b) => {
+      const aFeatured = heroFeaturedIds.has(a.id);
+      const bFeatured = heroFeaturedIds.has(b.id);
+      if (aFeatured !== bFeatured) return aFeatured ? -1 : 1;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [filter, heroFeaturedIds, photos]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPhotos.length / PHOTOS_PER_PAGE));
 
