@@ -23,6 +23,31 @@ const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, inde
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 type PublishedPrize = HackathonPrize & { finalScore: number; maxScore: number };
 
+// Stable per-event "house judge" used when scoring via the admin-code URL, which
+// has no portal session. Everyone operating through the admin link shares this one
+// judge row, so their scorecards collapse into a single admin judge (intended —
+// admin-URL access is the house score, not per-person judging).
+async function resolveAdminJudgeId(
+  supabase: ServiceClient,
+  eventId: string
+): Promise<string | null> {
+  const email = `admin-judge+${eventId}@cursorpopup.local`;
+
+  const { data: existing } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (existing?.id) return existing.id as string;
+
+  const { data: created } = await supabase
+    .from("users")
+    .insert({ name: "Admin Judge", email, role: "admin" })
+    .select("id")
+    .single();
+  return (created?.id as string | undefined) ?? null;
+}
+
 async function validateAdmin(adminCode: string) {
   const supabase = await createServiceClient();
   const { data: event } = await supabase
@@ -175,12 +200,15 @@ export async function saveCompetitionJudgingScorecard(
   const auth = await validateAdmin(adminCode);
   if (!auth.valid) return { error: auth.error };
 
-  const session = await getSession();
-  if (!session?.userId) return { error: "Not authenticated" };
-
   const supabase = await createServiceClient();
   const competition = await getCompetition(supabase, competitionId, auth.eventId);
   if (!competition) return { error: "Competition not found" };
+
+  // Use the signed-in judge if there is one; otherwise fall back to the per-event
+  // house judge so admins can score straight from the admin-code dashboard.
+  const session = await getSession();
+  const judgeId = session?.userId ?? (await resolveAdminJudgeId(supabase, competition.event_id));
+  if (!judgeId) return { error: "Could not determine judge identity" };
 
   const { data: finalist } = await supabase
     .from("competition_finalist_entries")
@@ -210,7 +238,7 @@ export async function saveCompetitionJudgingScorecard(
         event_id: competition.event_id,
         competition_id: competitionId,
         entry_id: entryId,
-        judge_id: session.userId,
+        judge_id: judgeId,
         notes: notes?.trim() || null,
         submitted_at: now,
         updated_at: now,

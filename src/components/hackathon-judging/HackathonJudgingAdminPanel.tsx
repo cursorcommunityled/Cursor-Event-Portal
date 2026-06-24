@@ -886,7 +886,7 @@ export function HackathonJudgingAdminPanel({
               />
 
               <button
-                disabled={isPending || !adminUserId || activeEntryId === entry.id}
+                disabled={isPending || (!adminUserId && !adminCode) || activeEntryId === entry.id}
                 onClick={() => saveEntryScore(entry.id)}
                 className={cn(
                   "relative w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[13px] font-bold uppercase tracking-wider transition-all disabled:opacity-50 hover:scale-[1.02] shadow-sm mt-2",
