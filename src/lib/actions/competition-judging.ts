@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { HACKATHON_JUDGE_COOKIE } from "@/lib/judging/constants";
+import { resolveTokenJudgeId } from "@/lib/judging/token-judge";
 import { HACKATHON_SCORE_CATEGORIES } from "@/lib/hackathon-rubric";
 import type {
   CompetitionEntry,
@@ -23,29 +26,21 @@ const DEFAULT_JUDGING_CRITERIA = HACKATHON_SCORE_CATEGORIES.map((criterion, inde
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 type PublishedPrize = HackathonPrize & { finalScore: number; maxScore: number };
 
-// Stable per-event "house judge" used when scoring via the admin-code URL, which
-// has no portal session. Everyone operating through the admin link shares this one
-// judge row, so their scorecards collapse into a single admin judge (intended —
-// admin-URL access is the house score, not per-person judging).
-async function resolveAdminJudgeId(
+// Resolve who is judging: the signed-in user if there is one, otherwise the
+// per-browser judge tied to the `hk_judge_id` cookie (set by middleware on the
+// Final Round screen). This lets multiple unlogged-in people each score with a
+// distinct identity from the admin URL.
+async function resolveJudgeId(
   supabase: ServiceClient,
-  eventId: string
+  eventId: string,
+  judgeName?: string | null
 ): Promise<string | null> {
-  const email = `admin-judge+${eventId}@cursorpopup.local`;
+  const session = await getSession();
+  if (session?.userId) return session.userId;
 
-  const { data: existing } = await supabase
-    .from("users")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle();
-  if (existing?.id) return existing.id as string;
-
-  const { data: created } = await supabase
-    .from("users")
-    .insert({ name: "Admin Judge", email, role: "admin" })
-    .select("id")
-    .single();
-  return (created?.id as string | undefined) ?? null;
+  const token = (await cookies()).get(HACKATHON_JUDGE_COOKIE)?.value ?? null;
+  if (!token) return null;
+  return resolveTokenJudgeId(supabase, eventId, token, judgeName);
 }
 
 async function validateAdmin(adminCode: string) {
@@ -195,7 +190,8 @@ export async function saveCompetitionJudgingScorecard(
   entryId: string,
   adminCode: string,
   scores: { criterionId: string; points: number }[],
-  notes?: string | null
+  notes?: string | null,
+  judgeName?: string | null
 ): Promise<{ success?: true; error?: string }> {
   const auth = await validateAdmin(adminCode);
   if (!auth.valid) return { error: auth.error };
@@ -204,10 +200,7 @@ export async function saveCompetitionJudgingScorecard(
   const competition = await getCompetition(supabase, competitionId, auth.eventId);
   if (!competition) return { error: "Competition not found" };
 
-  // Use the signed-in judge if there is one; otherwise fall back to the per-event
-  // house judge so admins can score straight from the admin-code dashboard.
-  const session = await getSession();
-  const judgeId = session?.userId ?? (await resolveAdminJudgeId(supabase, competition.event_id));
+  const judgeId = await resolveJudgeId(supabase, competition.event_id, judgeName);
   if (!judgeId) return { error: "Could not determine judge identity" };
 
   const { data: finalist } = await supabase

@@ -3,6 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { isStaticAdminEmail } from "@/lib/auth/admin-allowlist";
+import { HACKATHON_JUDGE_COOKIE } from "@/lib/judging/constants";
 
 // Process-local cache so we don't hammer the DB on every admin request.
 // Edge runtime is per-instance so this is best-effort, not authoritative.
@@ -98,6 +99,18 @@ export async function middleware(request: NextRequest) {
       url.searchParams.set("error", "not_admin");
       return NextResponse.redirect(url);
     }
+  }
+
+  // Give each browser a stable judge identity on the Final Round screen so
+  // multiple people can score from the admin URL without logging in.
+  if (/^\/admin\/[^/]+\/hackathon(\/|$|\?)/.test(request.nextUrl.pathname) &&
+      !request.cookies.get(HACKATHON_JUDGE_COOKIE)) {
+    response.cookies.set(HACKATHON_JUDGE_COOKIE, crypto.randomUUID(), {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: "lax",
+      httpOnly: true,
+    });
   }
 
   return response;

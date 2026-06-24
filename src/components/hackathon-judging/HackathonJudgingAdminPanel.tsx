@@ -37,11 +37,14 @@ interface Props {
   adminCode: string;
   eventSlug: string;
   adminUserId: string | null;
+  isGuestJudge?: boolean;
   competitions: CompetitionJudgingCompetition[];
   settings: HackathonSettings | null;
   teams?: HackathonTeamWithMembers[];
   aiAnalyses?: Record<string, HackathonAIAnalysis[]>;
 }
+
+const JUDGE_NAME_STORAGE_KEY = "hk_judge_name";
 
 // ─── Inline AI summary for a single finalist entry ───────────────────────────
 
@@ -220,6 +223,7 @@ export function HackathonJudgingAdminPanel({
   adminCode,
   eventSlug,
   adminUserId,
+  isGuestJudge = false,
   competitions,
   settings,
   teams = [],
@@ -227,6 +231,7 @@ export function HackathonJudgingAdminPanel({
 }: Props) {
   const router = useRouter();
   const [selectedCompetitionId, setSelectedCompetitionId] = useState(competitions[0]?.id ?? "");
+  const [judgeName, setJudgeName] = useState("");
   const [scoreDrafts, setScoreDrafts] = useState<ScoreDraft>({});
   const [notesDrafts, setNotesDrafts] = useState<Record<string, string>>({});
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
@@ -257,6 +262,21 @@ export function HackathonJudgingAdminPanel({
   const clearAllDirty = () => {
     dirtyRef.current.clear();
     setDirtyEntries(new Set());
+  };
+
+  // Guest judges (scoring via the admin URL without logging in) pick a display
+  // name once; persist it per-browser so it sticks across refreshes.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(JUDGE_NAME_STORAGE_KEY);
+    if (stored) setJudgeName(stored);
+  }, []);
+
+  const updateJudgeName = (value: string) => {
+    setJudgeName(value);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(JUDGE_NAME_STORAGE_KEY, value);
+    }
   };
 
   const competition = useMemo(
@@ -400,7 +420,8 @@ export function HackathonJudgingAdminPanel({
           criterionId: criterion.id,
           points: Number(scoreDrafts[entryId]?.[criterion.id] ?? 0),
         })),
-        notesDrafts[entryId] ?? ""
+        notesDrafts[entryId] ?? "",
+        isGuestJudge ? judgeName.trim() || null : null
       );
 
       if (res.error) {
@@ -552,6 +573,22 @@ export function HackathonJudgingAdminPanel({
             </div>
           )}
         </div>
+
+        {isGuestJudge && (
+          <div className="relative rounded-[24px] border border-white/10 bg-white/5 p-5 shadow-inner">
+            <label className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400">Your judge name</label>
+            <input
+              value={judgeName}
+              onChange={(e) => updateJudgeName(e.target.value)}
+              placeholder="e.g. Alex (Judge)"
+              maxLength={60}
+              className="mt-2 w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 shadow-inner"
+            />
+            <p className="mt-2 text-[11px] font-medium text-gray-500">
+              You&apos;re scoring as a guest judge on this device. Your name labels your scores in the standings; your scorecards stay separate from other judges.
+            </p>
+          </div>
+        )}
 
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           <div className="rounded-[24px] bg-white/5 border border-white/10 p-5 shadow-inner">
