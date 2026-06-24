@@ -6,17 +6,12 @@ import type { CursorCredit } from "@/types";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
+// Participants receive a flat $20 Cursor credit by default.
 async function getParticipantCreditAmount(
-  supabase: ServiceClient,
-  eventId: string
+  _supabase: ServiceClient,
+  _eventId: string
 ) {
-  const { data: event } = await supabase
-    .from("events")
-    .select("is_hackathon")
-    .eq("id", eventId)
-    .maybeSingle();
-
-  return event?.is_hackathon ? 50 : 20;
+  return 20;
 }
 
 async function assignParticipantCredit(
