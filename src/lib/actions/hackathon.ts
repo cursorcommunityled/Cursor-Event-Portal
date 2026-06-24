@@ -1463,6 +1463,74 @@ export async function submitHackathonProject(
   return { success: true };
 }
 
+// Let an individual start a solo team (a team of one) so they can submit a project
+// without finding teammates first. Unlike createSoloTeam, this is intentionally NOT
+// gated by the team-formation window: an attendee who never joined a team must still
+// be able to spin one up to submit, even after team formation has closed. The team is
+// auto-named after the attendee. If they're already on a team this is a no-op.
+export async function startSoloHackathonTeam(
+  eventId: string
+): Promise<{ success?: true; error?: string; teamId?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+  const userId = session.userId;
+
+  const supabase = await createServiceClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("is_hackathon")
+    .eq("id", eventId)
+    .single();
+  if (!event?.is_hackathon) return { error: "Hackathon mode is not active" };
+
+  // Already on a team for this event? Nothing to do.
+  const { data: eventTeams } = await supabase
+    .from("hackathon_teams")
+    .select("id")
+    .eq("event_id", eventId);
+  const eventTeamIds = (eventTeams ?? []).map((t: { id: string }) => t.id);
+  const { data: existingRows } = eventTeamIds.length
+    ? await supabase
+        .from("hackathon_team_members")
+        .select("team_id")
+        .eq("user_id", userId)
+        .in("team_id", eventTeamIds)
+        .limit(1)
+    : { data: [] };
+  if (existingRows?.[0]) return { success: true, teamId: existingRows[0].team_id as string };
+
+  // Name the solo team after the attendee so it reads sensibly on the leaderboard.
+  const { data: profile } = await supabase
+    .from("users")
+    .select("name")
+    .eq("id", userId)
+    .maybeSingle();
+  const teamName = (profile?.name?.trim() || "Solo Project").slice(0, 60);
+
+  const { data: newTeam, error: teamError } = await supabase
+    .from("hackathon_teams")
+    .insert({ event_id: eventId, name: teamName, created_by: userId })
+    .select("id")
+    .single();
+  if (teamError || !newTeam) return { error: teamError?.message ?? "Failed to create team" };
+
+  const { error: memberError } = await supabase
+    .from("hackathon_team_members")
+    .insert({ team_id: newTeam.id, user_id: userId, role: "leader" });
+  if (memberError) {
+    await supabase.from("hackathon_teams").delete().eq("id", newTeam.id);
+    return { error: memberError.message };
+  }
+
+  await ensureTeamChannel(eventId, newTeam.id, teamName);
+
+  const { data: eventRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (eventRow?.slug) revalidatePath(`/${eventRow.slug}/hackathon`);
+
+  return { success: true, teamId: newTeam.id };
+}
+
 export async function cancelHackathonProjectSubmission(
   teamId: string,
   eventId: string
