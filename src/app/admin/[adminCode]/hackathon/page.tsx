@@ -22,7 +22,8 @@ interface Props {
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const VALID_TABS = ["settings", "teams", "scoring", "leaderboard", "judging", "chat", "people"] as const;
+// "people" tab is hidden for now (see SHOW_PEOPLE_TAB in HackathonAdminClient); omit it so stale links fall back to settings.
+const VALID_TABS = ["settings", "teams", "scoring", "leaderboard", "judging", "chat"] as const;
 type Tab = typeof VALID_TABS[number];
 
 export default async function HackathonAdminPage({ params, searchParams }: Props) {

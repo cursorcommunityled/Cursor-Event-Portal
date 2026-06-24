@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   sendTeamInvite,
   createSoloTeam,
+  startSoloHackathonTeam,
   cancelTeamInvite,
   acceptTeamInvite,
   declineTeamInvite,
@@ -524,6 +525,17 @@ export function HackathonClient({
       setShowSoloForm(false);
       setTab("all-teams");
       showMsg("Solo team created — you can submit your project now");
+      refresh();
+    });
+  };
+
+  const handleStartSolo = () => {
+    startTransition(async () => {
+      const res = await startSoloHackathonTeam(event.id);
+      if (res.error) { showMsg(res.error, true); return; }
+      setTab("all-teams");
+      setShowProjectForm(true);
+      showMsg("Solo project started — fill in your details and submit");
       refresh();
     });
   };
@@ -1205,9 +1217,21 @@ export function HackathonClient({
                       )}
                     </div>
                   ) : (
-                    <p className="mt-3 flex items-center justify-center gap-2 text-[13px] font-bold uppercase tracking-wider text-amber-500">
-                      <Lock className="h-4 w-4" /> Team formation is closed
-                    </p>
+                    <div className="mt-3 space-y-4">
+                      <p className="flex items-center justify-center gap-2 text-[13px] font-bold uppercase tracking-wider text-amber-500">
+                        <Lock className="h-4 w-4" /> Team formation is closed
+                      </p>
+                      <p className="text-[15px] font-medium text-gray-400">
+                        You can still submit your own project on your own.
+                      </p>
+                      <button
+                        disabled={isPending}
+                        onClick={handleStartSolo}
+                        className="rounded-xl bg-white px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                      >
+                        Submit your own project
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
