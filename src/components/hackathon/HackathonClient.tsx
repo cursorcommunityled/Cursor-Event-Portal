@@ -4,6 +4,7 @@ import React, { useState, useTransition, useEffect, useCallback, useRef, useMemo
 import { createClient } from "@/lib/supabase/client";
 import {
   sendTeamInvite,
+  createSoloTeam,
   cancelTeamInvite,
   acceptTeamInvite,
   declineTeamInvite,
@@ -203,6 +204,9 @@ export function HackathonClient({
   const [inviteTarget, setInviteTarget] = useState<{ id: string; name: string } | null>(null);
   const [teamFinderProfileMember, setTeamFinderProfileMember] = useState<ChatMember | null>(null);
   const [newTeamName, setNewTeamName] = useState("");
+  // Solo team (teams of 1)
+  const [soloName, setSoloName] = useState("");
+  const [showSoloForm, setShowSoloForm] = useState(false);
   const [inviteLogoFile, setInviteLogoFile] = useState<File | null>(null);
   const [inviteLogoPreviewUrl, setInviteLogoPreviewUrl] = useState<string | null>(null);
   const inviteLogoInputRef = useRef<HTMLInputElement>(null);
@@ -508,6 +512,20 @@ export function HackathonClient({
     } catch {
       return { error: "Upload failed. Please try again." };
     }
+  };
+
+  const handleCreateSoloTeam = () => {
+    const name = soloName.trim();
+    if (!name) { showMsg("Team name is required", true); return; }
+    startTransition(async () => {
+      const res = await createSoloTeam(event.id, name);
+      if (res.error) { showMsg(res.error, true); return; }
+      setSoloName("");
+      setShowSoloForm(false);
+      setTab("all-teams");
+      showMsg("Solo team created — you can submit your project now");
+      refresh();
+    });
   };
 
   const handleSendInvite = () => {
@@ -1151,9 +1169,41 @@ export function HackathonClient({
                 <div>
                   <p className="text-2xl font-black tracking-tight text-white">You&apos;re not on a team yet</p>
                   {formationOpen ? (
-                    <p className="mt-2 text-[15px] font-medium text-gray-400">
-                      Go to <button onClick={() => setTab("open-pool")} className="text-gray-400 hover:text-gray-400 underline decoration-white/30 underline-offset-4 transition-colors">Open Pool</button> to find teammates and form a team
-                    </p>
+                    <div className="mt-2 space-y-4">
+                      <p className="text-[15px] font-medium text-gray-400">
+                        Go to <button onClick={() => setTab("open-pool")} className="text-white hover:text-gray-300 underline decoration-white/30 underline-offset-4 transition-colors">Open Pool</button> to find teammates — or go solo (teams of 1 are allowed).
+                      </p>
+                      {showSoloForm ? (
+                        <div className="mx-auto flex max-w-sm flex-col gap-2 sm:flex-row">
+                          <input
+                            autoFocus
+                            value={soloName}
+                            onChange={(e) => setSoloName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleCreateSoloTeam();
+                              if (e.key === "Escape") { setShowSoloForm(false); setSoloName(""); }
+                            }}
+                            maxLength={60}
+                            placeholder="Your team name..."
+                            className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-[14px] font-medium text-white placeholder-gray-600 transition-colors focus:border-white/30 focus:bg-white/10 focus:outline-none"
+                          />
+                          <button
+                            disabled={isPending || !soloName.trim()}
+                            onClick={handleCreateSoloTeam}
+                            className="rounded-xl bg-white px-5 py-3 text-[12px] font-bold uppercase tracking-wider text-black transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+                          >
+                            Create
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setShowSoloForm(true)}
+                          className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-[12px] font-bold uppercase tracking-wider text-gray-300 transition-all hover:border-white/30 hover:bg-white/10 hover:text-white"
+                        >
+                          Create a solo team
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <p className="mt-3 flex items-center justify-center gap-2 text-[13px] font-bold uppercase tracking-wider text-amber-500">
                       <Lock className="h-4 w-4" /> Team formation is closed

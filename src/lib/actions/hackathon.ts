@@ -781,6 +781,78 @@ export async function sendTeamInvite(
   return { success: true, teamId };
 }
 
+// ─── Attendee: create a solo team (teams of 1) ─────────────────────────────────
+
+export async function createSoloTeam(
+  eventId: string,
+  teamName: string
+): Promise<{ success?: true; error?: string; teamId?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+  const userId = session.userId;
+
+  const name = teamName?.trim();
+  if (!name) return { error: "Team name is required" };
+
+  const supabase = await createServiceClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("is_hackathon")
+    .eq("id", eventId)
+    .single();
+  if (!event?.is_hackathon) return { error: "Hackathon mode is not active" };
+
+  const { data: settings } = await supabase
+    .from("hackathon_settings")
+    .select("*")
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!isFormationOpen(settings as HackathonSettings | null)) {
+    return { error: "Team formation is closed" };
+  }
+
+  // Already on a team for this event?
+  const { data: eventTeams } = await supabase
+    .from("hackathon_teams")
+    .select("id")
+    .eq("event_id", eventId);
+  const eventTeamIds = (eventTeams ?? []).map((t: { id: string }) => t.id);
+  const { data: existingRows } = eventTeamIds.length
+    ? await supabase
+        .from("hackathon_team_members")
+        .select("team_id")
+        .eq("user_id", userId)
+        .in("team_id", eventTeamIds)
+        .limit(1)
+    : { data: [] };
+  if (existingRows?.[0]) return { error: "You are already on a team" };
+
+  // Create the team (active immediately) with the creator as leader.
+  const { data: newTeam, error: teamError } = await supabase
+    .from("hackathon_teams")
+    .insert({ event_id: eventId, name, created_by: userId })
+    .select("id")
+    .single();
+  if (teamError || !newTeam) return { error: teamError?.message ?? "Failed to create team" };
+
+  const { error: memberError } = await supabase
+    .from("hackathon_team_members")
+    .insert({ team_id: newTeam.id, user_id: userId, role: "leader" });
+  if (memberError) {
+    await supabase.from("hackathon_teams").delete().eq("id", newTeam.id);
+    return { error: memberError.message };
+  }
+
+  await ensureTeamChannel(eventId, newTeam.id, name);
+
+  const { data: eventRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (eventRow?.slug) revalidatePath(`/${eventRow.slug}/hackathon`);
+
+  return { success: true, teamId: newTeam.id };
+}
+
 // ─── Attendee: cancel sent team invite ─────────────────────────────────────────
 
 export async function cancelTeamInvite(

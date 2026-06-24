@@ -55,7 +55,7 @@ SELECT
   '2026-06-25T01:00:00Z',   -- 7:00 PM MDT, team formation closes (40 min to form)
   '2026-06-25T02:20:00Z',   -- 8:20 PM MDT, submission deadline (end of coding)
   '2026-06-25T02:25:00Z',   -- 8:25 PM MDT, judging starts (locks submissions at 8:20)
-  2,
+  1,                        -- min team size (solo teams allowed)
   4,
   false,
   E'Build something you''d actually use. Team up, prototype with Cursor, and ship a working demo before the deadline.'
@@ -73,7 +73,7 @@ SET
   team_formation_closes_at = '2026-06-25T01:00:00Z',
   submission_deadline = '2026-06-25T02:20:00Z',
   judging_starts_at = '2026-06-25T02:25:00Z',
-  min_team_size = 2,
+  min_team_size = 1,
   max_team_size = 4,
   prompt_text = COALESCE(
     NULLIF(BTRIM(hs.prompt_text), ''),
