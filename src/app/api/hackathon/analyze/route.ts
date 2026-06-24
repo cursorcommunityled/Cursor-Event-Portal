@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { getSession } from '@/lib/actions/registration';
 import { runAnalysisPipeline } from '@/lib/hackathon-analysis/pipeline';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-
     const supabase = await createServiceClient();
 
     const { teamId, eventId, adminCode } = await req.json() as { teamId: string; eventId: string; adminCode: string };
     if (!teamId || !eventId || !adminCode) return NextResponse.json({ error: 'Missing teamId, eventId, or adminCode' }, { status: 400 });
 
-    // Verify admin via admin_code (consistent with all other admin actions)
+    // Authorize via admin_code only — admins operate via the /admin/[adminCode]
+    // URL and do not carry an attendee portal_session.
     const { data: adminEvent } = await supabase
       .from('events')
       .select('id')
