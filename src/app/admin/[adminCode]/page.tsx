@@ -30,8 +30,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
   const { adminCode } = await params;
   const event = await getEventForAdmin(adminCode);
   const eventSlug = event.slug;
-  const isSaitHackathon =
-    event.is_hackathon && event.slug === "calgary-hackathon-sait-may-2026";
+  const isHackathonEvent = Boolean(event.is_hackathon);
 
   const supabase = await createClient();
 
@@ -230,32 +229,32 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
             </div>
           </div>
 
-          {isSaitHackathon && (
+          {isHackathonEvent && (
             <div className="animate-slide-up h-full" style={{ animationDelay: "300ms" }}>
-              <div className="glass rounded-[40px] p-8 border-red-500/20 bg-red-500/5 hover:bg-red-500/10 hover:border-red-400/30 hover:shadow-[0_0_30px_rgba(239,68,68,0.15)] transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full">
+              <div className="glass rounded-[40px] p-8 border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 hover:shadow-[0_0_30px_rgba(255,255,255,0.12)] transition-all group cursor-pointer relative overflow-hidden shadow-sm h-full">
                 <Link href={`/admin/${adminCode}/hackathon`} prefetch={false} className="absolute inset-0 z-10" aria-label="Hackathon" />
                 <div className="flex h-full items-center justify-between relative z-20 pointer-events-none">
                   <div className="flex items-center gap-6">
-                    <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center group-hover:scale-105 transition-all">
-                      <Swords className="w-6 h-6 text-red-400 group-hover:text-red-300 transition-colors" />
+                    <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center group-hover:scale-105 transition-all">
+                      <Swords className="w-6 h-6 text-white/80 group-hover:text-white transition-colors" />
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-light tracking-tight text-white/90">Hackathon</h3>
-                        <span className="text-[8px] uppercase tracking-[0.2em] text-red-400 bg-red-400/10 border border-red-400/20 rounded-full px-2 py-0.5">Active</span>
+                        <span className="text-[8px] uppercase tracking-[0.2em] text-gray-300 bg-white/10 border border-white/20 rounded-full px-2 py-0.5">Active</span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-red-400/60 font-medium">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-gray-400 font-medium">
                         <span>Teams</span>
-                        <span className="text-red-400/40">·</span>
-                        <span className="text-red-400/90">Chat</span>
-                        <span className="text-red-400/40">·</span>
+                        <span className="text-gray-600">·</span>
+                        <span className="text-gray-200">Chat</span>
+                        <span className="text-gray-600">·</span>
                         <span>Scoring</span>
-                        <span className="text-red-400/40">·</span>
+                        <span className="text-gray-600">·</span>
                         <span>Leaderboard</span>
                       </div>
                     </div>
                   </div>
-                  <ArrowRight className="w-5 h-5 shrink-0 text-red-400/50 group-hover:text-red-300 group-hover:translate-x-1 transition-all" />
+                  <ArrowRight className="w-5 h-5 shrink-0 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
                 </div>
               </div>
             </div>
