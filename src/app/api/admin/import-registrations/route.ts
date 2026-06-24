@@ -9,7 +9,11 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { eventId, attendees } = body;
+    const { eventId, attendees, markCheckedIn } = body;
+    // When true, this is the on-site "who actually showed up" list: mark each row
+    // checked in (which is what gates Cursor credits). When false/omitted, rows are
+    // registered only — they get portal access but no credits.
+    const shouldCheckIn = markCheckedIn === true;
 
     if (!eventId || !attendees || !Array.isArray(attendees)) {
       return NextResponse.json(
@@ -78,8 +82,10 @@ export async function POST(request: NextRequest) {
 
     let imported = 0;
     let skipped = 0;
+    let checkedIn = 0;
     let profilesUpdated = 0;
     const errors: string[] = [];
+    const nowIso = new Date().toISOString();
 
     const saveHackathonProfile = async (
       userId: string,
@@ -224,13 +230,27 @@ export async function POST(request: NextRequest) {
       // Check if registration already exists
       const { data: existingReg } = await supabase
         .from("registrations")
-        .select("id")
+        .select("id, checked_in_at")
         .eq("event_id", eventId)
         .eq("user_id", userId)
         .single();
 
       if (existingReg) {
-        skipped++;
+        // On the on-site list, flip already-registered people to checked in so they
+        // qualify for credits. Otherwise this is a no-op (they're already registered).
+        if (shouldCheckIn && !existingReg.checked_in_at) {
+          const { error: checkInError } = await supabase
+            .from("registrations")
+            .update({ checked_in_at: nowIso })
+            .eq("id", existingReg.id);
+          if (checkInError) {
+            errors.push(`Failed to check in ${email}: ${checkInError.message}`);
+            continue;
+          }
+          checkedIn++;
+        } else {
+          skipped++;
+        }
         continue;
       }
 
@@ -239,6 +259,7 @@ export async function POST(request: NextRequest) {
         event_id: eventId,
         user_id: userId,
         source: "link", // Using 'link' as source type (valid: qr, link, walk-in)
+        checked_in_at: shouldCheckIn ? nowIso : null,
       });
 
       if (regError) {
@@ -247,11 +268,13 @@ export async function POST(request: NextRequest) {
       }
 
       imported++;
+      if (shouldCheckIn) checkedIn++;
     }
 
     return NextResponse.json({
       imported,
       skipped,
+      checkedIn,
       profilesUpdated,
       errors: errors.slice(0, 10), // Limit errors returned
     });
