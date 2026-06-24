@@ -2,6 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { requireEventAdmin } from "@/lib/auth/admin-action";
 import { mapToHackathonScores } from "@/lib/hackathon-analysis/criteria";
 import type { Pass6Result, HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 import { revalidatePath } from "next/cache";
@@ -65,8 +66,8 @@ export async function triggerAnalysis(
   eventId: string,
   adminCode: string
 ): Promise<{ success?: true; error?: string }> {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const baseUrl = await getBaseUrl();
   if (!baseUrl) return { error: "Could not determine application URL" };
@@ -94,19 +95,26 @@ export async function applyAIScores(
   teamId: string,
   eventId: string
 ): Promise<{ success?: true; error?: string }> {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
 
-  // Verify admin
-  const { data: adminEvent } = await supabase
-    .from("events")
-    .select("id")
-    .eq("admin_code", adminCode)
-    .eq("id", eventId)
-    .maybeSingle();
-  if (!adminEvent) return { error: "Not authorized" };
+  // Resolve a judge identity for the AI score. Prefer the logged-in admin's
+  // user; fall back to a stable admin user when operating via admin code only.
+  const session = await getSession();
+  let judgeId = session?.userId ?? null;
+  if (!judgeId) {
+    const { data: adminUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("role", "admin")
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    judgeId = adminUser?.id ?? null;
+  }
+  if (!judgeId) return { error: "No admin user available to attribute the AI score" };
 
   // Get Pass 6 result
   const { data: pass6Row } = await supabase
@@ -129,7 +137,7 @@ export async function applyAIScores(
       {
         team_id: teamId,
         event_id: eventId,
-        judge_id: session.userId,
+        judge_id: judgeId,
         ...mapped,
         notes: `AI Score (overall ${pass6.overall_score.toFixed(1)}/10): ${pass6.most_impressive_aspect}`,
         updated_at: now,
@@ -152,12 +160,12 @@ export async function pushTopAIToFinalRound(
   competitionId: string,
   count = 8
 ): Promise<{ success?: true; error?: string; pushed?: number }> {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
 
   const supabase = await createServiceClient();
 
-  // Verify admin
+  // Confirm the event exists / fetch slug for revalidation (auth already done above).
   const { data: adminEvent } = await supabase
     .from("events")
     .select("id, slug")
