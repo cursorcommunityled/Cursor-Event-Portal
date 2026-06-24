@@ -81,6 +81,7 @@ interface Props {
   mentorSlots: { id: string; mentor_id: string | null; is_full: boolean }[];
   myMentorSlotId: string | null;
   initialScreenshots?: { id: string; file_url: string }[];
+  teamScreenshots?: Record<string, string>;
   initialTeamAnalyses?: { id: string; pass_name: string; status: string; updated_at: string }[];
   audienceVotePoll?: PollWithVotes | null;
 }
@@ -184,7 +185,7 @@ export function HackathonClient({
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
   allTeams: initialAllTeams, openPool: initialPool, scores, publicAIScores = [],
   chatChannels, initialMessages, initialChannelId, chatMembers,
-  publishedJudgingResults, needsTeam = false, initialScreenshots = [], initialTeamAnalyses = [],
+  publishedJudgingResults, needsTeam = false, initialScreenshots = [], teamScreenshots = {}, initialTeamAnalyses = [],
   audienceVotePoll = null, hackathonProfile, mentors, judges, mentorSlots, myMentorSlotId,
 }: Props) {
   const router = useRouter();
@@ -1664,6 +1665,7 @@ export function HackathonClient({
                 rank={rank}
                 score={score}
                 aiScore={publicAIScoreByTeamId.get(team.id) ?? null}
+                screenshotUrl={teamScreenshots[team.id] ?? null}
                 formationOpen={formationOpen}
               />
             ))}
@@ -2121,11 +2123,12 @@ function PublicAIScoreCard({ aiScore, title }: { aiScore: PublicAIScore; title: 
   );
 }
 
-function TeamCard({ team, rank, score, aiScore, formationOpen }: {
+function TeamCard({ team, rank, score, aiScore, screenshotUrl, formationOpen }: {
   team: HackathonTeamWithMembers;
   rank: number | null;
   score: number | null;
   aiScore: PublicAIScore | null;
+  screenshotUrl: string | null;
   formationOpen: boolean;
 }) {
   const displayScore = score;
@@ -2183,21 +2186,33 @@ function TeamCard({ team, rank, score, aiScore, formationOpen }: {
       </div>
 
       {team.project?.submitted_at && (
-        <div className="relative mt-5 flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
-          <p className="text-[14px] font-medium text-gray-300 truncate">{team.project.name}</p>
-          <div className="flex shrink-0 gap-2">
-            {team.project.repo_url && (
-              <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-400">
-                <Github className="h-3.5 w-3.5" /> Repo
-              </a>
-            )}
-            {team.project.demo_url && (
-              <a href={team.project.demo_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-500/10 hover:text-green-300">
-                <ExternalLink className="h-3.5 w-3.5" /> Demo
-              </a>
-            )}
+        <div className="relative mt-5 space-y-3">
+          {screenshotUrl && (
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+              <img
+                src={screenshotUrl}
+                alt={`${team.project.name ?? team.name} screenshot`}
+                loading="lazy"
+                className="h-44 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-3">
+            <p className="text-[14px] font-medium text-gray-300 truncate">{team.project.name}</p>
+            <div className="flex shrink-0 gap-2">
+              {team.project.repo_url && (
+                <a href={team.project.repo_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 transition-colors hover:bg-white/10 hover:text-gray-400">
+                  <Github className="h-3.5 w-3.5" /> Repo
+                </a>
+              )}
+              {team.project.demo_url && (
+                <a href={team.project.demo_url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-xl bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-green-400 transition-colors hover:bg-green-500/10 hover:text-green-300">
+                  <ExternalLink className="h-3.5 w-3.5" /> Demo
+                </a>
+              )}
+            </div>
           </div>
         </div>
       )}
