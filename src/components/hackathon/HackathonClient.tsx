@@ -317,6 +317,8 @@ export function HackathonClient({
   const leaderboardVisible = settings?.leaderboard_visible ?? false;
   const aiScoresVisible = settings?.ai_scores_visible ?? false;
   const maxTeamSize = settings?.max_team_size ?? 4;
+  const minTeamSize = settings?.min_team_size ?? 1;
+  const teamSizeLabel = minTeamSize === maxTeamSize ? `${maxTeamSize}` : `${minTeamSize}–${maxTeamSize}`;
   const totalTeamMembers = allTeams.reduce((sum, team) => sum + team.members.length, 0);
   const submittedProjects = allTeams.filter((team) => team.project?.submitted_at).length;
   const totalParticipants = totalTeamMembers + pool.length;
@@ -1055,6 +1057,10 @@ export function HackathonClient({
                         ? "Open for invites & changes"
                         : "Team changes are closed"}
                   </p>
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/80">
+                    <Users className="h-3.5 w-3.5" />
+                    Teams of {teamSizeLabel}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1677,6 +1683,15 @@ export function HackathonClient({
       {/* Open Pool tab */}
       {formationOpen && tab === "open-pool" && (
         <div className="space-y-4 animate-slide-up">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <p className="text-[12px] font-medium text-gray-400">
+              Invite people here to build your team.
+            </p>
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/80">
+              <Users className="h-3.5 w-3.5" />
+              Teams of {teamSizeLabel}
+            </span>
+          </div>
           {pool.length === 0 && (
             <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
@@ -1776,10 +1791,16 @@ export function HackathonClient({
       {tab === "people" && (
         <div className="space-y-8 animate-slide-up">
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
-            <div className="relative space-y-2">
-              <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
-              <h2 className="text-4xl font-light text-white tracking-tight">People</h2>
-              <p className="text-sm text-gray-500">Get guidance from mentors and meet the judging panel.</p>
+            <div className="relative flex items-start justify-between gap-4">
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
+                <h2 className="text-4xl font-light text-white tracking-tight">People</h2>
+                <p className="text-sm text-gray-500">Get guidance from mentors and meet the judging panel.</p>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/80">
+                <Users className="h-3.5 w-3.5" />
+                Teams of {teamSizeLabel}
+              </span>
             </div>
           </div>
 
