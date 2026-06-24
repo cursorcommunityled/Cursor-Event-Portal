@@ -94,15 +94,15 @@ export function HackathonProfileEditor({
       className="relative overflow-hidden rounded-[34px] border border-white/10 bg-black/50 p-6 shadow-2xl backdrop-blur-xl sm:p-8"
     >
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
-      <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-red-500/10 blur-[55px]" />
+      <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-white/10 blur-[55px]" />
       <div className="relative space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-red-500/25 bg-red-500/10 text-red-200">
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-white/25 bg-white/10 text-gray-400">
                 <UserRound className="h-4 w-4" />
               </div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-red-300">
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">
                 {userName ? `${userName.split(' ')[0]}'s Profile` : "My Hackathon Profile"}
               </p>
             </div>
@@ -128,7 +128,7 @@ export function HackathonProfileEditor({
               onChange={(event) => updateField("occupation", event.target.value)}
               maxLength={120}
               placeholder="Founder, designer, data analyst..."
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
             />
           </label>
           <label className="space-y-2">
@@ -139,7 +139,7 @@ export function HackathonProfileEditor({
                 "is_technical",
                 event.target.value === "" ? null : event.target.value === "technical"
               )}
-              className="w-full rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm font-medium text-white focus:border-red-500/40 focus:outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-black px-4 py-3 text-sm font-medium text-white focus:border-white/40 focus:outline-none"
             >
               <option value="">Prefer not to say</option>
               <option value="technical">Technical</option>
@@ -153,7 +153,7 @@ export function HackathonProfileEditor({
               onChange={(event) => updateField("unique_skill", event.target.value)}
               maxLength={160}
               placeholder="Pitching, React, user research..."
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
             />
           </label>
           <label className="space-y-2">
@@ -163,7 +163,7 @@ export function HackathonProfileEditor({
               onChange={(event) => updateField("linkedin_url", event.target.value)}
               maxLength={240}
               placeholder="https://linkedin.com/in/..."
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
             />
           </label>
         </div>
@@ -177,7 +177,7 @@ export function HackathonProfileEditor({
               maxLength={600}
               rows={3}
               placeholder="A quick intro for potential teammates..."
-              className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+              className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
             />
           </label>
           <label className="space-y-2">
@@ -188,7 +188,7 @@ export function HackathonProfileEditor({
               maxLength={600}
               rows={2}
               placeholder="Industries, ideas, or problems you want to work on..."
-              className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+              className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
             />
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -200,7 +200,7 @@ export function HackathonProfileEditor({
                 maxLength={400}
                 rows={2}
                 placeholder="Fast prototyper, facilitator, detail-oriented..."
-                className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+                className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
               />
             </label>
             <label className="space-y-2">
@@ -211,7 +211,7 @@ export function HackathonProfileEditor({
                 maxLength={400}
                 rows={2}
                 placeholder="Can design, validate users, build quickly..."
-                className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-red-500/40 focus:outline-none"
+                className="w-full resize-y rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white placeholder:text-gray-600 focus:border-white/40 focus:outline-none"
               />
             </label>
           </div>
@@ -222,13 +222,13 @@ export function HackathonProfileEditor({
             type="checkbox"
             checked={Boolean(form.needs_team)}
             onChange={(event) => updateField("needs_team", event.target.checked)}
-            className="h-4 w-4 rounded border-white/20 bg-black accent-red-500"
+            className="h-4 w-4 rounded border-white/20 bg-black accent-white"
           />
           Show me as looking for a team when organizers use profile data.
         </label>
 
         {saved && <p className="text-sm font-bold text-green-400">Profile saved.</p>}
-        {error && <p className="text-sm font-bold text-red-300">{error}</p>}
+        {error && <p className="text-sm font-bold text-gray-400">{error}</p>}
       </div>
     </form>
   );

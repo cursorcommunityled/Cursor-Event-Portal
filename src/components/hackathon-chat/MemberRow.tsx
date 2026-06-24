@@ -81,7 +81,7 @@ export function MemberRow({
           </button>
         )}
         {(member.role === "admin" || member.role === "staff" || member.role === "facilitator") && (
-          <Shield className="w-4 h-4 text-red-200 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] ml-1" />
+          <Shield className="w-4 h-4 text-gray-400 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] ml-1" />
         )}
       </div>
 

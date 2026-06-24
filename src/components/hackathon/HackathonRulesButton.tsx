@@ -143,7 +143,7 @@ function HackathonRulesModal({ onClose }: { onClose: () => void }) {
       >
         <div className="sticky top-0 z-20 flex items-start justify-between gap-4 border-b border-white/10 bg-black/80 px-5 py-5 backdrop-blur-xl sm:px-7">
           <div>
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-red-300">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">
               Hackathon
             </p>
             <h2 id="hackathon-rules-title" className="text-2xl font-black tracking-tight text-white sm:text-3xl">
@@ -171,7 +171,7 @@ function HackathonRulesModal({ onClose }: { onClose: () => void }) {
                 className="rounded-[24px] border border-white/10 bg-white/[0.03] p-5"
               >
                 <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <span className="rounded-full border border-red-400/30 bg-red-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-200">
+                  <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
                     {phase.label}
                   </span>
                   <h3 className="text-lg font-bold text-white">{phase.title}</h3>
@@ -179,7 +179,7 @@ function HackathonRulesModal({ onClose }: { onClose: () => void }) {
                 <ul className="space-y-2.5 text-sm leading-6 text-gray-300">
                   {phase.points.map((point) => (
                     <li key={point} className="flex gap-3">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white" />
                       <span>{point}</span>
                     </li>
                   ))}
@@ -188,10 +188,10 @@ function HackathonRulesModal({ onClose }: { onClose: () => void }) {
             ))}
           </div>
 
-          <div className="mt-7 rounded-[28px] border border-red-400/20 bg-red-500/[0.04] p-5 sm:p-6">
+          <div className="mt-7 rounded-[28px] border border-white/20 bg-white/[0.04] p-5 sm:p-6">
             <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-red-300">
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400">
                   Scoring Criteria
                 </p>
                 <h3 className="mt-2 text-xl font-black text-white">Weighted Rubric</h3>

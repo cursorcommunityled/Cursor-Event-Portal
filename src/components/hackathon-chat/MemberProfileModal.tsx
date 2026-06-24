@@ -63,7 +63,7 @@ export function MemberProfileModal({
       />
       <div className="relative w-full max-w-lg overflow-hidden rounded-[36px] border border-white/15 bg-black/90 p-6 shadow-[0_40px_120px_rgba(0,0,0,0.85)]">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:18px_18px]" />
-        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-red-500/15 blur-[55px]" />
+        <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/15 blur-[55px]" />
         <div className="relative space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
@@ -74,7 +74,7 @@ export function MemberProfileModal({
                 <p className="truncate text-2xl font-black tracking-tight text-white">{member.name}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   {isOrganizer ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-red-400/25 bg-red-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-200">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
                       <Shield className="h-3 w-3" /> Organizer
                     </span>
                   ) : member.team_role === "leader" ? (
@@ -83,7 +83,7 @@ export function MemberProfileModal({
                     </span>
                   ) : null}
                   {!member.team && !isOrganizer && (
-                    <span className="rounded-full border border-red-500/25 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-200">
+                    <span className="rounded-full border border-white/25 bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
                       Looking for team
                     </span>
                   )}
@@ -96,7 +96,7 @@ export function MemberProfileModal({
                   <button
                     type="button"
                     onClick={() => onCancelInvite(member)}
-                    className="group flex min-w-[106px] items-center justify-center gap-2 rounded-2xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-green-300 transition-all hover:border-red-500/35 hover:bg-red-500/15 hover:text-red-200"
+                    className="group flex min-w-[106px] items-center justify-center gap-2 rounded-2xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-green-300 transition-all hover:border-white/35 hover:bg-white/15 hover:text-gray-400"
                     aria-label="Cancel invite"
                   >
                     <span className="flex items-center gap-2 group-hover:hidden">
@@ -113,7 +113,7 @@ export function MemberProfileModal({
                 <button
                   type="button"
                   onClick={() => onInvite(member)}
-                  className="flex items-center gap-2 rounded-2xl border border-red-500/25 bg-red-500/15 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-red-200 transition-all hover:border-red-500/40 hover:bg-red-500/25 hover:scale-105"
+                  className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/15 px-3 py-2 text-[12px] font-bold uppercase tracking-[0.1em] text-gray-400 transition-all hover:border-white/40 hover:bg-white/25 hover:scale-105"
                   aria-label="Invite to team"
                 >
                   <UserPlus className="h-4 w-4" /> Invite

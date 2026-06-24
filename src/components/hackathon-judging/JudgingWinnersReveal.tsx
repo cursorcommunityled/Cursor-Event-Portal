@@ -213,10 +213,10 @@ export function JudgingWinnersReveal({ eventId, initialResults, hideAudienceFavo
         <div className="relative text-center space-y-4">
           <div className={cn(
             "mx-auto flex h-24 w-24 items-center justify-center rounded-full border shadow-[0_0_40px_rgba(234,179,8,0.25)] relative overflow-hidden",
-            isAudienceAward ? "border-red-400/40 bg-red-500/10 text-red-200" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
+            isAudienceAward ? "border-white/40 bg-white/10 text-gray-400" : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
           )}>
             <div className="absolute inset-0 bg-white/5 animate-pulse" />
-            {isAudienceAward ? <Star className="relative z-10 h-10 w-10 fill-red-300/20" /> : <Trophy className="relative z-10 h-10 w-10" />}
+            {isAudienceAward ? <Star className="relative z-10 h-10 w-10 fill-white/20" /> : <Trophy className="relative z-10 h-10 w-10" />}
           </div>
           <div className="space-y-2">
             <p className="text-[12px] font-bold uppercase tracking-[0.4em] text-yellow-400/90">
@@ -254,7 +254,7 @@ export function JudgingWinnersReveal({ eventId, initialResults, hideAudienceFavo
                 className={cn(
                   "relative overflow-hidden rounded-[32px] border p-6 text-center backdrop-blur-md transition-transform hover:scale-105",
                   isAudienceAward
-                    ? "border-red-400/40 bg-red-500/10 md:pb-8"
+                    ? "border-white/40 bg-white/10 md:pb-8"
                     : placement === 1
                     ? "md:order-2 border-yellow-500/50 bg-yellow-500/10 md:pb-12 shadow-[0_0_30px_rgba(234,179,8,0.2)]"
                     : placement === 2
@@ -283,7 +283,7 @@ export function JudgingWinnersReveal({ eventId, initialResults, hideAudienceFavo
                     )}>
                       {placement === 1 && !isAudienceAward ? <Trophy className="h-5 w-5 text-yellow-400 drop-shadow-lg" /> : <Medal className={cn(
                         "h-5 w-5 drop-shadow-lg",
-                        isAudienceAward ? "text-red-200" : placement === 2 ? "text-gray-300" : placement === 3 ? "text-orange-400" : "text-gray-400"
+                        isAudienceAward ? "text-gray-400" : placement === 2 ? "text-gray-300" : placement === 3 ? "text-orange-400" : "text-gray-400"
                       )} />}
                     </div>
                   </div>
@@ -346,23 +346,23 @@ export function JudgingWinnersPodium({ results }: { results: CompetitionJudgingR
         return (
           <div key={key} className={cn(
             "relative overflow-hidden rounded-[34px] border bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6",
-            isAudienceAward ? "border-red-500/25" : "border-yellow-500/30"
+            isAudienceAward ? "border-white/25" : "border-yellow-500/30"
           )}>
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
             <div className={cn(
               "absolute -right-20 -top-20 h-40 w-40 rounded-full blur-[50px]",
-              isAudienceAward ? "bg-red-500/10" : "bg-yellow-500/10"
+              isAudienceAward ? "bg-white/10" : "bg-yellow-500/10"
             )} />
             
             <div className="relative flex items-center gap-4">
               <div className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-full border relative overflow-hidden",
                 isAudienceAward
-                  ? "border-red-400/40 bg-red-500/10 text-red-200"
+                  ? "border-white/40 bg-white/10 text-gray-400"
                   : "border-yellow-500/40 bg-yellow-500/10 text-yellow-300"
               )}>
                 <div className="absolute inset-0 bg-white/5 animate-pulse" />
-                {isAudienceAward ? <Star className="relative z-10 h-5 w-5 fill-red-300/20" /> : <Trophy className="relative z-10 h-5 w-5" />}
+                {isAudienceAward ? <Star className="relative z-10 h-5 w-5 fill-white/20" /> : <Trophy className="relative z-10 h-5 w-5" />}
               </div>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-400/80">
