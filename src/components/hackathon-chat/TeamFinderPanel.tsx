@@ -186,17 +186,17 @@ export function TeamFinderPanel({
 
   return (
     <div className="shrink-0 mx-3 mt-3 sm:mx-5">
-      <div className="relative overflow-hidden rounded-[28px] border border-red-500/30 bg-red-500/[0.07] p-4 shadow-[0_0_40px_rgba(239,68,68,0.08)]">
+      <div className="relative overflow-hidden rounded-[28px] border border-white/30 bg-white/[0.07] p-4 shadow-[0_0_40px_rgba(239,68,68,0.08)]">
         <div className="absolute inset-0 bg-grid-white/[0.01] bg-[size:15px_15px]" />
-        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[50px]" />
+        <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-[50px]" />
 
         <div className="relative">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-red-500/20 border border-red-500/30">
-                <Zap className="w-3.5 h-3.5 text-red-300" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-white/20 border border-white/30">
+                <Zap className="w-3.5 h-3.5 text-gray-400" />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-red-300">Team Finder</span>
+              <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-gray-400">Team Finder</span>
               <span className="text-[10px] text-gray-500 font-medium">— your top matches</span>
             </div>
             <button
@@ -209,7 +209,7 @@ export function TeamFinderPanel({
 
           {loading ? (
             <div className="space-y-3" role="status" aria-live="polite">
-              <div className="flex items-center gap-2 rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-red-200">
+              <div className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
                 <AlertCircle className="w-3.5 h-3.5" />
                 suggestions loading!
               </div>
@@ -226,7 +226,7 @@ export function TeamFinderPanel({
                 onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
                 disabled={!canGoBack}
                 aria-label="Previous team matches"
-                className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
+                className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-white/30 hover:bg-white/10 hover:text-gray-400 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -261,7 +261,7 @@ export function TeamFinderPanel({
                           <button
                             type="button"
                             onClick={() => onOpenProfile(profileMember)}
-                            className="text-left text-[14px] font-bold text-white leading-tight hover:text-red-200 hover:underline decoration-red-500/40 underline-offset-4 transition-colors"
+                            className="text-left text-[14px] font-bold text-white leading-tight hover:text-gray-400 hover:underline decoration-white/40 underline-offset-4 transition-colors"
                           >
                             {rec.name}
                           </button>
@@ -269,7 +269,7 @@ export function TeamFinderPanel({
                             {rec.is_technical !== null && (
                               <span className={`text-[8px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border ${
                                 rec.is_technical
-                                  ? "text-red-400 bg-red-500/10 border-red-500/20"
+                                  ? "text-gray-400 bg-white/10 border-white/20"
                                   : "text-orange-400 bg-orange-500/10 border-orange-500/20"
                               }`}>
                                 {rec.is_technical ? "Tech" : "Non-Tech"}
@@ -280,7 +280,7 @@ export function TeamFinderPanel({
                                 href={rec.linkedin_url.startsWith("http") ? rec.linkedin_url : `https://${rec.linkedin_url}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-gray-600 hover:text-red-400 transition-colors"
+                                className="text-gray-600 hover:text-gray-400 transition-colors"
                               >
                                 <Linkedin className="w-3 h-3" />
                               </a>
@@ -299,7 +299,7 @@ export function TeamFinderPanel({
                             </span>
                           )}
                           {rec.unique_skill && (
-                            <span className="rounded-md border border-red-500/25 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-red-200">
+                            <span className="rounded-md border border-white/25 bg-white/10 px-2.5 py-1.5 text-[11px] font-medium leading-snug text-gray-400">
                               {rec.unique_skill}
                             </span>
                           )}
@@ -312,7 +312,7 @@ export function TeamFinderPanel({
                               type="button"
                               disabled={status === "canceling"}
                               onClick={() => handleCancelInvite(rec.userId)}
-                              className="group rounded-xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-green-300 transition-all hover:border-red-500/35 hover:bg-red-500/15 hover:text-red-200 disabled:opacity-50"
+                              className="group rounded-xl border border-green-500/25 bg-green-500/10 px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-green-300 transition-all hover:border-white/35 hover:bg-white/15 hover:text-gray-400 disabled:opacity-50"
                             >
                               <span className="group-hover:hidden">
                                 {status === "canceling" ? "Canceling..." : "Invited"}
@@ -323,19 +323,19 @@ export function TeamFinderPanel({
                             <p className="text-[11px] font-bold text-green-400">Invited</p>
                           )
                         ) : status === "error" ? (
-                          <p className="text-[11px] font-bold text-red-400">Could not send invite</p>
+                          <p className="text-[11px] font-bold text-gray-400">Could not send invite</p>
                         ) : showNameInput === rec.userId && !myTeamId ? (
                           <div className="flex items-center gap-1.5">
                             <input
                               value={teamName}
                               onChange={(e) => setTeamNameInputs((s) => ({ ...s, [rec.userId]: e.target.value }))}
                               placeholder="Team name…"
-                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-red-500/50"
+                              className="flex-1 min-w-0 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-[12px] text-white placeholder:text-gray-600 focus:outline-none focus:border-white/50"
                             />
                             <button
                               disabled={!teamName.trim() || status === "pending"}
                               onClick={() => handleInvite(rec.userId, teamName.trim())}
-                              className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/20 border border-red-500/30 text-red-200 hover:bg-red-500/30 transition-all disabled:opacity-40"
+                              className="px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-white/20 border border-white/30 text-gray-400 hover:bg-white/30 transition-all disabled:opacity-40"
                             >
                               Go
                             </button>
@@ -344,7 +344,7 @@ export function TeamFinderPanel({
                           <button
                             disabled={status === "pending"}
                             onClick={() => handleYes(rec.userId)}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-red-500/15 border border-red-500/25 text-red-200 hover:bg-red-500/25 hover:border-red-500/40 transition-all disabled:opacity-40"
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider bg-white/15 border border-white/25 text-gray-400 hover:bg-white/25 hover:border-white/40 transition-all disabled:opacity-40"
                           >
                             <UserPlus className="w-3 h-3" />
                             {status === "pending" ? "Sending…" : "Invite"}
@@ -361,7 +361,7 @@ export function TeamFinderPanel({
                       type="button"
                       onClick={() => setPageIndex((page) => Math.max(0, page - 1))}
                       disabled={!canGoBack}
-                      className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-red-500/30 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
+                      className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-white/30 hover:text-gray-400 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" />
                       Prev
@@ -373,7 +373,7 @@ export function TeamFinderPanel({
                       type="button"
                       onClick={handleNextPage}
                       disabled={!canGoForward && !canLoadMore}
-                      className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-red-500/30 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
+                      className="flex items-center gap-1.5 rounded-xl border border-white/[0.06] bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400 transition-all hover:border-white/30 hover:text-gray-400 disabled:cursor-not-allowed disabled:opacity-30 sm:hidden"
                     >
                       {loadingMore ? "Loading" : "Next"}
                       {!loadingMore && <ChevronRight className="h-3.5 w-3.5" />}
@@ -387,10 +387,10 @@ export function TeamFinderPanel({
                 onClick={handleNextPage}
                 disabled={!canGoForward && !canLoadMore}
                 aria-label={canGoForward ? "Next team matches" : "Load more team matches"}
-                className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
+                className="hidden w-9 shrink-0 items-center justify-center rounded-2xl border border-white/[0.06] bg-black/30 text-gray-400 transition-all hover:border-white/30 hover:bg-white/10 hover:text-gray-400 disabled:cursor-not-allowed disabled:opacity-30 sm:flex"
               >
                 {loadingMore ? (
-                  <span className="h-4 w-4 animate-pulse rounded-full bg-red-300/60" />
+                  <span className="h-4 w-4 animate-pulse rounded-full bg-white/60" />
                 ) : (
                   <ChevronRight className="h-4 w-4" />
                 )}

@@ -8,7 +8,7 @@ export function MemberCard({ member }: { member: ChatMember }) {
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/80 p-5 w-64 space-y-4 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)] z-50 backdrop-blur-3xl">
       <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:15px_15px]" />
-      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px]" />
+      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-[40px]" />
       
       <div className="relative flex items-center gap-4">
         <div className="ring-1 ring-white/15 rounded-2xl shadow-lg">
@@ -17,7 +17,7 @@ export function MemberCard({ member }: { member: ChatMember }) {
         <div className="min-w-0">
           <p className="text-[16px] font-bold truncate text-white tracking-tight">{member.name}</p>
           {member.role === "admin" || member.role === "staff" || member.role === "facilitator" ? (
-            <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 flex items-center gap-1 drop-shadow-md">
+            <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 flex items-center gap-1 drop-shadow-md">
               <Shield className="w-3 h-3" /> Admin
             </span>
           ) : member.team_role === "leader" ? (

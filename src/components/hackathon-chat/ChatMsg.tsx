@@ -138,7 +138,7 @@ export function ChatMsg({
         nodes.push(<span key={`text-${lastIndex}`}>{text.slice(lastIndex, index)}</span>);
       }
       nodes.push(
-        <span key={`mention-${index}`} className="bg-red-500/20 text-red-300 rounded-md px-1 py-0.5 font-medium border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+        <span key={`mention-${index}`} className="bg-white/20 text-gray-400 rounded-md px-1 py-0.5 font-medium border border-white/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
           {match[0]}
         </span>
       );
@@ -199,7 +199,7 @@ export function ChatMsg({
               {sender?.name ?? "Unknown"}
             </span>
             {senderIsAdmin && (
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] bg-red-500/20 text-red-200 rounded-md px-1.5 py-0.5 border border-red-400/25 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] bg-white/20 text-gray-400 rounded-md px-1.5 py-0.5 border border-white/25 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
                 Admin
               </span>
             )}
@@ -245,7 +245,7 @@ export function ChatMsg({
                   handleEditCancel();
                 }
               }}
-              className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-[15px] text-white focus:outline-none focus:border-red-500/50 resize-none"
+              className="w-full bg-black/60 border border-white/20 rounded-xl px-3 py-2 text-[15px] text-white focus:outline-none focus:border-white/50 resize-none"
               rows={Math.max(1, editValue.split("\n").length)}
             />
             <div className="flex items-center gap-2">
@@ -258,7 +258,7 @@ export function ChatMsg({
               <button
                 onClick={handleEditSubmit}
                 disabled={!editValue.trim() || editValue.trim() === msg.content}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold uppercase tracking-wider bg-red-500/20 text-red-200 border border-red-500/30 hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold uppercase tracking-wider bg-white/20 text-gray-400 border border-white/30 hover:bg-white/30 transition-colors disabled:opacity-50"
               >
                 <Check className="w-3.5 h-3.5" />
                 Save
@@ -276,7 +276,7 @@ export function ChatMsg({
             className="mt-2.5 inline-flex max-w-full items-center gap-3 rounded-2xl border border-white/15 bg-black/45 px-4 py-3 text-[15px] text-gray-100 shadow-sm"
             aria-live="polite"
           >
-            <div className="rounded-lg bg-red-500/10 p-2 text-red-300">
+            <div className="rounded-lg bg-white/10 p-2 text-gray-400">
               {msg.file_type === "image" ? (
                 <ImageIcon className="h-4 w-4 shrink-0" />
               ) : (
@@ -322,7 +322,7 @@ export function ChatMsg({
             rel="noopener noreferrer"
             className="mt-2.5 inline-flex max-w-full items-center gap-3 bg-black/45 border border-white/15 rounded-2xl px-4 py-3 text-[15px] text-gray-100 hover:text-white hover:bg-white/[0.07] hover:border-white/25 transition-all duration-200 shadow-sm group"
           >
-            <div className="p-2 rounded-lg bg-red-500/10 text-red-400 group-hover:bg-red-500/20 transition-colors">
+            <div className="p-2 rounded-lg bg-white/10 text-gray-400 group-hover:bg-white/20 transition-colors">
               <FileText className="w-4 h-4 shrink-0" />
             </div>
             <span className="min-w-0 truncate max-w-[200px] font-medium">{msg.file_name ?? "File"}</span>
@@ -346,7 +346,7 @@ export function ChatMsg({
                 className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium transition-all duration-200 border",
                   r.mine
-                    ? "bg-red-500/20 border-red-500/30 text-red-100 shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+                    ? "bg-white/20 border-white/30 text-gray-400 shadow-[0_0_10px_rgba(239,68,68,0.1)]"
                     : "bg-white/[0.05] border-white/[0.1] text-gray-300 hover:bg-white/[0.1] hover:text-white"
                 )}
               >
@@ -429,7 +429,7 @@ export function ChatMsg({
           {canDelete && (
             <button
               onClick={() => onDelete(msg.id)}
-              className="p-2 rounded-xl hover:bg-red-500/10 text-gray-300 hover:text-red-300 transition-colors"
+              className="p-2 rounded-xl hover:bg-white/10 text-gray-300 hover:text-gray-400 transition-colors"
               title="Delete"
             >
               <Trash2 className="w-4 h-4" />

@@ -63,10 +63,10 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-[40px] border border-red-500/30 bg-black/60 backdrop-blur-2xl shadow-2xl">
+    <div className="relative overflow-hidden rounded-[40px] border border-white/30 bg-black/60 backdrop-blur-2xl shadow-2xl">
       {/* Background glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(239,68,68,0.18)_0,transparent_65%)]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
 
       {/* Celebration sparkles */}
       {celebrated && (
@@ -91,9 +91,9 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
       <div className="relative p-8 sm:p-10 space-y-7">
         {/* Header */}
         <div className="flex items-start gap-5">
-          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-red-400/30 bg-red-500/10 text-red-200 shadow-[0_0_30px_rgba(239,68,68,0.18)]">
+          <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[20px] border border-white/30 bg-white/10 text-gray-400 shadow-[0_0_30px_rgba(239,68,68,0.18)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.2),transparent_70%)]" />
-            <Star className="relative h-9 w-9 fill-red-300/20" />
+            <Star className="relative h-9 w-9 fill-white/20" />
           </div>
           <div className="min-w-0 pt-1">
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -145,8 +145,8 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                 className={cn(
                   "relative w-full overflow-hidden rounded-[20px] border p-0 text-left transition-all duration-300 group h-16 bg-[#1a1a1a]",
                   isChosen
-                    ? "border-red-400/60 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                    : "border-white/8 hover:border-red-500/30",
+                    ? "border-white/60 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                    : "border-white/8 hover:border-white/30",
                   (!poll.is_active || loading) && "cursor-not-allowed"
                 )}
               >
@@ -183,7 +183,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                 {/* Option Info (Fixed on the left) */}
                 <div className="absolute left-0 top-0 bottom-0 w-[140px] bg-black/90 backdrop-blur-md border-r border-white/10 flex flex-col justify-center px-4 z-20 shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                   <div className="flex items-center gap-1.5">
-                    {isChosen && <Check className="w-3 h-3 text-red-400 shrink-0" />}
+                    {isChosen && <Check className="w-3 h-3 text-gray-400 shrink-0" />}
                     <span className={cn(
                       "text-[13px] font-bold truncate",
                       isChosen ? "text-white" : "text-gray-300"
@@ -194,7 +194,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
                   {showResults && hasVoted && (
                     <span className={cn(
                       "text-[11px] font-black tabular-nums",
-                      isChosen ? "text-red-300" : isLeading ? "text-yellow-400" : "text-gray-500"
+                      isChosen ? "text-gray-400" : isLeading ? "text-yellow-400" : "text-gray-500"
                     )}>
                       {voteCounts[idx]} vote{voteCounts[idx] === 1 ? "" : "s"}
                     </span>
@@ -231,7 +231,7 @@ export function AudienceVoteCard({ poll, eventSlug }: Props) {
               : "Live results hidden"}
           </p>
           {celebrated && (
-            <p className="text-[12px] font-bold text-red-400 animate-pulse">
+            <p className="text-[12px] font-bold text-gray-400 animate-pulse">
               Vote recorded ✓
             </p>
           )}

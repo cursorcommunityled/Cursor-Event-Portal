@@ -995,8 +995,8 @@ export function HackathonChat({
       
       {/* Subtle top gradient light */}
       <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
-      <div className="absolute -top-20 right-10 h-52 w-52 rounded-full bg-red-500/[0.08] blur-[80px] pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-red-500/[0.05] blur-[80px] pointer-events-none" />
+      <div className="absolute -top-20 right-10 h-52 w-52 rounded-full bg-white/[0.08] blur-[80px] pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-white/[0.05] blur-[80px] pointer-events-none" />
 
       {/* Channel nav */}
       <div className="relative flex items-center gap-2 border-b border-white/10 bg-black/40 px-3 pt-3 pb-2.5 shrink-0 sm:px-4 z-10 backdrop-blur-md">
@@ -1031,7 +1031,7 @@ export function HackathonChat({
                     )} />
                     {channelLabel}
                     {(ch.unread_count && ch.unread_count > 0 && !isActiveChannel) ? (
-                      <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500 text-white rounded-full leading-none shrink-0 font-bold min-w-[1.25rem] text-center flex items-center justify-center">
+                      <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-white text-white rounded-full leading-none shrink-0 font-bold min-w-[1.25rem] text-center flex items-center justify-center">
                         {ch.unread_count > 99 ? "99+" : ch.unread_count}
                       </span>
                     ) : null}
@@ -1084,10 +1084,10 @@ export function HackathonChat({
               <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-yellow-300 bg-yellow-500/20 px-2.5 py-1 rounded-full ml-1 border border-yellow-500/30">Unassigned</span>
             )}
             {currentChannel?.channel_type === "announcements" && (
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 bg-red-500/20 px-2.5 py-1 rounded-full ml-1 border border-red-500/30">Admin Only</span>
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 bg-white/20 px-2.5 py-1 rounded-full ml-1 border border-white/30">Admin Only</span>
             )}
             {currentChannel?.channel_type === "team" && (
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-red-300 bg-red-500/20 px-2.5 py-1 rounded-full ml-1 border border-red-500/30">Private Team</span>
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 bg-white/20 px-2.5 py-1 rounded-full ml-1 border border-white/30">Private Team</span>
             )}
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <button
@@ -1151,7 +1151,7 @@ export function HackathonChat({
             {!loadingChannel && messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                 <div className="relative flex h-24 w-24 items-center justify-center rounded-[32px] border border-white/10 bg-white/5 mb-6 shadow-2xl">
-                  <div className="absolute inset-0 rounded-[32px] bg-red-500/10 blur-xl" />
+                  <div className="absolute inset-0 rounded-[32px] bg-white/10 blur-xl" />
                   <ChannelIcon type={currentChannel?.channel_type ?? "general"} className="w-10 h-10 text-gray-400" />
                 </div>
                 {currentChannel?.channel_type === "spawn_point" ? (
@@ -1254,7 +1254,7 @@ export function HackathonChat({
                   </div>
                 )}
 
-                <div className="flex items-end gap-2 rounded-[28px] border border-white/20 bg-black/60 backdrop-blur-2xl px-4 py-4 transition-all duration-300 focus-within:border-red-500/50 focus-within:bg-black/80 focus-within:shadow-[0_0_30px_rgba(239,68,68,0.15)] sm:gap-3 sm:px-5 shadow-inner">
+                <div className="flex items-end gap-2 rounded-[28px] border border-white/20 bg-black/60 backdrop-blur-2xl px-4 py-4 transition-all duration-300 focus-within:border-white/50 focus-within:bg-black/80 focus-within:shadow-[0_0_30px_rgba(239,68,68,0.15)] sm:gap-3 sm:px-5 shadow-inner">
                   <textarea
                     ref={inputRef}
                     value={draft}
@@ -1373,7 +1373,7 @@ export function HackathonChat({
               {/* Admin / staff first */}
               {visibleSidebarMembers.filter((m) => ["admin", "staff", "facilitator"].includes(m.role)).length > 0 && (
                 <div className="mb-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-200 px-3 mb-2">Organizers</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 px-3 mb-2">Organizers</p>
                   {visibleSidebarMembers
                     .filter((m) => ["admin", "staff", "facilitator"].includes(m.role))
                     .map((m) => (

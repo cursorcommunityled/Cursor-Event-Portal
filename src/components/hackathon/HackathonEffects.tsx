@@ -165,16 +165,16 @@ export function HackathonEffects({ eventId, userId, scoresCount, projectSubmitte
 
           {showTeamEffect ? (
             <div className="animate-in fade-in zoom-in duration-700 slide-out-to-bottom-8 fade-out duration-1000 delay-4000 absolute flex flex-col items-center">
-              <div className="relative flex h-32 w-32 items-center justify-center rounded-[32px] border border-red-500/40 bg-black/60 shadow-[0_0_60px_rgba(239,68,68,0.5)] backdrop-blur-xl">
-                <div className="absolute inset-0 animate-ping rounded-[32px] bg-red-500/20 opacity-50" />
+              <div className="relative flex h-32 w-32 items-center justify-center rounded-[32px] border border-white/40 bg-black/60 shadow-[0_0_60px_rgba(255,255,255,0.4)] backdrop-blur-xl">
+                <div className="absolute inset-0 animate-ping rounded-[32px] bg-white/20 opacity-50" />
                 <div className="relative h-16 w-16 opacity-90">
                   <Image src="/cursor-logo.svg" alt="Cursor" fill className="object-contain" />
                 </div>
               </div>
-              <p className="mt-6 bg-gradient-to-b from-red-300 to-red-600 bg-clip-text text-4xl font-black tracking-tighter text-transparent drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">
+              <p className="mt-6 bg-gradient-to-b from-white to-gray-400 bg-clip-text text-4xl font-black tracking-tighter text-transparent drop-shadow-[0_0_20px_rgba(255,255,255,0.7)]">
                 TEAM FORMED!
               </p>
-              <p className="mt-2 text-lg font-bold uppercase tracking-[0.3em] text-red-400">
+              <p className="mt-2 text-lg font-bold uppercase tracking-[0.3em] text-gray-300">
                 Ready to build
               </p>
             </div>

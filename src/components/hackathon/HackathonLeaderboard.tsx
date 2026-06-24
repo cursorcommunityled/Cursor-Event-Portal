@@ -93,13 +93,13 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
         <div className="relative flex flex-col items-center gap-8 text-center px-8">
           <img src="/cursor-logo.svg" alt="Cursor" className="w-16 h-16 drop-shadow-[0_0_24px_rgba(255,255,255,0.6)] brightness-200 animate-pulse" />
           <div>
-            <p className="text-[13px] font-bold uppercase tracking-[0.4em] text-red-400 mb-3">Cursor Hackathon</p>
+            <p className="text-[13px] font-bold uppercase tracking-[0.4em] text-gray-400 mb-3">Cursor Hackathon</p>
             <h1 className="text-6xl font-black tracking-tight text-white mb-4">{event.name}</h1>
           </div>
-          <div className="flex items-center gap-3 text-red-400/80">
+          <div className="flex items-center gap-3 text-gray-400/80">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
             </span>
             <p className="text-[18px] font-bold uppercase tracking-[0.3em]">Judging in progress</p>
           </div>
@@ -117,17 +117,17 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(239,68,68,0.12)_0,transparent_60%)]" />
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.04]" />
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
 
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-10 py-6 border-b border-white/5">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-red-500/30 bg-red-500/10 overflow-hidden">
-            <div className="absolute inset-0 bg-red-500/10 animate-pulse" />
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/30 bg-white/10 overflow-hidden">
+            <div className="absolute inset-0 bg-white/10 animate-pulse" />
             <img src="/cursor-logo.svg" alt="Cursor" className="w-6 h-6 relative z-10 drop-shadow-[0_0_8px_rgba(255,255,255,0.8)] brightness-200" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-red-400">Cursor Hackathon</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gray-400">Cursor Hackathon</p>
             <h1 className="text-[22px] font-black tracking-tight text-white leading-tight">{event.name}</h1>
           </div>
         </div>
@@ -208,7 +208,7 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
                             i === 0 ? "bg-gradient-to-r from-yellow-500 to-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
                             i === 1 ? "bg-gradient-to-r from-gray-400 to-gray-200" :
                             i === 2 ? "bg-gradient-to-r from-orange-500 to-orange-300" :
-                            "bg-gradient-to-r from-red-600 to-red-400"
+                            "bg-gradient-to-r from-white to-white"
                           )}
                           style={{ width: `${pct}%` }}
                         />
