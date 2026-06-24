@@ -128,7 +128,7 @@ export function EventPageClient({
             userId={userId}
             eventSlug={event.slug}
             eventId={event.id}
-            creditAmount={event.is_hackathon ? 50 : 20}
+            creditAmount={20}
           />
         )}
       </div>
