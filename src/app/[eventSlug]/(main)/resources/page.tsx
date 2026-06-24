@@ -50,7 +50,7 @@ const eventQa = [
   {
     question: "How do I redeem my Cursor credits?",
     answer:
-      "Go to Event -> Credits in this portal. Sign in to the Cursor account you want credited, open your credit link or QR code in that same browser, redeem the $50 credit, then mark it as redeemed in the portal.",
+      "Go to Event -> Credits in this portal. Sign in to the Cursor account you want credited, open your credit link or QR code in that same browser, redeem the $20 credit, then mark it as redeemed in the portal.",
     icon: CreditCard,
   },
   {
@@ -87,7 +87,7 @@ const eventQa = [
 
 const creditNotes = [
   "Credits work for individual Cursor accounts: Free, Pro, Pro+, or Ultra. They cannot be applied to Team plans.",
-  "After redeeming, the $50 credit should appear in Cursor Dashboard -> Credits and apply automatically to your next eligible invoice.",
+  "After redeeming, the $20 credit should appear in Cursor Dashboard -> Credits and apply automatically to your next eligible invoice.",
   "If you are on the Free plan, you can keep using it first. When you are ready to upgrade, start a Pro trial or paid plan and add a payment method for billing verification.",
   "Your payment method should not be charged while available credits cover the invoice amount.",
   "If credits do not appear after redeeming, refresh Cursor Dashboard, sign out and back in, and confirm you redeemed with the correct account.",
