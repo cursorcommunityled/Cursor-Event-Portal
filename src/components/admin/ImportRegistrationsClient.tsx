@@ -6,6 +6,7 @@ import {
   Upload,
   CheckCircle2,
   XCircle,
+  UserCheck,
 } from "lucide-react";
 
 interface ImportRegistrationsClientProps {
@@ -41,9 +42,11 @@ export function ImportRegistrationsClient({
   const [csvText, setCsvText] = useState("");
   const [parsed, setParsed] = useState<ParsedAttendee[]>([]);
   const [importing, setImporting] = useState(false);
+  const [markCheckedIn, setMarkCheckedIn] = useState(false);
   const [result, setResult] = useState<{
     success: number;
     skipped: number;
+    checkedIn: number;
     profilesUpdated: number;
     errors: string[];
   } | null>(null);
@@ -246,6 +249,7 @@ export function ImportRegistrationsClient({
         },
         body: JSON.stringify({
           eventId,
+          markCheckedIn,
           attendees: toImport.map((a) => ({
             name: a.name,
             email: a.email,
@@ -269,6 +273,7 @@ export function ImportRegistrationsClient({
         setResult({
           success: 0,
           skipped: toImport.length,
+          checkedIn: 0,
           profilesUpdated: 0,
           errors: [data.error || "Import failed"],
         });
@@ -276,12 +281,13 @@ export function ImportRegistrationsClient({
         setResult({
           success: data.imported || 0,
           skipped: data.skipped || 0,
+          checkedIn: data.checkedIn || 0,
           profilesUpdated: data.profilesUpdated || 0,
           errors: data.errors || [],
         });
 
         // Refresh the page to show updated registrations
-        if (data.imported > 0 || data.profilesUpdated > 0) {
+        if (data.imported > 0 || data.profilesUpdated > 0 || data.checkedIn > 0) {
           router.refresh();
         }
       }
@@ -289,6 +295,7 @@ export function ImportRegistrationsClient({
       setResult({
         success: 0,
         skipped: toImport.length,
+        checkedIn: 0,
         profilesUpdated: 0,
         errors: ["Network error - please try again"],
       });
@@ -389,7 +396,9 @@ export function ImportRegistrationsClient({
                 {parsed.map((attendee, idx) => (
                   <tr key={idx} className="group">
                     <td className="py-4">
-                      {attendee.status === "new" ? (
+                      {markCheckedIn ? (
+                        <span className="text-green-400 text-[10px] font-bold tracking-widest uppercase bg-green-500/5 px-3 py-1 rounded-full border border-green-500/15">Check In</span>
+                      ) : attendee.status === "new" ? (
                         <span className="text-emerald-500 text-[10px] font-bold tracking-widest uppercase bg-emerald-500/5 px-3 py-1 rounded-full border border-emerald-500/10">Active</span>
                       ) : (
                         <span className="text-gray-700 text-[10px] font-bold tracking-widest uppercase bg-white/[0.02] px-3 py-1 rounded-full border border-white/[0.05]">Redundant</span>
@@ -438,10 +447,15 @@ export function ImportRegistrationsClient({
             </div>
             <div className="space-y-2">
               <p className="text-lg font-light tracking-tight">
-                {result.success > 0 || result.profilesUpdated > 0
+                {result.success > 0 || result.profilesUpdated > 0 || result.checkedIn > 0
                   ? `Successfully synchronized ${result.success} identities and ${result.profilesUpdated} profiles`
                   : "Synchronization failed"}
               </p>
+              {result.checkedIn > 0 && (
+                <p className="text-[10px] uppercase tracking-[0.2em] text-green-400 font-bold">
+                  {result.checkedIn} checked in — eligible for credits
+                </p>
+              )}
               {result.skipped > 0 && (
                 <p className="text-[10px] uppercase tracking-[0.2em] text-gray-700 font-medium">
                   {result.skipped} Redundancies detected and bypassed
@@ -459,6 +473,46 @@ export function ImportRegistrationsClient({
         </div>
       )}
 
+      {/* Check-in mode toggle */}
+      <button
+        type="button"
+        onClick={() => setMarkCheckedIn((v) => !v)}
+        className={`w-full glass rounded-[32px] p-6 border text-left transition-all flex items-center gap-5 ${
+          markCheckedIn
+            ? "border-green-500/30 bg-green-500/[0.06]"
+            : "border-white/[0.06] hover:border-white/15"
+        }`}
+      >
+        <div
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all ${
+            markCheckedIn ? "bg-green-500/15 text-green-400" : "bg-white/[0.03] text-gray-600"
+          }`}
+        >
+          <UserCheck className="w-6 h-6" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-light tracking-tight text-white">
+            Mark these attendees as checked in
+          </p>
+          <p className="text-[11px] text-gray-500 mt-1 leading-relaxed">
+            {markCheckedIn
+              ? "ON — this is the on-site list. Everyone imported (and anyone already registered) will be checked in, which qualifies them for Cursor credits."
+              : "OFF — registers for portal access only (no credits). Use this for the pre-event list. Turn ON for the on-site “who actually showed up” import."}
+          </p>
+        </div>
+        <div
+          className={`relative w-14 h-7 rounded-full border transition-all duration-200 shrink-0 ${
+            markCheckedIn ? "bg-green-500/40 border-green-400/60" : "bg-white/5 border-white/10"
+          }`}
+        >
+          <div
+            className={`absolute top-1 w-5 h-5 rounded-full transition-all duration-200 ${
+              markCheckedIn ? "left-8 bg-green-400" : "left-1 bg-gray-600"
+            }`}
+          />
+        </div>
+      </button>
+
       {/* Actions */}
       <div className="flex gap-6">
         <button
@@ -475,7 +529,9 @@ export function ImportRegistrationsClient({
           ) : (
             <>
               <Upload className="w-3.5 h-3.5" />
-              Ingest {importableCount} Identities
+              {markCheckedIn
+                ? `Import & Check In ${importableCount}`
+                : `Ingest ${importableCount} Identities`}
             </>
           )}
         </button>
