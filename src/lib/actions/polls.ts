@@ -756,7 +756,7 @@ async function ensureAudienceFavouriteCompetition(
     .insert({
       event_id: eventId,
       title: AUDIENCE_FAVOURITE_COMPETITION_TITLE,
-      description: "$250 cash prize winner selected by the audience vote.",
+      description: "Winner selected by the audience vote.",
       rules: "One vote per attendee. Admin approval publishes the final audience favourite.",
       status: "ended",
       voting_mode: "judges",

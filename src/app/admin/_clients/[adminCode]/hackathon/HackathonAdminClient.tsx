@@ -1840,7 +1840,7 @@ export function HackathonAdminClient({
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <Star className="w-4 h-4 text-yellow-400" />
-                    <p className="text-[13px] font-bold text-white">Audience Favourite Vote · $250 Prize</p>
+                    <p className="text-[13px] font-bold text-white">Audience Favourite Vote</p>
                   </div>
                   <p className="text-[11px] text-gray-500">
                     Select up to 8 teams manually, or leave all unchecked to include every submitted team.
