@@ -111,6 +111,19 @@ export default async function HackathonPage({ params }: Props) {
       : Promise.resolve({ data: [] }),
   ]);
 
+  // First screenshot per team (lowest sort_order) so every project shows a preview
+  // on its team card / AI screening card. One row each, keyed by team.
+  const { data: allScreenshotRows } = await supabase
+    .from("hackathon_project_screenshots")
+    .select("team_id, file_url, sort_order")
+    .eq("event_id", event.id)
+    .order("sort_order", { ascending: true });
+
+  const teamScreenshots: Record<string, string> = {};
+  for (const row of (allScreenshotRows ?? []) as { team_id: string; file_url: string }[]) {
+    if (!teamScreenshots[row.team_id]) teamScreenshots[row.team_id] = row.file_url;
+  }
+
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
   const publicAIScores: PublicAIScore[] = ((publicAIAnalyses.data ?? []) as {
@@ -233,6 +246,7 @@ export default async function HackathonPage({ params }: Props) {
       }))}
       myMentorSlotId={myMentorSignup.data?.slot_id ?? null}
       initialScreenshots={initialScreenshots}
+      teamScreenshots={teamScreenshots}
       initialTeamAnalyses={initialTeamAnalyses}
       audienceVotePoll={audienceVotePoll as import("@/types").PollWithVotes | null}
     />
