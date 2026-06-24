@@ -1177,6 +1177,11 @@ export function HackathonClient({
       {/* Teams tab */}
       {(tab === "my-team" || tab === "all-teams") && (
         <div className="space-y-4 animate-slide-up">
+          {!myTeam && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-[12px] font-medium text-gray-400">
+              <span className="font-bold text-white/80">Going solo?</span> You must be on a team to submit a project — create a solo team (teams of 1 are allowed) to submit on your own.
+            </div>
+          )}
           {!myTeam ? (
             <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:30px_30px]" />
@@ -1685,7 +1690,7 @@ export function HackathonClient({
         <div className="space-y-4 animate-slide-up">
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
             <p className="text-[12px] font-medium text-gray-400">
-              Invite people here to build your team.
+              Invite people here to build your team — or go solo. To submit a project you must be on a team, so flying solo means creating a solo team (teams of 1 are allowed).
             </p>
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-white/80">
               <Users className="h-3.5 w-3.5" />
