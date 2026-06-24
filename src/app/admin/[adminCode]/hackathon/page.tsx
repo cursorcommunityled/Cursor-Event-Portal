@@ -6,10 +6,13 @@ import {
   getCompetitionJudgingData, getCheckedInAttendeesWithoutTeams,
   getHackathonRepoSubmissionBackups, getMentors,
 } from "@/lib/supabase/queries";
+import { cookies } from "next/headers";
 import { ensureDefaultChannels } from "@/lib/actions/hackathon-chat";
 import { getSession } from "@/lib/actions/registration";
 import { getTeamAnalyses } from "@/lib/actions/hackathon-analysis";
 import { createServiceClient } from "@/lib/supabase/server";
+import { HACKATHON_JUDGE_COOKIE } from "@/lib/judging/constants";
+import { resolveTokenJudgeId } from "@/lib/judging/token-judge";
 import { getPendingAudienceVoteWinner, getPublishedAudienceVoteAnnouncement } from "@/lib/actions/polls";
 import { HackathonAdminClient } from "@/app/admin/_clients/[adminCode]/hackathon/HackathonAdminClient";
 import { getDemoSlotsWithCounts } from "@/lib/demo/service";
@@ -64,6 +67,16 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
     : [];
 
   const supabase = await createServiceClient();
+
+  // Final Round judging identity: the logged-in user, or the per-browser judge
+  // tied to the hk_judge_id cookie (set by middleware) so unlogged-in admins can
+  // each score with a distinct identity. Drives the Save button + score prefill.
+  let judgeUserId = session?.userId ?? null;
+  if (!judgeUserId) {
+    const judgeToken = (await cookies()).get(HACKATHON_JUDGE_COOKIE)?.value ?? null;
+    if (judgeToken) judgeUserId = await resolveTokenJudgeId(supabase, event.id, judgeToken);
+  }
+
   const [{ data: activeAudienceVoteRow }, pendingAudienceVoteWinner, publishedAudienceWinner] = await Promise.all([
     supabase
       .from("polls")
@@ -95,6 +108,8 @@ export default async function HackathonAdminPage({ params, searchParams }: Props
       initialChannelId={defaultChannel?.id ?? ""}
       chatMembers={chatMembers}
       adminUserId={session?.userId ?? null}
+      judgeUserId={judgeUserId}
+      isGuestJudge={!session?.userId && !!judgeUserId}
       judgingCompetitions={judgingCompetitions}
       initialAiAnalyses={aiAnalyses}
       initialOpenPool={openPool}

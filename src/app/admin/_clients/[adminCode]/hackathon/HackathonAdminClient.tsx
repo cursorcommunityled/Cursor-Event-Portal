@@ -70,6 +70,8 @@ interface Props {
   initialChannelId: string;
   chatMembers: ChatMember[];
   adminUserId: string | null;
+  judgeUserId: string | null;
+  isGuestJudge: boolean;
   judgingCompetitions: CompetitionJudgingCompetition[];
   initialAiAnalyses: Record<string, HackathonAIAnalysis[]>;
   initialOpenPool: OpenPoolMember[];
@@ -265,6 +267,7 @@ function buildRepoSubmissionMasterFile(backups: HackathonRepoSubmissionBackup[])
 export function HackathonAdminClient({
   event, adminCode, activeTab: initialTab, initialSettings, initialTeams, initialScores,
   chatChannels, initialMessages, initialChannelId, chatMembers, adminUserId,
+  judgeUserId, isGuestJudge,
   judgingCompetitions, initialAiAnalyses, initialOpenPool, initialRepoSubmissionBackups, initialAudienceVote,
   initialAudienceVoteWinner, initialPublishedAudienceWinner, initialPeople, initialSlots,
 }: Props) {
@@ -2046,7 +2049,8 @@ export function HackathonAdminClient({
           <HackathonJudgingAdminPanel
             adminCode={adminCode}
             eventSlug={event.slug}
-            adminUserId={adminUserId}
+            adminUserId={judgeUserId}
+            isGuestJudge={isGuestJudge}
             competitions={judgingCompetitions}
             settings={settings}
             teams={teams}
