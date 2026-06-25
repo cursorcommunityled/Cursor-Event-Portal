@@ -21,7 +21,7 @@ import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
   Camera, ImageIcon, Loader2, MessageSquare,
-  Pencil,
+  Pencil, Trophy,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
@@ -35,6 +35,7 @@ import { TeamFinderPanel } from "@/components/hackathon-chat/TeamFinderPanel";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
+import { HackathonAttendeeLeaderboard, type AttendeeLeaderboardEntry } from "@/components/hackathon/HackathonAttendeeLeaderboard";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import { MentorCard } from "@/components/demos/MentorCard";
@@ -93,10 +94,10 @@ type PublicAIScore = {
   updated_at: string;
 };
 
-type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "chat";
+type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "chat" | "leaderboard";
 type PeopleTab = "mentors" | "judges";
 
-const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "people", "chat"]);
+const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "people", "chat", "leaderboard"]);
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
 const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
@@ -352,38 +353,32 @@ export function HackathonClient({
   const openTeamSlots = formationOpen
     ? allTeams.reduce((sum, team) => sum + Math.max(0, maxTeamSize - team.members.length), 0)
     : 0;
-  const rankedTeams = useMemo(() => {
-    if (!leaderboardVisible) return [];
-
-    return [...allTeams]
-      .map((team) => {
-        const hasManualScore = scores.some((score) => score.team_id === team.id);
-        return { team, score: hasManualScore ? totalScore(team.id, scores) : null };
-      })
-      .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
-      .sort((a, b) => b.score - a.score);
-  }, [allTeams, leaderboardVisible, scores]);
   const aiRankedTeams = useMemo(() => (
     [...allTeams]
       .map((team) => ({ team, score: aiScorePoints(publicAIScoreByTeamId.get(team.id)) }))
       .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
       .sort((a, b) => b.score - a.score)
   ), [allTeams, publicAIScoreByTeamId]);
-  const leadingLeaderboardTeam = rankedTeams[0]?.team ?? null;
-  const leadingLeaderboardScore = rankedTeams[0]?.score ?? null;
-  const leadingAITeam = aiRankedTeams[0]?.team ?? null;
-  const leadingAIScore = aiRankedTeams[0]?.score ?? null;
-  const leadingTeam = leadingLeaderboardTeam ?? leadingAITeam;
-  const leadingTeamScore = leadingLeaderboardScore ?? leadingAIScore;
-  const leadingSource = leadingLeaderboardTeam ? "leaderboard" : "AI screening";
-  const showTeamScores = leaderboardVisible;
+  // Attendee hub leaderboard is AI screening only — final-round judge scores stay on the winners podium.
+  const displayRankedTeams = useMemo((): AttendeeLeaderboardEntry[] => {
+    if (!hasPublicAIScores) return [];
+    return aiRankedTeams.map(({ team, score }) => ({ team, score, source: "ai" }));
+  }, [aiRankedTeams, hasPublicAIScores]);
+  const leaderboardSourceLabel = "AI screening scores";
+  const submissionLocked = Boolean(
+    projectSubmissionCutoff && now && now >= projectSubmissionCutoff
+  );
+  const showLeaderboardTab = aiScoresVisible || hasPublicAIScores || submissionLocked;
+  const leadingTeam = displayRankedTeams[0]?.team ?? null;
+  const leadingTeamScore = displayRankedTeams[0]?.score ?? null;
+  const showTeamScores = displayRankedTeams.length > 0;
   const teamsForDisplay = useMemo(() => {
     if (!showTeamScores) {
       return allTeams.map((team) => ({ team, rank: null, score: null }));
     }
 
-    const rankByTeamId = new Map(rankedTeams.map((entry, index) => [entry.team.id, index + 1]));
-    const scoreByTeamId = new Map(rankedTeams.map((entry) => [entry.team.id, entry.score]));
+    const rankByTeamId = new Map(displayRankedTeams.map((entry, index) => [entry.team.id, index + 1]));
+    const scoreByTeamId = new Map(displayRankedTeams.map((entry) => [entry.team.id, entry.score]));
 
     return [...allTeams]
       .sort((a, b) => (scoreByTeamId.get(b.id) ?? -1) - (scoreByTeamId.get(a.id) ?? -1))
@@ -392,7 +387,7 @@ export function HackathonClient({
         rank: rankByTeamId.get(team.id) ?? null,
         score: scoreByTeamId.get(team.id) ?? null,
       }));
-  }, [allTeams, rankedTeams, showTeamScores]);
+  }, [allTeams, displayRankedTeams, showTeamScores]);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -749,6 +744,9 @@ export function HackathonClient({
   const tabs: { id: Tab; label: string; count?: number; icon?: React.ReactNode }[] = [
     { id: "overview", label: "Hub", icon: <Swords className="w-3.5 h-3.5" /> },
     { id: "all-teams", label: "Teams", count: allTeams.length },
+    ...(showLeaderboardTab
+      ? [{ id: "leaderboard" as const, label: "AI Standings", count: displayRankedTeams.length || undefined, icon: <Trophy className="w-3.5 h-3.5" /> }]
+      : []),
     ...(formationOpen ? [{ id: "open-pool" as const, label: "Pool", count: pool.length }] : []),
     ...(showPeopleTab
       ? [{ id: "people" as const, label: "People", count: peopleCount, icon: <UserPlus className="w-3.5 h-3.5" /> }]
@@ -1154,7 +1152,7 @@ export function HackathonClient({
             />
           </div>
 
-          {(leaderboardVisible || hasPublicAIScores) && (
+          {showLeaderboardTab && (
             <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-white/10 bg-black/40 p-6 sm:p-8 backdrop-blur-xl shadow-lg">
               <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
               
@@ -1165,23 +1163,41 @@ export function HackathonClient({
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-yellow-500/80">
-                    {leadingLeaderboardTeam ? "Public Leaderboard" : "AI Screening"}
+                    AI Screening Standings
                   </p>
                   <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-gray-300">
                     {leadingTeam && leadingTeamScore != null
-                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading the {leadingSource} with <span className="text-yellow-400 font-bold">{leadingTeamScore}</span> points.</>
-                      : leaderboardVisible ? "Leaderboard is visible once scores are available." : "AI screening scores appear once analysis completes."}
+                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading AI screening with <span className="text-yellow-400 font-bold">{leadingTeamScore}</span>/100.</>
+                      : "AI screening rankings appear here once analysis completes. Final-round judge scores are announced separately."}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setTab("all-teams")}
+                onClick={() => setTab("leaderboard")}
                 className="relative shrink-0 rounded-xl border border-white/10 bg-white/5 px-6 py-3.5 text-[12px] font-bold uppercase tracking-wider text-white transition-all hover:bg-white/10 hover:border-white/30 hover:scale-105"
               >
-                View Teams
+                View AI Standings
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {showLeaderboardTab && tab === "leaderboard" && (
+        <div className="space-y-4 animate-slide-up">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-yellow-500/80">AI Screening Standings</p>
+            <p className="mt-1 text-sm font-medium text-gray-400">
+              {displayRankedTeams.length > 0
+                ? "Rankings from AI screening (pass 6 synthesis). Final-round judge scores are announced separately."
+                : "AI screening rankings appear here once analysis completes and scores are published."}
+            </p>
+          </div>
+          <HackathonAttendeeLeaderboard
+            entries={displayRankedTeams}
+            myTeamId={myTeam?.id}
+            sourceLabel={leaderboardSourceLabel}
+          />
         </div>
       )}
 
@@ -1650,8 +1666,8 @@ export function HackathonClient({
                 <PublicAIScoreCard aiScore={myTeamPublicAIScore} title="Your AI Screening Score" />
               )}
 
-              {/* Leaderboard (if visible) */}
-              {leaderboardVisible && (
+              {/* Applied judge scores — separate from AI screening standings */}
+              {leaderboardVisible && !aiScoresVisible && (
                 <ScoreCard teamId={myTeam.id} scores={scores} />
               )}
             </>

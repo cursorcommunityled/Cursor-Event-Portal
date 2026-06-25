@@ -1786,7 +1786,7 @@ export function HackathonAdminClient({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-[13px] font-bold text-white">AI Screening Scores</p>
-                      <p className="mt-1 text-[11px] font-medium text-gray-500">Shows pass-6 AI scorecards and AI standings separately.</p>
+                      <p className="mt-1 text-[11px] font-medium text-gray-500">Publishes pass-6 AI standings on the attendee hub AI Standings tab.</p>
                     </div>
                     <button
                       disabled={isPending}

@@ -8,11 +8,17 @@ import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore
 import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore } from "@/lib/hackathon-rubric";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 
+type PublicAIScore = {
+  team_id: string;
+  overall_score: number;
+};
+
 interface Props {
   event: Event;
   initialSettings: HackathonSettings | null;
   initialTeams: HackathonTeamWithMembers[];
   initialScores: HackathonScore[];
+  initialPublicAIScores?: PublicAIScore[];
 }
 
 function teamTotal(teamId: string, scores: HackathonScore[]): number {
@@ -45,11 +51,18 @@ const SCORE_STYLES = [
   "text-orange-300",
 ];
 
-export function HackathonLeaderboard({ event, initialSettings, initialTeams, initialScores }: Props) {
+export function HackathonLeaderboard({
+  event,
+  initialSettings,
+  initialTeams,
+  initialScores,
+  initialPublicAIScores = [],
+}: Props) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [teams, setTeams] = useState(initialTeams);
   const [scores, setScores] = useState(initialScores);
+  const [publicAIScores, setPublicAIScores] = useState(initialPublicAIScores);
 
   const refresh = useCallback(() => router.refresh(), [router]);
 
@@ -62,6 +75,7 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_teams", filter: `event_id=eq.${event.id}` }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_team_members" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_scores", filter: `event_id=eq.${event.id}` }, refresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hackathon_ai_analyses", filter: `event_id=eq.${event.id}` }, refresh)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [event.id, refresh]);
@@ -70,18 +84,42 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
   useEffect(() => { setSettings(initialSettings); }, [initialSettings]);
   useEffect(() => { setTeams(initialTeams); }, [initialTeams]);
   useEffect(() => { setScores(initialScores); }, [initialScores]);
+  useEffect(() => { setPublicAIScores(initialPublicAIScores); }, [initialPublicAIScores]);
 
-  const ranked = useMemo(() => {
+  const aiScoresVisible = settings?.ai_scores_visible ?? false;
+  const leaderboardVisible = settings?.leaderboard_visible ?? false;
+
+  const aiRanked = useMemo(() => {
+    if (!aiScoresVisible) return [];
+
+    const scoreByTeamId = new Map(
+      publicAIScores.map((score) => [score.team_id, Math.round(score.overall_score * 10)])
+    );
+
+    return [...teams]
+      .map((team) => {
+        const total = scoreByTeamId.get(team.id);
+        return total == null ? null : { team, total };
+      })
+      .filter((entry): entry is { team: HackathonTeamWithMembers; total: number } => entry != null)
+      .sort((a, b) => b.total - a.total);
+  }, [aiScoresVisible, publicAIScores, teams]);
+
+  const judgeRanked = useMemo(() => {
+    if (!leaderboardVisible) return [];
+
     return [...teams]
       .filter((t) => scores.some((s) => s.team_id === t.id))
       .map((t) => ({ team: t, total: teamTotal(t.id, scores) }))
       .sort((a, b) => b.total - a.total);
-  }, [teams, scores]);
+  }, [leaderboardVisible, scores, teams]);
 
-  const maxScore = HACKATHON_SCORE_MAX;
+  const ranked = aiRanked.length > 0 ? aiRanked : judgeRanked;
+  const usingAIScores = aiRanked.length > 0;
+  const maxScore = usingAIScores ? 100 : HACKATHON_SCORE_MAX;
 
   // ── Holding screen ────────────────────────────────────────────────────────
-  if (!settings?.leaderboard_visible) {
+  if (!aiScoresVisible && !leaderboardVisible) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.15)_0,transparent_70%)]" />
@@ -101,8 +139,11 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
             </span>
-            <p className="text-[18px] font-bold uppercase tracking-[0.3em]">Judging in progress</p>
+            <p className="text-[18px] font-bold uppercase tracking-[0.3em]">AI screening in progress</p>
           </div>
+          <p className="max-w-xl text-[14px] font-medium leading-relaxed text-gray-500">
+            AI screening standings appear here once analysis completes. Final-round judge scores are announced separately.
+          </p>
           <p className="text-gray-600 text-[13px] font-bold uppercase tracking-[0.3em] mt-8">
             <Clock />
           </p>
@@ -135,7 +176,9 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
         <div className="flex items-center gap-6">
           <HackathonRulesButton compact />
           <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-600">Live Scores</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-600">
+              {usingAIScores ? "AI Screening" : "Live Scores"}
+            </p>
             <p className="text-[13px] font-bold text-gray-400"><Clock /></p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2">
@@ -152,7 +195,9 @@ export function HackathonLeaderboard({ event, initialSettings, initialTeams, ini
       <main className="relative z-10 flex-1 overflow-y-auto px-10 py-8">
         {ranked.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-[20px] font-bold text-gray-600 uppercase tracking-widest">No scores yet</p>
+            <p className="text-[20px] font-bold text-gray-600 uppercase tracking-widest">
+              {aiScoresVisible ? "AI screening scores coming soon" : "No scores yet"}
+            </p>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-4">
