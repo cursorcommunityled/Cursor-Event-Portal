@@ -19,3 +19,7 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

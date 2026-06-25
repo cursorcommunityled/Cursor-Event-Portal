@@ -19,7 +19,7 @@ import {
   adminCreateTeam,
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
-import { pushTopAIToFinalRound } from "@/lib/actions/hackathon-analysis";
+import { pushTopAIToFinalRound, triggerAnalysisForAllSubmitted } from "@/lib/actions/hackathon-analysis";
 import { unpublishCompetitionJudgingResults } from "@/lib/actions/competition-judging";
 import {
   approveAudienceVoteWinner,
@@ -307,6 +307,10 @@ export function HackathonAdminClient({
   const [pushStatus, setPushStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [pushResult, setPushResult] = useState<string | null>(null);
 
+  // Analyze all submitted projects
+  const [analyzeAllStatus, setAnalyzeAllStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
+  const [analyzeAllResult, setAnalyzeAllResult] = useState<string | null>(null);
+
   // Audience vote
   const [audienceVote, setAudienceVote] = useState<AudienceVoteSummary | null>(initialAudienceVote);
   const [audienceVoteWinner, setAudienceVoteWinner] = useState<AudienceVoteWinnerPrompt | null>(initialAudienceVoteWinner);
@@ -537,6 +541,15 @@ export function HackathonAdminClient({
 
   const submittedTeams = teams.filter((team) => Boolean(team.project?.submitted_at));
   const unsubmittedTeams = teams.filter((team) => !team.project?.submitted_at);
+  const submittedWithRepo = submittedTeams.filter((team) => Boolean(team.project?.repo_url?.trim()));
+  const pendingAnalysisTeams = submittedWithRepo.filter((team) => {
+    const analyses = aiAnalyses[team.id] ?? [];
+    const pass6Complete = analyses.some(
+      (analysis) => analysis.pass_name === "pass6_synthesis" && analysis.status === "complete"
+    );
+    const isRunning = analyses.some((analysis) => analysis.status === "running");
+    return !pass6Complete && !isRunning;
+  });
   const submissionPercent = teams.length > 0
     ? Math.round((submittedTeams.length / teams.length) * 100)
     : 0;
@@ -1554,6 +1567,51 @@ export function HackathonAdminClient({
                       Step 4: Go to <strong className="text-white">Final Round</strong> tab to add your own judge scores.
                     </p>
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-4 border-t border-red-500/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-white/80">Analyze All Submitted</p>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      Run AI screening on every submitted project with a repo URL (~3 min each).
+                      {pendingAnalysisTeams.length > 0
+                        ? ` ${pendingAnalysisTeams.length} project${pendingAnalysisTeams.length === 1 ? "" : "s"} ready.`
+                        : submittedWithRepo.length > 0
+                          ? " All submitted projects are analyzed or in progress."
+                          : " No submitted projects with repo URLs yet."}
+                    </p>
+                    {analyzeAllStatus === "done" && analyzeAllResult && (
+                      <p className="text-[11px] text-green-400 mt-1">{analyzeAllResult}</p>
+                    )}
+                    {analyzeAllStatus === "error" && analyzeAllResult && (
+                      <p className="text-[11px] text-red-400 mt-1">{analyzeAllResult}</p>
+                    )}
+                  </div>
+                  <button
+                    disabled={analyzeAllStatus === "pending" || pendingAnalysisTeams.length === 0}
+                    onClick={() => {
+                      startTransition(async () => {
+                        setAnalyzeAllStatus("pending");
+                        setAnalyzeAllResult(null);
+                        const res = await triggerAnalysisForAllSubmitted(event.id, adminCode);
+                        if (res.error) {
+                          setAnalyzeAllStatus("error");
+                          setAnalyzeAllResult(res.error);
+                        } else {
+                          setAnalyzeAllStatus("done");
+                          const parts = [`Started analysis for ${res.started} project${res.started === 1 ? "" : "s"}.`];
+                          if (res.skipped) parts.push(`${res.skipped} already done or running.`);
+                          if (res.skippedNoRepo) parts.push(`${res.skippedNoRepo} missing repo URL.`);
+                          setAnalyzeAllResult(parts.join(" "));
+                          refresh();
+                        }
+                      });
+                    }}
+                    className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-semibold border border-red-400/40 bg-red-500/15 text-red-200 hover:bg-red-500/30 transition-all disabled:opacity-50"
+                  >
+                    <Cpu className="w-3.5 h-3.5" />
+                    {analyzeAllStatus === "pending" ? "Starting…" : "Analyze All"}
+                  </button>
                 </div>
 
                 {judgingCompetitions.length > 0 && (

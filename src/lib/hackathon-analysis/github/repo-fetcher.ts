@@ -34,38 +34,75 @@ function isInteresting(path: string): boolean {
   );
 }
 
-async function ghFetch(path: string): Promise<Response> {
-  const baseHeaders: Record<string, string> = {
-    'Accept': 'application/vnd.github+json',
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitedResponse(res: Response, message: string) {
+  return (
+    res.status === 429 ||
+    (res.status === 403 && /rate limit/i.test(message)) ||
+    res.headers.get('x-ratelimit-remaining') === '0'
+  );
+}
+
+async function ghFetchOnce(path: string, token?: string): Promise<Response> {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'cursor-popup-portal/1.0',
   };
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
-  const fetchOptions = { headers: baseHeaders, next: { revalidate: 0 }, signal: controller.signal };
 
   try {
-    const token = process.env.GITHUB_TOKEN?.trim();
-    if (!token) {
-      return await fetch(`${GITHUB_API}${path}`, fetchOptions);
-    }
-
-    const headers = { ...baseHeaders, Authorization: `Bearer ${token}` };
-    const authedResponse = await fetch(`${GITHUB_API}${path}`, {
-      ...fetchOptions,
+    return await fetch(`${GITHUB_API}${path}`, {
       headers,
+      next: { revalidate: 0 },
+      signal: controller.signal,
     });
-
-    // Render can have a stale/invalid token. Public repos should still work without it.
-    if (authedResponse.status === 401 || authedResponse.status === 403) {
-      return await fetch(`${GITHUB_API}${path}`, fetchOptions);
-    }
-
-    return authedResponse;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function ghFetch(path: string): Promise<Response> {
+  const token = process.env.GITHUB_TOKEN?.trim();
+  const maxAttempts = 3;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    let res = await ghFetchOnce(path, token);
+
+    // Invalid token: retry once without auth for public repos only.
+    if (token && res.status === 401 && attempt === 0) {
+      res = await ghFetchOnce(path);
+    }
+
+    if (res.ok || (res.status !== 403 && res.status !== 429)) {
+      return res;
+    }
+
+    let message = res.statusText;
+    try {
+      const data = await res.clone().json() as { message?: string };
+      if (data.message) message = data.message;
+    } catch {
+      // keep status text
+    }
+
+    if (!isRateLimitedResponse(res, message) || attempt === maxAttempts - 1) {
+      return res;
+    }
+
+    const resetHeader = res.headers.get('x-ratelimit-reset');
+    const resetMs = resetHeader ? Number(resetHeader) * 1000 - Date.now() : 0;
+    const waitMs = Math.min(Math.max(resetMs, 2_000), 120_000);
+    await sleep(waitMs);
+  }
+
+  return await ghFetchOnce(path, token);
 }
 
 async function githubError(res: Response, repo: string): Promise<Error> {
@@ -84,7 +121,11 @@ async function githubError(res: Response, repo: string): Promise<Error> {
     ? ` GitHub rate limit resets at ${new Date(Number(reset) * 1000).toLocaleString()}.`
     : '';
 
-  return new Error(`GitHub repo fetch failed for ${repo}: ${res.status} ${message}.${rateLimit}`);
+  const tokenHint = !process.env.GITHUB_TOKEN?.trim() && /rate limit/i.test(message)
+    ? ' Set GITHUB_TOKEN on the server for 5,000 requests/hour instead of 60.'
+    : '';
+
+  return new Error(`GitHub repo fetch failed for ${repo}: ${res.status} ${message}.${rateLimit}${tokenHint}`);
 }
 
 export function parseGithubUrl(url: string): { owner: string; repo: string } | null {
@@ -171,19 +212,23 @@ export async function fetchRepoData(repoUrl: string, hackathonDate?: string): Pr
     }
   }
 
-  // Fetch up to 15 interesting source files
+  // Fetch up to 15 interesting source files (batched to avoid GitHub rate-limit bursts)
   const toFetch = sourcePaths.slice(0, 15);
   const keyFiles: RepoFile[] = [];
-  await Promise.all(
-    toFetch.map(async (path) => {
-      const res = await ghFetch(`/repos/${owner}/${repo}/contents/${path}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.content) return;
-      const content = Buffer.from(data.content, 'base64').toString('utf-8').slice(0, 2000);
-      keyFiles.push({ path, content });
-    })
-  );
+  const batchSize = 3;
+  for (let i = 0; i < toFetch.length; i += batchSize) {
+    const batch = toFetch.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map(async (filePath) => {
+        const res = await ghFetch(`/repos/${owner}/${repo}/contents/${filePath}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.content) return;
+        const content = Buffer.from(data.content, 'base64').toString('utf-8').slice(0, 2000);
+        keyFiles.push({ path: filePath, content });
+      })
+    );
+  }
 
   return {
     owner,
