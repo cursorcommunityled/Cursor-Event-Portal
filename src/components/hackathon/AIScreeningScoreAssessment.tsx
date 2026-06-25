@@ -7,11 +7,12 @@ import {
   formatHackathonScore,
   getAIScreeningWeightedScore,
 } from "@/lib/hackathon-rubric";
-import { Award, Lightbulb, Sparkles } from "lucide-react";
+import { Award, FileText, Lightbulb, Sparkles } from "lucide-react";
 
 export type AIScreeningScoreDetail = {
   team_id: string;
   overall_score: number;
+  project_summary?: string;
   criteria_scores: {
     criteria_key: string;
     score: number;
@@ -52,6 +53,20 @@ export function AIScreeningScoreAssessment({
 
   return (
     <div className={cn("space-y-5", className)}>
+      {assessment.project_summary && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+          <div className="mb-2 flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5 text-gray-400" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">
+              About the project
+            </p>
+          </div>
+          <p className="text-[13px] font-medium leading-relaxed text-gray-300">
+            {assessment.project_summary}
+          </p>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-4">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-gray-500">
