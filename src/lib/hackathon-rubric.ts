@@ -49,12 +49,28 @@ export type HackathonScoreCategoryKey = typeof HACKATHON_SCORE_CATEGORIES[number
 export type HackathonScoreValues = Partial<Record<HackathonScoreCategoryKey, number | null | undefined>>;
 
 export function calculateHackathonWeightedScore(scores: HackathonScoreValues): number {
-  return Math.round(
-    HACKATHON_SCORE_CATEGORIES.reduce((sum, category) => {
-      const score = scores[category.key] ?? 0;
-      return sum + (score / 10) * category.weight;
-    }, 0)
-  );
+  return Math.round(calculateHackathonWeightedScoreRaw(scores));
+}
+
+export function calculateHackathonWeightedScoreRaw(scores: HackathonScoreValues): number {
+  return HACKATHON_SCORE_CATEGORIES.reduce((sum, category) => {
+    const score = scores[category.key] ?? 0;
+    return sum + (score / 10) * category.weight;
+  }, 0);
+}
+
+export function getAIScreeningWeightedScore(assessment: {
+  criteria_scores: { criteria_key: string; score: number }[];
+}): { points: number; onTen: number } {
+  const values = Object.fromEntries(
+    assessment.criteria_scores.map((criterion) => [criterion.criteria_key, criterion.score])
+  ) as HackathonScoreValues;
+  const points = calculateHackathonWeightedScoreRaw(values);
+  return { points, onTen: points / 10 };
+}
+
+export function formatHackathonScore(value: number, decimals = 2): string {
+  return value.toFixed(decimals);
 }
 
 export function calculateAverageHackathonWeightedScore(rows: HackathonScoreValues[]): number {

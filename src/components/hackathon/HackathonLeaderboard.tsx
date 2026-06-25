@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore } from "@/types";
-import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore } from "@/lib/hackathon-rubric";
+import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore, formatHackathonScore, getAIScreeningWeightedScore } from "@/lib/hackathon-rubric";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import {
@@ -102,7 +102,7 @@ export function HackathonLeaderboard({
       .map((team) => {
         const assessment = assessmentByTeamId.get(team.id);
         if (!assessment) return null;
-        const total = Math.round(assessment.overall_score * 10);
+        const total = getAIScreeningWeightedScore(assessment).points;
         return { team, total, assessment };
       })
       .filter((entry): entry is { team: HackathonTeamWithMembers; total: number; assessment: AIScreeningScoreDetail } => entry != null)
@@ -294,7 +294,7 @@ export function HackathonLeaderboard({
                             "font-black tabular-nums leading-none",
                             isTop3 ? `text-5xl ${SCORE_STYLES[i]}` : "text-4xl text-gray-400"
                           )}>
-                            {total}
+                            {formatHackathonScore(total)}
                           </p>
                           <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 mt-1">
                             / {maxScore}

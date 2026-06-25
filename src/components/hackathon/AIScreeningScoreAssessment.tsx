@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import {
   HACKATHON_SCORE_CATEGORIES,
   HACKATHON_SCORE_MAX,
-  calculateHackathonWeightedScore,
+  formatHackathonScore,
+  getAIScreeningWeightedScore,
 } from "@/lib/hackathon-rubric";
 import { Award, Lightbulb, Sparkles } from "lucide-react";
 
@@ -47,11 +48,7 @@ export function AIScreeningScoreAssessment({
   variant = "full",
   className,
 }: Props) {
-  const criteriaValues = Object.fromEntries(
-    assessment.criteria_scores.map((c) => [c.criteria_key, c.score])
-  );
-  const weightedPoints = calculateHackathonWeightedScore(criteriaValues);
-  const weightedOnTen = weightedPoints / 10;
+  const { points: weightedPoints, onTen: weightedOnTen } = getAIScreeningWeightedScore(assessment);
 
   return (
     <div className={cn("space-y-5", className)}>
@@ -66,12 +63,12 @@ export function AIScreeningScoreAssessment({
         </div>
         <div className="flex items-baseline gap-3">
           <span className="text-3xl font-black tabular-nums tracking-tight text-white">
-            {weightedOnTen.toFixed(1)}
+            {formatHackathonScore(weightedOnTen)}
             <span className="text-sm font-bold text-gray-500">/10</span>
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wider text-gray-600">·</span>
           <span className="text-2xl font-black tabular-nums text-gray-300">
-            {weightedPoints}
+            {formatHackathonScore(weightedPoints)}
             <span className="text-[11px] font-bold text-gray-600">/{HACKATHON_SCORE_MAX}</span>
           </span>
         </div>

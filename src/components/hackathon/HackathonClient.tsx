@@ -46,6 +46,8 @@ import {
   HACKATHON_SCORE_CATEGORIES,
   HACKATHON_SCORE_MAX,
   calculateAverageHackathonWeightedScore,
+  formatHackathonScore,
+  getAIScreeningWeightedScore,
 } from "@/lib/hackathon-rubric";
 
 interface Props {
@@ -129,8 +131,9 @@ function totalScore(teamId: string, scores: HackathonScore[]): number {
   return calculateAverageHackathonWeightedScore(s);
 }
 
-function aiScorePoints(score: PublicAIScore | null | undefined): number | null {
-  return score ? Math.round(score.overall_score * 10) : null;
+function aiWeightedPoints(score: PublicAIScore | null | undefined): number | null {
+  if (!score?.criteria_scores?.length) return null;
+  return getAIScreeningWeightedScore(score).points;
 }
 
 function plural(count: number, singular: string, pluralWord = `${singular}s`) {
@@ -351,7 +354,7 @@ export function HackathonClient({
     : 0;
   const aiRankedTeams = useMemo(() => (
     [...allTeams]
-      .map((team) => ({ team, score: aiScorePoints(publicAIScoreByTeamId.get(team.id)) }))
+      .map((team) => ({ team, score: aiWeightedPoints(publicAIScoreByTeamId.get(team.id)) }))
       .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
       .sort((a, b) => b.score - a.score)
   ), [allTeams, publicAIScoreByTeamId]);
@@ -372,14 +375,22 @@ export function HackathonClient({
   const showLeaderboardTab = aiScoresVisible || hasPublicAIScores || submissionLocked;
   const leadingTeam = displayRankedTeams[0]?.team ?? null;
   const leadingTeamScore = displayRankedTeams[0]?.score ?? null;
-  const showTeamScores = displayRankedTeams.length > 0;
+  const showTeamScores = hasPublicAIScores;
   const teamsForDisplay = useMemo(() => {
     if (!showTeamScores) {
       return allTeams.map((team) => ({ team, rank: null, score: null }));
     }
 
-    const rankByTeamId = new Map(displayRankedTeams.map((entry, index) => [entry.team.id, index + 1]));
-    const scoreByTeamId = new Map(displayRankedTeams.map((entry) => [entry.team.id, entry.score]));
+    const rankedEntries = [...allTeams]
+      .map((team) => ({
+        team,
+        score: aiWeightedPoints(publicAIScoreByTeamId.get(team.id)),
+      }))
+      .filter((entry): entry is { team: HackathonTeamWithMembers; score: number } => entry.score != null)
+      .sort((a, b) => b.score - a.score);
+
+    const rankByTeamId = new Map(rankedEntries.map((entry, index) => [entry.team.id, index + 1]));
+    const scoreByTeamId = new Map(rankedEntries.map((entry) => [entry.team.id, entry.score]));
 
     return [...allTeams]
       .sort((a, b) => (scoreByTeamId.get(b.id) ?? -1) - (scoreByTeamId.get(a.id) ?? -1))
@@ -388,7 +399,7 @@ export function HackathonClient({
         rank: rankByTeamId.get(team.id) ?? null,
         score: scoreByTeamId.get(team.id) ?? null,
       }));
-  }, [allTeams, displayRankedTeams, showTeamScores]);
+  }, [allTeams, publicAIScoreByTeamId, showTeamScores]);
 
   const refresh = useCallback(() => {
     router.refresh();
@@ -1168,7 +1179,7 @@ export function HackathonClient({
                   </p>
                   <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-gray-300">
                     {leadingTeam && leadingTeamScore != null
-                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading AI screening with <span className="text-yellow-400 font-bold">{leadingTeamScore}</span>/100.</>
+                      ? <><span className="text-white font-bold">{leadingTeam.name}</span> is currently leading AI screening with <span className="text-yellow-400 font-bold">{formatHackathonScore(leadingTeamScore)}</span>/100.</>
                       : "AI screening rankings appear here once analysis completes. Final-round judge scores are announced separately."}
                   </p>
                 </div>
@@ -2112,15 +2123,22 @@ function TimelineItem({
 }
 
 function PublicAIScoreBreakdown({ aiScore, compact = false }: { aiScore: PublicAIScore; compact?: boolean }) {
+  const { points: weightedPoints, onTen: weightedOnTen } = getAIScreeningWeightedScore(aiScore);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
           AI screening only · judge scores open in Final Round
         </p>
-        <p className="shrink-0 text-[11px] font-black text-white">
-          Cursor <span className="text-gray-400">AI Judge</span> {aiScore.overall_score.toFixed(1)}/10
-        </p>
+        <div className="shrink-0 text-right">
+          <p className="text-[11px] font-black text-white">
+            Cursor <span className="text-gray-400">AI Judge</span> {formatHackathonScore(weightedOnTen)}/10
+          </p>
+          <p className="text-[10px] font-bold tabular-nums text-gray-500">
+            {formatHackathonScore(weightedPoints)}/{HACKATHON_SCORE_MAX}
+          </p>
+        </div>
       </div>
 
       <div className={cn("space-y-2", compact && "space-y-1.5")}>
@@ -2155,7 +2173,7 @@ function PublicAIScoreBreakdown({ aiScore, compact = false }: { aiScore: PublicA
 }
 
 function PublicAIScoreCard({ aiScore, title }: { aiScore: PublicAIScore; title: string }) {
-  const points = aiScorePoints(aiScore);
+  const points = aiWeightedPoints(aiScore);
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
@@ -2166,8 +2184,10 @@ function PublicAIScoreCard({ aiScore, title }: { aiScore: PublicAIScore; title: 
           <p className="mt-1 text-[10px] font-medium text-gray-500">Public AI screening result</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{points}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400/70">/ {HACKATHON_SCORE_MAX} pts</p>
+          <p className="text-4xl font-black tabular-nums tracking-tight text-white drop-shadow-md">
+            {points == null ? "—" : formatHackathonScore(points)}
+          </p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400/70">/ {HACKATHON_SCORE_MAX}</p>
         </div>
       </div>
       <div className="relative">
@@ -2185,7 +2205,7 @@ function TeamCard({ team, rank, score, aiScore, screenshotUrl, formationOpen }: 
   screenshotUrl: string | null;
   formationOpen: boolean;
 }) {
-  const displayScore = score;
+  const weightedScore = aiScore ? aiWeightedPoints(aiScore) : score;
 
   return (
     <div className={cn(
@@ -2220,11 +2240,13 @@ function TeamCard({ team, rank, score, aiScore, screenshotUrl, formationOpen }: 
             </p>
           </div>
         </div>
-        {displayScore != null && (
+        {weightedScore != null && (
           <div className="shrink-0 text-right">
-            <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">{displayScore}</p>
+            <p className="text-3xl font-black tabular-nums tracking-tight text-white drop-shadow-md">
+              {formatHackathonScore(weightedScore)}
+            </p>
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400/70">
-              {score != null ? `/ ${HACKATHON_SCORE_MAX} pts` : "AI score"}
+              / {HACKATHON_SCORE_MAX}
             </p>
           </div>
         )}

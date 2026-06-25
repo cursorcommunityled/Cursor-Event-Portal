@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { HACKATHON_SCORE_MAX } from "@/lib/hackathon-rubric";
+import { HACKATHON_SCORE_MAX, formatHackathonScore } from "@/lib/hackathon-rubric";
 import type { HackathonTeamWithMembers } from "@/types";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import {
@@ -132,7 +132,7 @@ export function HackathonAttendeeLeaderboard({ entries, myTeamId, sourceLabel }:
 
                   <div className="flex shrink-0 items-center gap-3">
                     <div className="text-right">
-                      <p className="text-3xl font-black tabular-nums text-white">{score}</p>
+                      <p className="text-3xl font-black tabular-nums text-white">{formatHackathonScore(score)}</p>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
                         / {maxScore}{source === "ai" ? "" : " pts"}
                       </p>
