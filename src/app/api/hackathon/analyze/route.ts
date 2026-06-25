@@ -30,16 +30,18 @@ export async function POST(req: NextRequest) {
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     if (!project?.submitted_at || !project.repo_url) return NextResponse.json({ error: 'Team has not submitted a repo URL' }, { status: 400 });
 
-    // Check if analysis is already running
-    const { data: existing } = await supabase
+    // Block duplicate pipelines while any pass is still running.
+    const { count: runningCount } = await supabase
       .from('hackathon_ai_analyses')
-      .select('status')
+      .select('id', { count: 'exact', head: true })
       .eq('team_id', teamId)
-      .eq('pass_name', 'pass1_repo')
-      .maybeSingle();
+      .eq('status', 'running');
 
-    if (existing?.status === 'running') {
-      return NextResponse.json({ error: 'Analysis already running for this team' }, { status: 409 });
+    if ((runningCount ?? 0) > 0) {
+      return NextResponse.json(
+        { error: 'Analysis already running for this team. Use Reset if it appears stuck.' },
+        { status: 409 }
+      );
     }
 
     const screenshotUrls = (screenshots ?? []).map((s: { file_url: string }) => s.file_url);

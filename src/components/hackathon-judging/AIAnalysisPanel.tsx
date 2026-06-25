@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { triggerAnalysis } from "@/lib/actions/hackathon-analysis";
+import { resetAnalysis, triggerAnalysis } from "@/lib/actions/hackathon-analysis";
 import { createClient } from "@/lib/supabase/client";
 import {
   Cpu, ChevronDown, ChevronUp, Check, AlertCircle, Loader2,
-  Star, TrendingUp, Eye, Users, Lightbulb,
+  Star, TrendingUp, Eye, Users, Lightbulb, RotateCcw,
 } from "lucide-react";
 import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
 import type { Pass6Result } from "@/lib/hackathon-analysis/types";
@@ -30,6 +30,7 @@ const PASS_ORDER = [
 ] as const;
 
 const PASS_INDEX = new Map(PASS_ORDER.map((passName, index) => [passName, index]));
+const STUCK_THRESHOLD_MS = 3 * 60 * 1000;
 
 function sortAnalyses(analyses: HackathonAIAnalysis[]) {
   return [...analyses].sort(
@@ -154,8 +155,14 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
 
   const completedCount = Object.values(byPass).filter((a) => a.status === "complete").length;
   const runningPass = PASS_ORDER.find((p) => byPass[p]?.status === "running");
+  const runningPassRow = runningPass ? byPass[runningPass] : undefined;
+  const isLikelyStuck = Boolean(
+    runningPassRow?.updated_at &&
+    Date.now() - new Date(runningPassRow.updated_at).getTime() > STUCK_THRESHOLD_MS
+  );
   const failedPass = PASS_ORDER.find((p) => byPass[p]?.status === "error");
   const failedError = failedPass ? byPass[failedPass]?.error : null;
+  const showReset = hasStarted && !allDone && !hasAnalysisError;
   const statusMessage = failedPass
     ? `${PASS_LABELS[failedPass]} failed`
     : isRunning && runningPass
@@ -175,6 +182,21 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
         setOptimisticStarted(false);
         setError(res.error);
       }
+    });
+  };
+
+  const handleReset = () => {
+    if (!confirm(`Reset AI analysis for ${teamName}? You can run Analyze again afterward.`)) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await resetAnalysis(teamId, eventId, adminCode);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setLiveAnalyses([]);
+      setOptimisticStarted(false);
+      setExpanded(false);
     });
   };
 
@@ -222,6 +244,18 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
             >
               <Cpu className="w-3.5 h-3.5" />
               {isPending ? "Starting…" : "Analyze"}
+            </button>
+          )}
+
+          {showReset && (
+            <button
+              disabled={isPending}
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25 hover:border-amber-400/60 transition-all disabled:opacity-40"
+              title="Clear stuck analysis and start fresh"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              {isPending ? "Resetting…" : "Reset"}
             </button>
           )}
 
@@ -275,6 +309,9 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
               failedPass ? "text-red-300" : allDone ? "text-green-300" : "text-gray-400"
             )}>
               {statusMessage}
+              {isLikelyStuck && !failedPass && (
+                <span className="text-amber-300/90"> — taking longer than expected; try Reset if it stays stuck.</span>
+              )}
             </p>
           )}
           {failedError && (
