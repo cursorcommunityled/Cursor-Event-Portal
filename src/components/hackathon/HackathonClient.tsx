@@ -36,6 +36,7 @@ import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinn
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import { HackathonAttendeeLeaderboard, type AttendeeLeaderboardEntry } from "@/components/hackathon/HackathonAttendeeLeaderboard";
+import type { AIScreeningScoreDetail } from "@/components/hackathon/AIScreeningScoreAssessment";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import { MentorCard } from "@/components/demos/MentorCard";
@@ -87,12 +88,7 @@ interface Props {
   audienceVotePoll?: PollWithVotes | null;
 }
 
-type PublicAIScore = {
-  team_id: string;
-  overall_score: number;
-  criteria_scores: { criteria_key: string; score: number }[];
-  updated_at: string;
-};
+type PublicAIScore = AIScreeningScoreDetail & { updated_at: string };
 
 type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "chat" | "leaderboard";
 type PeopleTab = "mentors" | "judges";
@@ -362,8 +358,13 @@ export function HackathonClient({
   // Attendee hub leaderboard is AI screening only — final-round judge scores stay on the winners podium.
   const displayRankedTeams = useMemo((): AttendeeLeaderboardEntry[] => {
     if (!hasPublicAIScores) return [];
-    return aiRankedTeams.map(({ team, score }) => ({ team, score, source: "ai" }));
-  }, [aiRankedTeams, hasPublicAIScores]);
+    return aiRankedTeams.map(({ team, score }) => ({
+      team,
+      score,
+      source: "ai",
+      assessment: publicAIScoreByTeamId.get(team.id),
+    }));
+  }, [aiRankedTeams, hasPublicAIScores, publicAIScoreByTeamId]);
   const leaderboardSourceLabel = "AI screening scores";
   const submissionLocked = Boolean(
     projectSubmissionCutoff && now && now >= projectSubmissionCutoff
