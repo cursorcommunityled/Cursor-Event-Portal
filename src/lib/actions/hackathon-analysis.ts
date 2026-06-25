@@ -89,6 +89,93 @@ export async function triggerAnalysis(
   return { success: true };
 }
 
+// Kick off AI analysis for every submitted project with a repo URL.
+export async function triggerAnalysisForAllSubmitted(
+  eventId: string,
+  adminCode: string
+): Promise<{
+  success?: true;
+  error?: string;
+  started?: number;
+  skipped?: number;
+  skippedNoRepo?: number;
+}> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const supabase = await createServiceClient();
+
+  const { data: projects } = await supabase
+    .from("hackathon_projects")
+    .select("team_id, repo_url, submitted_at")
+    .eq("event_id", eventId)
+    .not("submitted_at", "is", null);
+
+  const submitted = projects ?? [];
+  const withRepo = submitted.filter((project) => project.repo_url?.trim());
+  const skippedNoRepo = submitted.length - withRepo.length;
+
+  if (withRepo.length === 0) {
+    return {
+      error: skippedNoRepo > 0
+        ? `${skippedNoRepo} team(s) submitted without a repo URL. Add repo URLs before running AI analysis.`
+        : "No submitted projects found.",
+    };
+  }
+
+  const teamIds = withRepo.map((project) => project.team_id);
+
+  const { data: analyses } = await supabase
+    .from("hackathon_ai_analyses")
+    .select("team_id, pass_name, status")
+    .eq("event_id", eventId)
+    .in("team_id", teamIds);
+
+  const analysesByTeam = new Map<string, NonNullable<typeof analyses>>();
+  for (const row of analyses ?? []) {
+    const existing = analysesByTeam.get(row.team_id) ?? [];
+    existing.push(row);
+    analysesByTeam.set(row.team_id, existing);
+  }
+
+  let started = 0;
+  let skipped = 0;
+  let firstError: string | undefined;
+
+  for (const project of withRepo) {
+    const teamAnalyses = analysesByTeam.get(project.team_id) ?? [];
+    const pass6Complete = teamAnalyses.some(
+      (analysis) => analysis.pass_name === "pass6_synthesis" && analysis.status === "complete"
+    );
+    const isRunning = teamAnalyses.some((analysis) => analysis.status === "running");
+
+    if (pass6Complete || isRunning) {
+      skipped++;
+      continue;
+    }
+
+    const res = await triggerAnalysis(project.team_id, eventId, adminCode);
+    if (res.error) {
+      firstError ??= res.error;
+    } else {
+      started++;
+      // Stagger starts so parallel repo fetches don't burst the GitHub API.
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+    }
+  }
+
+  if (started === 0) {
+    return {
+      error: firstError
+        ?? (skipped > 0
+          ? "All submitted projects are already analyzed or in progress."
+          : "No projects to analyze."),
+    };
+  }
+
+  return { success: true, started, skipped, skippedNoRepo };
+}
+
 // Apply AI Pass 6 scores to hackathon_scores (admin funnel)
 export async function applyAIScores(
   adminCode: string,

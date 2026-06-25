@@ -30,21 +30,6 @@ export async function POST(req: NextRequest) {
     if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
     if (!project?.submitted_at || !project.repo_url) return NextResponse.json({ error: 'Team has not submitted a repo URL' }, { status: 400 });
 
-    // Check minimum pool size (at least 4 projects submitted)
-    const { count: submittedCount } = await supabase
-      .from('hackathon_projects')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .not('submitted_at', 'is', null)
-      .not('repo_url', 'is', null);
-
-    if ((submittedCount ?? 0) < 4) {
-      return NextResponse.json(
-        { error: `Need at least 4 submitted projects to run AI analysis. Currently ${submittedCount ?? 0}.` },
-        { status: 422 }
-      );
-    }
-
     // Check if analysis is already running
     const { data: existing } = await supabase
       .from('hackathon_ai_analyses')
