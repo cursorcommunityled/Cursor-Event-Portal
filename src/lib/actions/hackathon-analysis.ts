@@ -89,6 +89,26 @@ export async function triggerAnalysis(
   return { success: true };
 }
 
+// Clear all AI analysis passes for a team so a stuck run can be restarted.
+export async function resetAnalysis(
+  teamId: string,
+  eventId: string,
+  adminCode: string
+): Promise<{ success?: true; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const supabase = await createServiceClient();
+  const { error } = await supabase
+    .from("hackathon_ai_analyses")
+    .delete()
+    .eq("team_id", teamId)
+    .eq("event_id", eventId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 // Kick off AI analysis for every submitted project with a repo URL.
 export async function triggerAnalysisForAllSubmitted(
   eventId: string,
