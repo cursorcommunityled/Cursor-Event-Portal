@@ -85,8 +85,6 @@ interface Props {
 
 type Tab = "settings" | "teams" | "scoring" | "leaderboard" | "judging" | "chat" | "people";
 
-// People tab is hidden for now (not needed for June). Flip to true to restore it.
-const SHOW_PEOPLE_TAB = false;
 type SimonTodoItem = { id: string; text: string };
 type SimonTodoTarget = string | number;
 type SimonTodoConsoleApi = {
@@ -720,6 +718,7 @@ export function HackathonAdminClient({
   const leaderboardVisible = settings?.leaderboard_visible ?? false;
   const aiScoresVisible = settings?.ai_scores_visible ?? false;
   const audienceFavoriteResultsVisible = settings?.audience_favorite_results_visible ?? false;
+  const showPeopleTab = settings?.people_tab_visible ?? true;
 
   const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
@@ -727,7 +726,7 @@ export function HackathonAdminClient({
     { id: "scoring", label: `AI Screen (${submittedTeams.length}/${teams.length})`, icon: <Cpu className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
     { id: "judging", label: "Final Round", icon: <Award className="w-4 h-4" /> },
-    ...(SHOW_PEOPLE_TAB
+    ...(showPeopleTab
       ? [{ id: "people" as Tab, label: `People (${initialPeople.length})`, icon: <UserRound className="w-4 h-4" /> }]
       : []),
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-4 h-4" /> },
@@ -2119,7 +2118,7 @@ export function HackathonAdminClient({
           </div>
         )}
 
-        {SHOW_PEOPLE_TAB && tab === "people" && (
+        {showPeopleTab && tab === "people" && (
           <div className="animate-slide-up">
             <HackathonPeopleAdminPanel
               event={event}

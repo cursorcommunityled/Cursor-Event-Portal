@@ -194,6 +194,7 @@ export function HackathonClient({
   const [peopleTab, setPeopleTab] = useState<PeopleTab>("mentors");
   const [now, setNow] = useState<Date>(() => new Date());
   const tabStorageKey = `hackathon:${event.id}:${userId}:tab`;
+  const showPeopleTab = settings?.people_tab_visible ?? true;
 
   // Local state (updated by realtime or optimistic)
   const [myTeam, setMyTeam] = useState(initialMyTeam);
@@ -245,13 +246,13 @@ export function HackathonClient({
     const hashTab = window.location.hash.replace(/^#/, "");
     const storedTab = window.localStorage.getItem(tabStorageKey);
 
-    if (hashTab === "mentors" || hashTab === "judges") {
+    if (showPeopleTab && (hashTab === "mentors" || hashTab === "judges")) {
       setPeopleTab(hashTab);
       setTab("people");
       return;
     }
 
-    if ((storedTab === "mentors" || storedTab === "judges") && !isHackathonTab(hashTab)) {
+    if (showPeopleTab && (storedTab === "mentors" || storedTab === "judges") && !isHackathonTab(hashTab)) {
       setPeopleTab(storedTab);
       setTab("people");
       return;
@@ -263,8 +264,16 @@ export function HackathonClient({
         ? storedTab
         : null;
 
-    if (restoredTab) setTab(restoredTab);
-  }, [tabStorageKey]);
+    if (restoredTab && (restoredTab !== "people" || showPeopleTab)) {
+      setTab(restoredTab);
+    }
+  }, [tabStorageKey, showPeopleTab]);
+
+  useEffect(() => {
+    if (!showPeopleTab && tab === "people") {
+      setTab("overview");
+    }
+  }, [showPeopleTab, tab]);
 
   useEffect(() => {
     window.localStorage.setItem(tabStorageKey, tab);
@@ -741,7 +750,9 @@ export function HackathonClient({
     { id: "overview", label: "Hub", icon: <Swords className="w-3.5 h-3.5" /> },
     { id: "all-teams", label: "Teams", count: allTeams.length },
     ...(formationOpen ? [{ id: "open-pool" as const, label: "Pool", count: pool.length }] : []),
-    { id: "people", label: "People", count: peopleCount, icon: <UserPlus className="w-3.5 h-3.5" /> },
+    ...(showPeopleTab
+      ? [{ id: "people" as const, label: "People", count: peopleCount, icon: <UserPlus className="w-3.5 h-3.5" /> }]
+      : []),
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
   const showTeamFinder = formationOpen && !myTeam && (tab === "all-teams" || tab === "open-pool" || tab === "chat");
@@ -1793,7 +1804,7 @@ export function HackathonClient({
       )}
 
       {/* People tab */}
-      {tab === "people" && (
+      {showPeopleTab && tab === "people" && (
         <div className="space-y-8 animate-slide-up">
           <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
             <div className="relative flex items-start justify-between gap-4">
