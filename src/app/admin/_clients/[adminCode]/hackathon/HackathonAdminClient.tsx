@@ -41,6 +41,8 @@ import {
   HACKATHON_SCORE_CATEGORIES,
   HACKATHON_SCORE_MAX,
   calculateHackathonWeightedScore,
+  formatHackathonScore,
+  getAIScreeningWeightedScore,
   type HackathonScoreCategoryKey,
 } from "@/lib/hackathon-rubric";
 import type {
@@ -1707,7 +1709,7 @@ export function HackathonAdminClient({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {teams.map((team) => {
                 const pass6 = getCompletedPass6(aiAnalyses[team.id] ?? []);
-                const aiScore = pass6 ? Math.round(pass6.overall_score * 10) : null;
+                const aiScore = pass6 ? getAIScreeningWeightedScore(pass6).points : null;
 
                 return (
                   <div key={team.id} className="relative overflow-hidden rounded-[24px] border border-white/10 bg-black/40 p-5 backdrop-blur-xl transition-all hover:bg-white/[0.04] flex flex-col gap-4">
@@ -1725,7 +1727,7 @@ export function HackathonAdminClient({
                         </p>
                       </div>
                       <div className="text-2xl font-black tabular-nums text-white drop-shadow-md shrink-0">
-                        {aiScore ?? "—"}<span className="text-xs font-bold text-gray-500">/{HACKATHON_SCORE_MAX}</span>
+                        {aiScore == null ? "—" : formatHackathonScore(aiScore)}<span className="text-xs font-bold text-gray-500">/{HACKATHON_SCORE_MAX}</span>
                       </div>
                     </div>
 
