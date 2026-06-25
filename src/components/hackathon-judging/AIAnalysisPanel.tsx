@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { resetAnalysis, triggerAnalysis } from "@/lib/actions/hackathon-analysis";
+import { mergeTeamAnalyses, sortAnalyses } from "@/lib/hackathon-analysis/admin-utils";
 import { createClient } from "@/lib/supabase/client";
 import {
   Cpu, ChevronDown, ChevronUp, Check, AlertCircle, Loader2,
@@ -29,24 +30,13 @@ const PASS_ORDER = [
   "pass6_synthesis",
 ] as const;
 
-const PASS_INDEX = new Map(PASS_ORDER.map((passName, index) => [passName, index]));
 const STUCK_THRESHOLD_MS = 3 * 60 * 1000;
-
-function sortAnalyses(analyses: HackathonAIAnalysis[]) {
-  return [...analyses].sort(
-    (a, b) => (PASS_INDEX.get(a.pass_name) ?? 99) - (PASS_INDEX.get(b.pass_name) ?? 99)
-  );
-}
 
 function upsertAnalyses(
   current: HackathonAIAnalysis[],
   incoming: HackathonAIAnalysis[]
 ) {
-  const next = new Map(current.map((analysis) => [analysis.pass_name, analysis]));
-  for (const analysis of incoming) {
-    next.set(analysis.pass_name, analysis);
-  }
-  return sortAnalyses([...next.values()]);
+  return mergeTeamAnalyses(current, incoming);
 }
 
 const CRITERIA_ICONS: Record<string, React.ReactNode> = {
@@ -87,9 +77,12 @@ interface Props {
   adminCode: string;
   analyses: HackathonAIAnalysis[];
   hasRepo: boolean;
+  onAnalysesChange?: (analyses: HackathonAIAnalysis[]) => void;
 }
 
-export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses, hasRepo }: Props) {
+export function AIAnalysisPanel({
+  teamId, teamName, eventId, adminCode, analyses, hasRepo, onAnalysesChange,
+}: Props) {
   const [liveAnalyses, setLiveAnalyses] = useState(() => sortAnalyses(analyses));
   const [expanded, setExpanded] = useState(false);
   const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
@@ -98,9 +91,17 @@ export function AIAnalysisPanel({ teamId, teamName, eventId, adminCode, analyses
   const [optimisticStarted, setOptimisticStarted] = useState(false);
 
   useEffect(() => {
+    void fetchAnalyses();
+  }, [fetchAnalyses]);
+
+  useEffect(() => {
     if (analyses.length === 0) return;
     setLiveAnalyses((prev) => upsertAnalyses(prev, analyses));
   }, [analyses]);
+
+  useEffect(() => {
+    onAnalysesChange?.(liveAnalyses);
+  }, [liveAnalyses, onAnalysesChange]);
 
   const fetchAnalyses = useCallback(async () => {
     const supabase = createClient();
