@@ -872,6 +872,7 @@ export interface HackathonSettings {
   leaderboard_visible: boolean;
   ai_scores_visible: boolean;
   audience_favorite_results_visible: boolean;
+  people_tab_visible: boolean;
   final_round_paid_places: number;
   final_round_prizes: HackathonPrize[];
   prompt_text: string;
