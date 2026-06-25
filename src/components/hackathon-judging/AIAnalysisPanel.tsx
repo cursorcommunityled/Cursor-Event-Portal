@@ -90,6 +90,18 @@ export function AIAnalysisPanel({
   const [error, setError] = useState<string | null>(null);
   const [optimisticStarted, setOptimisticStarted] = useState(false);
 
+  const fetchAnalyses = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("hackathon_ai_analyses")
+      .select("*")
+      .eq("team_id", teamId)
+      .eq("event_id", eventId)
+      .order("pass_name");
+
+    if (data) setLiveAnalyses(sortAnalyses(data as HackathonAIAnalysis[]));
+  }, [eventId, teamId]);
+
   useEffect(() => {
     void fetchAnalyses();
   }, [fetchAnalyses]);
@@ -102,18 +114,6 @@ export function AIAnalysisPanel({
   useEffect(() => {
     onAnalysesChange?.(liveAnalyses);
   }, [liveAnalyses, onAnalysesChange]);
-
-  const fetchAnalyses = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("hackathon_ai_analyses")
-      .select("*")
-      .eq("team_id", teamId)
-      .eq("event_id", eventId)
-      .order("pass_name");
-
-    if (data) setLiveAnalyses(sortAnalyses(data as HackathonAIAnalysis[]));
-  }, [eventId, teamId]);
 
   useEffect(() => {
     const supabase = createClient();
