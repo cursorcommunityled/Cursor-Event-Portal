@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { HACKATHON_SCORE_MAX } from "@/lib/hackathon-rubric";
 import type { HackathonTeamWithMembers } from "@/types";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
-import { Trophy } from "lucide-react";
+import {
+  AIScreeningScoreAssessment,
+  type AIScreeningScoreDetail,
+} from "@/components/hackathon/AIScreeningScoreAssessment";
+import { ChevronDown, Trophy } from "lucide-react";
 
 export type AttendeeLeaderboardEntry = {
   team: HackathonTeamWithMembers;
   score: number;
   source: "judge" | "ai";
+  assessment?: AIScreeningScoreDetail;
 };
 
 interface Props {
@@ -21,6 +27,8 @@ interface Props {
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export function HackathonAttendeeLeaderboard({ entries, myTeamId, sourceLabel }: Props) {
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
+
   if (entries.length === 0) {
     return (
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-12 text-center backdrop-blur-xl shadow-lg">
@@ -40,6 +48,10 @@ export function HackathonAttendeeLeaderboard({ entries, myTeamId, sourceLabel }:
 
   const maxScore = entries[0]?.source === "ai" ? 100 : HACKATHON_SCORE_MAX;
 
+  const toggleExpanded = (teamId: string) => {
+    setExpandedTeamId((current) => (current === teamId ? null : teamId));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -50,72 +62,125 @@ export function HackathonAttendeeLeaderboard({ entries, myTeamId, sourceLabel }:
       </div>
 
       <div className="space-y-3">
-        {entries.map(({ team, score, source }, index) => {
+        {entries.map(({ team, score, source, assessment }, index) => {
           const isMine = team.id === myTeamId;
           const isTop3 = index < 3;
           const pct = maxScore > 0 ? (score / maxScore) * 100 : 0;
+          const isExpanded = expandedTeamId === team.id;
+          const canExpand = source === "ai" && !!assessment;
 
           return (
             <div
               key={team.id}
               className={cn(
-                "relative overflow-hidden rounded-2xl border p-5 backdrop-blur-xl transition-all",
+                "relative overflow-hidden rounded-2xl border backdrop-blur-xl transition-all",
                 isMine ? "border-white/30 bg-white/[0.06] ring-1 ring-white/20" :
                 isTop3 ? "border-yellow-500/25 bg-yellow-500/[0.03]" :
-                "border-white/10 bg-black/40"
+                "border-white/10 bg-black/40",
+                isExpanded && "ring-1 ring-white/15"
               )}
             >
-              <div className="flex items-center gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center">
-                  {isTop3 ? (
-                    <span className="text-2xl">{MEDALS[index]}</span>
-                  ) : (
-                    <span className="text-xl font-black tabular-nums text-gray-500">{index + 1}</span>
-                  )}
-                </div>
-
-                <TeamIcon
-                  photo={team.icon_photo}
-                  name={team.name}
-                  className="h-12 w-12 rounded-xl border-white/10 bg-white/5"
-                  fallbackClassName="opacity-20"
-                  sizes="48px"
-                />
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="truncate text-lg font-bold text-white">{team.name}</h3>
-                    {isMine && (
-                      <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                        You
-                      </span>
+              <button
+                type="button"
+                disabled={!canExpand}
+                onClick={() => canExpand && toggleExpanded(team.id)}
+                className={cn(
+                  "relative w-full p-5 text-left transition-colors",
+                  canExpand && "cursor-pointer hover:bg-white/[0.02]",
+                  !canExpand && "cursor-default"
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center">
+                    {isTop3 ? (
+                      <span className="text-2xl">{MEDALS[index]}</span>
+                    ) : (
+                      <span className="text-xl font-black tabular-nums text-gray-500">{index + 1}</span>
                     )}
                   </div>
-                  <p className="mt-0.5 truncate text-[12px] font-medium text-gray-500">
-                    {team.project?.name ?? team.members.map((m) => m.user?.name).filter(Boolean).join(" · ")}
-                  </p>
-                  <div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className={cn(
-                        "h-full rounded-full transition-all duration-700",
-                        index === 0 ? "bg-gradient-to-r from-yellow-500 to-yellow-300" : "bg-white/70"
+
+                  <TeamIcon
+                    photo={team.icon_photo}
+                    name={team.name}
+                    className="h-12 w-12 rounded-xl border-white/10 bg-white/5"
+                    fallbackClassName="opacity-20"
+                    sizes="48px"
+                  />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate text-lg font-bold text-white">{team.name}</h3>
+                      {isMine && (
+                        <span className="shrink-0 rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                          You
+                        </span>
                       )}
-                      style={{ width: `${pct}%` }}
-                    />
+                    </div>
+                    <p className="mt-0.5 truncate text-[12px] font-medium text-gray-500">
+                      {team.project?.name ?? team.members.map((m) => m.user?.name).filter(Boolean).join(" · ")}
+                    </p>
+                    <div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-white/10">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-700",
+                          index === 0 ? "bg-gradient-to-r from-yellow-500 to-yellow-300" : "bg-white/70"
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-3xl font-black tabular-nums text-white">{score}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                        / {maxScore}{source === "ai" ? "" : " pts"}
+                      </p>
+                    </div>
+
+                    {canExpand && (
+                      <div
+                        className={cn(
+                          "flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] transition-all duration-300",
+                          isExpanded && "border-white/25 bg-white/10"
+                        )}
+                      >
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 text-gray-400 transition-transform duration-300",
+                            isExpanded && "rotate-180 text-white"
+                          )}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
+              </button>
 
-                <div className="shrink-0 text-right">
-                  <p className="text-3xl font-black tabular-nums text-white">{score}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    / {maxScore}{source === "ai" ? "" : " pts"}
-                  </p>
+              {canExpand && assessment && (
+                <div
+                  className={cn(
+                    "grid transition-all duration-300 ease-out",
+                    isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <div className="border-t border-white/10 bg-black/20 px-5 pb-5 pt-4">
+                      <AIScreeningScoreAssessment assessment={assessment} variant="full" />
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
       </div>
+
+      {entries.some((entry) => entry.source === "ai" && entry.assessment) && (
+        <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-gray-600">
+          Tap a team to view full score assessment
+        </p>
+      )}
     </div>
   );
 }
