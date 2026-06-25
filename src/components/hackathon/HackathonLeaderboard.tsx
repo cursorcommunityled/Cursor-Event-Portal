@@ -7,18 +7,20 @@ import { cn } from "@/lib/utils";
 import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore } from "@/types";
 import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore } from "@/lib/hackathon-rubric";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
-
-type PublicAIScore = {
-  team_id: string;
-  overall_score: number;
-};
+import { TeamIcon } from "@/components/hackathon/TeamIcon";
+import {
+  AIScreeningScoreAssessment,
+  type AIScreeningScoreDetail,
+} from "@/components/hackathon/AIScreeningScoreAssessment";
+import { JudgeScoreAssessment } from "@/components/hackathon/JudgeScoreAssessment";
+import { ChevronDown } from "lucide-react";
 
 interface Props {
   event: Event;
   initialSettings: HackathonSettings | null;
   initialTeams: HackathonTeamWithMembers[];
   initialScores: HackathonScore[];
-  initialPublicAIScores?: PublicAIScore[];
+  initialPublicAIScores?: AIScreeningScoreDetail[];
 }
 
 function teamTotal(teamId: string, scores: HackathonScore[]): number {
@@ -63,10 +65,10 @@ export function HackathonLeaderboard({
   const [teams, setTeams] = useState(initialTeams);
   const [scores, setScores] = useState(initialScores);
   const [publicAIScores, setPublicAIScores] = useState(initialPublicAIScores);
+  const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
 
   const refresh = useCallback(() => router.refresh(), [router]);
 
-  // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -80,7 +82,6 @@ export function HackathonLeaderboard({
     return () => { supabase.removeChannel(channel); };
   }, [event.id, refresh]);
 
-  // Sync server-refreshed props
   useEffect(() => { setSettings(initialSettings); }, [initialSettings]);
   useEffect(() => { setTeams(initialTeams); }, [initialTeams]);
   useEffect(() => { setScores(initialScores); }, [initialScores]);
@@ -89,28 +90,35 @@ export function HackathonLeaderboard({
   const aiScoresVisible = settings?.ai_scores_visible ?? false;
   const leaderboardVisible = settings?.leaderboard_visible ?? false;
 
+  const assessmentByTeamId = useMemo(
+    () => new Map(publicAIScores.map((score) => [score.team_id, score])),
+    [publicAIScores]
+  );
+
   const aiRanked = useMemo(() => {
     if (!aiScoresVisible) return [];
 
-    const scoreByTeamId = new Map(
-      publicAIScores.map((score) => [score.team_id, Math.round(score.overall_score * 10)])
-    );
-
     return [...teams]
       .map((team) => {
-        const total = scoreByTeamId.get(team.id);
-        return total == null ? null : { team, total };
+        const assessment = assessmentByTeamId.get(team.id);
+        if (!assessment) return null;
+        const total = Math.round(assessment.overall_score * 10);
+        return { team, total, assessment };
       })
-      .filter((entry): entry is { team: HackathonTeamWithMembers; total: number } => entry != null)
+      .filter((entry): entry is { team: HackathonTeamWithMembers; total: number; assessment: AIScreeningScoreDetail } => entry != null)
       .sort((a, b) => b.total - a.total);
-  }, [aiScoresVisible, publicAIScores, teams]);
+  }, [aiScoresVisible, assessmentByTeamId, teams]);
 
   const judgeRanked = useMemo(() => {
     if (!leaderboardVisible) return [];
 
     return [...teams]
       .filter((t) => scores.some((s) => s.team_id === t.id))
-      .map((t) => ({ team: t, total: teamTotal(t.id, scores) }))
+      .map((t) => ({
+        team: t,
+        total: teamTotal(t.id, scores),
+        teamScores: scores.filter((s) => s.team_id === t.id),
+      }))
       .sort((a, b) => b.total - a.total);
   }, [leaderboardVisible, scores, teams]);
 
@@ -118,7 +126,10 @@ export function HackathonLeaderboard({
   const usingAIScores = aiRanked.length > 0;
   const maxScore = usingAIScores ? 100 : HACKATHON_SCORE_MAX;
 
-  // ── Holding screen ────────────────────────────────────────────────────────
+  const toggleExpanded = (teamId: string) => {
+    setExpandedTeamId((current) => (current === teamId ? null : teamId));
+  };
+
   if (!aiScoresVisible && !leaderboardVisible) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center overflow-hidden">
@@ -152,15 +163,12 @@ export function HackathonLeaderboard({
     );
   }
 
-  // ── Leaderboard ───────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 bg-black flex flex-col overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(239,68,68,0.12)_0,transparent_60%)]" />
       <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-[0.04]" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
 
-      {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-10 py-6 border-b border-white/5">
         <div className="flex items-center gap-4">
           <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/30 bg-white/10 overflow-hidden">
@@ -191,7 +199,6 @@ export function HackathonLeaderboard({
         </div>
       </header>
 
-      {/* Rankings */}
       <main className="relative z-10 flex-1 overflow-y-auto px-10 py-8">
         {ranked.length === 0 ? (
           <div className="flex h-full items-center justify-center">
@@ -201,76 +208,130 @@ export function HackathonLeaderboard({
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-4">
-            {ranked.map(({ team, total }, i) => {
+            {ranked.map((entry, i) => {
+              const { team, total } = entry;
               const pct = maxScore > 0 ? (total / maxScore) * 100 : 0;
               const isTop3 = i < 3;
+              const isExpanded = expandedTeamId === team.id;
+              const projectName = team.project?.name;
+              const aiAssessment = usingAIScores && "assessment" in entry ? entry.assessment : assessmentByTeamId.get(team.id);
+              const judgeScores = !usingAIScores && "teamScores" in entry ? entry.teamScores : scores.filter((s) => s.team_id === team.id);
+              const canExpand = usingAIScores ? !!aiAssessment : judgeScores.length > 0;
 
               return (
                 <div
                   key={team.id}
                   className={cn(
-                    "relative overflow-hidden rounded-[28px] border p-6 transition-all",
-                    isTop3 ? RANK_STYLES[i] : "border-white/8 bg-white/[0.03]"
+                    "relative overflow-hidden rounded-[28px] border transition-all duration-300",
+                    isTop3 ? RANK_STYLES[i] : "border-white/8 bg-white/[0.03]",
+                    isExpanded && "ring-1 ring-white/15"
                   )}
-                  style={{ animationDelay: `${i * 60}ms` }}
                 >
                   {i === 0 && (
                     <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-yellow-500/15 blur-[50px] pointer-events-none" />
                   )}
 
-                  <div className="relative flex items-center gap-6">
-                    {/* Rank */}
-                    <div className="shrink-0 w-16 text-center">
-                      {isTop3 ? (
-                        <span className="text-4xl">{MEDALS[i]}</span>
-                      ) : (
-                        <span className={cn(
-                          "text-3xl font-black tabular-nums",
-                          i < 6 ? "text-gray-300" : "text-gray-600"
+                  <button
+                    type="button"
+                    disabled={!canExpand}
+                    onClick={() => canExpand && toggleExpanded(team.id)}
+                    className={cn(
+                      "relative w-full p-6 text-left transition-colors",
+                      canExpand && "hover:bg-white/[0.02] cursor-pointer",
+                      !canExpand && "cursor-default"
+                    )}
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="shrink-0 w-14 text-center">
+                        {isTop3 ? (
+                          <span className="text-4xl">{MEDALS[i]}</span>
+                        ) : (
+                          <span className={cn(
+                            "text-3xl font-black tabular-nums",
+                            i < 6 ? "text-gray-300" : "text-gray-600"
+                          )}>
+                            {i + 1}
+                          </span>
+                        )}
+                      </div>
+
+                      <TeamIcon
+                        photo={team.icon_photo}
+                        name={team.name}
+                        className="h-14 w-14 shrink-0 rounded-2xl border-white/10 bg-white/5"
+                        fallbackClassName="opacity-20"
+                        sizes="56px"
+                      />
+
+                      <div className="flex-1 min-w-0">
+                        <h2 className={cn(
+                          "font-black tracking-tight truncate",
+                          isTop3 ? "text-3xl text-white" : "text-2xl text-gray-200"
                         )}>
-                          {i + 1}
-                        </span>
-                      )}
-                    </div>
+                          {team.name}
+                        </h2>
+                        <p className="text-[13px] font-medium text-gray-500 mt-0.5 truncate">
+                          {projectName ?? team.members.map((m) => m.user?.name ?? "?").join(" · ")}
+                        </p>
 
-                    {/* Team info */}
-                    <div className="flex-1 min-w-0">
-                      <h2 className={cn(
-                        "font-black tracking-tight truncate",
-                        isTop3 ? "text-4xl text-white" : "text-2xl text-gray-200"
-                      )}>
-                        {team.name}
-                      </h2>
-                      <p className="text-[13px] font-medium text-gray-500 mt-1 truncate">
-                        {team.members.map((m) => m.user?.name ?? "?").join("  ·  ")}
-                      </p>
+                        <div className="mt-3 h-2 rounded-full bg-white/8 overflow-hidden w-full max-w-md">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-1000",
+                              i === 0 ? "bg-gradient-to-r from-yellow-500 to-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
+                              i === 1 ? "bg-gradient-to-r from-gray-400 to-gray-200" :
+                              i === 2 ? "bg-gradient-to-r from-orange-500 to-orange-300" :
+                              "bg-gradient-to-r from-white to-white"
+                            )}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
 
-                      {/* Score bar */}
-                      <div className="mt-3 h-2 rounded-full bg-white/8 overflow-hidden w-full max-w-md">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all duration-1000",
-                            i === 0 ? "bg-gradient-to-r from-yellow-500 to-yellow-300 shadow-[0_0_12px_rgba(234,179,8,0.6)]" :
-                            i === 1 ? "bg-gradient-to-r from-gray-400 to-gray-200" :
-                            i === 2 ? "bg-gradient-to-r from-orange-500 to-orange-300" :
-                            "bg-gradient-to-r from-white to-white"
-                          )}
-                          style={{ width: `${pct}%` }}
-                        />
+                      <div className="flex shrink-0 items-center gap-4">
+                        <div className="text-right">
+                          <p className={cn(
+                            "font-black tabular-nums leading-none",
+                            isTop3 ? `text-5xl ${SCORE_STYLES[i]}` : "text-4xl text-gray-400"
+                          )}>
+                            {total}
+                          </p>
+                          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 mt-1">
+                            / {maxScore}
+                          </p>
+                        </div>
+
+                        {canExpand && (
+                          <div className={cn(
+                            "flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] transition-all duration-300",
+                            isExpanded && "border-white/25 bg-white/10"
+                          )}>
+                            <ChevronDown
+                              className={cn(
+                                "h-5 w-5 text-gray-400 transition-transform duration-300",
+                                isExpanded && "rotate-180 text-white"
+                              )}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
+                  </button>
 
-                    {/* Score */}
-                    <div className="shrink-0 text-right">
-                      <p className={cn(
-                        "font-black tabular-nums leading-none",
-                        isTop3 ? `text-6xl ${SCORE_STYLES[i]}` : "text-4xl text-gray-400"
-                      )}>
-                        {total}
-                      </p>
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 mt-1">
-                        / {maxScore} pts
-                      </p>
+                  <div
+                    className={cn(
+                      "grid transition-all duration-300 ease-out",
+                      isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    )}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="border-t border-white/8 bg-black/20 px-6 pb-6 pt-5">
+                        {usingAIScores && aiAssessment ? (
+                          <AIScreeningScoreAssessment assessment={aiAssessment} variant="full" />
+                        ) : (
+                          <JudgeScoreAssessment scores={judgeScores} />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -280,13 +341,12 @@ export function HackathonLeaderboard({
         )}
       </main>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 px-10 py-4 flex items-center justify-between">
         <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-gray-700">
           Powered by Cursor · New Era AI
         </p>
         <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-700">
-          {ranked.length} team{ranked.length !== 1 ? "s" : ""} scored
+          {ranked.length} team{ranked.length !== 1 ? "s" : ""} scored · tap to expand
         </p>
       </footer>
     </div>

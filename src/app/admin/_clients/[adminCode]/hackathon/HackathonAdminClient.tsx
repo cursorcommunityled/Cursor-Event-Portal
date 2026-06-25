@@ -53,7 +53,8 @@ import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/Hacka
 import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
 import { HackathonPeopleAdminPanel } from "@/components/hackathon/HackathonPeopleAdminPanel";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
-import type { HackathonAIAnalysis, Pass6Result } from "@/lib/hackathon-analysis/types";
+import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
+import { getCompletedPass6, mergeAnalysisMaps, mergeTeamAnalyses, sortAnalyses } from "@/lib/hackathon-analysis/admin-utils";
 
 type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
 type AudienceVoteSummary = { id: string; options: string[]; totalVotes: number };
@@ -99,14 +100,6 @@ type SimonTodoConsoleApi = {
 type WindowWithSimonTodo = Window & { simonTodo?: SimonTodoConsoleApi };
 
 const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
-
-function getCompletedPass6(analyses: HackathonAIAnalysis[]) {
-  const pass6Row = analyses.find((analysis) => (
-    analysis.pass_name === "pass6_synthesis" && analysis.status === "complete"
-  ));
-
-  return (pass6Row?.result as Pass6Result | null) ?? null;
-}
 
 const DEFAULT_SIMON_TODO_ITEMS: SimonTodoItem[] = [
   {
@@ -303,6 +296,59 @@ export function HackathonAdminClient({
   // AI analysis state (keyed by teamId)
   const [aiAnalyses, setAiAnalyses] = useState<Record<string, HackathonAIAnalysis[]>>(initialAiAnalyses);
 
+  useEffect(() => {
+    setAiAnalyses((prev) => mergeAnalysisMaps(prev, initialAiAnalyses));
+  }, [initialAiAnalyses]);
+
+  const fetchAllAnalyses = useCallback(async () => {
+    if (teams.length === 0) return;
+
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("hackathon_ai_analyses")
+      .select("*")
+      .eq("event_id", event.id)
+      .in("team_id", teams.map((team) => team.id));
+
+    if (!data?.length) return;
+
+    const grouped: Record<string, HackathonAIAnalysis[]> = {};
+    for (const row of data as HackathonAIAnalysis[]) {
+      if (!grouped[row.team_id]) grouped[row.team_id] = [];
+      grouped[row.team_id] = mergeTeamAnalyses(grouped[row.team_id], [row]);
+    }
+
+    setAiAnalyses((prev) => mergeAnalysisMaps(prev, grouped));
+  }, [event.id, teams]);
+
+  useEffect(() => {
+    if (tab !== "scoring") return;
+
+    void fetchAllAnalyses();
+    const interval = window.setInterval(() => {
+      void fetchAllAnalyses();
+    }, 4000);
+
+    return () => window.clearInterval(interval);
+  }, [fetchAllAnalyses, tab]);
+
+  const syncTeamAnalyses = useCallback((teamId: string, analyses: HackathonAIAnalysis[]) => {
+    setAiAnalyses((prev) => {
+      const merged = sortAnalyses(analyses);
+      const existing = prev[teamId] ?? [];
+      if (
+        existing.length === merged.length &&
+        existing.every(
+          (row, index) =>
+            row.id === merged[index]?.id && row.updated_at === merged[index]?.updated_at
+        )
+      ) {
+        return prev;
+      }
+      return { ...prev, [teamId]: merged };
+    });
+  }, []);
+
   // Push top AI to final round
   const [pushStatus, setPushStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [pushResult, setPushResult] = useState<string | null>(null);
@@ -487,11 +533,10 @@ export function HackathonAdminClient({
           if (!row?.team_id) { refresh(); return; }
           setAiAnalyses((prev) => {
             const existing = prev[row.team_id] ?? [];
-            const idx = existing.findIndex((a) => a.pass_name === row.pass_name);
-            const updated = idx >= 0
-              ? existing.map((a, i) => (i === idx ? row : a))
-              : [...existing, row];
-            return { ...prev, [row.team_id]: updated };
+            return {
+              ...prev,
+              [row.team_id]: mergeTeamAnalyses(existing, [row]),
+            };
           });
         }
       )
@@ -1728,6 +1773,7 @@ export function HackathonAdminClient({
                       adminCode={adminCode}
                       analyses={aiAnalyses[team.id] ?? []}
                       hasRepo={!!team.project?.repo_url}
+                      onAnalysesChange={(analyses) => syncTeamAnalyses(team.id, analyses)}
                     />
                   </div>
                 );
