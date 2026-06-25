@@ -21,15 +21,29 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { HackathonClient } from "@/components/hackathon/HackathonClient";
 import { withDefaultHackathonLinkedIn } from "@/lib/hackathon-profile-defaults";
 import { getDemoSlotsWithCounts } from "@/lib/demo/service";
+import { getPublicAIScreeningScores, type PublicAIScreeningScore } from "@/lib/hackathon-analysis/public-scores";
 import type { HackathonProfile } from "@/types";
-import type { AIScreeningScoreDetail } from "@/components/hackathon/AIScreeningScoreAssessment";
-import type { Pass6Result } from "@/lib/hackathon-analysis/types";
 
 interface Props {
   params: Promise<{ eventSlug: string }>;
 }
 
-type PublicAIScore = AIScreeningScoreDetail & { updated_at: string };
+function enrichPublicScoresWithProjectDescriptions(
+  scores: PublicAIScreeningScore[],
+  teams: Awaited<ReturnType<typeof getHackathonTeamsWithMembers>>
+): PublicAIScreeningScore[] {
+  const descriptionByTeamId = new Map(
+    teams.map((team) => [team.id, team.project?.description?.trim() || ""])
+  );
+
+  return scores.map((score) => ({
+    ...score,
+    project_summary:
+      score.project_summary ||
+      descriptionByTeamId.get(score.team_id) ||
+      undefined,
+  }));
+}
 
 export default async function HackathonPage({ params }: Props) {
   const { eventSlug } = await params;
@@ -79,17 +93,12 @@ export default async function HackathonPage({ params }: Props) {
         .maybeSingle(),
     ]);
 
-  const publicAIAnalyses = settings?.ai_scores_visible
-    ? await supabase
-        .from("hackathon_ai_analyses")
-        .select("team_id, result, updated_at")
-        .eq("event_id", event.id)
-        .eq("pass_name", "pass6_synthesis")
-        .eq("status", "complete")
-        .order("updated_at", { ascending: false })
-    : { data: [] };
-
-  // Admins need all shared channels so they can monitor unassigned attendees in Spawn Point.
+  const publicAIScores: PublicAIScreeningScore[] = settings?.ai_scores_visible
+    ? enrichPublicScoresWithProjectDescriptions(
+        await getPublicAIScreeningScores(event.id),
+        allTeams
+      )
+    : [];
   const currentMember = chatMembers.find((m) => m.id === session.userId);
   const isAdmin =
     currentMember?.role === "admin" ||
@@ -123,38 +132,6 @@ export default async function HackathonPage({ params }: Props) {
 
   const initialScreenshots = (screenshotRows ?? []) as { id: string; file_url: string }[];
   const initialTeamAnalyses = (analysisRows ?? []) as { id: string; pass_name: string; status: string; updated_at: string }[];
-  const latestPublicAIScoresByTeam = new Map<string, PublicAIScore>();
-  for (const row of (publicAIAnalyses.data ?? []) as {
-    team_id: string;
-    result: Pass6Result | null;
-    updated_at: string;
-  }[]) {
-    if (latestPublicAIScoresByTeam.has(row.team_id)) continue;
-
-    const result = row.result;
-    if (!result || typeof result.overall_score !== "number" || !Array.isArray(result.criteria_scores)) {
-      continue;
-    }
-
-    latestPublicAIScoresByTeam.set(row.team_id, {
-      team_id: row.team_id,
-      overall_score: result.overall_score,
-      criteria_scores: result.criteria_scores
-        .filter((criterion) => typeof criterion.criteria_key === "string" && typeof criterion.score === "number")
-        .map((criterion) => ({
-          criteria_key: criterion.criteria_key,
-          score: criterion.score,
-          reasoning: criterion.reasoning,
-          confidence: criterion.confidence,
-        })),
-      most_impressive_aspect: result.most_impressive_aspect,
-      recommended_award_categories: result.recommended_award_categories,
-      judge_briefing_points: result.judge_briefing_points,
-      concerns_and_limitations: result.concerns_and_limitations,
-      updated_at: row.updated_at,
-    });
-  }
-  const publicAIScores: PublicAIScore[] = [...latestPublicAIScoresByTeam.values()];
   const attendeeJudgingResults = settings?.audience_favorite_results_visible
     ? judgingResults
     : judgingResults.filter((result) => {
