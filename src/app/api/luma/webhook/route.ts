@@ -65,20 +65,19 @@ export async function POST(request: NextRequest) {
 
     let portalEventId = linked?.id as string | undefined;
 
-    // Fallback: no portal event is linked to this Luma event yet. There is
-    // always exactly one "live" event (the current/next one), so attach the
-    // webhook to it and save the link — no manual ID matching needed. Once a
-    // live event is linked, webhooks from other Luma events are ignored.
+    // Fallback: auto-link only when there is exactly one unlinked live portal
+    // event. Multiple upcoming Luma events can emit webhooks in any order, so
+    // guessing by date risks attaching registrations to the wrong event.
     if (!portalEventId) {
-      const { data: liveEvent } = await supabase
+      const { data: liveEvents } = await supabase
         .from("events")
-        .select("id, luma_event_id")
+        .select("id, slug")
         .in("status", ["published", "active"])
-        .order("start_time", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .is("luma_event_id", null)
+        .order("start_time", { ascending: true });
 
-      if (liveEvent && !liveEvent.luma_event_id) {
+      if (liveEvents?.length === 1) {
+        const liveEvent = liveEvents[0];
         const { error: linkError } = await supabase
           .from("events")
           .update({ luma_event_id: lumaEventId })
@@ -91,12 +90,16 @@ export async function POST(request: NextRequest) {
           });
           portalEventId = liveEvent.id;
         }
+      } else if (liveEvents && liveEvents.length > 1) {
+        console.warn("[luma-webhook] Multiple unlinked live events; manual Luma ID link required", {
+          lumaEventId,
+          eventSlugs: liveEvents.map((event) => event.slug),
+        });
       }
     }
 
     if (!portalEventId) {
-      // No linked event and the live event is already tied to a different
-      // Luma event — nothing to do.
+      // No linked event, or multiple unlinked live events make auto-linking ambiguous.
       return NextResponse.json({ ok: true, ignored: `unlinked event ${lumaEventId}` });
     }
 
