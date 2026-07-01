@@ -56,6 +56,7 @@ export const MOCK_EVENT: Event = {
   timer_active: true,
   series_id: "series-001",
   is_hackathon: false,
+  luma_event_id: null,
   created_at: "2026-01-15T10:00:00Z",
 };
 

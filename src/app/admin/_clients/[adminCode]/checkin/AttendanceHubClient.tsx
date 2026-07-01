@@ -6,6 +6,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CheckInClient } from "@/app/staff/[eventSlug]/checkin/CheckInClient";
 import { SeatingManagementClient } from "@/components/admin/SeatingManagementClient";
 import { ImportRegistrationsClient } from "@/components/admin/ImportRegistrationsClient";
+import { LumaSyncCard } from "@/components/admin/LumaSyncCard";
 import { updateEventDetails } from "@/lib/actions/agenda";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
@@ -163,6 +164,19 @@ export function AttendanceHubClient({
                 stats={stats}
                 initialAgendaItems={initialAgendaItems}
               />
+              <div className="mt-12 pt-12 border-t border-white/[0.06]">
+                <div className="mb-6">
+                  <h3 className="text-sm font-light text-white">Luma Sync</h3>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-bold mt-1">
+                    Auto Check-In &amp; Credits
+                  </p>
+                </div>
+                <LumaSyncCard
+                  eventId={event.id}
+                  adminCode={adminCode}
+                  initialLumaEventId={event.luma_event_id ?? null}
+                />
+              </div>
               <div className="mt-12 pt-12 border-t border-white/[0.06]">
                 <div className="mb-6">
                   <h3 className="text-sm font-light text-white">Import Registrations</h3>
