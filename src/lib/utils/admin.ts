@@ -18,7 +18,7 @@ export async function validateAdminCode(
   eventSlug: string,
   adminCode: string
 ) {
-  const event = await getEventBySlug(eventSlug);
+  const event = await getEventBySlug(eventSlug, { includePrivate: true });
   if (!event) notFound();
   if (event.admin_code !== adminCode) notFound();
   return event;
