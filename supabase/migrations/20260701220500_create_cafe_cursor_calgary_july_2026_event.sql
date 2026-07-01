@@ -138,7 +138,7 @@ CROSS JOIN (
   VALUES
     (
       'Cafe Opens & Check-in',
-      'Arrive anytime, check in with your Luma registration email, grab a spot, and settle into the co-working day.',
+      'Arrive, check in with your Luma registration email, grab a spot, and settle into the co-working day. Drop-in guests can stop by anytime from 9:00am-5:00pm.',
       '2026-07-12T15:00:00Z',
       '2026-07-12T15:15:00Z',
       0
@@ -146,23 +146,16 @@ CROSS JOIN (
     (
       'Morning Co-working',
       'For the 9:00am-1:00pm co-working ticket window: bring your laptop, work on your project, and swap Cursor workflows with nearby builders.',
-      '2026-07-12T15:00:00Z',
+      '2026-07-12T15:15:00Z',
       '2026-07-12T19:00:00Z',
       1
     ),
     (
       'Afternoon Co-working',
-      'For the 1:00pm-5:00pm co-working ticket window: open build time, casual help, hallway conversations, and optional project sharing.',
+      'For the 1:00pm-5:00pm co-working ticket window: open build time, casual help, hallway conversations, and optional project sharing. Drop-in guests are welcome throughout the afternoon.',
       '2026-07-12T19:00:00Z',
       '2026-07-12T23:00:00Z',
       2
-    ),
-    (
-      'Drop-in Window',
-      'Drop-in attendees can stop by anytime from 9:00am-5:00pm to meet the community, chat, and see what people are building without taking a reserved co-working seat.',
-      '2026-07-12T15:00:00Z',
-      '2026-07-12T23:00:00Z',
-      3
     )
 ) AS v(title, description, start_time, end_time, sort_order)
 WHERE e.slug = 'cafe-cursor-calgary-july-2026';
