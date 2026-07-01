@@ -51,6 +51,7 @@ export interface Event {
   timer_active: boolean;
   series_id: string | null;
   is_hackathon: boolean;
+  luma_event_id: string | null;
   created_at: string;
 }
 
