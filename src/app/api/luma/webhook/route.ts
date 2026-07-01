@@ -57,18 +57,50 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServiceClient();
 
-    const { data: event } = await supabase
+    const { data: linked } = await supabase
       .from("events")
       .select("id")
       .eq("luma_event_id", lumaEventId)
       .maybeSingle();
 
-    if (!event) {
-      // Luma event not linked to a portal event — nothing to do.
+    let portalEventId = linked?.id as string | undefined;
+
+    // Fallback: no portal event is linked to this Luma event yet. There is
+    // always exactly one "live" event (the current/next one), so attach the
+    // webhook to it and save the link — no manual ID matching needed. Once a
+    // live event is linked, webhooks from other Luma events are ignored.
+    if (!portalEventId) {
+      const { data: liveEvent } = await supabase
+        .from("events")
+        .select("id, luma_event_id")
+        .in("status", ["published", "active"])
+        .order("start_time", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (liveEvent && !liveEvent.luma_event_id) {
+        const { error: linkError } = await supabase
+          .from("events")
+          .update({ luma_event_id: lumaEventId })
+          .eq("id", liveEvent.id);
+
+        if (!linkError) {
+          console.log("[luma-webhook] Auto-linked Luma event to live portal event", {
+            lumaEventId,
+            portalEventId: liveEvent.id,
+          });
+          portalEventId = liveEvent.id;
+        }
+      }
+    }
+
+    if (!portalEventId) {
+      // No linked event and the live event is already tied to a different
+      // Luma event — nothing to do.
       return NextResponse.json({ ok: true, ignored: `unlinked event ${lumaEventId}` });
     }
 
-    const result = await syncLumaGuestToPortal(supabase, event.id, guest);
+    const result = await syncLumaGuestToPortal(supabase, portalEventId, guest);
 
     if (result.status === "error") {
       console.error("[luma-webhook] Sync failed:", result.error);
@@ -78,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     if (result.noCodesLeft) {
       console.warn("[luma-webhook] Guest checked in but no credit codes left", {
-        eventId: event.id,
+        eventId: portalEventId,
       });
     }
 
