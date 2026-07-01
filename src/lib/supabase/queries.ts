@@ -47,28 +47,63 @@ import type {
 
 const NON_FINAL_ROUND_JUDGING_TITLES = new Set(["audience favourite", "audience favorite"]);
 
+const PUBLIC_EVENT_COLUMNS = [
+  "id",
+  "slug",
+  "code",
+  "name",
+  "venue",
+  "address",
+  "capacity",
+  "start_time",
+  "end_time",
+  "status",
+  "seat_lockout_active",
+  "smart_seating_active",
+  "seating_enabled",
+  "survey_popup_visible",
+  "timezone",
+  "data_retention_days",
+  "venue_image_url",
+  "timer_label",
+  "timer_end_time",
+  "timer_active",
+  "series_id",
+  "is_hackathon",
+  "luma_event_id",
+  "created_at",
+].join(", ");
+
 function isFinalRoundJudgingCompetition(competition: CompetitionWithEntries) {
   return !NON_FINAL_ROUND_JUDGING_TITLES.has(competition.title.trim().toLowerCase());
 }
 
 // Event queries
 // Use limit(1) + take first row so we don't get PGRST116 when there are 0 or 2+ rows for a slug
-export async function getEventBySlug(slug: string): Promise<Event | null> {
+export async function getEventBySlug(
+  slug: string,
+  options: { includePrivate?: boolean } = {}
+): Promise<Event | null> {
   noStore();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const selectColumns = options.includePrivate ? "*" : PUBLIC_EVENT_COLUMNS;
 
   const fetchOne = async (
     client: ReturnType<typeof createDirectClient>
   ): Promise<Event | null> => {
-    const { data, error } = await client
+    let query = client
       .from("events")
-      .select("*")
-      .eq("slug", slug)
-      .limit(1);
+      .select(selectColumns)
+      .eq("slug", slug);
+    if (!options.includePrivate) {
+      query = query.in("status", ["published", "active"]);
+    }
+    const { data, error } = await query.limit(1);
     if (error || !data?.length) return null;
-    return data[0] as Event;
+    const event = data[0] as Partial<Event>;
+    return (options.includePrivate ? event : { ...event, admin_code: "" }) as Event;
   };
 
   if (url && serviceKey) {
@@ -89,12 +124,18 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("events")
-      .select("*")
-      .eq("slug", slug)
-      .limit(1);
-    if (!error && data?.length) return data[0] as Event;
+      .select(selectColumns)
+      .eq("slug", slug);
+    if (!options.includePrivate) {
+      query = query.in("status", ["published", "active"]);
+    }
+    const { data, error } = await query.limit(1);
+    if (!error && data?.length) {
+      const event = data[0] as Partial<Event>;
+      return (options.includePrivate ? event : { ...event, admin_code: "" }) as Event;
+    }
   } catch {
     // ignore
   }
@@ -105,7 +146,6 @@ export async function getEventBySlug(slug: string): Promise<Event | null> {
 export async function getEventByAdminCode(adminCode: string): Promise<Event | null> {
   noStore();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   const fetchOne = async (
@@ -126,10 +166,6 @@ export async function getEventByAdminCode(adminCode: string): Promise<Event | nu
       if (event) return event;
     } catch { /* fall through */ }
   }
-  try {
-    const event = await fetchOne(createDirectClient(url, anonKey));
-    if (event) return event;
-  } catch { /* ignore */ }
   return null;
 }
 
@@ -198,7 +234,7 @@ export async function getActiveEventSlug(): Promise<string> {
 /** Admin code of the active event (for /admin → /admin/[code] redirects). Returns null if not found. */
 export async function getActiveEventAdminCode(): Promise<string | null> {
   const slug = await getActiveEventSlug();
-  const event = await getEventBySlug(slug);
+  const event = await getEventBySlug(slug, { includePrivate: true });
   return event?.admin_code ?? null;
 }
 

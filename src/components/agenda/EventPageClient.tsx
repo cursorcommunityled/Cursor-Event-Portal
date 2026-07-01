@@ -28,6 +28,22 @@ interface EventPageClientProps {
   userId: string;
 }
 
+function getEventEyebrow(startTime: string | null, timezone: string | null): string {
+  if (!startTime) return "Event";
+
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    hourCycle: "h23",
+    timeZone: timezone || "America/Edmonton",
+  }).formatToParts(new Date(startTime));
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+
+  if (!Number.isFinite(hour)) return "Event";
+  if (hour < 12) return "This Morning";
+  if (hour < 17) return "Today";
+  return "Tonight";
+}
+
 export function EventPageClient({
   event,
   agendaItems,
@@ -38,6 +54,7 @@ export function EventPageClient({
 }: EventPageClientProps) {
   const [activeTab, setActiveTab] = useState<"schedule" | "themes" | "credits">("schedule");
   const [credits, setCredits] = useState<CursorCredit[]>(initialCredits);
+  const eventEyebrow = getEventEyebrow(event.start_time, event.timezone);
 
   const handleTabChange = async (tab: "schedule" | "themes" | "credits") => {
     setActiveTab(tab);
@@ -84,7 +101,7 @@ export function EventPageClient({
           className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium animate-slide-up"
           style={{ animationDelay: "100ms" }}
         >
-          Tonight
+          {eventEyebrow}
         </p>
         <h1
           className="text-4xl font-light text-white tracking-tight animate-slide-up"

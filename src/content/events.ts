@@ -2,6 +2,28 @@ import { CursorEvent } from '@/lib/landing-types';
 
 export const events: CursorEvent[] = [
   {
+    id: 'cafe-cursor-calgary-july-2026',
+    title: 'Cafe Cursor Calgary',
+    date: '2026-07-12',
+    displayDate: 'July 12, 2026 - 9:00 AM-5:00 PM MDT',
+    description: 'A daytime Cafe Cursor co-working event. Bring your laptop, work alongside local Cursor users, and drop in for building, coffee, and community.',
+    location: 'TBD, Calgary, Canada',
+    lumaUrl: 'https://luma.com/6z1eyz1l',
+    portalPath: '/cafe-cursor-calgary-july-2026',
+    status: 'upcoming',
+  },
+  {
+    id: 'calgary-july-2026',
+    title: 'Cursor Calgary Meetup - July',
+    date: '2026-07-29',
+    displayDate: 'July 29, 2026 - 5:30-8:30 PM MDT',
+    description: 'Hosted at ZayZoon. Bring your laptop for speakers, a hands-on build session, demos, and networking.',
+    location: 'ZayZoon, Calgary, Canada',
+    lumaUrl: 'https://luma.com/y6o5mr37',
+    portalPath: '/calgary-july-2026',
+    status: 'upcoming',
+  },
+  {
     id: 'calgary-june-2026',
     title: 'Cursor Calgary Meetup - June',
     date: '2026-06-24',
@@ -10,7 +32,7 @@ export const events: CursorEvent[] = [
     location: 'ZayZoon, Calgary, Canada',
     lumaUrl: 'https://luma.com/cursor-t2wq',
     portalPath: '/calgary-june-2026',
-    status: 'upcoming',
+    status: 'past',
   },
   {
     id: 'calgary-hackathon-sait-may-2026',
@@ -28,7 +50,7 @@ export const events: CursorEvent[] = [
     displayDate: 'May 27, 2026 - 5:30-8:30 PM MDT',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/kjchw3e3',
-    status: 'upcoming',
+    status: 'past',
   },
   {
     id: 'calgary-apr-2026',
