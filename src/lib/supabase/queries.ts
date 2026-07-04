@@ -89,6 +89,7 @@ export async function getEventBySlug(
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const selectColumns = options.includePrivate ? "*" : PUBLIC_EVENT_COLUMNS;
+  const isLiveEvent = !options.includePrivate && (await getActiveEventSlug()) === slug;
 
   const fetchOne = async (
     client: ReturnType<typeof createDirectClient>
@@ -97,7 +98,7 @@ export async function getEventBySlug(
       .from("events")
       .select(selectColumns)
       .eq("slug", slug);
-    if (!options.includePrivate) {
+    if (!options.includePrivate && !isLiveEvent) {
       query = query.in("status", ["published", "active"]);
     }
     const { data, error } = await query.limit(1);
@@ -128,7 +129,7 @@ export async function getEventBySlug(
       .from("events")
       .select(selectColumns)
       .eq("slug", slug);
-    if (!options.includePrivate) {
+    if (!options.includePrivate && !isLiveEvent) {
       query = query.in("status", ["published", "active"]);
     }
     const { data, error } = await query.limit(1);
