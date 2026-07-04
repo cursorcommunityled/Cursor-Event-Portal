@@ -70,7 +70,6 @@ const PUBLIC_EVENT_COLUMNS = [
   "timer_active",
   "series_id",
   "is_hackathon",
-  "luma_event_id",
   "created_at",
 ].join(", ");
 
