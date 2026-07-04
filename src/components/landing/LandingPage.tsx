@@ -52,9 +52,10 @@ function buildHomeJsonLd() {
 interface LandingPageProps {
   eventsWithPhotos?: EventWithPhotos[];
   heroFeaturedIds?: string[];
+  eventPortalPath: string;
 }
 
-export default function LandingPage({ eventsWithPhotos = [], heroFeaturedIds = [] }: LandingPageProps) {
+export default function LandingPage({ eventsWithPhotos = [], heroFeaturedIds = [], eventPortalPath }: LandingPageProps) {
   const [showPortal, setShowPortal] = useState(false);
 
   return (
@@ -80,6 +81,7 @@ export default function LandingPage({ eventsWithPhotos = [], heroFeaturedIds = [
         <EventPortalPopup
           isOpen={showPortal}
           onClose={() => setShowPortal(false)}
+          portalPath={eventPortalPath}
         />
       </main>
     </I18nProvider>
