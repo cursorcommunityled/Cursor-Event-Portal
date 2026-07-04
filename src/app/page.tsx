@@ -1,20 +1,15 @@
-import { getActiveEventSlug, getEventBySlug, getEventsWithApprovedPhotos, getHeroFeaturedPhotoIds } from "@/lib/supabase/queries";
+import { getActiveEventSlug, getEventsWithApprovedPhotos, getHeroFeaturedPhotoIds } from "@/lib/supabase/queries";
 import LandingPage from "@/components/landing/LandingPage";
 
 export const revalidate = 0;
 
-const liveEventFallbackPath = "/calgary-june-2026";
-
 async function getEventPortalPath() {
   try {
     const activeSlug = await getActiveEventSlug();
-    if (!activeSlug) return liveEventFallbackPath;
-
-    const activeEvent = await getEventBySlug(activeSlug);
-    return activeEvent ? `/${activeEvent.slug}` : liveEventFallbackPath;
+    return activeSlug ? `/${activeSlug}` : "/";
   } catch (error) {
     console.error("[HomePage] Failed to resolve event portal path:", error);
-    return liveEventFallbackPath;
+    return "/";
   }
 }
 
@@ -37,7 +32,7 @@ export default async function HomePage() {
   const heroFeaturedIds = featuredResult.status === "fulfilled" ? featuredResult.value : [];
   const eventPortalPath = portalPathResult.status === "fulfilled"
     ? portalPathResult.value
-    : liveEventFallbackPath;
+    : "/";
 
   return (
     <LandingPage
