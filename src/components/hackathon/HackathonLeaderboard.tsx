@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { Event, HackathonSettings, HackathonTeamWithMembers, HackathonScore } from "@/types";
 import { HACKATHON_SCORE_MAX, calculateAverageHackathonWeightedScore, formatHackathonScore, getAIScreeningWeightedScore } from "@/lib/hackathon-rubric";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
+import { ZayZoonSponsorBadge } from "@/components/hackathon/ZayZoonSponsorBadge";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import {
   AIScreeningScoreAssessment,
@@ -183,6 +184,7 @@ export function HackathonLeaderboard({
 
         <div className="flex items-center gap-6">
           <HackathonRulesButton compact />
+          {event.slug === "calgary-july-2026" && <ZayZoonSponsorBadge />}
           <div className="text-right">
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-600">
               {usingAIScores ? "AI Screening" : "Live Scores"}
