@@ -1,0 +1,51 @@
+transaction_id,employee_id,posted_date,category,merchant,amount_cad,direction,channel,balance_after_cad
+TXN-70001,EMP-1002,2026-06-01,income,Employer Direct Deposit,1680.00,credit,ach,2140.22
+TXN-70002,EMP-1002,2026-06-02,housing,Riverbend Rentals,-950.00,debit,eft,1190.22
+TXN-70003,EMP-1002,2026-06-03,transfer,Earned Wage Access,180.00,credit,app,1370.22
+TXN-70004,EMP-1002,2026-06-03,groceries,FreshMart,-86.41,debit,debit_card,1283.81
+TXN-70005,EMP-1002,2026-06-04,transport,Transit Pass,-112.00,debit,eft,1171.81
+TXN-70006,EMP-1002,2026-06-05,utilities,City Utilities,-74.20,debit,eft,1097.61
+TXN-70007,EMP-1002,2026-06-06,dining,Noodle House,-28.55,debit,debit_card,1069.06
+TXN-70008,EMP-1003,2026-06-01,income,Employer Direct Deposit,780.00,credit,ach,905.40
+TXN-70009,EMP-1003,2026-06-02,housing,Prairie Flats,-650.00,debit,eft,255.40
+TXN-70010,EMP-1003,2026-06-03,transfer,Earned Wage Access,95.00,credit,app,350.40
+TXN-70011,EMP-1003,2026-06-04,groceries,Value Foods,-61.18,debit,debit_card,289.22
+TXN-70012,EMP-1003,2026-06-05,telecom,Mobile Co,-55.00,debit,eft,234.22
+TXN-70013,EMP-1010,2026-06-01,income,Employer Direct Deposit,1880.00,credit,ach,2415.10
+TXN-70014,EMP-1010,2026-06-02,housing,Summit Lofts,-1200.00,debit,eft,1215.10
+TXN-70015,EMP-1010,2026-06-04,transfer,Earned Wage Access,250.00,credit,app,1465.10
+TXN-70016,EMP-1010,2026-06-05,auto,Fuel Depot,-68.90,debit,debit_card,1396.20
+TXN-70017,EMP-1010,2026-06-06,dining,Cafe North,-19.75,debit,debit_card,1376.45
+TXN-70018,EMP-1019,2026-06-01,income,Employer Direct Deposit,1520.00,credit,ach,1688.33
+TXN-70019,EMP-1019,2026-06-02,housing,Westside Suites,-875.00,debit,eft,813.33
+TXN-70020,EMP-1019,2026-06-05,transfer,Earned Wage Access,220.00,credit,app,1033.33
+TXN-70021,EMP-1019,2026-06-06,groceries,FreshMart,-102.44,debit,debit_card,930.89
+TXN-70022,EMP-1019,2026-06-07,healthcare,Walk-In Clinic,-40.00,debit,debit_card,890.89
+TXN-70023,EMP-1005,2026-06-01,income,Employer Direct Deposit,1720.00,credit,ach,2010.55
+TXN-70024,EMP-1005,2026-06-02,housing,Maple Court,-900.00,debit,eft,1110.55
+TXN-70025,EMP-1005,2026-06-04,transfer,Earned Wage Access,140.00,credit,app,1250.55
+TXN-70026,EMP-1005,2026-06-05,childcare,Little Oaks Daycare,-220.00,debit,eft,1030.55
+TXN-70027,EMP-1005,2026-06-06,groceries,Value Foods,-79.33,debit,debit_card,951.22
+TXN-70028,EMP-1007,2026-06-01,income,Employer Direct Deposit,2100.00,credit,ach,2864.70
+TXN-70029,EMP-1007,2026-06-03,housing,Bow River Apartments,-1100.00,debit,eft,1764.70
+TXN-70030,EMP-1007,2026-06-04,subscriptions,Streaming Bundle,-29.99,debit,card,1734.71
+TXN-70031,EMP-1007,2026-06-17,transfer,Earned Wage Access,150.00,credit,app,1884.71
+TXN-70032,EMP-1012,2026-06-01,income,Employer Direct Deposit,1980.00,credit,ach,2455.00
+TXN-70033,EMP-1012,2026-06-02,housing,Heritage Homes,-1050.00,debit,eft,1405.00
+TXN-70034,EMP-1012,2026-06-06,transfer,Earned Wage Access,160.00,credit,app,1565.00
+TXN-70035,EMP-1012,2026-06-07,education,Course Platform,-49.00,debit,card,1516.00
+TXN-70036,EMP-1008,2026-06-01,income,Employer Direct Deposit,640.00,credit,ach,712.18
+TXN-70037,EMP-1008,2026-06-02,housing,Shared Suite,-480.00,debit,eft,232.18
+TXN-70038,EMP-1008,2026-06-05,transfer,Earned Wage Access,75.00,credit,app,307.18
+TXN-70039,EMP-1008,2026-06-06,groceries,Corner Market,-43.27,debit,debit_card,263.91
+TXN-70040,EMP-1015,2026-06-01,income,Employer Direct Deposit,2300.00,credit,ach,2788.40
+TXN-70041,EMP-1015,2026-06-03,housing,Downtown Studio,-1250.00,debit,eft,1538.40
+TXN-70042,EMP-1015,2026-06-20,transfer,Earned Wage Access,275.00,credit,app,1813.40
+TXN-70043,EMP-1015,2026-06-21,dining,Sushi Bar,-46.80,debit,debit_card,1766.60
+TXN-70044,EMP-1018,2026-06-01,income,Employer Direct Deposit,1760.00,credit,ach,2099.15
+TXN-70045,EMP-1018,2026-06-02,housing,East Village Flat,-980.00,debit,eft,1119.15
+TXN-70046,EMP-1018,2026-06-08,transfer,Earned Wage Access,200.00,credit,app,1319.15
+TXN-70047,EMP-1018,2026-06-09,shopping,Outlet Store,-88.60,debit,debit_card,1230.55
+TXN-70048,EMP-1004,2026-06-01,income,Employer Direct Deposit,1840.00,credit,ach,2333.80
+TXN-70049,EMP-1004,2026-06-02,housing,Forest Lawn Rentals,-850.00,debit,eft,1483.80
+TXN-70050,EMP-1004,2026-06-18,transfer,Earned Wage Access,125.00,credit,app,1608.80

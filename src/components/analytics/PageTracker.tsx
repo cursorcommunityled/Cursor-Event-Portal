@@ -58,6 +58,7 @@ const MODULE_LABELS: Record<string, string> = {
   competitions: "Competitions",
   socials: "Socials",
   photos: "Photos",
+  data: "Data",
   checkin: "Check-in",
 };
 
