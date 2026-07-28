@@ -1,8 +1,0 @@
-metric_date,active_employees,ewa_users,ewa_requests,ewa_volume_cad,avg_advance_cad,completion_rate,avg_approval_minutes,turnover_risk_index,payroll_cycle
-2026-01-31,118,41,96,15240.00,158.75,0.94,2.1,0.31,biweekly
-2026-02-28,121,44,108,17420.00,161.30,0.95,2.0,0.30,biweekly
-2026-03-31,124,47,115,18990.00,165.13,0.93,2.3,0.29,biweekly
-2026-04-30,126,51,129,21450.00,166.28,0.96,1.9,0.28,biweekly
-2026-05-31,128,55,138,23180.00,167.97,0.95,2.0,0.27,biweekly
-2026-06-30,130,58,146,24860.00,170.27,0.94,2.2,0.26,biweekly
-2026-07-15,132,61,78,13420.00,172.05,0.95,2.1,0.26,biweekly

@@ -21,7 +21,7 @@ import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
   Camera, ImageIcon, Loader2, MessageSquare,
-  Pencil, Trophy,
+  Pencil, Trophy, Database,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
@@ -39,6 +39,7 @@ import { HackathonAttendeeLeaderboard, type AttendeeLeaderboardEntry } from "@/c
 import type { AIScreeningScoreDetail } from "@/components/hackathon/AIScreeningScoreAssessment";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
 import { ZayZoonSponsorBadge } from "@/components/hackathon/ZayZoonSponsorBadge";
+import { DataClient } from "@/components/data/DataClient";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import { MentorCard } from "@/components/demos/MentorCard";
 import { JudgeBadge } from "@/components/hackathon/JudgeBadge";
@@ -55,6 +56,8 @@ interface Props {
   event: Event;
   userId: string;
   isAdmin: boolean;
+  /** Venue check-in via Luma scan / staff — unlocks the challenge prompt. */
+  isCheckedIn?: boolean;
   settings: HackathonSettings | null;
   myTeam: HackathonTeamWithMembers | null;
   receivedInvites: HackathonTeamInvite[];
@@ -93,11 +96,13 @@ interface Props {
 
 type PublicAIScore = AIScreeningScoreDetail & { updated_at: string };
 
-type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "chat" | "leaderboard";
+type Tab = "overview" | "my-team" | "all-teams" | "open-pool" | "people" | "data" | "chat" | "leaderboard";
 type PeopleTab = "mentors" | "judges";
 
-const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "people", "chat", "leaderboard"]);
-const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
+const HACKATHON_TABS = new Set<Tab>(["overview", "my-team", "all-teams", "open-pool", "people", "data", "chat", "leaderboard"]);
+const DEFAULT_HACKATHON_PROMPT =
+  "Build something that goes beyond the typical budget feature of money in / money out — imagine what a worker who earns daily would actually find valuable when managing their day-to-day earnings in a budgeting tool.";
+const LOCKED_PROMPT_TEASER = "Build something that......";
 const TEAM_ICON_ALLOWED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
 const TEAM_ICON_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const PROJECT_JUDGING_LOCK_BUFFER_MS = 5 * 60 * 1000;
@@ -182,7 +187,7 @@ function isProjectSubmissionOpen(settings: HackathonSettings | null, now: Date |
 }
 
 export function HackathonClient({
-  event, userId, isAdmin, settings, myTeam: initialMyTeam,
+  event, userId, isAdmin, isCheckedIn = false, settings, myTeam: initialMyTeam,
   receivedInvites: initialInvites, sentInviteUserIds: initialSent,
   allTeams: initialAllTeams, openPool: initialPool, scores, publicAIScores = [],
   chatChannels, initialMessages, initialChannelId, chatMembers,
@@ -764,6 +769,7 @@ export function HackathonClient({
     ...(showPeopleTab
       ? [{ id: "people" as const, label: "People", count: peopleCount, icon: <UserPlus className="w-3.5 h-3.5" /> }]
       : []),
+    { id: "data", label: "Data", icon: <Database className="w-3.5 h-3.5" /> },
     { id: "chat", label: "Chat", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   ];
   const showTeamFinder = formationOpen && !myTeam && (tab === "all-teams" || tab === "open-pool" || tab === "chat");
@@ -1100,9 +1106,23 @@ export function HackathonClient({
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:24px_24px]" />
             <div className="relative space-y-3">
               <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">Prompt</p>
-              <p className="whitespace-pre-wrap text-2xl italic leading-relaxed tracking-tight text-white/90 sm:text-3xl">
-                {promptText}
-              </p>
+              {isCheckedIn ? (
+                <p className="whitespace-pre-wrap text-2xl italic leading-relaxed tracking-tight text-white/90 sm:text-3xl">
+                  {promptText}
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-2xl italic leading-relaxed tracking-tight text-white/50 sm:text-3xl">
+                    {LOCKED_PROMPT_TEASER}
+                  </p>
+                  <div className="flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                    <Lock className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" />
+                    <p className="text-sm font-medium text-gray-400">
+                      Scan your Luma ticket at the door to unlock tonight&apos;s challenge.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1830,6 +1850,22 @@ export function HackathonClient({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Data tab */}
+      {tab === "data" && (
+        <div className="space-y-6 animate-slide-up">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-lg">
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600 font-medium">Hackathon</p>
+              <h2 className="text-4xl font-light text-white tracking-tight">Data</h2>
+              <p className="text-sm text-gray-500">
+                Anonymized datasets for building. Preview in-browser, then download CSV or XLSX.
+              </p>
+            </div>
+          </div>
+          <DataClient />
         </div>
       )}
 

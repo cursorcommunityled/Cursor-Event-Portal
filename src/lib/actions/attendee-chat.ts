@@ -180,7 +180,7 @@ App features you can mention:
 - Compete: submit competition entries
 - Slides: follow along with presentations
 - Resources: download resources
-- Data: anonymized financial CSV/XLSX datasets for building
+- Hackathon Data tab: anonymized CSV/XLSX datasets for building
 
 If you don't know something specific, direct them to the relevant section of the app or suggest they ask the facilitator.`;
 
