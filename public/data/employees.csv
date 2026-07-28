@@ -1,0 +1,26 @@
+employee_id,department,job_title,employment_type,hire_date,hourly_rate_cad,weekly_hours,city,province,tenure_months,risk_score
+EMP-1001,Operations,Shift Lead,full_time,2022-03-14,28.50,40,Calgary,AB,52,0.22
+EMP-1002,Operations,Associate,full_time,2023-07-01,21.75,40,Calgary,AB,36,0.41
+EMP-1003,Operations,Associate,part_time,2024-11-18,19.50,24,Airdrie,AB,20,0.58
+EMP-1004,Warehouse,Picker,full_time,2021-09-06,23.00,40,Calgary,AB,58,0.19
+EMP-1005,Warehouse,Picker,full_time,2024-02-12,22.25,40,Calgary,AB,29,0.47
+EMP-1006,Warehouse,Forklift Operator,full_time,2020-05-21,26.00,40,Chestermere,AB,74,0.15
+EMP-1007,Customer Success,Support Specialist,full_time,2023-01-09,27.00,40,Calgary,AB,42,0.33
+EMP-1008,Customer Success,Support Specialist,part_time,2025-04-02,24.50,20,Remote,AB,15,0.62
+EMP-1009,Sales,Account Executive,full_time,2022-10-30,31.00,40,Calgary,AB,45,0.28
+EMP-1010,Sales,SDR,full_time,2024-08-19,23.50,40,Calgary,AB,23,0.51
+EMP-1011,Finance,Payroll Analyst,full_time,2019-11-04,34.00,40,Calgary,AB,80,0.11
+EMP-1012,Finance,AP Clerk,full_time,2023-05-15,25.75,40,Okotoks,AB,38,0.36
+EMP-1013,Engineering,Software Developer,full_time,2021-06-28,48.00,40,Calgary,AB,61,0.18
+EMP-1014,Engineering,Software Developer,full_time,2024-01-08,44.00,40,Remote,AB,30,0.29
+EMP-1015,Engineering,QA Analyst,contract,2025-01-20,36.00,35,Calgary,AB,18,0.44
+EMP-1016,People Ops,HR Coordinator,full_time,2022-08-22,29.00,40,Calgary,AB,47,0.24
+EMP-1017,People Ops,Recruiter,full_time,2023-09-11,30.50,40,Calgary,AB,34,0.31
+EMP-1018,Marketing,Content Specialist,full_time,2024-06-03,27.50,40,Calgary,AB,25,0.39
+EMP-1019,Operations,Associate,full_time,2025-02-17,20.00,40,Calgary,AB,17,0.67
+EMP-1020,Warehouse,Receiver,full_time,2021-01-25,24.00,40,Calgary,AB,66,0.21
+EMP-1021,Operations,Shift Lead,full_time,2020-12-07,29.25,40,Calgary,AB,67,0.17
+EMP-1022,Customer Success,Team Lead,full_time,2019-04-15,33.00,40,Calgary,AB,87,0.13
+EMP-1023,Sales,Account Executive,full_time,2023-03-27,32.50,40,Edmonton,AB,40,0.35
+EMP-1024,Finance,Controller,full_time,2018-07-09,52.00,40,Calgary,AB,96,0.09
+EMP-1025,Engineering,Engineering Manager,full_time,2017-02-13,61.00,40,Calgary,AB,113,0.08
