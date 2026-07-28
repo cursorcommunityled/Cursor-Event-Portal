@@ -38,6 +38,7 @@ import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
 import { HackathonAttendeeLeaderboard, type AttendeeLeaderboardEntry } from "@/components/hackathon/HackathonAttendeeLeaderboard";
 import type { AIScreeningScoreDetail } from "@/components/hackathon/AIScreeningScoreAssessment";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
+import { ZayZoonSponsorBadge } from "@/components/hackathon/ZayZoonSponsorBadge";
 import { TeamIcon } from "@/components/hackathon/TeamIcon";
 import { MentorCard } from "@/components/demos/MentorCard";
 import { JudgeBadge } from "@/components/hackathon/JudgeBadge";
@@ -839,6 +840,7 @@ export function HackathonClient({
         
         <div className="flex flex-wrap items-center gap-3 self-start rounded-xl border border-white/10 bg-black/40 p-3 backdrop-blur-md sm:self-center">
           <HackathonRulesButton compact />
+          {event.slug === "calgary-july-2026" && <ZayZoonSponsorBadge />}
         </div>
       </div>
     </div>
