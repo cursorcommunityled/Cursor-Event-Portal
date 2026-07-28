@@ -47,7 +47,7 @@ import type {
 
 const NON_FINAL_ROUND_JUDGING_TITLES = new Set(["audience favourite", "audience favorite"]);
 
-const PUBLIC_EVENT_COLUMNS = [
+const PUBLIC_EVENT_COLUMNS_CORE = [
   "id",
   "slug",
   "code",
@@ -62,12 +62,22 @@ const PUBLIC_EVENT_COLUMNS = [
   "timezone",
   "venue_image_url",
   "is_hackathon",
-  "pizza_alarm_at",
   "created_at",
 ].join(", ");
 
+// Optional columns that may lag behind a deploy; never 404 the attendee app if missing.
+const PUBLIC_EVENT_COLUMNS = `${PUBLIC_EVENT_COLUMNS_CORE}, pizza_alarm_at`;
+
 function isFinalRoundJudgingCompetition(competition: CompetitionWithEntries) {
   return !NON_FINAL_ROUND_JUDGING_TITLES.has(competition.title.trim().toLowerCase());
+}
+
+function normalizePublicEvent(event: Partial<Event>, includePrivate: boolean): Event {
+  const withDefaults = {
+    pizza_alarm_at: event.pizza_alarm_at ?? null,
+    ...event,
+  } as Event;
+  return includePrivate ? withDefaults : { ...withDefaults, admin_code: "" };
 }
 
 // Event queries
@@ -80,23 +90,32 @@ export async function getEventBySlug(
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const selectColumns = options.includePrivate ? "*" : PUBLIC_EVENT_COLUMNS;
   const isLiveEvent = !options.includePrivate && (await getActiveEventSlug()) === slug;
 
   const fetchOne = async (
     client: ReturnType<typeof createDirectClient>
   ): Promise<Event | null> => {
-    let query = client
-      .from("events")
-      .select(selectColumns)
-      .eq("slug", slug);
-    if (!options.includePrivate && !isLiveEvent) {
-      query = query.in("status", ["published", "active"]);
+    const selectAttempts = options.includePrivate
+      ? ["*"]
+      : [PUBLIC_EVENT_COLUMNS, PUBLIC_EVENT_COLUMNS_CORE];
+
+    for (const selectColumns of selectAttempts) {
+      let query = client
+        .from("events")
+        .select(selectColumns)
+        .eq("slug", slug);
+      if (!options.includePrivate && !isLiveEvent) {
+        query = query.in("status", ["published", "active"]);
+      }
+      const { data, error } = await query.limit(1);
+      if (error) {
+        // Likely a missing optional column (e.g. pizza_alarm_at before migration).
+        continue;
+      }
+      if (!data?.length) return null;
+      return normalizePublicEvent(data[0] as Partial<Event>, !!options.includePrivate);
     }
-    const { data, error } = await query.limit(1);
-    if (error || !data?.length) return null;
-    const event = data[0] as Partial<Event>;
-    return (options.includePrivate ? event : { ...event, admin_code: "" }) as Event;
+    return null;
   };
 
   if (url && serviceKey) {
@@ -117,17 +136,24 @@ export async function getEventBySlug(
 
   try {
     const supabase = await createClient();
-    let query = supabase
-      .from("events")
-      .select(selectColumns)
-      .eq("slug", slug);
-    if (!options.includePrivate && !isLiveEvent) {
-      query = query.in("status", ["published", "active"]);
-    }
-    const { data, error } = await query.limit(1);
-    if (!error && data?.length) {
-      const event = data[0] as Partial<Event>;
-      return (options.includePrivate ? event : { ...event, admin_code: "" }) as Event;
+    const selectAttempts = options.includePrivate
+      ? ["*"]
+      : [PUBLIC_EVENT_COLUMNS, PUBLIC_EVENT_COLUMNS_CORE];
+
+    for (const selectColumns of selectAttempts) {
+      let query = supabase
+        .from("events")
+        .select(selectColumns)
+        .eq("slug", slug);
+      if (!options.includePrivate && !isLiveEvent) {
+        query = query.in("status", ["published", "active"]);
+      }
+      const { data, error } = await query.limit(1);
+      if (error) continue;
+      if (data?.length) {
+        return normalizePublicEvent(data[0] as Partial<Event>, !!options.includePrivate);
+      }
+      return null;
     }
   } catch {
     // ignore
