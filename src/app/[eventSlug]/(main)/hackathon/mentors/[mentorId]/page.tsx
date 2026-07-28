@@ -33,12 +33,12 @@ export default async function HackathonMentorPage({ params }: Props) {
   const supabase = await createServiceClient();
   const { data: registration } = await supabase
     .from("registrations")
-    .select("checked_in_at")
+    .select("id")
     .eq("event_id", event.id)
     .eq("user_id", session.userId)
     .maybeSingle();
 
-  if (!registration?.checked_in_at) {
+  if (!registration) {
     redirect(`/${eventSlug}`);
   }
 

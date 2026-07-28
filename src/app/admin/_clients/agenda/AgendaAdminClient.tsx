@@ -4,8 +4,9 @@ import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImport, importAgendaFromEvent, applyAgendaTemplate, reorderAgendaItems } from "@/lib/actions/agenda";
+import { triggerPizzaAlarm } from "@/lib/actions/pizza-alarm";
 import type { Event, AgendaItem } from "@/types";
-import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download, GripVertical } from "lucide-react";
+import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download, GripVertical, Pizza } from "lucide-react";
 import { formatTime } from "@/lib/utils";
 import { readFileToBlob } from "@/lib/utils/read-file";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
@@ -86,9 +87,28 @@ export function AgendaAdminClient({
     });
   };
   const [error, setError] = useState<string | null>(null);
+  const [pizzaMessage, setPizzaMessage] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+
+  const handlePizzaAlarm = () => {
+    if (!confirm("Trigger the pizza alarm for all attendees?")) return;
+    setError(null);
+    setPizzaMessage(null);
+    startTransition(async () => {
+      const result = await triggerPizzaAlarm(
+        event.id,
+        eventSlug,
+        adminCode ?? event.admin_code
+      );
+      if ("success" in result && result.success) {
+        setPizzaMessage("Pizza alarm sent — attendees should see it now.");
+      } else {
+        setError(("error" in result && result.error) || "Failed to trigger pizza alarm");
+      }
+    });
+  };
 
   const handleDelete = async (itemId: string) => {
     if (!confirm("Are you sure you want to delete this agenda item?")) return;
@@ -161,6 +181,17 @@ export function AgendaAdminClient({
         rightElement={
           <div className="flex items-center gap-3">
             <button
+              onClick={handlePizzaAlarm}
+              disabled={isPending}
+              className="h-12 px-4 rounded-2xl bg-orange-500 text-white flex items-center justify-center gap-2 hover:bg-orange-400 transition-all shadow-xl disabled:opacity-40"
+              title="Trigger pizza alarm for attendees"
+            >
+              <Pizza className="w-5 h-5" />
+              <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-[0.18em]">
+                Pizza
+              </span>
+            </button>
+            <button
               onClick={() => setShowImportModal(true)}
               className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-all"
               title="Import from previous event"
@@ -178,10 +209,34 @@ export function AgendaAdminClient({
       />
 
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-12 animate-fade-in">
+        <div className="glass rounded-[32px] p-6 border border-orange-500/20 bg-orange-500/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] font-medium text-orange-300/80">
+              Live alert
+            </p>
+            <p className="text-sm text-white mt-1">
+              Pizza arrived? Blast a celebration overlay to everyone in the portal.
+            </p>
+          </div>
+          <button
+            onClick={handlePizzaAlarm}
+            disabled={isPending}
+            className="h-12 px-6 rounded-full bg-orange-500 text-white font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-orange-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xl inline-flex items-center justify-center gap-2"
+          >
+            <Pizza className="w-4 h-4" />
+            {isPending ? "Sending..." : "Trigger Pizza Alarm"}
+          </button>
+        </div>
+
         {/* Error Message */}
         {error && (
           <div className="glass rounded-[32px] p-6 bg-red-500/10 border border-red-500/20">
             <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
+        {pizzaMessage && (
+          <div className="glass rounded-[32px] p-6 bg-orange-500/10 border border-orange-500/20">
+            <p className="text-sm text-orange-200">{pizzaMessage}</p>
           </div>
         )}
 

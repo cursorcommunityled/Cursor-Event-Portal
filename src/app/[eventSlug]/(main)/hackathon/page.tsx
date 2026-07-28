@@ -60,14 +60,17 @@ export default async function HackathonPage({ params }: Props) {
   const supabase = await createServiceClient();
   const { data: registration } = await supabase
     .from("registrations")
-    .select("checked_in_at")
+    .select("id, checked_in_at")
     .eq("event_id", event.id)
     .eq("user_id", session.userId)
     .maybeSingle();
 
-  if (!registration?.checked_in_at) {
+  // Session + registration is enough for teams/chat ahead of doors.
+  // checked_in_at (Luma/staff) unlocks the challenge prompt.
+  if (!registration) {
     redirect(`/${eventSlug}`);
   }
+  const isCheckedIn = !!registration.checked_in_at;
 
   // Ensure default channels exist (idempotent)
   await ensureDefaultChannels(event.id);
@@ -206,6 +209,7 @@ export default async function HackathonPage({ params }: Props) {
       event={event}
       userId={session.userId}
       isAdmin={isAdmin}
+      isCheckedIn={isCheckedIn}
       settings={settings}
       myTeam={myTeam}
       receivedInvites={receivedInvites}

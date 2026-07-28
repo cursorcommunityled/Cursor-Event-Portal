@@ -181,7 +181,8 @@ export function AttendeeCheckinForm({
           eventId,
           attendeeId: foundAttendee.id,
           guest: null,
-          skipCheckIn: alreadyCheckedIn,
+          // Session only — venue check-in comes from Luma scan / staff.
+          skipCheckIn: true,
           checkInToken,
         }),
       });
@@ -230,6 +231,7 @@ export function AttendeeCheckinForm({
           guest: bringingGuest
             ? { name: guestName.trim(), email: guestEmail.trim() || null }
             : null,
+          skipCheckIn: true,
           checkInToken,
         }),
       });
@@ -270,7 +272,7 @@ export function AttendeeCheckinForm({
               Cursor Calgary Portal
             </p>
             <p className="text-gray-500 text-sm font-light">
-              Enter your registered email to access the portal
+              Enter your Luma registration email to access the portal ahead of the event
             </p>
           </div>
 

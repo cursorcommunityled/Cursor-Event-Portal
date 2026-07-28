@@ -18,20 +18,20 @@ export default async function EventPage({ params }: EventPageProps) {
     notFound();
   }
 
-  // Check if already registered and checked in
+  // Logged-in attendees with a registration go to the primary event surface.
+  // Venue check-in (Luma scan) is separate and gates the prompt / credits.
   const session = await getSession();
   if (session && session.eventId === event.id) {
-    // Check if checked in - if yes, go to the primary event surface
     const { createServiceClient } = await import("@/lib/supabase/server");
     const supabase = await createServiceClient();
     const { data: registration } = await supabase
       .from("registrations")
-      .select("checked_in_at")
+      .select("id")
       .eq("event_id", event.id)
       .eq("user_id", session.userId)
-      .single();
-    
-    if (registration?.checked_in_at) {
+      .maybeSingle();
+
+    if (registration) {
       redirect(event.is_hackathon ? `/${eventSlug}/hackathon` : `/${eventSlug}/agenda`);
     }
   }
