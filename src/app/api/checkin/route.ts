@@ -58,17 +58,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const shouldSkipCheckIn = !!skipCheckIn || !!registration.checked_in_at;
-
-    // Update registration to checked in (only if not already checked in and not skipping)
-    if (!shouldSkipCheckIn) {
-      await supabase
-        .from("registrations")
-        .update({
-          checked_in_at: new Date().toISOString(),
-        })
-        .eq("id", registration.id);
-    }
+    // Portal self-service login only creates a session. Venue check-in
+    // (checked_in_at) is stamped by Luma scan / staff check-in so the
+    // hackathon prompt and Cursor credits stay door-gated.
+    void skipCheckIn;
 
     // If bringing a guest, create a guest registration
     if (guest && guest.name) {
@@ -134,7 +127,7 @@ export async function POST(request: NextRequest) {
             event_id: eventId,
             user_id: guestUserId,
             source: "walk-in", // Guests are essentially walk-ins
-            checked_in_at: new Date().toISOString(),
+            // No checked_in_at — same Luma/staff gate as the host.
           });
         }
       }
@@ -158,15 +151,17 @@ export async function POST(request: NextRequest) {
       path: "/",
     });
 
-    // Auto-assign late arrivals to a table if seat lockout is active
-    try {
-      const assignment = await autoAssignLateArrival(eventId, attendeeId);
-      if (assignment) {
-        console.log(`[checkin] Late arrival auto-assigned: ${user.name} → ${assignment.groupName} (Table ${assignment.tableNumber})`);
+    // Late-arrival seating only applies after a real venue check-in.
+    if (registration.checked_in_at) {
+      try {
+        const assignment = await autoAssignLateArrival(eventId, attendeeId);
+        if (assignment) {
+          console.log(`[checkin] Late arrival auto-assigned: ${user.name} → ${assignment.groupName} (Table ${assignment.tableNumber})`);
+        }
+      } catch (assignErr) {
+        // Non-fatal — session still succeeds even if auto-assign fails
+        console.error("[checkin] Auto-assign failed (non-fatal):", assignErr);
       }
-    } catch (assignErr) {
-      // Non-fatal — check-in still succeeds even if auto-assign fails
-      console.error("[checkin] Auto-assign failed (non-fatal):", assignErr);
     }
 
     return NextResponse.json({ success: true });

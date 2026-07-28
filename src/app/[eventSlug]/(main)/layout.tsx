@@ -7,6 +7,7 @@ import { EventNavWrapper } from "@/components/layout/EventNavWrapper";
 import { AttendeeChatWidget } from "@/components/chatbot/AttendeeChatWidget";
 import { EasterEggOverlay } from "@/components/easter/EasterEggOverlay";
 import { JudgingWinnersReveal } from "@/components/hackathon-judging/JudgingWinnersReveal";
+import { PizzaAlarmOverlay } from "@/components/pizza/PizzaAlarmOverlay";
 import { withDefaultHackathonLinkedIn } from "@/lib/hackathon-profile-defaults";
 import type { HackathonProfile } from "@/types";
 
@@ -94,6 +95,7 @@ export default async function MainLayout({ children, params }: MainLayoutProps) 
         initialResults={visibleJudgingResults}
         hideAudienceFavorite={hideAudienceFavoriteResults}
       />
+      <PizzaAlarmOverlay eventId={event.id} initialPizzaAlarmAt={event.pizza_alarm_at} />
       {eventSlug === "calgary-march-2026" && (
         <EasterEggOverlay eventSlug={eventSlug} eventId={event.id} userId={userId} />
       )}

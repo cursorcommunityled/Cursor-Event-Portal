@@ -49,6 +49,7 @@ export interface Event {
   timer_label: string | null;
   timer_end_time: string | null;
   timer_active: boolean;
+  pizza_alarm_at: string | null;
   series_id: string | null;
   is_hackathon: boolean;
   luma_event_id: string | null;

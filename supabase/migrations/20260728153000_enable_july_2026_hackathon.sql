@@ -60,7 +60,7 @@ SELECT
   1,                        -- min team size (solo teams allowed)
   4,
   false,
-  E'Build something you''d actually use. Team up, prototype with Cursor, and ship a working demo before the deadline.'
+  E'Build something that goes beyond the typical budget feature of money in / money out — imagine what a worker who earns daily would actually find valuable when managing their day-to-day earnings in a budgeting tool.'
 FROM public.events e
 WHERE e.slug = 'calgary-july-2026'
   AND NOT EXISTS (
@@ -77,16 +77,11 @@ SET
   judging_starts_at = '2026-07-30T02:25:00Z',
   min_team_size = 1,
   max_team_size = 4,
-  prompt_text = COALESCE(
-    NULLIF(BTRIM(hs.prompt_text), ''),
-    E'Build something you''d actually use. Team up, prototype with Cursor, and ship a working demo before the deadline.'
-  ),
+  prompt_text = E'Build something that goes beyond the typical budget feature of money in / money out — imagine what a worker who earns daily would actually find valuable when managing their day-to-day earnings in a budgeting tool.',
   updated_at = NOW()
 FROM public.events e
 WHERE e.slug = 'calgary-july-2026'
-  AND hs.event_id = e.id
-  -- Don't stomp a custom prompt an organizer may have already set.
-  AND (hs.prompt_text IS NULL OR BTRIM(hs.prompt_text) IN ('', 'Sample prompt....xxx etc.'));
+  AND hs.event_id = e.id;
 
 -- 3. Pre-seed a generic build challenge competition (draft — admin activates it when ready).
 INSERT INTO public.competitions (

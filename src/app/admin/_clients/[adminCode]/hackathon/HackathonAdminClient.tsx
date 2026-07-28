@@ -101,7 +101,8 @@ type SimonTodoConsoleApi = {
 };
 type WindowWithSimonTodo = Window & { simonTodo?: SimonTodoConsoleApi };
 
-const DEFAULT_HACKATHON_PROMPT = "Sample prompt....xxx etc.";
+const DEFAULT_HACKATHON_PROMPT =
+  "Build something that goes beyond the typical budget feature of money in / money out — imagine what a worker who earns daily would actually find valuable when managing their day-to-day earnings in a budgeting tool.";
 
 const DEFAULT_SIMON_TODO_ITEMS: SimonTodoItem[] = [
   {

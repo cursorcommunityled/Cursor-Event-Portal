@@ -54,6 +54,7 @@ export const MOCK_EVENT: Event = {
   timer_label: "Hacking ends in",
   timer_end_time: "2026-02-18T21:00:00-07:00",
   timer_active: true,
+  pizza_alarm_at: null,
   series_id: "series-001",
   is_hackathon: false,
   luma_event_id: null,

@@ -62,6 +62,7 @@ const PUBLIC_EVENT_COLUMNS = [
   "timezone",
   "venue_image_url",
   "is_hackathon",
+  "pizza_alarm_at",
   "created_at",
 ].join(", ");
 
@@ -2597,12 +2598,12 @@ export async function getCheckedInAttendeesWithoutTeams(
     for (const m of members ?? []) teamUserIds.add(m.user_id);
   }
 
-  // Step 3: Get all checked-in registrations with user names
+  // Step 3: Registered attendees (portal login ahead is enough for team pool;
+  // venue check-in is only required for prompt / credits).
   const { data: regs } = await supabase
     .from("registrations")
     .select("user_id, user:users(id, name, linkedin)")
-    .eq("event_id", eventId)
-    .not("checked_in_at", "is", null);
+    .eq("event_id", eventId);
 
   const result: {
     id: string;
@@ -2866,12 +2867,12 @@ export async function getEventChatMembers(eventId: string): Promise<ChatMember[]
   noStore();
   const supabase = await createServiceClient();
 
-  // Chat roster should only include people who are actually present.
+  // Hackathon chat/team finder: registered attendees (portal login ahead OK).
+  // Venue check-in is only required for the challenge prompt / credits.
   const { data: regs, error } = await supabase
     .from("registrations")
     .select("user_id, user:users!registrations_user_id_fkey(id, name, role, linkedin)")
-    .eq("event_id", eventId)
-    .not("checked_in_at", "is", null);
+    .eq("event_id", eventId);
 
   if (error || !regs) return [];
 
