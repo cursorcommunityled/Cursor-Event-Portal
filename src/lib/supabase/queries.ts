@@ -74,8 +74,8 @@ function isFinalRoundJudgingCompetition(competition: CompetitionWithEntries) {
 
 function normalizePublicEvent(event: Partial<Event>, includePrivate: boolean): Event {
   const withDefaults = {
-    pizza_alarm_at: event.pizza_alarm_at ?? null,
     ...event,
+    pizza_alarm_at: event.pizza_alarm_at ?? null,
   } as Event;
   return includePrivate ? withDefaults : { ...withDefaults, admin_code: "" };
 }
