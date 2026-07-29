@@ -1,0 +1,850 @@
+obligation_id,worker_id,name,category,amount_cad,frequency,due_day_of_month,autopay,essential
+O-00001,W-0001,Rent,housing,2056.00,monthly,1,1,1
+O-00002,W-0001,Mobile phone,phone,66.00,monthly,1,1,1
+O-00003,W-0001,Utilities,utilities,154.00,monthly,5,1,1
+O-00004,W-0001,Streaming / subscription,entertainment,9.99,monthly,22,1,0
+O-00005,W-0002,Rent,housing,1352.00,monthly,1,0,1
+O-00006,W-0002,Mobile phone,phone,76.00,monthly,3,1,1
+O-00007,W-0002,Utilities,utilities,188.00,monthly,5,0,1
+O-00008,W-0002,Streaming / subscription,entertainment,9.99,monthly,15,1,0
+O-00009,W-0003,Rent,housing,1542.00,monthly,1,1,1
+O-00010,W-0003,Mobile phone,phone,58.00,monthly,8,0,1
+O-00011,W-0004,Rent,housing,1714.00,monthly,1,0,1
+O-00012,W-0004,Mobile phone,phone,82.00,monthly,24,1,1
+O-00013,W-0004,Installment / loan payment,debt_payment,95.00,monthly,12,0,1
+O-00014,W-0004,Streaming / subscription,entertainment,14.99,monthly,17,1,0
+O-00015,W-0005,Rent,housing,1139.00,monthly,15,0,1
+O-00016,W-0005,Mobile phone,phone,49.00,monthly,26,0,1
+O-00017,W-0005,Utilities,utilities,184.00,monthly,10,0,1
+O-00018,W-0005,Installment / loan payment,debt_payment,90.00,monthly,16,0,1
+O-00019,W-0005,Streaming / subscription,entertainment,9.99,monthly,25,1,0
+O-00020,W-0006,Rent,housing,660.00,monthly,1,0,1
+O-00021,W-0006,Mobile phone,phone,64.00,monthly,1,1,1
+O-00022,W-0006,Utilities,utilities,62.00,monthly,25,1,1
+O-00023,W-0006,Childcare,childcare,514.00,monthly,15,0,1
+O-00024,W-0007,Rent,housing,935.00,monthly,1,0,1
+O-00025,W-0007,Mobile phone,phone,68.00,monthly,28,1,1
+O-00026,W-0007,Utilities,utilities,95.00,monthly,15,0,1
+O-00027,W-0007,Installment / loan payment,debt_payment,92.00,monthly,21,0,1
+O-00028,W-0007,Streaming / subscription,entertainment,24.99,monthly,19,1,0
+O-00029,W-0008,Rent,housing,1468.00,monthly,15,0,1
+O-00030,W-0008,Mobile phone,phone,79.00,monthly,27,0,1
+O-00031,W-0008,Utilities,utilities,109.00,monthly,10,0,1
+O-00032,W-0008,Streaming / subscription,entertainment,9.99,monthly,12,1,0
+O-00033,W-0009,Rent,housing,1718.00,monthly,15,0,1
+O-00034,W-0009,Mobile phone,phone,55.00,monthly,7,0,1
+O-00035,W-0009,Installment / loan payment,debt_payment,140.00,biweekly,21,1,1
+O-00036,W-0009,Streaming / subscription,entertainment,14.99,monthly,17,1,0
+O-00037,W-0010,Rent,housing,1934.00,monthly,1,0,1
+O-00038,W-0010,Mobile phone,phone,60.00,monthly,23,1,1
+O-00039,W-0011,Rent,housing,1134.00,monthly,1,0,1
+O-00040,W-0011,Mobile phone,phone,65.00,monthly,24,0,1
+O-00041,W-0011,Utilities,utilities,66.00,monthly,25,1,1
+O-00042,W-0012,Rent,housing,1993.00,monthly,15,1,1
+O-00043,W-0012,Mobile phone,phone,80.00,monthly,28,0,1
+O-00044,W-0012,Streaming / subscription,entertainment,19.99,monthly,15,1,0
+O-00045,W-0013,Rent,housing,908.00,monthly,1,0,1
+O-00046,W-0013,Mobile phone,phone,85.00,monthly,19,1,1
+O-00047,W-0013,Utilities,utilities,157.00,monthly,5,0,1
+O-00048,W-0013,Childcare,childcare,694.00,monthly,7,0,1
+O-00049,W-0013,Streaming / subscription,entertainment,24.99,monthly,8,1,0
+O-00050,W-0014,Rent,housing,940.00,monthly,1,0,1
+O-00051,W-0014,Mobile phone,phone,82.00,monthly,10,1,1
+O-00052,W-0014,Utilities,utilities,183.00,monthly,20,0,1
+O-00053,W-0014,Childcare,childcare,816.00,monthly,15,0,1
+O-00054,W-0015,Rent,housing,1166.00,monthly,1,1,1
+O-00055,W-0015,Mobile phone,phone,59.00,monthly,3,0,1
+O-00056,W-0015,Streaming / subscription,entertainment,19.99,monthly,17,1,0
+O-00057,W-0016,Rent,housing,872.00,monthly,15,0,1
+O-00058,W-0016,Mobile phone,phone,81.00,monthly,2,0,1
+O-00059,W-0016,Utilities,utilities,106.00,monthly,25,0,1
+O-00060,W-0016,Installment / loan payment,debt_payment,107.00,biweekly,12,0,1
+O-00061,W-0017,Rent,housing,1619.00,monthly,1,0,1
+O-00062,W-0017,Mobile phone,phone,62.00,monthly,26,1,1
+O-00063,W-0017,Utilities,utilities,126.00,monthly,25,0,1
+O-00064,W-0017,Installment / loan payment,debt_payment,56.00,monthly,6,0,1
+O-00065,W-0018,Rent,housing,1598.00,monthly,1,0,1
+O-00066,W-0018,Mobile phone,phone,55.00,monthly,13,1,1
+O-00067,W-0018,Utilities,utilities,190.00,monthly,5,0,1
+O-00068,W-0018,Installment / loan payment,debt_payment,115.00,monthly,21,0,1
+O-00069,W-0019,Rent,housing,982.00,monthly,15,0,1
+O-00070,W-0019,Mobile phone,phone,86.00,monthly,10,1,1
+O-00071,W-0019,Utilities,utilities,172.00,monthly,10,0,1
+O-00072,W-0019,Installment / loan payment,debt_payment,182.00,biweekly,8,1,1
+O-00073,W-0019,Streaming / subscription,entertainment,9.99,monthly,18,1,0
+O-00074,W-0020,Rent,housing,945.00,monthly,1,0,1
+O-00075,W-0020,Mobile phone,phone,91.00,monthly,10,0,1
+O-00076,W-0020,Utilities,utilities,83.00,monthly,20,1,1
+O-00077,W-0020,Childcare,childcare,374.00,monthly,1,0,1
+O-00078,W-0020,Installment / loan payment,debt_payment,107.00,biweekly,17,0,1
+O-00079,W-0020,Streaming / subscription,entertainment,19.99,monthly,26,1,0
+O-00080,W-0021,Rent,housing,697.00,monthly,1,0,1
+O-00081,W-0021,Mobile phone,phone,91.00,monthly,17,1,1
+O-00082,W-0021,Utilities,utilities,133.00,monthly,5,0,1
+O-00083,W-0022,Rent,housing,920.00,monthly,1,0,1
+O-00084,W-0022,Mobile phone,phone,84.00,monthly,24,1,1
+O-00085,W-0022,Utilities,utilities,180.00,monthly,5,0,1
+O-00086,W-0022,Streaming / subscription,entertainment,24.99,monthly,19,1,0
+O-00087,W-0023,Rent,housing,1299.00,monthly,1,0,1
+O-00088,W-0023,Mobile phone,phone,71.00,monthly,12,1,1
+O-00089,W-0023,Utilities,utilities,140.00,monthly,25,0,1
+O-00090,W-0023,Childcare,childcare,594.00,monthly,1,1,1
+O-00091,W-0024,Rent,housing,1422.00,monthly,15,0,1
+O-00092,W-0024,Mobile phone,phone,95.00,monthly,14,0,1
+O-00093,W-0024,Utilities,utilities,187.00,monthly,15,0,1
+O-00094,W-0025,Rent,housing,1234.00,monthly,1,0,1
+O-00095,W-0025,Mobile phone,phone,62.00,monthly,20,1,1
+O-00096,W-0025,Childcare,childcare,229.00,monthly,7,1,1
+O-00097,W-0025,Streaming / subscription,entertainment,9.99,monthly,12,1,0
+O-00098,W-0026,Rent,housing,746.00,monthly,1,0,1
+O-00099,W-0026,Mobile phone,phone,59.00,monthly,20,0,1
+O-00100,W-0026,Installment / loan payment,debt_payment,203.00,monthly,17,0,1
+O-00101,W-0027,Rent,housing,1693.00,monthly,15,0,1
+O-00102,W-0027,Mobile phone,phone,84.00,monthly,11,0,1
+O-00103,W-0027,Childcare,childcare,207.00,monthly,7,1,1
+O-00104,W-0027,Installment / loan payment,debt_payment,127.00,biweekly,20,0,1
+O-00105,W-0028,Rent,housing,738.00,monthly,15,0,1
+O-00106,W-0028,Mobile phone,phone,41.00,monthly,17,1,1
+O-00107,W-0028,Utilities,utilities,86.00,monthly,20,0,1
+O-00108,W-0028,Childcare,childcare,537.00,monthly,1,0,1
+O-00109,W-0029,Rent,housing,1783.00,monthly,1,1,1
+O-00110,W-0029,Mobile phone,phone,62.00,monthly,7,1,1
+O-00111,W-0029,Utilities,utilities,93.00,monthly,20,0,1
+O-00112,W-0030,Rent,housing,1473.00,monthly,1,0,1
+O-00113,W-0030,Mobile phone,phone,75.00,monthly,10,1,1
+O-00114,W-0030,Installment / loan payment,debt_payment,62.00,monthly,2,1,1
+O-00115,W-0031,Rent,housing,2056.00,monthly,1,0,1
+O-00116,W-0031,Mobile phone,phone,51.00,monthly,9,1,1
+O-00117,W-0031,Childcare,childcare,590.00,monthly,15,0,1
+O-00118,W-0032,Rent,housing,1525.00,monthly,1,0,1
+O-00119,W-0032,Mobile phone,phone,68.00,monthly,3,1,1
+O-00120,W-0032,Childcare,childcare,571.00,monthly,7,0,1
+O-00121,W-0032,Streaming / subscription,entertainment,14.99,monthly,17,1,0
+O-00122,W-0033,Rent,housing,671.00,monthly,1,0,1
+O-00123,W-0033,Mobile phone,phone,73.00,monthly,20,1,1
+O-00124,W-0033,Utilities,utilities,66.00,monthly,20,1,1
+O-00125,W-0033,Childcare,childcare,787.00,monthly,15,0,1
+O-00126,W-0034,Rent,housing,697.00,monthly,15,0,1
+O-00127,W-0034,Mobile phone,phone,45.00,monthly,11,1,1
+O-00128,W-0034,Utilities,utilities,182.00,monthly,20,1,1
+O-00129,W-0034,Childcare,childcare,211.00,monthly,15,0,1
+O-00130,W-0034,Streaming / subscription,entertainment,14.99,monthly,26,1,0
+O-00131,W-0035,Rent,housing,1451.00,monthly,15,0,1
+O-00132,W-0035,Mobile phone,phone,47.00,monthly,19,0,1
+O-00133,W-0035,Utilities,utilities,84.00,monthly,15,0,1
+O-00134,W-0035,Installment / loan payment,debt_payment,66.00,monthly,11,1,1
+O-00135,W-0035,Streaming / subscription,entertainment,14.99,monthly,5,1,0
+O-00136,W-0036,Rent,housing,1835.00,monthly,1,0,1
+O-00137,W-0036,Mobile phone,phone,92.00,monthly,15,0,1
+O-00138,W-0037,Rent,housing,1414.00,monthly,1,0,1
+O-00139,W-0037,Mobile phone,phone,71.00,monthly,21,0,1
+O-00140,W-0037,Streaming / subscription,entertainment,9.99,monthly,5,1,0
+O-00141,W-0038,Rent,housing,1783.00,monthly,1,0,1
+O-00142,W-0038,Mobile phone,phone,64.00,monthly,27,1,1
+O-00143,W-0038,Utilities,utilities,74.00,monthly,20,0,1
+O-00144,W-0039,Rent,housing,1684.00,monthly,15,1,1
+O-00145,W-0039,Mobile phone,phone,61.00,monthly,25,1,1
+O-00146,W-0039,Installment / loan payment,debt_payment,201.00,monthly,28,0,1
+O-00147,W-0040,Rent,housing,916.00,monthly,1,1,1
+O-00148,W-0040,Mobile phone,phone,44.00,monthly,25,0,1
+O-00149,W-0040,Utilities,utilities,189.00,monthly,20,0,1
+O-00150,W-0040,Installment / loan payment,debt_payment,138.00,monthly,5,0,1
+O-00151,W-0041,Rent,housing,1118.00,monthly,1,0,1
+O-00152,W-0041,Mobile phone,phone,57.00,monthly,27,0,1
+O-00153,W-0041,Installment / loan payment,debt_payment,90.00,biweekly,26,0,1
+O-00154,W-0041,Streaming / subscription,entertainment,24.99,monthly,12,1,0
+O-00155,W-0042,Rent,housing,1384.00,monthly,15,0,1
+O-00156,W-0042,Mobile phone,phone,72.00,monthly,18,0,1
+O-00157,W-0043,Rent,housing,1041.00,monthly,1,1,1
+O-00158,W-0043,Mobile phone,phone,92.00,monthly,17,0,1
+O-00159,W-0043,Utilities,utilities,177.00,monthly,15,0,1
+O-00160,W-0043,Installment / loan payment,debt_payment,191.00,monthly,26,1,1
+O-00161,W-0043,Streaming / subscription,entertainment,9.99,monthly,21,1,0
+O-00162,W-0044,Rent,housing,686.00,monthly,1,0,1
+O-00163,W-0044,Mobile phone,phone,65.00,monthly,15,1,1
+O-00164,W-0044,Utilities,utilities,181.00,monthly,5,1,1
+O-00165,W-0044,Childcare,childcare,504.00,monthly,15,1,1
+O-00166,W-0044,Streaming / subscription,entertainment,9.99,monthly,12,1,0
+O-00167,W-0045,Rent,housing,626.00,monthly,1,1,1
+O-00168,W-0045,Mobile phone,phone,53.00,monthly,21,1,1
+O-00169,W-0045,Childcare,childcare,500.00,monthly,7,0,1
+O-00170,W-0046,Rent,housing,1956.00,monthly,15,0,1
+O-00171,W-0046,Mobile phone,phone,47.00,monthly,17,0,1
+O-00172,W-0046,Utilities,utilities,145.00,monthly,5,0,1
+O-00173,W-0046,Childcare,childcare,805.00,monthly,7,0,1
+O-00174,W-0047,Rent,housing,1074.00,monthly,15,1,1
+O-00175,W-0047,Mobile phone,phone,50.00,monthly,10,1,1
+O-00176,W-0047,Installment / loan payment,debt_payment,143.00,biweekly,24,0,1
+O-00177,W-0047,Streaming / subscription,entertainment,19.99,monthly,4,1,0
+O-00178,W-0048,Rent,housing,1332.00,monthly,15,1,1
+O-00179,W-0048,Mobile phone,phone,60.00,monthly,8,0,1
+O-00180,W-0048,Utilities,utilities,107.00,monthly,10,1,1
+O-00181,W-0048,Childcare,childcare,538.00,monthly,15,1,1
+O-00182,W-0048,Installment / loan payment,debt_payment,129.00,biweekly,7,0,1
+O-00183,W-0049,Rent,housing,749.00,monthly,1,0,1
+O-00184,W-0049,Mobile phone,phone,75.00,monthly,2,0,1
+O-00185,W-0049,Utilities,utilities,130.00,monthly,25,0,1
+O-00186,W-0050,Rent,housing,1561.00,monthly,1,0,1
+O-00187,W-0050,Mobile phone,phone,90.00,monthly,7,1,1
+O-00188,W-0050,Utilities,utilities,117.00,monthly,25,0,1
+O-00189,W-0050,Childcare,childcare,517.00,monthly,15,0,1
+O-00190,W-0050,Streaming / subscription,entertainment,14.99,monthly,4,1,0
+O-00191,W-0051,Rent,housing,691.00,monthly,15,0,1
+O-00192,W-0051,Mobile phone,phone,93.00,monthly,10,1,1
+O-00193,W-0051,Utilities,utilities,157.00,monthly,20,1,1
+O-00194,W-0051,Childcare,childcare,492.00,monthly,7,0,1
+O-00195,W-0052,Rent,housing,1131.00,monthly,1,0,1
+O-00196,W-0052,Mobile phone,phone,45.00,monthly,8,0,1
+O-00197,W-0052,Childcare,childcare,663.00,monthly,7,0,1
+O-00198,W-0052,Installment / loan payment,debt_payment,97.00,biweekly,1,0,1
+O-00199,W-0052,Streaming / subscription,entertainment,9.99,monthly,17,1,0
+O-00200,W-0053,Rent,housing,804.00,monthly,1,1,1
+O-00201,W-0053,Mobile phone,phone,90.00,monthly,12,0,1
+O-00202,W-0053,Utilities,utilities,99.00,monthly,10,0,1
+O-00203,W-0053,Installment / loan payment,debt_payment,82.00,monthly,2,1,1
+O-00204,W-0054,Rent,housing,1898.00,monthly,1,0,1
+O-00205,W-0054,Mobile phone,phone,53.00,monthly,18,0,1
+O-00206,W-0054,Installment / loan payment,debt_payment,214.00,monthly,1,0,1
+O-00207,W-0055,Rent,housing,1021.00,monthly,15,1,1
+O-00208,W-0055,Mobile phone,phone,63.00,monthly,16,1,1
+O-00209,W-0055,Utilities,utilities,117.00,monthly,5,0,1
+O-00210,W-0055,Childcare,childcare,887.00,monthly,15,1,1
+O-00211,W-0055,Streaming / subscription,entertainment,24.99,monthly,21,1,0
+O-00212,W-0056,Rent,housing,721.00,monthly,15,0,1
+O-00213,W-0056,Mobile phone,phone,40.00,monthly,13,0,1
+O-00214,W-0056,Utilities,utilities,168.00,monthly,20,1,1
+O-00215,W-0056,Installment / loan payment,debt_payment,84.00,monthly,13,0,1
+O-00216,W-0057,Rent,housing,1471.00,monthly,15,1,1
+O-00217,W-0057,Mobile phone,phone,59.00,monthly,5,0,1
+O-00218,W-0058,Rent,housing,686.00,monthly,15,0,1
+O-00219,W-0058,Mobile phone,phone,41.00,monthly,1,0,1
+O-00220,W-0058,Utilities,utilities,183.00,monthly,5,0,1
+O-00221,W-0058,Childcare,childcare,421.00,monthly,15,0,1
+O-00222,W-0059,Rent,housing,1672.00,monthly,1,0,1
+O-00223,W-0059,Mobile phone,phone,77.00,monthly,24,0,1
+O-00224,W-0059,Utilities,utilities,76.00,monthly,15,0,1
+O-00225,W-0059,Installment / loan payment,debt_payment,110.00,biweekly,5,0,1
+O-00226,W-0060,Rent,housing,1982.00,monthly,15,0,1
+O-00227,W-0060,Mobile phone,phone,62.00,monthly,5,1,1
+O-00228,W-0060,Utilities,utilities,156.00,monthly,10,0,1
+O-00229,W-0060,Childcare,childcare,380.00,monthly,7,0,1
+O-00230,W-0060,Installment / loan payment,debt_payment,84.00,monthly,25,1,1
+O-00231,W-0061,Rent,housing,2047.00,monthly,1,0,1
+O-00232,W-0061,Mobile phone,phone,60.00,monthly,21,1,1
+O-00233,W-0062,Rent,housing,1554.00,monthly,1,0,1
+O-00234,W-0062,Mobile phone,phone,48.00,monthly,10,0,1
+O-00235,W-0062,Utilities,utilities,163.00,monthly,25,0,1
+O-00236,W-0063,Rent,housing,1600.00,monthly,1,0,1
+O-00237,W-0063,Mobile phone,phone,71.00,monthly,7,1,1
+O-00238,W-0063,Utilities,utilities,82.00,monthly,5,1,1
+O-00239,W-0063,Childcare,childcare,796.00,monthly,15,0,1
+O-00240,W-0063,Installment / loan payment,debt_payment,66.00,monthly,16,0,1
+O-00241,W-0064,Rent,housing,852.00,monthly,1,0,1
+O-00242,W-0064,Mobile phone,phone,57.00,monthly,9,1,1
+O-00243,W-0064,Utilities,utilities,60.00,monthly,15,0,1
+O-00244,W-0065,Rent,housing,1535.00,monthly,1,1,1
+O-00245,W-0065,Mobile phone,phone,56.00,monthly,8,1,1
+O-00246,W-0065,Utilities,utilities,89.00,monthly,15,1,1
+O-00247,W-0065,Childcare,childcare,635.00,monthly,15,0,1
+O-00248,W-0066,Rent,housing,664.00,monthly,15,0,1
+O-00249,W-0066,Mobile phone,phone,88.00,monthly,23,0,1
+O-00250,W-0066,Childcare,childcare,249.00,monthly,15,0,1
+O-00251,W-0067,Rent,housing,887.00,monthly,1,1,1
+O-00252,W-0067,Mobile phone,phone,41.00,monthly,12,1,1
+O-00253,W-0067,Utilities,utilities,158.00,monthly,25,1,1
+O-00254,W-0067,Childcare,childcare,673.00,monthly,15,0,1
+O-00255,W-0068,Rent,housing,1764.00,monthly,1,0,1
+O-00256,W-0068,Mobile phone,phone,42.00,monthly,18,0,1
+O-00257,W-0068,Utilities,utilities,188.00,monthly,5,0,1
+O-00258,W-0068,Childcare,childcare,895.00,monthly,15,0,1
+O-00259,W-0068,Installment / loan payment,debt_payment,193.00,monthly,28,1,1
+O-00260,W-0069,Rent,housing,1577.00,monthly,1,1,1
+O-00261,W-0069,Mobile phone,phone,71.00,monthly,10,1,1
+O-00262,W-0069,Utilities,utilities,183.00,monthly,15,0,1
+O-00263,W-0069,Childcare,childcare,691.00,monthly,1,0,1
+O-00264,W-0069,Streaming / subscription,entertainment,19.99,monthly,6,1,0
+O-00265,W-0070,Rent,housing,981.00,monthly,1,1,1
+O-00266,W-0070,Mobile phone,phone,83.00,monthly,5,1,1
+O-00267,W-0070,Installment / loan payment,debt_payment,109.00,monthly,9,0,1
+O-00268,W-0071,Rent,housing,1222.00,monthly,1,0,1
+O-00269,W-0071,Mobile phone,phone,49.00,monthly,12,0,1
+O-00270,W-0071,Utilities,utilities,117.00,monthly,5,0,1
+O-00271,W-0071,Childcare,childcare,307.00,monthly,15,1,1
+O-00272,W-0072,Rent,housing,1660.00,monthly,1,0,1
+O-00273,W-0072,Mobile phone,phone,41.00,monthly,9,1,1
+O-00274,W-0072,Utilities,utilities,145.00,monthly,10,0,1
+O-00275,W-0073,Rent,housing,1536.00,monthly,1,0,1
+O-00276,W-0073,Mobile phone,phone,86.00,monthly,6,1,1
+O-00277,W-0073,Utilities,utilities,145.00,monthly,5,0,1
+O-00278,W-0073,Childcare,childcare,533.00,monthly,7,0,1
+O-00279,W-0074,Rent,housing,884.00,monthly,1,0,1
+O-00280,W-0074,Mobile phone,phone,83.00,monthly,18,1,1
+O-00281,W-0074,Utilities,utilities,160.00,monthly,15,1,1
+O-00282,W-0074,Installment / loan payment,debt_payment,126.00,biweekly,26,1,1
+O-00283,W-0075,Rent,housing,758.00,monthly,1,0,1
+O-00284,W-0075,Mobile phone,phone,46.00,monthly,12,0,1
+O-00285,W-0075,Utilities,utilities,163.00,monthly,5,0,1
+O-00286,W-0076,Rent,housing,928.00,monthly,1,0,1
+O-00287,W-0076,Mobile phone,phone,40.00,monthly,8,1,1
+O-00288,W-0076,Utilities,utilities,125.00,monthly,10,0,1
+O-00289,W-0076,Childcare,childcare,712.00,monthly,7,0,1
+O-00290,W-0076,Installment / loan payment,debt_payment,61.00,monthly,20,1,1
+O-00291,W-0077,Rent,housing,806.00,monthly,1,0,1
+O-00292,W-0077,Mobile phone,phone,54.00,monthly,15,1,1
+O-00293,W-0077,Utilities,utilities,179.00,monthly,10,1,1
+O-00294,W-0077,Childcare,childcare,446.00,monthly,7,0,1
+O-00295,W-0078,Rent,housing,928.00,monthly,15,0,1
+O-00296,W-0078,Mobile phone,phone,77.00,monthly,4,0,1
+O-00297,W-0078,Utilities,utilities,123.00,monthly,15,0,1
+O-00298,W-0078,Installment / loan payment,debt_payment,139.00,monthly,25,0,1
+O-00299,W-0079,Rent,housing,1218.00,monthly,1,0,1
+O-00300,W-0079,Mobile phone,phone,81.00,monthly,26,0,1
+O-00301,W-0079,Utilities,utilities,121.00,monthly,10,0,1
+O-00302,W-0080,Rent,housing,2064.00,monthly,1,0,1
+O-00303,W-0080,Mobile phone,phone,87.00,monthly,17,1,1
+O-00304,W-0080,Utilities,utilities,74.00,monthly,15,0,1
+O-00305,W-0080,Childcare,childcare,503.00,monthly,1,1,1
+O-00306,W-0080,Streaming / subscription,entertainment,19.99,monthly,27,1,0
+O-00307,W-0081,Rent,housing,1989.00,monthly,15,1,1
+O-00308,W-0081,Mobile phone,phone,90.00,monthly,13,0,1
+O-00309,W-0081,Utilities,utilities,75.00,monthly,5,0,1
+O-00310,W-0082,Rent,housing,1749.00,monthly,1,1,1
+O-00311,W-0082,Mobile phone,phone,94.00,monthly,24,0,1
+O-00312,W-0082,Utilities,utilities,138.00,monthly,20,1,1
+O-00313,W-0083,Rent,housing,1177.00,monthly,15,0,1
+O-00314,W-0083,Mobile phone,phone,71.00,monthly,22,1,1
+O-00315,W-0083,Utilities,utilities,75.00,monthly,20,1,1
+O-00316,W-0083,Streaming / subscription,entertainment,14.99,monthly,16,1,0
+O-00317,W-0084,Rent,housing,1239.00,monthly,1,0,1
+O-00318,W-0084,Mobile phone,phone,50.00,monthly,27,1,1
+O-00319,W-0084,Installment / loan payment,debt_payment,173.00,monthly,11,1,1
+O-00320,W-0085,Rent,housing,1246.00,monthly,1,0,1
+O-00321,W-0085,Mobile phone,phone,40.00,monthly,10,1,1
+O-00322,W-0085,Utilities,utilities,140.00,monthly,10,0,1
+O-00323,W-0086,Rent,housing,2044.00,monthly,15,0,1
+O-00324,W-0086,Mobile phone,phone,82.00,monthly,25,1,1
+O-00325,W-0086,Utilities,utilities,113.00,monthly,15,0,1
+O-00326,W-0087,Rent,housing,916.00,monthly,1,0,1
+O-00327,W-0087,Mobile phone,phone,49.00,monthly,10,0,1
+O-00328,W-0087,Utilities,utilities,152.00,monthly,5,0,1
+O-00329,W-0088,Rent,housing,1785.00,monthly,1,1,1
+O-00330,W-0088,Mobile phone,phone,77.00,monthly,25,0,1
+O-00331,W-0088,Utilities,utilities,157.00,monthly,10,0,1
+O-00332,W-0088,Streaming / subscription,entertainment,14.99,monthly,26,1,0
+O-00333,W-0089,Rent,housing,2056.00,monthly,1,1,1
+O-00334,W-0089,Mobile phone,phone,82.00,monthly,1,1,1
+O-00335,W-0089,Utilities,utilities,141.00,monthly,5,0,1
+O-00336,W-0090,Rent,housing,1748.00,monthly,1,1,1
+O-00337,W-0090,Mobile phone,phone,50.00,monthly,21,1,1
+O-00338,W-0090,Utilities,utilities,118.00,monthly,15,0,1
+O-00339,W-0090,Childcare,childcare,227.00,monthly,7,0,1
+O-00340,W-0090,Installment / loan payment,debt_payment,109.00,monthly,24,1,1
+O-00341,W-0090,Streaming / subscription,entertainment,24.99,monthly,2,1,0
+O-00342,W-0091,Rent,housing,1216.00,monthly,1,0,1
+O-00343,W-0091,Mobile phone,phone,81.00,monthly,20,1,1
+O-00344,W-0092,Rent,housing,1783.00,monthly,1,0,1
+O-00345,W-0092,Mobile phone,phone,88.00,monthly,10,1,1
+O-00346,W-0092,Childcare,childcare,763.00,monthly,15,0,1
+O-00347,W-0093,Rent,housing,805.00,monthly,1,1,1
+O-00348,W-0093,Mobile phone,phone,68.00,monthly,5,0,1
+O-00349,W-0094,Rent,housing,1387.00,monthly,1,1,1
+O-00350,W-0094,Mobile phone,phone,82.00,monthly,17,0,1
+O-00351,W-0094,Utilities,utilities,142.00,monthly,25,1,1
+O-00352,W-0094,Installment / loan payment,debt_payment,150.00,biweekly,10,0,1
+O-00353,W-0094,Streaming / subscription,entertainment,19.99,monthly,24,1,0
+O-00354,W-0095,Rent,housing,1123.00,monthly,15,1,1
+O-00355,W-0095,Mobile phone,phone,45.00,monthly,9,1,1
+O-00356,W-0095,Utilities,utilities,65.00,monthly,10,1,1
+O-00357,W-0095,Childcare,childcare,791.00,monthly,1,0,1
+O-00358,W-0095,Streaming / subscription,entertainment,9.99,monthly,17,1,0
+O-00359,W-0096,Rent,housing,1699.00,monthly,1,0,1
+O-00360,W-0096,Mobile phone,phone,66.00,monthly,14,1,1
+O-00361,W-0096,Utilities,utilities,67.00,monthly,20,0,1
+O-00362,W-0096,Installment / loan payment,debt_payment,212.00,monthly,10,0,1
+O-00363,W-0096,Streaming / subscription,entertainment,24.99,monthly,28,1,0
+O-00364,W-0097,Rent,housing,1579.00,monthly,15,0,1
+O-00365,W-0097,Mobile phone,phone,42.00,monthly,25,1,1
+O-00366,W-0097,Utilities,utilities,149.00,monthly,10,0,1
+O-00367,W-0098,Rent,housing,1496.00,monthly,1,0,1
+O-00368,W-0098,Mobile phone,phone,60.00,monthly,20,1,1
+O-00369,W-0098,Installment / loan payment,debt_payment,208.00,monthly,17,1,1
+O-00370,W-0098,Streaming / subscription,entertainment,9.99,monthly,6,1,0
+O-00371,W-0099,Rent,housing,1565.00,monthly,1,0,1
+O-00372,W-0099,Mobile phone,phone,77.00,monthly,3,1,1
+O-00373,W-0099,Utilities,utilities,179.00,monthly,15,0,1
+O-00374,W-0099,Installment / loan payment,debt_payment,133.00,biweekly,19,1,1
+O-00375,W-0099,Streaming / subscription,entertainment,24.99,monthly,8,1,0
+O-00376,W-0100,Rent,housing,713.00,monthly,15,0,1
+O-00377,W-0100,Mobile phone,phone,51.00,monthly,6,0,1
+O-00378,W-0100,Installment / loan payment,debt_payment,169.00,monthly,10,1,1
+O-00379,W-0100,Streaming / subscription,entertainment,14.99,monthly,13,1,0
+O-00380,W-0101,Rent,housing,958.00,monthly,1,0,1
+O-00381,W-0101,Mobile phone,phone,77.00,monthly,16,1,1
+O-00382,W-0101,Utilities,utilities,128.00,monthly,5,1,1
+O-00383,W-0102,Rent,housing,613.00,monthly,15,0,1
+O-00384,W-0102,Mobile phone,phone,63.00,monthly,24,1,1
+O-00385,W-0102,Childcare,childcare,399.00,monthly,1,0,1
+O-00386,W-0102,Streaming / subscription,entertainment,24.99,monthly,1,1,0
+O-00387,W-0103,Rent,housing,878.00,monthly,1,0,1
+O-00388,W-0103,Mobile phone,phone,60.00,monthly,10,1,1
+O-00389,W-0104,Rent,housing,889.00,monthly,15,0,1
+O-00390,W-0104,Mobile phone,phone,65.00,monthly,14,0,1
+O-00391,W-0104,Utilities,utilities,161.00,monthly,15,1,1
+O-00392,W-0104,Installment / loan payment,debt_payment,117.00,monthly,10,0,1
+O-00393,W-0105,Rent,housing,1307.00,monthly,1,0,1
+O-00394,W-0105,Mobile phone,phone,40.00,monthly,8,1,1
+O-00395,W-0105,Utilities,utilities,184.00,monthly,5,0,1
+O-00396,W-0105,Childcare,childcare,755.00,monthly,1,0,1
+O-00397,W-0105,Installment / loan payment,debt_payment,60.00,monthly,24,0,1
+O-00398,W-0105,Streaming / subscription,entertainment,14.99,monthly,21,1,0
+O-00399,W-0106,Rent,housing,862.00,monthly,15,1,1
+O-00400,W-0106,Mobile phone,phone,65.00,monthly,8,1,1
+O-00401,W-0106,Utilities,utilities,95.00,monthly,10,1,1
+O-00402,W-0106,Installment / loan payment,debt_payment,213.00,biweekly,11,1,1
+O-00403,W-0107,Rent,housing,788.00,monthly,1,0,1
+O-00404,W-0107,Mobile phone,phone,75.00,monthly,28,0,1
+O-00405,W-0107,Utilities,utilities,95.00,monthly,25,1,1
+O-00406,W-0108,Rent,housing,646.00,monthly,1,1,1
+O-00407,W-0108,Mobile phone,phone,55.00,monthly,8,1,1
+O-00408,W-0108,Utilities,utilities,96.00,monthly,15,1,1
+O-00409,W-0108,Installment / loan payment,debt_payment,60.00,monthly,24,0,1
+O-00410,W-0109,Rent,housing,891.00,monthly,1,1,1
+O-00411,W-0109,Mobile phone,phone,64.00,monthly,20,0,1
+O-00412,W-0109,Utilities,utilities,103.00,monthly,5,0,1
+O-00413,W-0109,Streaming / subscription,entertainment,9.99,monthly,6,1,0
+O-00414,W-0110,Rent,housing,1105.00,monthly,1,1,1
+O-00415,W-0110,Mobile phone,phone,94.00,monthly,14,1,1
+O-00416,W-0110,Utilities,utilities,96.00,monthly,25,1,1
+O-00417,W-0111,Rent,housing,1626.00,monthly,1,0,1
+O-00418,W-0111,Mobile phone,phone,51.00,monthly,24,1,1
+O-00419,W-0111,Utilities,utilities,146.00,monthly,20,1,1
+O-00420,W-0111,Streaming / subscription,entertainment,19.99,monthly,27,1,0
+O-00421,W-0112,Rent,housing,1740.00,monthly,15,1,1
+O-00422,W-0112,Mobile phone,phone,63.00,monthly,1,1,1
+O-00423,W-0112,Childcare,childcare,354.00,monthly,7,0,1
+O-00424,W-0112,Streaming / subscription,entertainment,9.99,monthly,28,1,0
+O-00425,W-0113,Rent,housing,1230.00,monthly,1,1,1
+O-00426,W-0113,Mobile phone,phone,52.00,monthly,3,0,1
+O-00427,W-0113,Utilities,utilities,155.00,monthly,10,0,1
+O-00428,W-0113,Installment / loan payment,debt_payment,136.00,biweekly,16,0,1
+O-00429,W-0113,Streaming / subscription,entertainment,24.99,monthly,7,1,0
+O-00430,W-0114,Rent,housing,1410.00,monthly,1,0,1
+O-00431,W-0114,Mobile phone,phone,73.00,monthly,27,0,1
+O-00432,W-0114,Installment / loan payment,debt_payment,76.00,biweekly,2,1,1
+O-00433,W-0115,Rent,housing,1801.00,monthly,1,0,1
+O-00434,W-0115,Mobile phone,phone,62.00,monthly,27,1,1
+O-00435,W-0115,Utilities,utilities,90.00,monthly,5,0,1
+O-00436,W-0115,Childcare,childcare,669.00,monthly,7,0,1
+O-00437,W-0115,Installment / loan payment,debt_payment,43.00,monthly,27,1,1
+O-00438,W-0116,Rent,housing,1278.00,monthly,1,1,1
+O-00439,W-0116,Mobile phone,phone,57.00,monthly,23,1,1
+O-00440,W-0116,Utilities,utilities,79.00,monthly,10,0,1
+O-00441,W-0116,Streaming / subscription,entertainment,19.99,monthly,18,1,0
+O-00442,W-0117,Rent,housing,974.00,monthly,1,0,1
+O-00443,W-0117,Mobile phone,phone,86.00,monthly,27,0,1
+O-00444,W-0117,Childcare,childcare,444.00,monthly,15,1,1
+O-00445,W-0118,Rent,housing,867.00,monthly,1,0,1
+O-00446,W-0118,Mobile phone,phone,48.00,monthly,13,0,1
+O-00447,W-0118,Utilities,utilities,136.00,monthly,15,0,1
+O-00448,W-0118,Childcare,childcare,201.00,monthly,15,0,1
+O-00449,W-0118,Installment / loan payment,debt_payment,141.00,biweekly,17,0,1
+O-00450,W-0119,Rent,housing,756.00,monthly,15,0,1
+O-00451,W-0119,Mobile phone,phone,88.00,monthly,17,1,1
+O-00452,W-0119,Utilities,utilities,92.00,monthly,5,0,1
+O-00453,W-0119,Installment / loan payment,debt_payment,92.00,monthly,9,1,1
+O-00454,W-0120,Rent,housing,875.00,monthly,1,1,1
+O-00455,W-0120,Mobile phone,phone,48.00,monthly,18,1,1
+O-00456,W-0120,Utilities,utilities,169.00,monthly,10,0,1
+O-00457,W-0120,Childcare,childcare,603.00,monthly,15,1,1
+O-00458,W-0121,Rent,housing,799.00,monthly,1,0,1
+O-00459,W-0121,Mobile phone,phone,49.00,monthly,17,0,1
+O-00460,W-0121,Utilities,utilities,174.00,monthly,5,0,1
+O-00461,W-0121,Childcare,childcare,451.00,monthly,15,0,1
+O-00462,W-0121,Streaming / subscription,entertainment,24.99,monthly,14,1,0
+O-00463,W-0122,Rent,housing,662.00,monthly,1,0,1
+O-00464,W-0122,Mobile phone,phone,74.00,monthly,25,0,1
+O-00465,W-0122,Utilities,utilities,84.00,monthly,10,1,1
+O-00466,W-0123,Rent,housing,904.00,monthly,1,0,1
+O-00467,W-0123,Mobile phone,phone,48.00,monthly,27,1,1
+O-00468,W-0123,Utilities,utilities,79.00,monthly,20,0,1
+O-00469,W-0123,Childcare,childcare,610.00,monthly,1,0,1
+O-00470,W-0123,Installment / loan payment,debt_payment,168.00,monthly,3,1,1
+O-00471,W-0124,Rent,housing,1295.00,monthly,1,0,1
+O-00472,W-0124,Mobile phone,phone,82.00,monthly,7,1,1
+O-00473,W-0124,Streaming / subscription,entertainment,9.99,monthly,9,1,0
+O-00474,W-0125,Rent,housing,1697.00,monthly,1,0,1
+O-00475,W-0125,Mobile phone,phone,79.00,monthly,13,0,1
+O-00476,W-0125,Utilities,utilities,98.00,monthly,5,0,1
+O-00477,W-0125,Installment / loan payment,debt_payment,178.00,biweekly,18,1,1
+O-00478,W-0125,Streaming / subscription,entertainment,19.99,monthly,4,1,0
+O-00479,W-0126,Rent,housing,1827.00,monthly,1,0,1
+O-00480,W-0126,Mobile phone,phone,86.00,monthly,19,1,1
+O-00481,W-0126,Utilities,utilities,117.00,monthly,5,0,1
+O-00482,W-0126,Childcare,childcare,508.00,monthly,15,0,1
+O-00483,W-0126,Streaming / subscription,entertainment,19.99,monthly,15,1,0
+O-00484,W-0127,Rent,housing,1838.00,monthly,15,0,1
+O-00485,W-0127,Mobile phone,phone,83.00,monthly,23,1,1
+O-00486,W-0127,Utilities,utilities,84.00,monthly,25,0,1
+O-00487,W-0127,Childcare,childcare,808.00,monthly,7,1,1
+O-00488,W-0127,Installment / loan payment,debt_payment,80.00,biweekly,9,0,1
+O-00489,W-0128,Rent,housing,1692.00,monthly,1,0,1
+O-00490,W-0128,Mobile phone,phone,76.00,monthly,26,0,1
+O-00491,W-0128,Utilities,utilities,151.00,monthly,20,1,1
+O-00492,W-0128,Childcare,childcare,630.00,monthly,7,0,1
+O-00493,W-0128,Installment / loan payment,debt_payment,197.00,monthly,26,0,1
+O-00494,W-0128,Streaming / subscription,entertainment,9.99,monthly,9,1,0
+O-00495,W-0129,Rent,housing,1136.00,monthly,15,0,1
+O-00496,W-0129,Mobile phone,phone,42.00,monthly,1,1,1
+O-00497,W-0129,Utilities,utilities,85.00,monthly,25,0,1
+O-00498,W-0129,Streaming / subscription,entertainment,19.99,monthly,8,1,0
+O-00499,W-0130,Rent,housing,1058.00,monthly,1,0,1
+O-00500,W-0130,Mobile phone,phone,54.00,monthly,11,1,1
+O-00501,W-0130,Utilities,utilities,160.00,monthly,15,0,1
+O-00502,W-0130,Childcare,childcare,568.00,monthly,7,0,1
+O-00503,W-0130,Installment / loan payment,debt_payment,138.00,monthly,27,0,1
+O-00504,W-0131,Rent,housing,1310.00,monthly,1,0,1
+O-00505,W-0131,Mobile phone,phone,41.00,monthly,14,1,1
+O-00506,W-0131,Utilities,utilities,149.00,monthly,25,1,1
+O-00507,W-0131,Installment / loan payment,debt_payment,134.00,monthly,21,1,1
+O-00508,W-0132,Rent,housing,1022.00,monthly,1,0,1
+O-00509,W-0132,Mobile phone,phone,91.00,monthly,5,0,1
+O-00510,W-0132,Streaming / subscription,entertainment,19.99,monthly,12,1,0
+O-00511,W-0133,Rent,housing,1639.00,monthly,1,1,1
+O-00512,W-0133,Mobile phone,phone,59.00,monthly,15,1,1
+O-00513,W-0133,Utilities,utilities,76.00,monthly,25,1,1
+O-00514,W-0133,Childcare,childcare,226.00,monthly,15,1,1
+O-00515,W-0134,Rent,housing,1378.00,monthly,1,0,1
+O-00516,W-0134,Mobile phone,phone,74.00,monthly,4,1,1
+O-00517,W-0134,Utilities,utilities,108.00,monthly,10,1,1
+O-00518,W-0134,Childcare,childcare,629.00,monthly,15,0,1
+O-00519,W-0135,Rent,housing,1583.00,monthly,15,0,1
+O-00520,W-0135,Mobile phone,phone,53.00,monthly,3,0,1
+O-00521,W-0135,Childcare,childcare,315.00,monthly,7,0,1
+O-00522,W-0135,Installment / loan payment,debt_payment,141.00,biweekly,28,0,1
+O-00523,W-0135,Streaming / subscription,entertainment,19.99,monthly,15,1,0
+O-00524,W-0136,Rent,housing,877.00,monthly,1,1,1
+O-00525,W-0136,Mobile phone,phone,50.00,monthly,28,0,1
+O-00526,W-0136,Utilities,utilities,181.00,monthly,10,1,1
+O-00527,W-0136,Installment / loan payment,debt_payment,87.00,biweekly,23,1,1
+O-00528,W-0137,Rent,housing,1860.00,monthly,1,0,1
+O-00529,W-0137,Mobile phone,phone,55.00,monthly,26,1,1
+O-00530,W-0137,Childcare,childcare,424.00,monthly,7,0,1
+O-00531,W-0137,Streaming / subscription,entertainment,19.99,monthly,21,1,0
+O-00532,W-0138,Rent,housing,1610.00,monthly,1,0,1
+O-00533,W-0138,Mobile phone,phone,47.00,monthly,27,1,1
+O-00534,W-0138,Utilities,utilities,174.00,monthly,20,1,1
+O-00535,W-0139,Rent,housing,965.00,monthly,15,1,1
+O-00536,W-0139,Mobile phone,phone,81.00,monthly,19,0,1
+O-00537,W-0139,Utilities,utilities,66.00,monthly,15,1,1
+O-00538,W-0139,Installment / loan payment,debt_payment,131.00,biweekly,5,1,1
+O-00539,W-0140,Rent,housing,1888.00,monthly,1,0,1
+O-00540,W-0140,Mobile phone,phone,55.00,monthly,23,0,1
+O-00541,W-0140,Utilities,utilities,182.00,monthly,10,0,1
+O-00542,W-0140,Childcare,childcare,758.00,monthly,15,1,1
+O-00543,W-0140,Streaming / subscription,entertainment,9.99,monthly,4,1,0
+O-00544,W-0141,Rent,housing,1491.00,monthly,1,0,1
+O-00545,W-0141,Mobile phone,phone,91.00,monthly,14,0,1
+O-00546,W-0141,Installment / loan payment,debt_payment,86.00,monthly,28,0,1
+O-00547,W-0141,Streaming / subscription,entertainment,24.99,monthly,4,1,0
+O-00548,W-0142,Rent,housing,710.00,monthly,15,0,1
+O-00549,W-0142,Mobile phone,phone,49.00,monthly,22,0,1
+O-00550,W-0142,Utilities,utilities,171.00,monthly,25,1,1
+O-00551,W-0142,Installment / loan payment,debt_payment,156.00,monthly,19,0,1
+O-00552,W-0143,Rent,housing,912.00,monthly,1,0,1
+O-00553,W-0143,Mobile phone,phone,83.00,monthly,27,0,1
+O-00554,W-0143,Childcare,childcare,619.00,monthly,15,0,1
+O-00555,W-0143,Installment / loan payment,debt_payment,177.00,biweekly,3,0,1
+O-00556,W-0144,Rent,housing,671.00,monthly,15,0,1
+O-00557,W-0144,Mobile phone,phone,68.00,monthly,8,1,1
+O-00558,W-0144,Utilities,utilities,190.00,monthly,10,0,1
+O-00559,W-0144,Installment / loan payment,debt_payment,106.00,monthly,10,0,1
+O-00560,W-0145,Rent,housing,942.00,monthly,1,1,1
+O-00561,W-0145,Mobile phone,phone,52.00,monthly,3,0,1
+O-00562,W-0145,Utilities,utilities,64.00,monthly,5,0,1
+O-00563,W-0146,Rent,housing,934.00,monthly,1,0,1
+O-00564,W-0146,Mobile phone,phone,59.00,monthly,1,0,1
+O-00565,W-0146,Utilities,utilities,150.00,monthly,10,1,1
+O-00566,W-0147,Rent,housing,1800.00,monthly,1,0,1
+O-00567,W-0147,Mobile phone,phone,43.00,monthly,16,0,1
+O-00568,W-0147,Utilities,utilities,123.00,monthly,10,0,1
+O-00569,W-0147,Streaming / subscription,entertainment,24.99,monthly,17,1,0
+O-00570,W-0148,Rent,housing,1390.00,monthly,1,0,1
+O-00571,W-0148,Mobile phone,phone,72.00,monthly,1,1,1
+O-00572,W-0148,Utilities,utilities,142.00,monthly,10,0,1
+O-00573,W-0148,Installment / loan payment,debt_payment,107.00,biweekly,7,1,1
+O-00574,W-0149,Rent,housing,692.00,monthly,1,0,1
+O-00575,W-0149,Mobile phone,phone,87.00,monthly,15,1,1
+O-00576,W-0149,Childcare,childcare,300.00,monthly,15,0,1
+O-00577,W-0150,Rent,housing,937.00,monthly,1,0,1
+O-00578,W-0150,Mobile phone,phone,89.00,monthly,16,0,1
+O-00579,W-0150,Childcare,childcare,529.00,monthly,1,0,1
+O-00580,W-0150,Installment / loan payment,debt_payment,55.00,monthly,22,0,1
+O-00581,W-0150,Streaming / subscription,entertainment,9.99,monthly,17,1,0
+O-00582,W-0151,Rent,housing,656.00,monthly,15,0,1
+O-00583,W-0151,Mobile phone,phone,47.00,monthly,18,0,1
+O-00584,W-0151,Utilities,utilities,88.00,monthly,20,0,1
+O-00585,W-0151,Childcare,childcare,659.00,monthly,1,0,1
+O-00586,W-0151,Installment / loan payment,debt_payment,176.00,monthly,19,0,1
+O-00587,W-0151,Streaming / subscription,entertainment,14.99,monthly,18,1,0
+O-00588,W-0152,Rent,housing,760.00,monthly,1,0,1
+O-00589,W-0152,Mobile phone,phone,87.00,monthly,19,1,1
+O-00590,W-0152,Installment / loan payment,debt_payment,150.00,biweekly,26,0,1
+O-00591,W-0152,Streaming / subscription,entertainment,24.99,monthly,5,1,0
+O-00592,W-0153,Rent,housing,1095.00,monthly,15,0,1
+O-00593,W-0153,Mobile phone,phone,77.00,monthly,28,0,1
+O-00594,W-0153,Utilities,utilities,119.00,monthly,5,1,1
+O-00595,W-0153,Childcare,childcare,594.00,monthly,15,1,1
+O-00596,W-0154,Rent,housing,2013.00,monthly,1,0,1
+O-00597,W-0154,Mobile phone,phone,40.00,monthly,2,1,1
+O-00598,W-0154,Utilities,utilities,87.00,monthly,10,0,1
+O-00599,W-0154,Childcare,childcare,348.00,monthly,1,0,1
+O-00600,W-0154,Installment / loan payment,debt_payment,90.00,monthly,5,1,1
+O-00601,W-0155,Rent,housing,842.00,monthly,1,0,1
+O-00602,W-0155,Mobile phone,phone,56.00,monthly,14,1,1
+O-00603,W-0155,Utilities,utilities,90.00,monthly,25,0,1
+O-00604,W-0155,Childcare,childcare,742.00,monthly,7,0,1
+O-00605,W-0156,Rent,housing,1221.00,monthly,1,1,1
+O-00606,W-0156,Mobile phone,phone,83.00,monthly,1,1,1
+O-00607,W-0156,Installment / loan payment,debt_payment,124.00,monthly,16,1,1
+O-00608,W-0156,Streaming / subscription,entertainment,24.99,monthly,6,1,0
+O-00609,W-0157,Rent,housing,844.00,monthly,1,0,1
+O-00610,W-0157,Mobile phone,phone,86.00,monthly,17,0,1
+O-00611,W-0157,Childcare,childcare,884.00,monthly,15,0,1
+O-00612,W-0157,Installment / loan payment,debt_payment,168.00,biweekly,26,0,1
+O-00613,W-0158,Rent,housing,1021.00,monthly,1,0,1
+O-00614,W-0158,Mobile phone,phone,63.00,monthly,1,0,1
+O-00615,W-0158,Installment / loan payment,debt_payment,172.00,monthly,28,1,1
+O-00616,W-0159,Rent,housing,1480.00,monthly,1,0,1
+O-00617,W-0159,Mobile phone,phone,40.00,monthly,13,1,1
+O-00618,W-0159,Utilities,utilities,142.00,monthly,10,0,1
+O-00619,W-0159,Childcare,childcare,798.00,monthly,15,0,1
+O-00620,W-0159,Installment / loan payment,debt_payment,193.00,monthly,4,1,1
+O-00621,W-0159,Streaming / subscription,entertainment,19.99,monthly,14,1,0
+O-00622,W-0160,Rent,housing,1558.00,monthly,1,0,1
+O-00623,W-0160,Mobile phone,phone,47.00,monthly,6,1,1
+O-00624,W-0160,Utilities,utilities,108.00,monthly,15,1,1
+O-00625,W-0160,Streaming / subscription,entertainment,24.99,monthly,25,1,0
+O-00626,W-0161,Rent,housing,1707.00,monthly,15,1,1
+O-00627,W-0161,Mobile phone,phone,76.00,monthly,25,0,1
+O-00628,W-0161,Utilities,utilities,94.00,monthly,5,1,1
+O-00629,W-0161,Childcare,childcare,221.00,monthly,7,1,1
+O-00630,W-0162,Rent,housing,1418.00,monthly,15,0,1
+O-00631,W-0162,Mobile phone,phone,81.00,monthly,15,1,1
+O-00632,W-0162,Utilities,utilities,74.00,monthly,20,0,1
+O-00633,W-0162,Childcare,childcare,820.00,monthly,1,1,1
+O-00634,W-0162,Streaming / subscription,entertainment,24.99,monthly,21,1,0
+O-00635,W-0163,Rent,housing,1744.00,monthly,1,1,1
+O-00636,W-0163,Mobile phone,phone,75.00,monthly,22,1,1
+O-00637,W-0163,Utilities,utilities,160.00,monthly,20,0,1
+O-00638,W-0163,Streaming / subscription,entertainment,19.99,monthly,3,1,0
+O-00639,W-0164,Rent,housing,1438.00,monthly,1,0,1
+O-00640,W-0164,Mobile phone,phone,80.00,monthly,4,0,1
+O-00641,W-0164,Streaming / subscription,entertainment,9.99,monthly,5,1,0
+O-00642,W-0165,Rent,housing,1207.00,monthly,1,0,1
+O-00643,W-0165,Mobile phone,phone,47.00,monthly,9,0,1
+O-00644,W-0165,Installment / loan payment,debt_payment,81.00,monthly,28,0,1
+O-00645,W-0166,Rent,housing,1438.00,monthly,1,0,1
+O-00646,W-0166,Mobile phone,phone,67.00,monthly,16,1,1
+O-00647,W-0166,Installment / loan payment,debt_payment,84.00,biweekly,12,1,1
+O-00648,W-0167,Rent,housing,807.00,monthly,1,0,1
+O-00649,W-0167,Mobile phone,phone,57.00,monthly,25,1,1
+O-00650,W-0167,Utilities,utilities,124.00,monthly,20,1,1
+O-00651,W-0167,Installment / loan payment,debt_payment,99.00,biweekly,4,1,1
+O-00652,W-0167,Streaming / subscription,entertainment,14.99,monthly,28,1,0
+O-00653,W-0168,Rent,housing,1529.00,monthly,1,1,1
+O-00654,W-0168,Mobile phone,phone,76.00,monthly,19,1,1
+O-00655,W-0168,Utilities,utilities,135.00,monthly,5,0,1
+O-00656,W-0168,Installment / loan payment,debt_payment,111.00,monthly,11,1,1
+O-00657,W-0169,Rent,housing,1676.00,monthly,1,0,1
+O-00658,W-0169,Mobile phone,phone,66.00,monthly,16,1,1
+O-00659,W-0169,Utilities,utilities,151.00,monthly,15,0,1
+O-00660,W-0170,Rent,housing,1670.00,monthly,1,0,1
+O-00661,W-0170,Mobile phone,phone,51.00,monthly,4,0,1
+O-00662,W-0170,Utilities,utilities,174.00,monthly,20,0,1
+O-00663,W-0170,Installment / loan payment,debt_payment,179.00,monthly,19,0,1
+O-00664,W-0171,Rent,housing,1555.00,monthly,1,0,1
+O-00665,W-0171,Mobile phone,phone,47.00,monthly,23,0,1
+O-00666,W-0171,Installment / loan payment,debt_payment,177.00,biweekly,14,0,1
+O-00667,W-0171,Streaming / subscription,entertainment,19.99,monthly,5,1,0
+O-00668,W-0172,Rent,housing,1479.00,monthly,1,0,1
+O-00669,W-0172,Mobile phone,phone,79.00,monthly,11,1,1
+O-00670,W-0172,Utilities,utilities,178.00,monthly,20,0,1
+O-00671,W-0172,Installment / loan payment,debt_payment,102.00,monthly,6,1,1
+O-00672,W-0173,Rent,housing,738.00,monthly,1,0,1
+O-00673,W-0173,Mobile phone,phone,55.00,monthly,18,0,1
+O-00674,W-0173,Utilities,utilities,86.00,monthly,5,0,1
+O-00675,W-0173,Childcare,childcare,558.00,monthly,7,0,1
+O-00676,W-0173,Installment / loan payment,debt_payment,79.00,monthly,27,1,1
+O-00677,W-0173,Streaming / subscription,entertainment,24.99,monthly,13,1,0
+O-00678,W-0174,Rent,housing,854.00,monthly,1,0,1
+O-00679,W-0174,Mobile phone,phone,47.00,monthly,12,0,1
+O-00680,W-0174,Childcare,childcare,698.00,monthly,7,1,1
+O-00681,W-0175,Rent,housing,925.00,monthly,15,0,1
+O-00682,W-0175,Mobile phone,phone,62.00,monthly,3,1,1
+O-00683,W-0175,Utilities,utilities,163.00,monthly,15,1,1
+O-00684,W-0176,Rent,housing,622.00,monthly,1,0,1
+O-00685,W-0176,Mobile phone,phone,43.00,monthly,11,1,1
+O-00686,W-0176,Utilities,utilities,93.00,monthly,25,1,1
+O-00687,W-0176,Installment / loan payment,debt_payment,195.00,biweekly,10,1,1
+O-00688,W-0176,Streaming / subscription,entertainment,19.99,monthly,16,1,0
+O-00689,W-0177,Rent,housing,1532.00,monthly,1,0,1
+O-00690,W-0177,Mobile phone,phone,81.00,monthly,16,0,1
+O-00691,W-0177,Utilities,utilities,184.00,monthly,10,1,1
+O-00692,W-0178,Rent,housing,1394.00,monthly,1,1,1
+O-00693,W-0178,Mobile phone,phone,87.00,monthly,12,1,1
+O-00694,W-0178,Utilities,utilities,78.00,monthly,20,1,1
+O-00695,W-0178,Childcare,childcare,492.00,monthly,1,0,1
+O-00696,W-0178,Streaming / subscription,entertainment,19.99,monthly,5,1,0
+O-00697,W-0179,Rent,housing,1112.00,monthly,1,0,1
+O-00698,W-0179,Mobile phone,phone,42.00,monthly,21,1,1
+O-00699,W-0179,Streaming / subscription,entertainment,9.99,monthly,9,1,0
+O-00700,W-0180,Rent,housing,1115.00,monthly,1,1,1
+O-00701,W-0180,Mobile phone,phone,67.00,monthly,14,1,1
+O-00702,W-0181,Rent,housing,883.00,monthly,1,0,1
+O-00703,W-0181,Mobile phone,phone,84.00,monthly,17,0,1
+O-00704,W-0181,Streaming / subscription,entertainment,19.99,monthly,25,1,0
+O-00705,W-0182,Rent,housing,649.00,monthly,1,0,1
+O-00706,W-0182,Mobile phone,phone,92.00,monthly,20,0,1
+O-00707,W-0182,Childcare,childcare,345.00,monthly,15,0,1
+O-00708,W-0182,Installment / loan payment,debt_payment,47.00,monthly,12,0,1
+O-00709,W-0182,Streaming / subscription,entertainment,19.99,monthly,13,1,0
+O-00710,W-0183,Rent,housing,1371.00,monthly,15,0,1
+O-00711,W-0183,Mobile phone,phone,64.00,monthly,14,1,1
+O-00712,W-0183,Utilities,utilities,129.00,monthly,15,0,1
+O-00713,W-0184,Rent,housing,1863.00,monthly,15,0,1
+O-00714,W-0184,Mobile phone,phone,95.00,monthly,20,0,1
+O-00715,W-0184,Utilities,utilities,62.00,monthly,20,0,1
+O-00716,W-0184,Installment / loan payment,debt_payment,113.00,monthly,19,1,1
+O-00717,W-0184,Streaming / subscription,entertainment,24.99,monthly,26,1,0
+O-00718,W-0185,Rent,housing,756.00,monthly,1,0,1
+O-00719,W-0185,Mobile phone,phone,89.00,monthly,18,1,1
+O-00720,W-0185,Installment / loan payment,debt_payment,159.00,monthly,15,0,1
+O-00721,W-0185,Streaming / subscription,entertainment,24.99,monthly,17,1,0
+O-00722,W-0186,Rent,housing,831.00,monthly,1,0,1
+O-00723,W-0186,Mobile phone,phone,79.00,monthly,23,1,1
+O-00724,W-0186,Utilities,utilities,79.00,monthly,25,1,1
+O-00725,W-0186,Streaming / subscription,entertainment,24.99,monthly,8,1,0
+O-00726,W-0187,Rent,housing,2041.00,monthly,1,0,1
+O-00727,W-0187,Mobile phone,phone,82.00,monthly,14,0,1
+O-00728,W-0187,Utilities,utilities,89.00,monthly,20,0,1
+O-00729,W-0187,Installment / loan payment,debt_payment,47.00,biweekly,26,0,1
+O-00730,W-0187,Streaming / subscription,entertainment,19.99,monthly,11,1,0
+O-00731,W-0188,Rent,housing,1031.00,monthly,15,0,1
+O-00732,W-0188,Mobile phone,phone,65.00,monthly,6,0,1
+O-00733,W-0188,Utilities,utilities,135.00,monthly,5,0,1
+O-00734,W-0188,Installment / loan payment,debt_payment,80.00,biweekly,15,1,1
+O-00735,W-0188,Streaming / subscription,entertainment,24.99,monthly,11,1,0
+O-00736,W-0189,Rent,housing,918.00,monthly,15,1,1
+O-00737,W-0189,Mobile phone,phone,81.00,monthly,2,0,1
+O-00738,W-0189,Utilities,utilities,144.00,monthly,5,0,1
+O-00739,W-0189,Childcare,childcare,693.00,monthly,1,0,1
+O-00740,W-0189,Streaming / subscription,entertainment,9.99,monthly,15,1,0
+O-00741,W-0190,Rent,housing,920.00,monthly,1,0,1
+O-00742,W-0190,Mobile phone,phone,57.00,monthly,1,0,1
+O-00743,W-0190,Utilities,utilities,130.00,monthly,10,0,1
+O-00744,W-0190,Childcare,childcare,636.00,monthly,1,0,1
+O-00745,W-0190,Installment / loan payment,debt_payment,88.00,biweekly,11,0,1
+O-00746,W-0190,Streaming / subscription,entertainment,14.99,monthly,19,1,0
+O-00747,W-0191,Rent,housing,1457.00,monthly,15,1,1
+O-00748,W-0191,Mobile phone,phone,68.00,monthly,8,1,1
+O-00749,W-0191,Utilities,utilities,89.00,monthly,5,1,1
+O-00750,W-0191,Streaming / subscription,entertainment,24.99,monthly,4,1,0
+O-00751,W-0192,Rent,housing,758.00,monthly,1,0,1
+O-00752,W-0192,Mobile phone,phone,72.00,monthly,9,1,1
+O-00753,W-0192,Installment / loan payment,debt_payment,161.00,biweekly,27,1,1
+O-00754,W-0192,Streaming / subscription,entertainment,24.99,monthly,23,1,0
+O-00755,W-0193,Rent,housing,1598.00,monthly,1,1,1
+O-00756,W-0193,Mobile phone,phone,52.00,monthly,11,1,1
+O-00757,W-0193,Utilities,utilities,189.00,monthly,25,1,1
+O-00758,W-0193,Childcare,childcare,861.00,monthly,1,0,1
+O-00759,W-0193,Streaming / subscription,entertainment,19.99,monthly,15,1,0
+O-00760,W-0194,Rent,housing,1481.00,monthly,15,0,1
+O-00761,W-0194,Mobile phone,phone,77.00,monthly,21,0,1
+O-00762,W-0194,Utilities,utilities,105.00,monthly,15,1,1
+O-00763,W-0195,Rent,housing,1799.00,monthly,15,0,1
+O-00764,W-0195,Mobile phone,phone,70.00,monthly,13,1,1
+O-00765,W-0195,Utilities,utilities,152.00,monthly,20,0,1
+O-00766,W-0196,Rent,housing,1438.00,monthly,1,0,1
+O-00767,W-0196,Mobile phone,phone,53.00,monthly,19,0,1
+O-00768,W-0196,Utilities,utilities,65.00,monthly,15,0,1
+O-00769,W-0196,Installment / loan payment,debt_payment,140.00,monthly,6,1,1
+O-00770,W-0197,Rent,housing,1643.00,monthly,1,0,1
+O-00771,W-0197,Mobile phone,phone,86.00,monthly,15,1,1
+O-00772,W-0197,Utilities,utilities,130.00,monthly,5,1,1
+O-00773,W-0197,Childcare,childcare,412.00,monthly,1,1,1
+O-00774,W-0198,Rent,housing,827.00,monthly,1,0,1
+O-00775,W-0198,Mobile phone,phone,50.00,monthly,10,1,1
+O-00776,W-0198,Installment / loan payment,debt_payment,99.00,monthly,18,0,1
+O-00777,W-0199,Rent,housing,1011.00,monthly,15,1,1
+O-00778,W-0199,Mobile phone,phone,52.00,monthly,7,0,1
+O-00779,W-0199,Utilities,utilities,133.00,monthly,25,1,1
+O-00780,W-0200,Rent,housing,1518.00,monthly,1,0,1
+O-00781,W-0200,Mobile phone,phone,84.00,monthly,16,1,1
+O-00782,W-0200,Installment / loan payment,debt_payment,220.00,biweekly,19,0,1
+O-00783,W-0201,Rent,housing,838.00,monthly,1,1,1
+O-00784,W-0201,Mobile phone,phone,40.00,monthly,11,0,1
+O-00785,W-0201,Utilities,utilities,99.00,monthly,10,0,1
+O-00786,W-0201,Childcare,childcare,527.00,monthly,7,0,1
+O-00787,W-0201,Installment / loan payment,debt_payment,81.00,biweekly,1,1,1
+O-00788,W-0202,Rent,housing,1834.00,monthly,1,1,1
+O-00789,W-0202,Mobile phone,phone,62.00,monthly,21,1,1
+O-00790,W-0202,Childcare,childcare,545.00,monthly,1,0,1
+O-00791,W-0203,Rent,housing,666.00,monthly,1,0,1
+O-00792,W-0203,Mobile phone,phone,60.00,monthly,3,0,1
+O-00793,W-0203,Utilities,utilities,108.00,monthly,25,1,1
+O-00794,W-0203,Installment / loan payment,debt_payment,192.00,monthly,26,1,1
+O-00795,W-0204,Rent,housing,777.00,monthly,1,1,1
+O-00796,W-0204,Mobile phone,phone,76.00,monthly,4,0,1
+O-00797,W-0204,Utilities,utilities,68.00,monthly,20,0,1
+O-00798,W-0204,Childcare,childcare,791.00,monthly,7,0,1
+O-00799,W-0205,Rent,housing,1544.00,monthly,15,0,1
+O-00800,W-0205,Mobile phone,phone,71.00,monthly,1,0,1
+O-00801,W-0205,Utilities,utilities,147.00,monthly,15,0,1
+O-00802,W-0206,Rent,housing,896.00,monthly,15,1,1
+O-00803,W-0206,Mobile phone,phone,88.00,monthly,21,0,1
+O-00804,W-0206,Installment / loan payment,debt_payment,114.00,monthly,1,1,1
+O-00805,W-0206,Streaming / subscription,entertainment,9.99,monthly,7,1,0
+O-00806,W-0207,Rent,housing,1292.00,monthly,1,0,1
+O-00807,W-0207,Mobile phone,phone,74.00,monthly,28,1,1
+O-00808,W-0207,Installment / loan payment,debt_payment,172.00,biweekly,5,1,1
+O-00809,W-0208,Rent,housing,1674.00,monthly,1,0,1
+O-00810,W-0208,Mobile phone,phone,85.00,monthly,22,1,1
+O-00811,W-0208,Utilities,utilities,116.00,monthly,10,0,1
+O-00812,W-0209,Rent,housing,1321.00,monthly,1,0,1
+O-00813,W-0209,Mobile phone,phone,51.00,monthly,19,1,1
+O-00814,W-0210,Rent,housing,904.00,monthly,1,0,1
+O-00815,W-0210,Mobile phone,phone,86.00,monthly,1,1,1
+O-00816,W-0210,Childcare,childcare,482.00,monthly,7,0,1
+O-00817,W-0211,Rent,housing,699.00,monthly,15,0,1
+O-00818,W-0211,Mobile phone,phone,53.00,monthly,13,0,1
+O-00819,W-0211,Utilities,utilities,132.00,monthly,25,0,1
+O-00820,W-0212,Rent,housing,659.00,monthly,1,0,1
+O-00821,W-0212,Mobile phone,phone,68.00,monthly,10,0,1
+O-00822,W-0212,Utilities,utilities,146.00,monthly,10,0,1
+O-00823,W-0212,Installment / loan payment,debt_payment,206.00,monthly,24,0,1
+O-00824,W-0213,Rent,housing,766.00,monthly,1,1,1
+O-00825,W-0213,Mobile phone,phone,82.00,monthly,28,1,1
+O-00826,W-0213,Utilities,utilities,115.00,monthly,10,0,1
+O-00827,W-0214,Rent,housing,1065.00,monthly,1,0,1
+O-00828,W-0214,Mobile phone,phone,93.00,monthly,20,0,1
+O-00829,W-0214,Utilities,utilities,68.00,monthly,15,0,1
+O-00830,W-0214,Childcare,childcare,627.00,monthly,7,0,1
+O-00831,W-0215,Rent,housing,773.00,monthly,1,0,1
+O-00832,W-0215,Mobile phone,phone,81.00,monthly,19,0,1
+O-00833,W-0215,Installment / loan payment,debt_payment,182.00,biweekly,16,0,1
+O-00834,W-0216,Rent,housing,732.00,monthly,1,0,1
+O-00835,W-0216,Mobile phone,phone,42.00,monthly,28,0,1
+O-00836,W-0217,Rent,housing,946.00,monthly,1,0,1
+O-00837,W-0217,Mobile phone,phone,47.00,monthly,20,1,1
+O-00838,W-0217,Utilities,utilities,157.00,monthly,25,0,1
+O-00839,W-0217,Childcare,childcare,363.00,monthly,7,1,1
+O-00840,W-0217,Streaming / subscription,entertainment,14.99,monthly,23,1,0
+O-00841,W-0218,Rent,housing,1419.00,monthly,15,0,1
+O-00842,W-0218,Mobile phone,phone,42.00,monthly,8,1,1
+O-00843,W-0218,Childcare,childcare,365.00,monthly,7,0,1
+O-00844,W-0218,Streaming / subscription,entertainment,14.99,monthly,14,1,0
+O-00845,W-0219,Rent,housing,1317.00,monthly,1,1,1
+O-00846,W-0219,Mobile phone,phone,43.00,monthly,19,0,1
+O-00847,W-0219,Utilities,utilities,101.00,monthly,15,0,1
+O-00848,W-0220,Rent,housing,830.00,monthly,1,0,1
+O-00849,W-0220,Mobile phone,phone,91.00,monthly,6,0,1
