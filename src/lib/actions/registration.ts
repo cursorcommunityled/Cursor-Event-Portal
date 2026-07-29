@@ -139,6 +139,11 @@ async function setSession(userId: string, eventId: string) {
 }
 
 export async function getSession() {
+  // Mobile Bearer sessions inject via AsyncLocalStorage (see mobile-session.ts).
+  const { portalSessionALS } = await import("@/lib/auth/mobile-session");
+  const override = portalSessionALS.getStore();
+  if (override) return override;
+
   const cookieStore = await cookies();
   const session = cookieStore.get(PORTAL_SESSION_COOKIE_NAME);
 

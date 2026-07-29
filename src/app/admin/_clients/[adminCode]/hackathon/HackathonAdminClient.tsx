@@ -17,6 +17,7 @@ import {
   adminRemoveTeamMember,
   adminDissolveTeam,
   adminCreateTeam,
+  pickVolunteerPresentations,
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
 import { pushTopAIToFinalRound, triggerAnalysisForAllSubmitted } from "@/lib/actions/hackathon-analysis";
@@ -33,7 +34,7 @@ import {
   Swords, Settings, Users, Trophy,
   Lock, Unlock, ArrowLeft, Check, X, ChevronDown, ChevronUp,
   ImageIcon, MessageSquare, Star, Sparkles, Plus, Cpu, Award, Megaphone,
-  FileText, UserRound,
+  FileText, UserRound, Mic2, Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -290,6 +291,15 @@ export function HackathonAdminClient({
   const [formMaxSize, setFormMaxSize] = useState(initialSettings?.max_team_size ?? 4);
   const [formPrompt, setFormPrompt] = useState(initialSettings?.prompt_text ?? DEFAULT_HACKATHON_PROMPT);
   const [repoSubmissionBackups, setRepoSubmissionBackups] = useState(initialRepoSubmissionBackups);
+  const [presentationSpinning, setPresentationSpinning] = useState(false);
+  const [presentationSpinLabel, setPresentationSpinLabel] = useState("");
+  const [pickedPresentationTeams, setPickedPresentationTeams] = useState<{ id: string; name: string }[]>(() => {
+    const ids = initialSettings?.presentation_team_ids ?? [];
+    return ids
+      .map((id) => initialTeams.find((t) => t.id === id))
+      .filter((t): t is HackathonTeamWithMembers => Boolean(t))
+      .map((t) => ({ id: t.id, name: t.project?.name || t.name }));
+  });
 
   // Team match suggestions state
   const [suggestStatus, setSuggestStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
@@ -420,7 +430,16 @@ export function HackathonAdminClient({
     setFormMinSize(initialSettings?.min_team_size ?? 2);
     setFormMaxSize(initialSettings?.max_team_size ?? 4);
     setFormPrompt(initialSettings?.prompt_text ?? DEFAULT_HACKATHON_PROMPT);
-  }, [initialSettings]);
+    const ids = initialSettings?.presentation_team_ids ?? [];
+    if (ids.length > 0) {
+      setPickedPresentationTeams(
+        ids
+          .map((id) => initialTeams.find((t) => t.id === id))
+          .filter((t): t is HackathonTeamWithMembers => Boolean(t))
+          .map((t) => ({ id: t.id, name: t.project?.name || t.name }))
+      );
+    }
+  }, [initialSettings, initialTeams]);
 
   useEffect(() => {
     setTeams(initialTeams);
@@ -1051,6 +1070,120 @@ export function HackathonAdminClient({
             >
               Save Settings
             </button>
+
+            {(() => {
+              const volunteers = teams.filter((t) => t.volunteered_to_present_at);
+              const volunteerNames = volunteers.map((t) => t.project?.name || t.name);
+              return (
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Live presentations</p>
+                      <h3 className="mt-1 flex items-center gap-2 text-sm font-medium text-white">
+                        <Mic2 className="h-4 w-4" />
+                        Choose Volunteer Presentations
+                      </h3>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {volunteers.length === 0
+                          ? "No teams have volunteered yet."
+                          : `${volunteers.length} team${volunteers.length === 1 ? "" : "s"} in the pool. Pick up to three at random.`}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[11px] font-medium text-white/70">
+                      {volunteers.length} volunteered
+                    </span>
+                  </div>
+
+                  {volunteers.length > 0 && (
+                    <ul className="max-h-36 space-y-1.5 overflow-y-auto rounded-2xl border border-white/[0.06] bg-black/30 p-3">
+                      {volunteers.map((team) => (
+                        <li key={team.id} className="text-sm text-white/70">
+                          {team.project?.name || team.name}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {(presentationSpinning || pickedPresentationTeams.length > 0) && (
+                    <div className="rounded-2xl border border-white/15 bg-black/50 p-4 text-center">
+                      {presentationSpinning ? (
+                        <>
+                          <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Spinning</p>
+                          <p className="mt-2 min-h-[2rem] text-xl font-semibold text-white">
+                            {presentationSpinLabel || "..."}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Presenting tonight</p>
+                          <ol className="mt-3 space-y-2 text-left">
+                            {pickedPresentationTeams.map((team, index) => (
+                              <li key={team.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white text-[11px] font-bold text-black">
+                                  {index + 1}
+                                </span>
+                                {team.name}
+                              </li>
+                            ))}
+                          </ol>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={isPending || presentationSpinning || volunteers.length === 0}
+                    onClick={() => {
+                      if (volunteers.length === 0 || presentationSpinning) return;
+                      setPresentationSpinning(true);
+                      let i = 0;
+                      const names = volunteerNames.length > 0 ? volunteerNames : ["..."];
+                      const spinInterval = window.setInterval(() => {
+                        setPresentationSpinLabel(names[i % names.length]);
+                        i += 1;
+                      }, 90);
+
+                      startTransition(async () => {
+                        const res = await pickVolunteerPresentations(adminCode, { count: 3 });
+                        window.setTimeout(() => {
+                          window.clearInterval(spinInterval);
+                          setPresentationSpinning(false);
+                          if (res.error) {
+                            showFeedback(res.error);
+                            return;
+                          }
+                          setPickedPresentationTeams(res.selectedTeams ?? []);
+                          setSettings((prev) => prev
+                            ? {
+                                ...prev,
+                                presentation_team_ids: (res.selectedTeams ?? []).map((t) => t.id),
+                                presentation_picked_at: new Date().toISOString(),
+                              }
+                            : prev);
+                          setSaved(true);
+                          window.setTimeout(() => setSaved(false), 2000);
+                          router.refresh();
+                        }, 1800);
+                      });
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm font-medium text-black transition-all hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {presentationSpinning ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Picking...
+                      </>
+                    ) : (
+                      <>
+                        <Mic2 className="h-4 w-4" />
+                        Pick three randomly
+                      </>
+                    )}
+                  </button>
+                </div>
+              );
+            })()}
 
             <details className="group border-t border-white/5 pt-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left">

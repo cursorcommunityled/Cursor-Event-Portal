@@ -878,6 +878,8 @@ export interface HackathonSettings {
   final_round_paid_places: number;
   final_round_prizes: HackathonPrize[];
   prompt_text: string;
+  presentation_team_ids?: string[];
+  presentation_picked_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -893,6 +895,8 @@ export interface HackathonTeam {
   icon_photo_id: string | null;
   locked_at: string | null;
   category: string | null;
+  volunteered_to_present_at?: string | null;
+  volunteered_to_present_by?: string | null;
   created_at: string;
   updated_at: string;
 }
