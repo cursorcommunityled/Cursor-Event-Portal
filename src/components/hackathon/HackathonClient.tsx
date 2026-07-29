@@ -14,6 +14,7 @@ import {
   dissolveTeam,
   submitHackathonProject,
   cancelHackathonProjectSubmission,
+  volunteerTeamToPresent,
 } from "@/lib/actions/hackathon";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,7 @@ import {
   Users, Swords, UserPlus, X, Check, Lock, Clock,
   LogOut, Github, Globe, ExternalLink, ChevronDown,
   Camera, ImageIcon, Loader2, MessageSquare,
-  Pencil, Trophy, Database,
+  Pencil, Trophy, Database, Mic2,
 } from "lucide-react";
 import type {
   Event, HackathonSettings, HackathonTeamWithMembers,
@@ -35,6 +36,10 @@ import { TeamFinderPanel } from "@/components/hackathon-chat/TeamFinderPanel";
 import { JudgingWinnersPodium } from "@/components/hackathon-judging/JudgingWinnersReveal";
 import { HackathonEffects } from "@/components/hackathon/HackathonEffects";
 import { AudienceVoteCard } from "@/components/hackathon/AudienceVoteCard";
+import {
+  PresentingTonightCard,
+  VolunteerPresentationReveal,
+} from "@/components/hackathon/VolunteerPresentationReveal";
 import { HackathonAttendeeLeaderboard, type AttendeeLeaderboardEntry } from "@/components/hackathon/HackathonAttendeeLeaderboard";
 import type { AIScreeningScoreDetail } from "@/components/hackathon/AIScreeningScoreAssessment";
 import { HackathonRulesButton } from "@/components/hackathon/HackathonRulesButton";
@@ -680,6 +685,41 @@ export function HackathonClient({
     });
   };
 
+  const handleVolunteerPresent = () => {
+    if (!myTeam || myTeam.volunteered_to_present_at) return;
+    startTransition(async () => {
+      const res = await volunteerTeamToPresent(myTeam.id, event.id);
+      if (res.error) { showMsg(res.error, true); return; }
+      const volunteeredAt = new Date().toISOString();
+      setMyTeam((prev) => prev
+        ? { ...prev, volunteered_to_present_at: volunteeredAt, volunteered_to_present_by: userId }
+        : prev);
+      setAllTeams((prev) => prev.map((team) =>
+        team.id === myTeam.id
+          ? { ...team, volunteered_to_present_at: volunteeredAt, volunteered_to_present_by: userId }
+          : team
+      ));
+      showMsg("You're in the presentation volunteer pool");
+      refresh();
+    });
+  };
+
+  const presentationTeamIds = settings?.presentation_team_ids ?? [];
+  const presentationTeams = useMemo(
+    () => presentationTeamIds
+      .map((id) => allTeams.find((t) => t.id === id))
+      .filter((t): t is HackathonTeamWithMembers => Boolean(t))
+      .map((t) => ({ id: t.id, name: t.project?.name || t.name })),
+    [presentationTeamIds, allTeams]
+  );
+  const volunteerNames = useMemo(
+    () => allTeams
+      .filter((t) => t.volunteered_to_present_at)
+      .map((t) => t.project?.name || t.name),
+    [allTeams]
+  );
+  const hasVolunteered = Boolean(myTeam?.volunteered_to_present_at);
+
   const handleTeamRename = () => {
     if (!myTeam) return;
     const nextName = teamNameDraft.trim();
@@ -852,6 +892,58 @@ export function HackathonClient({
     </div>
   );
 
+  const volunteerPresentBar = myTeam ? (
+    <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-gradient-to-r from-white/15 via-white/5 to-transparent p-4 shadow-[0_0_40px_rgba(255,255,255,0.08)] backdrop-blur-xl sm:p-5">
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.25em] text-gray-400">
+            <Mic2 className="h-3.5 w-3.5 text-white" />
+            Presentations
+          </p>
+          <p className="text-[15px] font-semibold text-white">
+            {hasVolunteered
+              ? "Your team volunteered to present"
+              : "Want to demo? Volunteer your team to present"}
+          </p>
+          <p className="text-[13px] text-gray-400">
+            Three teams will be picked from volunteers tonight. One click per team.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={isPending || hasVolunteered}
+          onClick={handleVolunteerPresent}
+          className={cn(
+            "group relative shrink-0 overflow-hidden rounded-2xl px-6 py-3.5 text-[13px] font-bold uppercase tracking-[0.15em] transition-all",
+            hasVolunteered
+              ? "cursor-default border border-white/20 bg-white/10 text-white"
+              : "bg-white text-black hover:scale-105 hover:shadow-[0_0_24px_rgba(255,255,255,0.35)] disabled:opacity-50"
+          )}
+        >
+          <span className="relative flex items-center justify-center gap-2">
+            {hasVolunteered ? (
+              <>
+                <Check className="h-4 w-4" />
+                Volunteered
+              </>
+            ) : isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Volunteering
+              </>
+            ) : (
+              <>
+                <Mic2 className="h-4 w-4" />
+                Volunteer to Present
+              </>
+            )}
+          </span>
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   // Chat tab: full-width layout, skip the narrow container
   if (tab === "chat") {
     return (
@@ -867,8 +959,15 @@ export function HackathonClient({
           eventStarted={eventHasStarted} 
           teamFormed={!!myTeam}
         />
-        <div className="mb-5 max-w-5xl mx-auto">
+        <VolunteerPresentationReveal
+          eventId={event.id}
+          pickedAt={settings?.presentation_picked_at}
+          selectedTeams={presentationTeams}
+          volunteerNames={volunteerNames}
+        />
+        <div className="mb-5 max-w-5xl mx-auto space-y-4">
           {header}
+          {volunteerPresentBar}
         </div>
         {/* Tab bar — stays above chat */}
         <div className="relative mx-auto mb-5 flex w-full max-w-fit flex-wrap justify-center gap-2 rounded-xl border border-white/10 bg-black/40 p-1.5 backdrop-blur-xl shadow-lg">
@@ -936,6 +1035,13 @@ export function HackathonClient({
         teamFormed={!!myTeam}
       />
 
+      <VolunteerPresentationReveal
+        eventId={event.id}
+        pickedAt={settings?.presentation_picked_at}
+        selectedTeams={presentationTeams}
+        volunteerNames={volunteerNames}
+      />
+
       {/* Header */}
       {header}
 
@@ -945,6 +1051,12 @@ export function HackathonClient({
       {audienceVotePoll && (
         <AudienceVoteCard poll={audienceVotePoll} eventSlug={event.slug} />
       )}
+
+      {presentationTeams.length > 0 && (
+        <PresentingTonightCard teams={presentationTeams} />
+      )}
+
+      {volunteerPresentBar}
 
       {/* Pending invite banners */}
       {receivedInvites.length > 0 && (

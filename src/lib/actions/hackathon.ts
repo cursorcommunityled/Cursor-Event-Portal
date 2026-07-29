@@ -1596,3 +1596,133 @@ export async function cancelHackathonProjectSubmission(
   if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
   return { success: true };
 }
+
+// ─── Attendee: volunteer team to present (once per team) ──────────────────────
+
+export async function volunteerTeamToPresent(
+  teamId: string,
+  eventId: string
+): Promise<{ success?: true; error?: string }> {
+  const session = await getSession();
+  if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
+
+  const supabase = await createServiceClient();
+
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("id, event_id, volunteered_to_present_at")
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!team) return { error: "Team not found" };
+  if (team.volunteered_to_present_at) return { error: "Team already volunteered" };
+
+  const { data: membership } = await supabase
+    .from("hackathon_team_members")
+    .select("id")
+    .eq("team_id", teamId)
+    .eq("user_id", session.userId)
+    .maybeSingle();
+
+  if (!membership) return { error: "You are not on this team" };
+
+  const now = new Date().toISOString();
+  const { data: updated, error } = await supabase
+    .from("hackathon_teams")
+    .update({
+      volunteered_to_present_at: now,
+      volunteered_to_present_by: session.userId,
+      updated_at: now,
+    })
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .is("volunteered_to_present_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!updated) return { error: "Team already volunteered" };
+
+  const { data: eventSlug } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+  if (eventSlug?.slug) revalidatePath(`/${eventSlug.slug}/hackathon`);
+  return { success: true };
+}
+
+// ─── Admin: randomly pick up to 3 volunteered presentation teams ──────────────
+
+function shufflePick<T>(items: T[], count: number): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, Math.min(count, copy.length));
+}
+
+export async function pickVolunteerPresentations(
+  adminCode: string,
+  options?: { count?: number }
+): Promise<{
+  success?: true;
+  error?: string;
+  selectedTeams?: { id: string; name: string }[];
+  volunteerCount?: number;
+}> {
+  const auth = await validateAdmin(adminCode);
+  if (!auth.valid) return { error: auth.error };
+
+  const count = Math.min(Math.max(options?.count ?? 3, 1), 3);
+  const supabase = await createServiceClient();
+
+  const { data: volunteers, error: volunteerError } = await supabase
+    .from("hackathon_teams")
+    .select("id, name")
+    .eq("event_id", auth.eventId)
+    .not("volunteered_to_present_at", "is", null)
+    .order("volunteered_to_present_at", { ascending: true });
+
+  if (volunteerError) return { error: volunteerError.message };
+
+  const pool = volunteers ?? [];
+  if (pool.length === 0) {
+    return { error: "No teams have volunteered yet" };
+  }
+
+  const selected = shufflePick(pool, count);
+  const now = new Date().toISOString();
+  const presentationTeamIds = selected.map((t) => t.id);
+
+  const { data: existing } = await supabase
+    .from("hackathon_settings")
+    .select("id")
+    .eq("event_id", auth.eventId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("hackathon_settings")
+      .update({
+        presentation_team_ids: presentationTeamIds,
+        presentation_picked_at: now,
+        updated_at: now,
+      })
+      .eq("event_id", auth.eventId);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await supabase.from("hackathon_settings").insert({
+      event_id: auth.eventId,
+      presentation_team_ids: presentationTeamIds,
+      presentation_picked_at: now,
+    });
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  revalidatePath(`/${auth.eventSlug}/hackathon`);
+  return {
+    success: true,
+    selectedTeams: selected,
+    volunteerCount: pool.length,
+  };
+}
