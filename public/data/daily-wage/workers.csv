@@ -1,0 +1,221 @@
+worker_id,city,province,occupation,pay_type,typical_daily_net_cad,income_volatility,tip_share,household_size,dependents,has_bank_account,uses_prepaid_card,primary_employer_id,tenure_months,has_side_gig,commute_mode,rent_burden_band
+W-0001,Calgary,AB,Moving helper,daily,188.71,0.48,0.00,2,0,1,0,EMP-012,30,0,car,severe
+W-0002,Edmonton,AB,Rideshare driver,gig,132.04,0.50,0.10,3,2,1,1,EMP-007,53,0,rideshare,high
+W-0003,Red Deer,AB,Security guard,hourly,157.37,0.20,0.00,4,3,1,0,EMP-037,83,0,rideshare,high
+W-0004,Edmonton,AB,Retail associate,hourly,172.44,0.30,0.05,1,0,1,1,EMP-030,35,0,walk_bike,severe
+W-0005,Calgary,AB,Cleaning / janitorial,hourly,162.32,0.28,0.00,1,0,1,0,EMP-017,76,0,transit,high
+W-0006,Okotoks,AB,Moving helper,daily,223.94,0.48,0.00,4,3,0,1,EMP-035,21,1,rideshare,low
+W-0007,Calgary,AB,Cleaning / janitorial,hourly,153.45,0.28,0.00,3,2,1,0,EMP-017,63,0,walk_bike,moderate
+W-0008,Calgary,AB,Rideshare driver,gig,189.30,0.50,0.10,1,0,1,1,EMP-040,47,0,rideshare,severe
+W-0009,Calgary,AB,Gig delivery driver,gig,140.29,0.55,0.15,1,0,1,0,EMP-027,42,1,walk_bike,severe
+W-0010,Medicine Hat,AB,Food service / kitchen,hourly,163.16,0.35,0.20,4,2,1,1,EMP-008,83,1,car,severe
+W-0011,Calgary,AB,Event / venue staff,hourly,187.20,0.50,0.10,3,1,0,1,EMP-035,32,0,car,high
+W-0012,Edmonton,AB,Gig delivery driver,gig,103.73,0.55,0.15,2,0,1,0,EMP-009,54,0,transit,severe
+W-0013,Calgary,AB,Cleaning / janitorial,hourly,164.11,0.28,0.00,2,1,1,0,EMP-040,28,0,car,moderate
+W-0014,Calgary,AB,Gig delivery driver,gig,113.85,0.55,0.15,3,2,1,0,EMP-034,37,0,transit,moderate
+W-0015,Edmonton,AB,Server / bartender,hourly,129.21,0.45,0.55,4,3,0,1,EMP-018,30,0,walk_bike,high
+W-0016,Calgary,AB,Gig delivery driver,gig,87.22,0.55,0.15,2,1,1,1,EMP-035,14,0,walk_bike,moderate
+W-0017,Calgary,AB,Care aide / support worker,hourly,172.20,0.22,0.00,2,0,1,0,EMP-035,20,0,walk_bike,high
+W-0018,Calgary,AB,Landscaping / grounds,daily,196.23,0.45,0.00,3,2,1,0,EMP-009,74,0,transit,high
+W-0019,Calgary,AB,Construction labourer,daily,253.04,0.40,0.00,1,0,1,0,EMP-007,84,1,walk_bike,high
+W-0020,Calgary,AB,Rideshare driver,gig,177.84,0.50,0.10,4,2,1,0,EMP-029,17,1,car,low
+W-0021,Cochrane,AB,Cleaning / janitorial,hourly,179.36,0.28,0.00,1,0,1,0,EMP-020,61,0,walk_bike,low
+W-0022,Edmonton,AB,Construction labourer,daily,249.26,0.40,0.00,4,3,1,0,EMP-008,35,0,transit,moderate
+W-0023,Lethbridge,AB,Moving helper,daily,161.11,0.48,0.00,3,1,1,0,EMP-015,43,1,rideshare,moderate
+W-0024,Calgary,AB,Server / bartender,hourly,145.36,0.45,0.55,1,0,1,1,EMP-036,32,0,rideshare,severe
+W-0025,Red Deer,AB,Landscaping / grounds,daily,176.48,0.45,0.00,2,1,1,0,EMP-036,80,0,rideshare,moderate
+W-0026,Calgary,AB,Hotel housekeeping,hourly,119.50,0.30,0.02,4,3,1,0,EMP-006,18,0,car,low
+W-0027,Calgary,AB,Rideshare driver,gig,239.72,0.50,0.10,3,2,1,0,EMP-017,30,0,car,moderate
+W-0028,Calgary,AB,Hotel housekeeping,hourly,160.90,0.30,0.02,2,1,1,0,EMP-026,36,1,walk_bike,low
+W-0029,Edmonton,AB,Moving helper,daily,213.44,0.48,0.00,2,1,0,1,EMP-037,77,0,rideshare,severe
+W-0030,Red Deer,AB,Security guard,hourly,178.53,0.20,0.00,1,0,0,1,EMP-008,53,0,transit,severe
+W-0031,Calgary,AB,Moving helper,daily,234.68,0.48,0.00,5,4,1,0,EMP-039,39,1,transit,severe
+W-0032,Calgary,AB,Food service / kitchen,hourly,144.49,0.35,0.20,4,2,1,1,EMP-010,16,1,walk_bike,severe
+W-0033,Calgary,AB,Construction labourer,daily,226.14,0.40,0.00,5,4,1,0,EMP-006,47,0,car,low
+W-0034,Calgary,AB,Gig delivery driver,gig,114.40,0.55,0.15,5,3,1,0,EMP-002,70,0,rideshare,low
+W-0035,Calgary,AB,Gig delivery driver,gig,89.28,0.55,0.15,2,1,0,1,EMP-028,18,0,rideshare,moderate
+W-0036,Calgary,AB,Security guard,hourly,190.54,0.20,0.00,1,0,1,0,EMP-010,74,0,transit,severe
+W-0037,Calgary,AB,Retail associate,hourly,147.60,0.30,0.05,3,2,0,1,EMP-003,41,0,transit,high
+W-0038,Edmonton,AB,Rideshare driver,gig,124.32,0.50,0.10,2,1,1,1,EMP-040,10,0,rideshare,severe
+W-0039,Edmonton,AB,Event / venue staff,hourly,110.11,0.50,0.10,2,1,1,0,EMP-027,39,0,rideshare,severe
+W-0040,Calgary,AB,Rideshare driver,gig,228.30,0.50,0.10,4,2,1,1,EMP-005,79,0,walk_bike,low
+W-0041,Red Deer,AB,Care aide / support worker,hourly,221.81,0.22,0.00,2,1,1,0,EMP-017,38,1,rideshare,high
+W-0042,Red Deer,AB,Moving helper,daily,230.67,0.48,0.00,2,1,1,0,EMP-012,50,0,car,moderate
+W-0043,Calgary,AB,Landscaping / grounds,daily,195.05,0.45,0.00,2,1,1,0,EMP-037,59,1,rideshare,high
+W-0044,Lethbridge,AB,Care aide / support worker,hourly,186.15,0.22,0.00,2,1,1,0,EMP-031,52,0,transit,low
+W-0045,Airdrie,AB,Retail associate,hourly,132.26,0.30,0.05,5,4,1,0,EMP-004,69,0,car,low
+W-0046,Calgary,AB,Landscaping / grounds,daily,196.96,0.45,0.00,2,1,1,0,EMP-016,39,0,transit,severe
+W-0047,Cochrane,AB,Retail associate,hourly,173.47,0.30,0.05,2,0,0,1,EMP-033,48,0,walk_bike,moderate
+W-0048,Calgary,AB,Construction labourer,daily,231.92,0.40,0.00,4,3,1,0,EMP-033,2,0,transit,moderate
+W-0049,Calgary,AB,Warehouse associate,hourly,199.78,0.25,0.00,5,4,1,0,EMP-020,13,0,car,low
+W-0050,Airdrie,AB,Cleaning / janitorial,hourly,177.26,0.28,0.00,3,2,1,0,EMP-031,78,0,walk_bike,high
+W-0051,Calgary,AB,Rideshare driver,gig,112.30,0.50,0.10,3,2,1,0,EMP-002,32,1,car,low
+W-0052,Calgary,AB,Warehouse associate,hourly,162.27,0.25,0.00,5,4,1,0,EMP-001,58,0,transit,moderate
+W-0053,Calgary,AB,Landscaping / grounds,daily,224.12,0.45,0.00,2,0,1,1,EMP-020,32,0,car,moderate
+W-0054,Edmonton,AB,Moving helper,daily,166.58,0.48,0.00,2,1,0,1,EMP-014,55,0,transit,severe
+W-0055,Red Deer,AB,Care aide / support worker,hourly,206.84,0.22,0.00,3,2,1,0,EMP-006,3,0,rideshare,moderate
+W-0056,Edmonton,AB,Rideshare driver,gig,199.32,0.50,0.10,2,0,0,1,EMP-004,53,0,car,low
+W-0057,Calgary,AB,Cleaning / janitorial,hourly,171.02,0.28,0.00,1,0,1,0,EMP-032,10,1,rideshare,high
+W-0058,Calgary,AB,Hotel housekeeping,hourly,122.52,0.30,0.02,3,1,1,1,EMP-033,61,1,rideshare,low
+W-0059,Edmonton,AB,Moving helper,daily,184.85,0.48,0.00,4,3,1,0,EMP-027,18,0,rideshare,high
+W-0060,Calgary,AB,Moving helper,daily,176.19,0.48,0.00,4,2,0,1,EMP-040,14,0,car,severe
+W-0061,Calgary,AB,Retail associate,hourly,121.55,0.30,0.05,4,3,1,0,EMP-004,62,0,transit,severe
+W-0062,Edmonton,AB,Hotel housekeeping,hourly,116.30,0.30,0.02,2,1,1,0,EMP-021,13,0,car,severe
+W-0063,Red Deer,AB,Food service / kitchen,hourly,112.30,0.35,0.20,2,1,1,1,EMP-037,1,1,walk_bike,high
+W-0064,Edmonton,AB,Gig delivery driver,gig,168.50,0.55,0.15,4,2,1,0,EMP-003,64,1,walk_bike,low
+W-0065,Edmonton,AB,Security guard,hourly,186.43,0.20,0.00,2,1,0,1,EMP-006,6,0,transit,severe
+W-0066,Calgary,AB,Landscaping / grounds,daily,189.43,0.45,0.00,3,2,1,0,EMP-003,35,0,walk_bike,low
+W-0067,Calgary,AB,Hotel housekeeping,hourly,164.86,0.30,0.02,3,2,1,0,EMP-030,33,0,walk_bike,low
+W-0068,Calgary,AB,Care aide / support worker,hourly,228.21,0.22,0.00,3,2,1,0,EMP-018,74,0,car,severe
+W-0069,Calgary,AB,Landscaping / grounds,daily,185.16,0.45,0.00,2,1,1,1,EMP-038,67,0,car,high
+W-0070,Calgary,AB,Warehouse associate,hourly,159.14,0.25,0.00,2,0,1,0,EMP-027,48,1,walk_bike,high
+W-0071,Calgary,AB,Construction labourer,daily,205.30,0.40,0.00,3,2,1,0,EMP-039,13,0,car,moderate
+W-0072,Calgary,AB,Rideshare driver,gig,208.17,0.50,0.10,4,3,1,1,EMP-006,39,1,rideshare,moderate
+W-0073,Edmonton,AB,Server / bartender,hourly,147.18,0.45,0.55,2,1,0,1,EMP-030,77,0,walk_bike,moderate
+W-0074,Calgary,AB,Care aide / support worker,hourly,164.74,0.22,0.00,2,0,1,0,EMP-028,41,0,walk_bike,high
+W-0075,Red Deer,AB,Retail associate,hourly,122.16,0.30,0.05,3,2,1,0,EMP-002,76,0,transit,low
+W-0076,Calgary,AB,Server / bartender,hourly,105.38,0.45,0.55,4,3,1,0,EMP-037,73,0,transit,moderate
+W-0077,Calgary,AB,Server / bartender,hourly,127.22,0.45,0.55,3,2,1,0,EMP-016,72,0,rideshare,low
+W-0078,Calgary,AB,Warehouse associate,hourly,152.44,0.25,0.00,3,2,1,0,EMP-026,31,0,car,low
+W-0079,Red Deer,AB,Moving helper,daily,254.88,0.48,0.00,4,3,1,0,EMP-022,27,0,car,high
+W-0080,Lethbridge,AB,Warehouse associate,hourly,194.13,0.25,0.00,3,2,1,0,EMP-002,23,1,walk_bike,severe
+W-0081,Medicine Hat,AB,Landscaping / grounds,daily,163.93,0.45,0.00,4,3,1,0,EMP-032,56,0,walk_bike,severe
+W-0082,Airdrie,AB,Warehouse associate,hourly,169.04,0.25,0.00,3,1,1,1,EMP-015,58,0,rideshare,high
+W-0083,Calgary,AB,Moving helper,daily,167.89,0.48,0.00,4,3,1,0,EMP-036,80,0,car,high
+W-0084,Calgary,AB,Care aide / support worker,hourly,180.54,0.22,0.00,3,2,1,0,EMP-028,27,1,car,moderate
+W-0085,Calgary,AB,Retail associate,hourly,147.21,0.30,0.05,2,1,1,0,EMP-030,49,0,rideshare,moderate
+W-0086,Calgary,AB,Warehouse associate,hourly,142.39,0.25,0.00,6,5,0,1,EMP-039,39,0,car,severe
+W-0087,Calgary,AB,Cleaning / janitorial,hourly,164.51,0.28,0.00,5,4,0,1,EMP-033,64,0,car,moderate
+W-0088,Calgary,AB,Event / venue staff,hourly,142.71,0.50,0.10,3,1,1,0,EMP-005,18,0,transit,severe
+W-0089,Edmonton,AB,Rideshare driver,gig,181.33,0.50,0.10,2,0,1,0,EMP-021,83,1,rideshare,severe
+W-0090,Calgary,AB,Cleaning / janitorial,hourly,127.01,0.28,0.00,4,2,1,1,EMP-002,50,0,transit,severe
+W-0091,Calgary,AB,Care aide / support worker,hourly,218.71,0.22,0.00,2,1,0,1,EMP-024,78,0,rideshare,moderate
+W-0092,Red Deer,AB,Cleaning / janitorial,hourly,154.73,0.28,0.00,4,3,1,0,EMP-023,75,0,car,severe
+W-0093,Calgary,AB,Moving helper,daily,165.46,0.48,0.00,1,0,1,0,EMP-024,65,0,transit,moderate
+W-0094,Calgary,AB,Hotel housekeeping,hourly,118.24,0.30,0.02,4,3,1,0,EMP-040,15,0,transit,high
+W-0095,Calgary,AB,Rideshare driver,gig,207.77,0.50,0.10,5,4,1,1,EMP-031,21,0,transit,high
+W-0096,Edmonton,AB,Moving helper,daily,234.44,0.48,0.00,1,0,1,1,EMP-032,43,0,car,severe
+W-0097,Edmonton,AB,Gig delivery driver,gig,211.37,0.55,0.15,1,0,1,0,EMP-004,16,1,rideshare,high
+W-0098,Calgary,AB,Landscaping / grounds,daily,193.44,0.45,0.00,2,0,0,1,EMP-004,15,0,transit,moderate
+W-0099,Airdrie,AB,Cleaning / janitorial,hourly,143.82,0.28,0.00,1,0,1,0,EMP-007,5,0,car,high
+W-0100,Calgary,AB,Security guard,hourly,144.62,0.20,0.00,4,3,1,0,EMP-006,73,1,walk_bike,low
+W-0101,Edmonton,AB,Food service / kitchen,hourly,152.77,0.35,0.20,1,0,1,0,EMP-012,65,0,car,moderate
+W-0102,Calgary,AB,Server / bartender,hourly,119.88,0.45,0.55,6,5,0,1,EMP-022,46,1,transit,low
+W-0103,Edmonton,AB,Retail associate,hourly,144.41,0.30,0.05,3,1,1,0,EMP-025,70,1,rideshare,low
+W-0104,Edmonton,AB,Landscaping / grounds,daily,155.57,0.45,0.00,6,5,0,1,EMP-015,16,0,walk_bike,high
+W-0105,Calgary,AB,Landscaping / grounds,daily,171.66,0.45,0.00,5,4,1,0,EMP-021,2,1,rideshare,moderate
+W-0106,Red Deer,AB,Event / venue staff,hourly,186.40,0.50,0.10,4,3,1,0,EMP-016,5,0,rideshare,low
+W-0107,Edmonton,AB,Cleaning / janitorial,hourly,155.68,0.28,0.00,4,3,1,0,EMP-002,35,1,rideshare,low
+W-0108,Airdrie,AB,Moving helper,daily,193.04,0.48,0.00,4,3,1,0,EMP-013,8,1,walk_bike,low
+W-0109,Calgary,AB,Care aide / support worker,hourly,178.30,0.22,0.00,4,2,1,0,EMP-002,12,0,rideshare,low
+W-0110,Calgary,AB,Cleaning / janitorial,hourly,120.34,0.28,0.00,1,0,1,0,EMP-026,84,1,transit,high
+W-0111,Calgary,AB,Landscaping / grounds,daily,194.84,0.45,0.00,2,1,1,0,EMP-004,54,1,walk_bike,moderate
+W-0112,Lethbridge,AB,Moving helper,daily,227.03,0.48,0.00,2,1,1,0,EMP-016,20,0,transit,moderate
+W-0113,Calgary,AB,Event / venue staff,hourly,115.59,0.50,0.10,1,0,1,0,EMP-009,65,0,car,high
+W-0114,Calgary,AB,Cleaning / janitorial,hourly,130.00,0.28,0.00,1,0,1,0,EMP-008,16,1,transit,moderate
+W-0115,Lethbridge,AB,Event / venue staff,hourly,147.98,0.50,0.10,5,4,0,1,EMP-007,49,1,rideshare,severe
+W-0116,Calgary,AB,Construction labourer,daily,237.77,0.40,0.00,1,0,1,0,EMP-019,7,1,car,moderate
+W-0117,Medicine Hat,AB,Cleaning / janitorial,hourly,170.81,0.28,0.00,2,1,1,0,EMP-012,50,1,transit,high
+W-0118,Edmonton,AB,Construction labourer,daily,229.48,0.40,0.00,6,5,1,0,EMP-014,47,1,rideshare,high
+W-0119,Red Deer,AB,Security guard,hourly,182.23,0.20,0.00,3,2,1,0,EMP-021,68,0,walk_bike,high
+W-0120,Cochrane,AB,Server / bartender,hourly,109.69,0.45,0.55,3,2,1,1,EMP-032,47,1,transit,low
+W-0121,Edmonton,AB,Cleaning / janitorial,hourly,156.78,0.28,0.00,4,3,1,0,EMP-034,81,0,rideshare,low
+W-0122,Airdrie,AB,Care aide / support worker,hourly,195.27,0.22,0.00,2,0,1,1,EMP-011,58,1,walk_bike,low
+W-0123,Calgary,AB,Retail associate,hourly,139.89,0.30,0.05,6,5,1,0,EMP-006,46,0,rideshare,low
+W-0124,Calgary,AB,Warehouse associate,hourly,163.80,0.25,0.00,3,2,1,1,EMP-010,45,1,transit,moderate
+W-0125,Red Deer,AB,Cleaning / janitorial,hourly,178.12,0.28,0.00,4,3,1,0,EMP-022,67,0,transit,severe
+W-0126,Airdrie,AB,Construction labourer,daily,260.04,0.40,0.00,5,4,1,0,EMP-002,58,0,rideshare,severe
+W-0127,Calgary,AB,Warehouse associate,hourly,164.37,0.25,0.00,2,1,1,0,EMP-011,66,1,rideshare,severe
+W-0128,Calgary,AB,Food service / kitchen,hourly,121.54,0.35,0.20,3,1,1,0,EMP-015,66,0,rideshare,high
+W-0129,Calgary,AB,Event / venue staff,hourly,136.87,0.50,0.10,2,1,1,0,EMP-017,63,0,rideshare,moderate
+W-0130,Red Deer,AB,Warehouse associate,hourly,175.70,0.25,0.00,2,1,1,0,EMP-010,64,1,walk_bike,high
+W-0131,Calgary,AB,Event / venue staff,hourly,120.01,0.50,0.10,3,2,1,0,EMP-032,3,0,transit,high
+W-0132,Edmonton,AB,Landscaping / grounds,daily,154.13,0.45,0.00,2,0,1,0,EMP-004,34,0,car,moderate
+W-0133,Calgary,AB,Event / venue staff,hourly,186.37,0.50,0.10,5,3,1,0,EMP-008,42,1,rideshare,severe
+W-0134,Calgary,AB,Security guard,hourly,168.68,0.20,0.00,3,1,1,0,EMP-034,69,1,transit,moderate
+W-0135,Calgary,AB,Security guard,hourly,195.48,0.20,0.00,3,2,1,1,EMP-024,36,1,transit,high
+W-0136,Calgary,AB,Event / venue staff,hourly,104.47,0.50,0.10,1,0,1,1,EMP-029,74,0,transit,low
+W-0137,Edmonton,AB,Landscaping / grounds,daily,206.14,0.45,0.00,4,2,1,1,EMP-033,48,0,rideshare,severe
+W-0138,Red Deer,AB,Event / venue staff,hourly,116.62,0.50,0.10,4,2,1,0,EMP-010,12,0,transit,severe
+W-0139,Airdrie,AB,Warehouse associate,hourly,198.26,0.25,0.00,3,2,1,0,EMP-040,30,0,car,high
+W-0140,Airdrie,AB,Care aide / support worker,hourly,158.10,0.22,0.00,6,5,1,0,EMP-025,60,0,walk_bike,severe
+W-0141,Calgary,AB,Construction labourer,daily,212.58,0.40,0.00,1,0,1,0,EMP-021,4,0,transit,moderate
+W-0142,Calgary,AB,Event / venue staff,hourly,185.64,0.50,0.10,1,0,1,0,EMP-020,45,0,rideshare,low
+W-0143,Lethbridge,AB,Event / venue staff,hourly,162.28,0.50,0.10,3,1,1,0,EMP-019,62,0,walk_bike,low
+W-0144,Calgary,AB,Event / venue staff,hourly,166.20,0.50,0.10,2,1,1,1,EMP-034,14,1,car,low
+W-0145,Calgary,AB,Food service / kitchen,hourly,124.38,0.35,0.20,4,2,0,1,EMP-040,51,1,rideshare,low
+W-0146,Okotoks,AB,Rideshare driver,gig,197.46,0.50,0.10,2,0,1,0,EMP-007,38,0,walk_bike,low
+W-0147,Calgary,AB,Landscaping / grounds,daily,203.43,0.45,0.00,5,3,1,0,EMP-018,78,0,car,severe
+W-0148,Medicine Hat,AB,Landscaping / grounds,daily,177.02,0.45,0.00,3,2,0,1,EMP-021,15,0,transit,high
+W-0149,Edmonton,AB,Construction labourer,daily,244.08,0.40,0.00,4,3,1,0,EMP-006,3,1,car,low
+W-0150,Calgary,AB,Rideshare driver,gig,164.56,0.50,0.10,3,2,1,0,EMP-038,68,0,walk_bike,moderate
+W-0151,Calgary,AB,Landscaping / grounds,daily,155.34,0.45,0.00,4,3,0,1,EMP-019,15,0,rideshare,low
+W-0152,Edmonton,AB,Server / bartender,hourly,147.82,0.45,0.55,3,1,0,1,EMP-015,30,0,transit,low
+W-0153,Calgary,AB,Retail associate,hourly,162.39,0.30,0.05,3,2,1,1,EMP-008,1,0,walk_bike,high
+W-0154,Calgary,AB,Moving helper,daily,208.33,0.48,0.00,2,1,1,0,EMP-006,20,0,transit,severe
+W-0155,Edmonton,AB,Cleaning / janitorial,hourly,121.15,0.28,0.00,4,3,1,0,EMP-023,56,0,walk_bike,low
+W-0156,Calgary,AB,Gig delivery driver,gig,89.32,0.55,0.15,1,0,1,0,EMP-015,53,0,rideshare,high
+W-0157,Calgary,AB,Construction labourer,daily,278.81,0.40,0.00,2,1,1,0,EMP-005,33,0,car,low
+W-0158,Edmonton,AB,Rideshare driver,gig,155.75,0.50,0.10,4,3,1,1,EMP-035,32,0,transit,high
+W-0159,Calgary,AB,Hotel housekeeping,hourly,117.04,0.30,0.02,4,2,1,0,EMP-015,73,0,transit,severe
+W-0160,Red Deer,AB,Rideshare driver,gig,189.90,0.50,0.10,1,0,1,1,EMP-033,71,0,transit,high
+W-0161,Calgary,AB,Security guard,hourly,165.30,0.20,0.00,5,3,1,0,EMP-013,38,0,transit,moderate
+W-0162,Calgary,AB,Retail associate,hourly,164.81,0.30,0.05,2,1,1,1,EMP-035,15,0,car,moderate
+W-0163,Edmonton,AB,Food service / kitchen,hourly,142.35,0.35,0.20,1,0,1,0,EMP-032,50,0,rideshare,moderate
+W-0164,Okotoks,AB,Cleaning / janitorial,hourly,157.14,0.28,0.00,3,2,1,0,EMP-020,33,0,rideshare,severe
+W-0165,Calgary,AB,Hotel housekeeping,hourly,131.60,0.30,0.02,5,4,0,1,EMP-005,39,0,walk_bike,high
+W-0166,Edmonton,AB,Server / bartender,hourly,146.07,0.45,0.55,2,0,1,1,EMP-036,84,0,car,severe
+W-0167,Calgary,AB,Gig delivery driver,gig,135.91,0.55,0.15,2,1,1,0,EMP-037,59,1,transit,low
+W-0168,Calgary,AB,Food service / kitchen,hourly,165.00,0.35,0.20,3,2,0,1,EMP-026,19,0,rideshare,severe
+W-0169,Calgary,AB,Warehouse associate,hourly,158.56,0.25,0.00,1,0,1,0,EMP-008,33,0,transit,severe
+W-0170,Edmonton,AB,Event / venue staff,hourly,130.32,0.50,0.10,1,0,1,0,EMP-003,24,0,rideshare,severe
+W-0171,Calgary,AB,Warehouse associate,hourly,157.96,0.25,0.00,3,1,1,1,EMP-004,19,1,transit,moderate
+W-0172,Lethbridge,AB,Care aide / support worker,hourly,152.57,0.22,0.00,3,2,1,0,EMP-010,84,0,rideshare,high
+W-0173,Calgary,AB,Security guard,hourly,175.85,0.20,0.00,2,1,1,0,EMP-029,52,0,rideshare,low
+W-0174,Calgary,AB,Food service / kitchen,hourly,116.80,0.35,0.20,4,2,0,1,EMP-036,55,0,walk_bike,moderate
+W-0175,Edmonton,AB,Construction labourer,daily,231.23,0.40,0.00,3,2,1,0,EMP-016,28,1,transit,moderate
+W-0176,Calgary,AB,Moving helper,daily,241.24,0.48,0.00,3,1,1,1,EMP-018,83,0,transit,low
+W-0177,Edmonton,AB,Food service / kitchen,hourly,121.57,0.35,0.20,5,3,1,0,EMP-032,12,0,transit,severe
+W-0178,Edmonton,AB,Landscaping / grounds,daily,209.67,0.45,0.00,3,2,0,1,EMP-033,61,1,walk_bike,high
+W-0179,Calgary,AB,Warehouse associate,hourly,155.96,0.25,0.00,4,3,1,0,EMP-009,15,0,car,high
+W-0180,Calgary,AB,Moving helper,daily,161.12,0.48,0.00,2,0,1,0,EMP-015,38,0,rideshare,high
+W-0181,Calgary,AB,Gig delivery driver,gig,212.39,0.55,0.15,2,1,1,0,EMP-003,49,1,transit,low
+W-0182,Calgary,AB,Server / bartender,hourly,133.15,0.45,0.55,4,2,1,0,EMP-011,8,0,rideshare,low
+W-0183,Edmonton,AB,Event / venue staff,hourly,192.47,0.50,0.10,1,0,1,0,EMP-018,56,1,walk_bike,moderate
+W-0184,Okotoks,AB,Food service / kitchen,hourly,165.66,0.35,0.20,1,0,1,0,EMP-036,36,1,car,severe
+W-0185,Edmonton,AB,Gig delivery driver,gig,177.99,0.55,0.15,4,2,1,1,EMP-027,37,0,walk_bike,low
+W-0186,Calgary,AB,Moving helper,daily,186.55,0.48,0.00,2,0,0,1,EMP-040,50,1,car,moderate
+W-0187,Red Deer,AB,Event / venue staff,hourly,139.62,0.50,0.10,3,2,1,0,EMP-003,58,0,transit,severe
+W-0188,Calgary,AB,Rideshare driver,gig,130.66,0.50,0.10,3,1,1,0,EMP-020,16,0,walk_bike,moderate
+W-0189,Calgary,AB,Warehouse associate,hourly,152.65,0.25,0.00,3,2,1,0,EMP-038,62,1,walk_bike,low
+W-0190,Calgary,AB,Food service / kitchen,hourly,149.37,0.35,0.20,2,1,1,0,EMP-016,4,1,car,low
+W-0191,Red Deer,AB,Event / venue staff,hourly,110.25,0.50,0.10,4,2,1,0,EMP-018,14,0,transit,severe
+W-0192,Calgary,AB,Gig delivery driver,gig,178.64,0.55,0.15,2,1,1,1,EMP-019,9,0,transit,low
+W-0193,Lethbridge,AB,Hotel housekeeping,hourly,170.03,0.30,0.02,3,1,1,0,EMP-011,74,0,rideshare,high
+W-0194,Calgary,AB,Care aide / support worker,hourly,227.78,0.22,0.00,1,0,1,0,EMP-002,74,1,walk_bike,moderate
+W-0195,Calgary,AB,Landscaping / grounds,daily,156.84,0.45,0.00,2,0,1,0,EMP-029,36,0,walk_bike,severe
+W-0196,Calgary,AB,Food service / kitchen,hourly,121.42,0.35,0.20,4,3,1,0,EMP-012,46,0,walk_bike,severe
+W-0197,Airdrie,AB,Security guard,hourly,154.79,0.20,0.00,3,2,1,0,EMP-024,21,0,transit,moderate
+W-0198,Edmonton,AB,Care aide / support worker,hourly,206.45,0.22,0.00,4,3,1,0,EMP-013,20,0,rideshare,low
+W-0199,Edmonton,AB,Server / bartender,hourly,110.63,0.45,0.55,1,0,1,0,EMP-009,17,0,car,high
+W-0200,Calgary,AB,Warehouse associate,hourly,190.38,0.25,0.00,3,2,1,0,EMP-031,11,0,rideshare,moderate
+W-0201,Calgary,AB,Event / venue staff,hourly,121.29,0.50,0.10,4,3,0,1,EMP-015,21,0,car,low
+W-0202,Calgary,AB,Cleaning / janitorial,hourly,145.49,0.28,0.00,2,1,1,0,EMP-023,84,0,transit,severe
+W-0203,Calgary,AB,Event / venue staff,hourly,193.33,0.50,0.10,1,0,1,0,EMP-008,23,0,car,low
+W-0204,Medicine Hat,AB,Security guard,hourly,185.14,0.20,0.00,3,2,0,1,EMP-040,76,1,transit,moderate
+W-0205,Calgary,AB,Cleaning / janitorial,hourly,145.79,0.28,0.00,1,0,1,0,EMP-027,37,1,walk_bike,severe
+W-0206,Edmonton,AB,Gig delivery driver,gig,140.81,0.55,0.15,6,5,1,0,EMP-013,58,0,rideshare,low
+W-0207,Calgary,AB,Cleaning / janitorial,hourly,131.09,0.28,0.00,2,1,1,0,EMP-031,43,0,rideshare,moderate
+W-0208,Calgary,AB,Hotel housekeeping,hourly,118.77,0.30,0.02,3,2,1,0,EMP-039,12,1,walk_bike,high
+W-0209,Edmonton,AB,Care aide / support worker,hourly,161.86,0.22,0.00,1,0,1,0,EMP-038,68,0,rideshare,moderate
+W-0210,Calgary,AB,Care aide / support worker,hourly,198.63,0.22,0.00,6,5,1,0,EMP-009,53,0,rideshare,high
+W-0211,Calgary,AB,Event / venue staff,hourly,134.79,0.50,0.10,1,0,1,0,EMP-026,6,0,car,low
+W-0212,Lethbridge,AB,Cleaning / janitorial,hourly,181.13,0.28,0.00,5,4,1,0,EMP-014,13,0,walk_bike,low
+W-0213,Calgary,AB,Warehouse associate,hourly,142.00,0.25,0.00,2,1,0,1,EMP-013,46,0,transit,high
+W-0214,Airdrie,AB,Food service / kitchen,hourly,138.80,0.35,0.20,3,2,1,0,EMP-027,19,1,transit,moderate
+W-0215,Edmonton,AB,Warehouse associate,hourly,143.69,0.25,0.00,2,0,1,1,EMP-040,15,0,car,high
+W-0216,Okotoks,AB,Server / bartender,hourly,120.95,0.45,0.55,1,0,1,1,EMP-035,42,1,walk_bike,low
+W-0217,Lethbridge,AB,Landscaping / grounds,daily,223.14,0.45,0.00,2,1,1,1,EMP-036,55,0,car,low
+W-0218,Airdrie,AB,Landscaping / grounds,daily,170.01,0.45,0.00,2,1,0,1,EMP-020,26,0,rideshare,severe
+W-0219,Calgary,AB,Retail associate,hourly,151.24,0.30,0.05,1,0,1,0,EMP-011,8,1,car,moderate
+W-0220,Edmonton,AB,Gig delivery driver,gig,175.61,0.55,0.15,1,0,1,0,EMP-012,12,0,transit,low
