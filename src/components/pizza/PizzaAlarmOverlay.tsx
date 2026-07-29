@@ -3,21 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Confetti } from "@/components/competitions/Confetti";
+import { isPizzaAnnouncement } from "@/lib/pizza-alarm";
 import { X } from "lucide-react";
 
-export const PIZZA_ALARM_CHANNEL = (eventId: string) => `event-pizza-${eventId}`;
-export const PIZZA_ALARM_EVENT = "pizza_alarm";
-
-const ALARM_WINDOW_MS = 60_000;
+const ALARM_WINDOW_MS = 90_000;
 const OVERLAY_DURATION_MS = 12_000;
 
 interface PizzaAlarmOverlayProps {
   eventId: string;
   initialPizzaAlarmAt?: string | null;
-  /** Admin preview — force-show when this timestamp changes */
-  previewAt?: string | null;
-  /** When false, only render via previewAt (admin page that also broadcasts). */
-  listen?: boolean;
 }
 
 function PizzaSvg({ className }: { className?: string }) {
@@ -108,59 +102,20 @@ function FallingPizzas() {
   );
 }
 
-/** Broadcast pizza alarm to all clients subscribed on the event channel. */
-export async function broadcastPizzaAlarm(eventId: string, at: string) {
-  const supabase = createClient();
-  const channel = supabase.channel(PIZZA_ALARM_CHANNEL(eventId), {
-    config: { broadcast: { self: true } },
-  });
-
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const timeout = window.setTimeout(() => reject(new Error("Realtime subscribe timeout")), 5000);
-      channel.subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          window.clearTimeout(timeout);
-          resolve();
-        }
-        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          window.clearTimeout(timeout);
-          reject(new Error(`Realtime ${status}`));
-        }
-      });
-    });
-
-    await channel.send({
-      type: "broadcast",
-      event: PIZZA_ALARM_EVENT,
-      payload: { at },
-    });
-  } finally {
-    // Give the send a tick to flush before tearing down.
-    await new Promise((r) => setTimeout(r, 150));
-    await supabase.removeChannel(channel);
-  }
-}
-
 export function PizzaAlarmOverlay({
   eventId,
   initialPizzaAlarmAt = null,
-  previewAt = null,
-  listen = true,
 }: PizzaAlarmOverlayProps) {
   const [visible, setVisible] = useState(false);
   const lastSeenRef = useRef<string | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
-  const showAlarm = useCallback((at: string, opts?: { force?: boolean }) => {
-    if (!at) return;
-    if (!opts?.force && lastSeenRef.current === at) return;
+  const showAlarm = useCallback((at: string) => {
+    if (!at || lastSeenRef.current === at) return;
 
     const age = Date.now() - new Date(at).getTime();
-    // Allow a few seconds of clock skew ahead; ignore stale alarms unless forced.
-    if (!opts?.force) {
-      if (Number.isNaN(age) || age > ALARM_WINDOW_MS || age < -10_000) return;
-    }
+    // Allow clock skew; ignore stale alarms.
+    if (Number.isNaN(age) || age > ALARM_WINDOW_MS || age < -10_000) return;
 
     lastSeenRef.current = at;
     setVisible(true);
@@ -172,23 +127,38 @@ export function PizzaAlarmOverlay({
   }, []);
 
   useEffect(() => {
-    if (previewAt) showAlarm(previewAt, { force: true });
-  }, [previewAt, showAlarm]);
+    if (initialPizzaAlarmAt) showAlarm(initialPizzaAlarmAt);
+  }, [initialPizzaAlarmAt, showAlarm]);
 
   useEffect(() => {
-    if (listen && initialPizzaAlarmAt) showAlarm(initialPizzaAlarmAt);
-  }, [initialPizzaAlarmAt, listen, showAlarm]);
-
-  useEffect(() => {
-    if (!listen) return;
-
     const supabase = createClient();
+
+    const pullLatestAlarm = async () => {
+      const { data } = await supabase
+        .from("events")
+        .select("pizza_alarm_at")
+        .eq("id", eventId)
+        .maybeSingle();
+      if (data?.pizza_alarm_at) showAlarm(data.pizza_alarm_at);
+    };
+
+    // Primary path: announcements INSERT (same realtime path as the live banner).
     const channel = supabase
-      .channel(PIZZA_ALARM_CHANNEL(eventId))
-      .on("broadcast", { event: PIZZA_ALARM_EVENT }, (msg) => {
-        const at = (msg.payload as { at?: string } | undefined)?.at;
-        if (at) showAlarm(at);
-      })
+      .channel(`pizza-alarm-attendee-${eventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "announcements",
+          filter: `event_id=eq.${eventId}`,
+        },
+        (payload) => {
+          const row = payload.new as { content?: string; published_at?: string; created_at?: string };
+          if (!isPizzaAnnouncement(row.content)) return;
+          showAlarm(row.published_at || row.created_at || new Date().toISOString());
+        }
+      )
       .on(
         "postgres_changes",
         {
@@ -197,18 +167,22 @@ export function PizzaAlarmOverlay({
           table: "events",
           filter: `id=eq.${eventId}`,
         },
-        (payload) => {
-          const next = (payload.new as { pizza_alarm_at?: string | null } | null)?.pizza_alarm_at;
-          if (next) showAlarm(next);
+        () => {
+          // Refetch instead of trusting payload.new (column can be missing from WAL).
+          void pullLatestAlarm();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          void pullLatestAlarm();
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     };
-  }, [eventId, listen, showAlarm]);
+  }, [eventId, showAlarm]);
 
   if (!visible) return null;
 

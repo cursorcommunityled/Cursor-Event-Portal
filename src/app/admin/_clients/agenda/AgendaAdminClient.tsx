@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { createAgendaItem, updateAgendaItem, deleteAgendaItem, getEventsForImport, importAgendaFromEvent, applyAgendaTemplate, reorderAgendaItems } from "@/lib/actions/agenda";
 import { triggerPizzaAlarm } from "@/lib/actions/pizza-alarm";
-import { PizzaAlarmOverlay, broadcastPizzaAlarm } from "@/components/pizza/PizzaAlarmOverlay";
 import type { Event, AgendaItem } from "@/types";
 import { Plus, Trash2, Edit2, Clock, MapPin, User, Check, Download, GripVertical } from "lucide-react";
 import { formatTime } from "@/lib/utils";
@@ -89,7 +88,6 @@ export function AgendaAdminClient({
   };
   const [error, setError] = useState<string | null>(null);
   const [pizzaMessage, setPizzaMessage] = useState<string | null>(null);
-  const [pizzaPreviewAt, setPizzaPreviewAt] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingItem, setEditingItem] = useState<AgendaItem | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -104,16 +102,8 @@ export function AgendaAdminClient({
         eventSlug,
         adminCode ?? event.admin_code
       );
-      if ("success" in result && result.success && result.pizza_alarm_at) {
-        const at = result.pizza_alarm_at;
-        setPizzaPreviewAt(at);
-        try {
-          await broadcastPizzaAlarm(event.id, at);
-          setPizzaMessage("Pizza alarm sent.");
-        } catch (err) {
-          console.error("[pizza alarm] broadcast failed:", err);
-          setPizzaMessage("Saved — if attendees miss it, ask them to refresh once.");
-        }
+      if ("success" in result && result.success) {
+        setPizzaMessage("Sent to attendees — they should see the overlay + banner now.");
       } else {
         setError(("error" in result && result.error) || "Failed to trigger pizza alarm");
       }
@@ -206,8 +196,6 @@ export function AgendaAdminClient({
           </div>
         }
       />
-
-      <PizzaAlarmOverlay eventId={event.id} previewAt={pizzaPreviewAt} listen={false} />
 
       <main className="max-w-4xl mx-auto px-6 py-12 space-y-12 animate-fade-in">
         {/* Error Message */}
