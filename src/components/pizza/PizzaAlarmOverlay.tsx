@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Confetti } from "@/components/competitions/Confetti";
 import { isPizzaAnnouncement } from "@/lib/pizza-alarm";
+import { playPizzaJingle, stopPizzaJingle } from "@/lib/pizza-jingle";
 import { X } from "lucide-react";
 
 const ALARM_WINDOW_MS = 90_000;
@@ -110,6 +111,15 @@ export function PizzaAlarmOverlay({
   const lastSeenRef = useRef<string | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
+  const dismissAlarm = useCallback(() => {
+    setVisible(false);
+    stopPizzaJingle();
+    if (hideTimerRef.current) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
   const showAlarm = useCallback((at: string) => {
     if (!at || lastSeenRef.current === at) return;
 
@@ -119,12 +129,13 @@ export function PizzaAlarmOverlay({
 
     lastSeenRef.current = at;
     setVisible(true);
+    void playPizzaJingle();
 
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     hideTimerRef.current = window.setTimeout(() => {
-      setVisible(false);
+      dismissAlarm();
     }, OVERLAY_DURATION_MS);
-  }, []);
+  }, [dismissAlarm]);
 
   useEffect(() => {
     if (initialPizzaAlarmAt) showAlarm(initialPizzaAlarmAt);
@@ -181,6 +192,7 @@ export function PizzaAlarmOverlay({
     return () => {
       supabase.removeChannel(channel);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
+      stopPizzaJingle();
     };
   }, [eventId, showAlarm]);
 
@@ -196,7 +208,7 @@ export function PizzaAlarmOverlay({
         type="button"
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         aria-label="Dismiss pizza alarm"
-        onClick={() => setVisible(false)}
+        onClick={dismissAlarm}
       />
       <FallingPizzas />
       <Confetti duration={OVERLAY_DURATION_MS} particleCount={90} />
@@ -219,7 +231,7 @@ export function PizzaAlarmOverlay({
 
         <button
           type="button"
-          onClick={() => setVisible(false)}
+          onClick={dismissAlarm}
           className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-xs font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md transition-colors hover:bg-white/20"
         >
           <X className="h-3.5 w-3.5" />
