@@ -1,6 +1,22 @@
 import { CursorEvent } from '@/lib/landing-types';
 
-export const events: CursorEvent[] = [
+const EVENT_TZ = 'America/Edmonton';
+
+/** YYYY-MM-DD in the event timezone (calendar day, not UTC). */
+function calendarDateInTz(timeZone: string, at: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(at);
+}
+
+function resolveStatus(date: string, at: Date = new Date()): 'upcoming' | 'past' {
+  return date < calendarDateInTz(EVENT_TZ, at) ? 'past' : 'upcoming';
+}
+
+const eventsRaw: Omit<CursorEvent, 'status'>[] = [
   {
     id: 'cafe-cursor-calgary-aug-2026',
     title: 'Cafe Cursor Calgary',
@@ -10,7 +26,6 @@ export const events: CursorEvent[] = [
     location: 'HOUSE 831, Calgary, Canada',
     lumaUrl: 'https://luma.com/6z1eyz1l',
     portalPath: '/cafe-cursor-calgary-aug-2026',
-    status: 'upcoming',
   },
   {
     id: 'calgary-july-2026',
@@ -21,7 +36,6 @@ export const events: CursorEvent[] = [
     location: 'ZayZoon, Calgary, Canada',
     lumaUrl: 'https://luma.com/y6o5mr37',
     portalPath: '/calgary-july-2026',
-    status: 'upcoming',
   },
   {
     id: 'calgary-june-2026',
@@ -32,7 +46,6 @@ export const events: CursorEvent[] = [
     location: 'ZayZoon, Calgary, Canada',
     lumaUrl: 'https://luma.com/cursor-t2wq',
     portalPath: '/calgary-june-2026',
-    status: 'past',
   },
   {
     id: 'calgary-hackathon-sait-may-2026',
@@ -41,7 +54,6 @@ export const events: CursorEvent[] = [
     displayDate: 'May 23–24, 2026 · 9:00 AM–3:30 PM',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/e4l2gbj2',
-    status: 'past',
   },
   {
     id: 'calgary-may-2026',
@@ -50,7 +62,6 @@ export const events: CursorEvent[] = [
     displayDate: 'May 27, 2026 - 5:30-8:30 PM MDT',
     location: 'Calgary, Canada',
     lumaUrl: 'https://luma.com/kjchw3e3',
-    status: 'past',
   },
   {
     id: 'calgary-apr-2026',
@@ -59,7 +70,6 @@ export const events: CursorEvent[] = [
     displayDate: 'April 29, 2026',
     location: 'Calgary, Canada',
     lumaUrl: 'https://lu.ma/onlcm9o9',
-    status: 'past',
   },
   {
     id: 'calgary-feb-2026',
@@ -70,12 +80,36 @@ export const events: CursorEvent[] = [
     location: 'Calgary, Canada',
     thumbnail: '/feb-meetup-group.jpg',
     galleryImages: ['/feb-meetup-vr.jpg', '/feb-meetup-coding.jpg'],
-    status: 'past',
   },
 ];
 
-export const upcomingEvents = events.filter((e) => e.status === 'upcoming');
-export const pastEvents = events.filter((e) => e.status === 'past');
-export const eventLinks = events
-  .filter((e) => e.lumaUrl || e.portalPath)
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+/** Resolve upcoming/past from each event date vs today in America/Edmonton. */
+export function getEvents(at: Date = new Date()): CursorEvent[] {
+  return eventsRaw.map((event) => ({
+    ...event,
+    status: resolveStatus(event.date, at),
+  }));
+}
+
+export function getUpcomingEvents(at: Date = new Date()): CursorEvent[] {
+  return getEvents(at)
+    .filter((e) => e.status === 'upcoming')
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function getPastEvents(at: Date = new Date()): CursorEvent[] {
+  return getEvents(at)
+    .filter((e) => e.status === 'past')
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** Event Links: upcoming first (soonest), then past (newest). */
+export function getEventLinks(at: Date = new Date()): CursorEvent[] {
+  return getEvents(at)
+    .filter((e) => e.lumaUrl || e.portalPath)
+    .sort((a, b) => {
+      if (a.status !== b.status) return a.status === 'upcoming' ? -1 : 1;
+      if (a.status === 'upcoming') return a.date.localeCompare(b.date);
+      return b.date.localeCompare(a.date);
+    });
+}

@@ -5,7 +5,7 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { NextRequest, NextResponse } from "next/server";
 import { ZipFile } from "yazl";
 
-import { pastEvents } from "@/content/events";
+import { getPastEvents } from "@/content/events";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -118,7 +118,7 @@ export async function GET(
 
       sources = { photos: (photos ?? []) as AlbumPhoto[] };
     } else {
-      const staticEvent = pastEvents.find((pastEvent) => pastEvent.id === eventSlug);
+      const staticEvent = getPastEvents().find((pastEvent) => pastEvent.id === eventSlug);
       const staticPhotos = [
         staticEvent?.thumbnail,
         ...(staticEvent?.galleryImages ?? []),
