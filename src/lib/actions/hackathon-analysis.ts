@@ -4,24 +4,19 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
 import { requireEventAdmin } from "@/lib/auth/admin-action";
 import { mapToHackathonScores } from "@/lib/hackathon-analysis/criteria";
-import type { Pass6Result, HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
+import {
+  ensureGithubAccess,
+  ensureGithubBudget,
+} from "@/lib/hackathon-analysis/github/repo-fetcher";
+import {
+  cancelJob,
+  enqueueAiJob,
+  resolveRepoUrl,
+  sweepStaleAiJobs,
+} from "@/lib/hackathon-analysis/jobs";
+import { processAiJobQueue } from "@/lib/hackathon-analysis/job-worker";
+import type { Pass6Result, HackathonAIAnalysis, HackathonAIJob } from "@/lib/hackathon-analysis/types";
 import { revalidatePath } from "next/cache";
-import { cookies, headers } from "next/headers";
-
-async function getBaseUrl(): Promise<string | null> {
-  const configured = process.env.NEXT_PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_APP_URL;
-  if (configured) return configured.replace(/\/$/, "");
-
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  if (!host) return null;
-
-  const protocol =
-    h.get("x-forwarded-proto") ??
-    (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-
-  return `${protocol}://${host}`;
-}
 
 function normalizeRepoUrl(url?: string | null) {
   const trimmed = url?.trim();
@@ -60,36 +55,55 @@ export async function getTeamAnalyses(
   return grouped;
 }
 
-// Trigger analysis via the API route (called from admin UI)
+/** Trigger / retry analysis — enqueues a durable job and kicks the worker. */
 export async function triggerAnalysis(
   teamId: string,
   eventId: string,
-  adminCode: string
-): Promise<{ success?: true; error?: string }> {
+  adminCode: string,
+  opts?: { force?: boolean }
+): Promise<{ success?: true; error?: string; skipped?: string }> {
   const authError = await requireEventAdmin(eventId, adminCode);
   if (authError) return authError;
 
-  const baseUrl = await getBaseUrl();
-  if (!baseUrl) return { error: "Could not determine application URL" };
-
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-
-  const res = await fetch(`${baseUrl}/api/hackathon/analyze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: cookieHeader },
-    body: JSON.stringify({ teamId, eventId, adminCode }),
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    return { error: (data as { error?: string }).error ?? "Analysis failed to start" };
+  try {
+    await ensureGithubAccess();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
   }
-  return { success: true };
+
+  await sweepStaleAiJobs(eventId);
+
+  const supabase = await createServiceClient();
+  const repoUrl = await resolveRepoUrl(supabase, eventId, teamId);
+  if (!repoUrl) {
+    return { error: "Team has no repo URL (checked project + submission backup)" };
+  }
+
+  const { data: project } = await supabase
+    .from("hackathon_projects")
+    .select("submitted_at")
+    .eq("team_id", teamId)
+    .maybeSingle();
+  if (!project?.submitted_at) {
+    return { error: "Team has not submitted a project" };
+  }
+
+  try {
+    const { skipped } = await enqueueAiJob({
+      eventId,
+      teamId,
+      repoUrl,
+      force: opts?.force ?? false,
+      clearFailedPasses: !(opts?.force ?? false),
+    });
+    void processAiJobQueue(eventId);
+    return { success: true, skipped };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
-// Clear all AI analysis passes for a team so a stuck run can be restarted.
+/** Clear analyses + cancel job so a team can start fresh. */
 export async function resetAnalysis(
   teamId: string,
   eventId: string,
@@ -99,6 +113,7 @@ export async function resetAnalysis(
   if (authError) return authError;
 
   const supabase = await createServiceClient();
+  await cancelJob(teamId, eventId);
   const { error } = await supabase
     .from("hackathon_ai_analyses")
     .delete()
@@ -109,7 +124,7 @@ export async function resetAnalysis(
   return { success: true };
 }
 
-// Kick off AI analysis for every submitted project with a repo URL.
+/** Enqueue all submitted teams, then process with concurrency cap of 3. */
 export async function triggerAnalysisForAllSubmitted(
   eventId: string,
   adminCode: string
@@ -119,9 +134,19 @@ export async function triggerAnalysisForAllSubmitted(
   started?: number;
   skipped?: number;
   skippedNoRepo?: number;
+  failed?: number;
+  failures?: string[];
 }> {
   const authError = await requireEventAdmin(eventId, adminCode);
   if (authError) return authError;
+
+  try {
+    await ensureGithubAccess();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  await sweepStaleAiJobs(eventId);
 
   const supabase = await createServiceClient();
 
@@ -132,10 +157,21 @@ export async function triggerAnalysisForAllSubmitted(
     .not("submitted_at", "is", null);
 
   const submitted = projects ?? [];
-  const withRepo = submitted.filter((project) => project.repo_url?.trim());
-  const skippedNoRepo = submitted.length - withRepo.length;
+  const candidates: { team_id: string; repo_url: string }[] = [];
+  let skippedNoRepo = 0;
 
-  if (withRepo.length === 0) {
+  for (const project of submitted) {
+    const repo =
+      project.repo_url?.trim() ||
+      (await resolveRepoUrl(supabase, eventId, project.team_id));
+    if (!repo) {
+      skippedNoRepo++;
+      continue;
+    }
+    candidates.push({ team_id: project.team_id, repo_url: repo });
+  }
+
+  if (candidates.length === 0) {
     return {
       error: skippedNoRepo > 0
         ? `${skippedNoRepo} team(s) submitted without a repo URL. Add repo URLs before running AI analysis.`
@@ -143,57 +179,90 @@ export async function triggerAnalysisForAllSubmitted(
     };
   }
 
-  const teamIds = withRepo.map((project) => project.team_id);
-
+  // Budget check against teams that are not already complete.
+  const teamIds = candidates.map((c) => c.team_id);
   const { data: analyses } = await supabase
     .from("hackathon_ai_analyses")
     .select("team_id, pass_name, status")
     .eq("event_id", eventId)
     .in("team_id", teamIds);
 
-  const analysesByTeam = new Map<string, NonNullable<typeof analyses>>();
-  for (const row of analyses ?? []) {
-    const existing = analysesByTeam.get(row.team_id) ?? [];
-    existing.push(row);
-    analysesByTeam.set(row.team_id, existing);
+  const pass6Complete = new Set(
+    (analyses ?? [])
+      .filter((a) => a.pass_name === "pass6_synthesis" && a.status === "complete")
+      .map((a) => a.team_id)
+  );
+
+  const toEnqueue = candidates.filter((c) => !pass6Complete.has(c.team_id));
+
+  try {
+    await ensureGithubBudget(Math.max(toEnqueue.length, 1));
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
   }
 
   let started = 0;
-  let skipped = 0;
-  let firstError: string | undefined;
+  let skipped = pass6Complete.size;
+  const failures: string[] = [];
 
-  for (const project of withRepo) {
-    const teamAnalyses = analysesByTeam.get(project.team_id) ?? [];
-    const pass6Complete = teamAnalyses.some(
-      (analysis) => analysis.pass_name === "pass6_synthesis" && analysis.status === "complete"
-    );
-    const isRunning = teamAnalyses.some((analysis) => analysis.status === "running");
-
-    if (pass6Complete || isRunning) {
-      skipped++;
-      continue;
-    }
-
-    const res = await triggerAnalysis(project.team_id, eventId, adminCode);
-    if (res.error) {
-      firstError ??= res.error;
-    } else {
-      started++;
-      // Stagger starts so parallel repo fetches don't burst the GitHub API.
-      await new Promise((resolve) => setTimeout(resolve, 3_000));
+  for (const project of toEnqueue) {
+    try {
+      const { skipped: skipReason } = await enqueueAiJob({
+        eventId,
+        teamId: project.team_id,
+        repoUrl: project.repo_url,
+        clearFailedPasses: true,
+      });
+      if (skipReason === "already_running" || skipReason === "already_queued") {
+        skipped++;
+      } else if (skipReason === "already_complete") {
+        skipped++;
+      } else {
+        started++;
+      }
+    } catch (e) {
+      failures.push(
+        `${project.team_id}: ${e instanceof Error ? e.message : String(e)}`
+      );
     }
   }
 
-  if (started === 0) {
+  void processAiJobQueue(eventId);
+
+  if (started === 0 && failures.length > 0 && skipped === 0) {
+    return { error: failures[0], failed: failures.length, failures };
+  }
+
+  if (started === 0 && failures.length === 0) {
     return {
-      error: firstError
-        ?? (skipped > 0
-          ? "All submitted projects are already analyzed or in progress."
-          : "No projects to analyze."),
+      error:
+        skipped > 0
+          ? "All submitted projects are already analyzed, queued, or in progress."
+          : "No projects to analyze.",
+      skipped,
+      skippedNoRepo,
     };
   }
 
-  return { success: true, started, skipped, skippedNoRepo };
+  return {
+    success: true,
+    started,
+    skipped,
+    skippedNoRepo,
+    failed: failures.length,
+    failures: failures.length ? failures : undefined,
+  };
+}
+
+export async function getAiJobsForEvent(
+  eventId: string,
+  adminCode: string
+): Promise<{ jobs?: HackathonAIJob[]; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+  const { listAiJobs } = await import("@/lib/hackathon-analysis/jobs");
+  const jobs = await listAiJobs(eventId);
+  return { jobs };
 }
 
 // Apply AI Pass 6 scores to hackathon_scores (admin funnel)

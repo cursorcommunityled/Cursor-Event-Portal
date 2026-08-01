@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { withAnthropicRetry } from '../anthropic-retry';
 import type { Pass1Result, Pass2Result, Pass3Result, Pass5Result, PoolEntry } from '../types';
 import { extractResponseText, parseJsonObject } from './json';
 
@@ -60,24 +61,14 @@ Return ONLY valid JSON:
   "comparable_submissions": ["team names of similar quality projects"]
 }`;
 
-  // Retry up to 3 times with backoff for rate limits
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const response = await client.messages.create({
+  const response = await withAnthropicRetry(
+    () =>
+      client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         messages: [{ role: 'user', content: prompt }],
-      });
-      return parseJsonObject<Pass5Result>(extractResponseText(response), 'Pass 5');
-    } catch (e: unknown) {
-      const status = (e as { status?: number }).status;
-      if (attempt < 2 && (status === 429 || status === 503 || status === 529)) {
-        await new Promise((r) => setTimeout(r, (attempt + 1) ** 2 * 1000));
-        continue;
-      }
-      throw e;
-    }
-  }
-
-  throw new Error('Pass 5 failed after 3 attempts');
+      }),
+    { label: 'pass5' }
+  );
+  return parseJsonObject<Pass5Result>(extractResponseText(response), 'Pass 5');
 }

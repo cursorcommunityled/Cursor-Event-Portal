@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { runAnalysisPipeline } from '@/lib/hackathon-analysis/pipeline';
+import { enqueueAiJob, resolveRepoUrl } from '@/lib/hackathon-analysis/jobs';
+import { processAiJobQueue } from '@/lib/hackathon-analysis/job-worker';
+import { ensureGithubAccess } from '@/lib/hackathon-analysis/github/repo-fetcher';
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createServiceClient();
 
-    const { teamId, eventId, adminCode } = await req.json() as { teamId: string; eventId: string; adminCode: string };
-    if (!teamId || !eventId || !adminCode) return NextResponse.json({ error: 'Missing teamId, eventId, or adminCode' }, { status: 400 });
+    const body = await req.json() as {
+      teamId: string;
+      eventId: string;
+      adminCode: string;
+      force?: boolean;
+    };
+    const { teamId, eventId, adminCode, force = false } = body;
+    if (!teamId || !eventId || !adminCode) {
+      return NextResponse.json({ error: 'Missing teamId, eventId, or adminCode' }, { status: 400 });
+    }
 
-    // Authorize via admin_code only — admins operate via the /admin/[adminCode]
-    // URL and do not carry an attendee portal_session.
     const { data: adminEvent } = await supabase
       .from('events')
       .select('id')
@@ -19,45 +27,62 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
     if (!adminEvent) return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
 
-    // Fetch team + project + screenshots
-    const [{ data: team }, { data: project }, { data: screenshots }, { data: settings }] = await Promise.all([
-      supabase.from('hackathon_teams').select('id, name, event_id').eq('id', teamId).eq('event_id', eventId).single(),
-      supabase.from('hackathon_projects').select('*').eq('team_id', teamId).maybeSingle(),
-      supabase.from('hackathon_project_screenshots').select('file_url, sort_order').eq('team_id', teamId).order('sort_order'),
-      supabase.from('hackathon_settings').select('prompt_text').eq('event_id', eventId).maybeSingle(),
-    ]);
-
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
-    if (!project?.submitted_at || !project.repo_url) return NextResponse.json({ error: 'Team has not submitted a repo URL' }, { status: 400 });
-
-    // Block duplicate pipelines while any pass is still running.
-    const { count: runningCount } = await supabase
-      .from('hackathon_ai_analyses')
-      .select('id', { count: 'exact', head: true })
-      .eq('team_id', teamId)
-      .eq('status', 'running');
-
-    if ((runningCount ?? 0) > 0) {
+    try {
+      await ensureGithubAccess();
+    } catch (e) {
       return NextResponse.json(
-        { error: 'Analysis already running for this team. Use Reset if it appears stuck.' },
-        { status: 409 }
+        { error: e instanceof Error ? e.message : String(e) },
+        { status: 503 }
       );
     }
 
-    const screenshotUrls = (screenshots ?? []).map((s: { file_url: string }) => s.file_url);
+    const { data: team } = await supabase
+      .from('hackathon_teams')
+      .select('id, name, event_id')
+      .eq('id', teamId)
+      .eq('event_id', eventId)
+      .single();
 
-    // Fire and forget — pipeline runs in background on Render (persistent server)
-    void runAnalysisPipeline({
-      teamId,
+    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 });
+
+    const { data: project } = await supabase
+      .from('hackathon_projects')
+      .select('submitted_at, repo_url')
+      .eq('team_id', teamId)
+      .maybeSingle();
+
+    if (!project?.submitted_at) {
+      return NextResponse.json({ error: 'Team has not submitted a project' }, { status: 400 });
+    }
+
+    const repoUrl = await resolveRepoUrl(supabase, eventId, teamId);
+    if (!repoUrl) {
+      return NextResponse.json(
+        { error: 'Team has no repo URL (checked project + submission backup)' },
+        { status: 400 }
+      );
+    }
+
+    const { job, skipped } = await enqueueAiJob({
       eventId,
-      teamName: team.name as string,
-      repoUrl: project.repo_url as string,
-      eventPrompt: (settings?.prompt_text as string | null) ?? null,
-      pitchText: (project.description as string | null) ?? null,
-      screenshotUrls,
+      teamId,
+      repoUrl,
+      force,
+      clearFailedPasses: !force,
     });
 
-    return NextResponse.json({ status: 'started' }, { status: 202 });
+    // Kick the concurrency-limited worker (non-blocking).
+    void processAiJobQueue(eventId);
+
+    return NextResponse.json(
+      {
+        status: skipped ? 'skipped' : 'queued',
+        jobId: job.id,
+        jobStatus: job.status,
+        skipped: skipped ?? null,
+      },
+      { status: 202 }
+    );
   } catch (e) {
     console.error('[analyze] Error:', e);
     return NextResponse.json({ error: String(e) }, { status: 500 });

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { withAnthropicRetry } from '../anthropic-retry';
 import type { RepoData, Pass1Result } from '../types';
 import { extractResponseText, parseJsonObject } from './json';
 
@@ -42,11 +43,15 @@ Return ONLY valid JSON matching this exact structure (no markdown, no explanatio
   "key_files": ["up to 10 important source file paths"]
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const response = await withAnthropicRetry(
+    () =>
+      client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    { label: 'pass1' }
+  );
 
   return parseJsonObject<Pass1Result>(extractResponseText(response), 'Pass 1');
 }

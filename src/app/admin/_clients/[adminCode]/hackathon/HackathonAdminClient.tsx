@@ -56,8 +56,17 @@ import { HackathonJudgingAdminPanel } from "@/components/hackathon-judging/Hacka
 import { AIAnalysisPanel } from "@/components/hackathon-judging/AIAnalysisPanel";
 import { HackathonPeopleAdminPanel } from "@/components/hackathon/HackathonPeopleAdminPanel";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
-import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
+import type { HackathonAIAnalysis, HackathonAIJob } from "@/lib/hackathon-analysis/types";
 import { getCompletedPass6, mergeAnalysisMaps, mergeTeamAnalyses, sortAnalyses } from "@/lib/hackathon-analysis/admin-utils";
+
+type ScreeningOpsHealth = {
+  counts: { queued: number; running: number; error: number; complete: number; stuck: number };
+  jobs: HackathonAIJob[];
+  github: { limit: number; remaining: number; reset: number; authenticated: boolean } | null;
+  githubError: string | null;
+  anthropicConfigured: boolean;
+  concurrency: number;
+};
 
 type OpenPoolMember = { id: string; name: string; occupation: string | null; is_technical: boolean | null };
 type AudienceVoteSummary = { id: string; options: string[]; totalVotes: number };
@@ -370,6 +379,25 @@ export function HackathonAdminClient({
   const [analyzeAllStatus, setAnalyzeAllStatus] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [analyzeAllResult, setAnalyzeAllResult] = useState<string | null>(null);
 
+  // Screening Ops (job queue + preflight)
+  const [screeningOps, setScreeningOps] = useState<ScreeningOpsHealth | null>(null);
+  const [opsBusy, setOpsBusy] = useState<"idle" | "process" | "sweep" | "retry_errors" | "refresh">("idle");
+  const [opsMessage, setOpsMessage] = useState<string | null>(null);
+
+  const refreshScreeningOps = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/hackathon/ai-jobs?eventId=${encodeURIComponent(event.id)}&adminCode=${encodeURIComponent(adminCode)}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as ScreeningOpsHealth;
+      setScreeningOps(data);
+    } catch {
+      // non-fatal
+    }
+  }, [adminCode, event.id]);
+
   // Audience vote
   const [audienceVote, setAudienceVote] = useState<AudienceVoteSummary | null>(initialAudienceVote);
   const [audienceVoteWinner, setAudienceVoteWinner] = useState<AudienceVoteWinnerPrompt | null>(initialAudienceVoteWinner);
@@ -398,6 +426,53 @@ export function HackathonAdminClient({
   const refresh = useCallback(() => {
     router.refresh();
   }, [router]);
+
+  const runOpsAction = useCallback(
+    async (action: "process" | "sweep" | "retry_errors") => {
+      setOpsBusy(action);
+      setOpsMessage(null);
+      try {
+        const res = await fetch("/api/hackathon/ai-jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: event.id, adminCode, action }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setOpsMessage((data as { error?: string }).error ?? "Action failed");
+        } else if (action === "sweep") {
+          setOpsMessage(
+            `Swept ${(data as { jobsMarkedError?: number }).jobsMarkedError ?? 0} jobs, ${(data as { passesMarkedError?: number }).passesMarkedError ?? 0} passes`
+          );
+        } else if (action === "process") {
+          setOpsMessage(
+            `Claimed ${(data as { claimed?: number }).claimed ?? 0} · active ${(data as { active?: number }).active ?? 0}`
+          );
+        } else {
+          setOpsMessage(
+            `Re-queued ${(data as { enqueued?: number }).enqueued ?? 0} errored job(s)`
+          );
+        }
+        await refreshScreeningOps();
+        refresh();
+      } catch (e) {
+        setOpsMessage(e instanceof Error ? e.message : String(e));
+      } finally {
+        setOpsBusy("idle");
+      }
+    },
+    [adminCode, event.id, refresh, refreshScreeningOps]
+  );
+
+  useEffect(() => {
+    if (tab === "scoring") {
+      void refreshScreeningOps();
+      const id = window.setInterval(() => {
+        void refreshScreeningOps();
+      }, 5000);
+      return () => window.clearInterval(id);
+    }
+  }, [tab, refreshScreeningOps]);
 
   const updateUrlTab = useCallback((nextTab: Tab) => {
     if (typeof window === "undefined") return;
@@ -1750,11 +1825,112 @@ export function HackathonAdminClient({
                   </div>
                 </div>
 
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-300">Screening Ops</p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">
+                        Preflight health, job queue (max 3 concurrent), stuck recovery.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={opsBusy !== "idle"}
+                      onClick={() => {
+                        setOpsBusy("refresh");
+                        void refreshScreeningOps().finally(() => setOpsBusy("idle"));
+                      }}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-semibold border border-white/15 text-gray-300 hover:bg-white/5 disabled:opacity-50"
+                    >
+                      {opsBusy === "refresh" ? "Refreshing…" : "Refresh status"}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                      <p className="text-gray-500 uppercase tracking-wider text-[9px]">GitHub</p>
+                      <p className="text-white font-semibold mt-0.5">
+                        {screeningOps?.github
+                          ? `${screeningOps.github.remaining}/${screeningOps.github.limit}`
+                          : screeningOps?.githubError
+                            ? "Error"
+                            : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                      <p className="text-gray-500 uppercase tracking-wider text-[9px]">Anthropic</p>
+                      <p className="text-white font-semibold mt-0.5">
+                        {screeningOps ? (screeningOps.anthropicConfigured ? "Key set" : "Missing") : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                      <p className="text-gray-500 uppercase tracking-wider text-[9px]">Queue</p>
+                      <p className="text-white font-semibold mt-0.5">
+                        {screeningOps
+                          ? `${screeningOps.counts.queued}q / ${screeningOps.counts.running}r / ${screeningOps.counts.error}e`
+                          : "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                      <p className="text-gray-500 uppercase tracking-wider text-[9px]">Stuck</p>
+                      <p className={cn("font-semibold mt-0.5", (screeningOps?.counts.stuck ?? 0) > 0 ? "text-amber-300" : "text-white")}>
+                        {screeningOps?.counts.stuck ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                  {screeningOps?.githubError && (
+                    <p className="text-[11px] text-red-300">{screeningOps.githubError}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={opsBusy !== "idle"}
+                      onClick={() => void runOpsAction("process")}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-semibold border border-red-400/30 bg-red-500/10 text-red-200 disabled:opacity-50"
+                    >
+                      {opsBusy === "process" ? "Processing…" : "Process queue"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={opsBusy !== "idle"}
+                      onClick={() => void runOpsAction("sweep")}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-semibold border border-amber-400/30 bg-amber-500/10 text-amber-200 disabled:opacity-50"
+                    >
+                      {opsBusy === "sweep" ? "Sweeping…" : "Sweep stuck"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={opsBusy !== "idle"}
+                      onClick={() => void runOpsAction("retry_errors")}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-semibold border border-white/15 bg-white/5 text-gray-200 disabled:opacity-50"
+                    >
+                      {opsBusy === "retry_errors" ? "Retrying…" : "Retry all errors"}
+                    </button>
+                  </div>
+                  {opsMessage && <p className="text-[11px] text-gray-400">{opsMessage}</p>}
+                  {(screeningOps?.jobs?.length ?? 0) > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-xl border border-white/10 divide-y divide-white/5">
+                      {screeningOps!.jobs.slice(0, 20).map((job) => {
+                        const teamName = teams.find((t) => t.id === job.team_id)?.name ?? job.team_id.slice(0, 8);
+                        return (
+                          <div key={job.id} className="px-3 py-2 text-[11px] flex gap-2 justify-between">
+                            <span className="text-white font-medium truncate">{teamName}</span>
+                            <span className="text-gray-400 shrink-0">
+                              {job.status}
+                              {job.current_pass ? ` · ${job.current_pass}` : ""}
+                              {job.attempt > 0 ? ` · try ${job.attempt + 1}` : ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex flex-col gap-4 border-t border-red-500/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium text-white/80">Analyze All Submitted</p>
                     <p className="text-[11px] text-gray-500 mt-0.5">
-                      Run AI screening on every submitted project with a repo URL (~3 min each).
+                      Enqueues every submitted project with a repo URL; worker runs max 3 at a time.
                       {pendingAnalysisTeams.length > 0
                         ? ` ${pendingAnalysisTeams.length} project${pendingAnalysisTeams.length === 1 ? "" : "s"} ready.`
                         : submittedWithRepo.length > 0
@@ -1775,15 +1951,18 @@ export function HackathonAdminClient({
                         setAnalyzeAllStatus("pending");
                         setAnalyzeAllResult(null);
                         const res = await triggerAnalysisForAllSubmitted(event.id, adminCode);
-                        if (res.error) {
+                        if (res.error && !res.started) {
                           setAnalyzeAllStatus("error");
                           setAnalyzeAllResult(res.error);
                         } else {
-                          setAnalyzeAllStatus("done");
-                          const parts = [`Started analysis for ${res.started} project${res.started === 1 ? "" : "s"}.`];
-                          if (res.skipped) parts.push(`${res.skipped} already done or running.`);
+                          setAnalyzeAllStatus(res.failed ? "error" : "done");
+                          const parts = [`Queued ${res.started ?? 0} project${(res.started ?? 0) === 1 ? "" : "s"}.`];
+                          if (res.skipped) parts.push(`${res.skipped} already done/queued/running.`);
                           if (res.skippedNoRepo) parts.push(`${res.skippedNoRepo} missing repo URL.`);
+                          if (res.failed) parts.push(`${res.failed} failed to enqueue.`);
+                          if (res.failures?.length) parts.push(res.failures.slice(0, 3).join(" | "));
                           setAnalyzeAllResult(parts.join(" "));
+                          void refreshScreeningOps();
                           refresh();
                         }
                       });
@@ -1791,7 +1970,7 @@ export function HackathonAdminClient({
                     className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl text-[12px] font-semibold border border-red-400/40 bg-red-500/15 text-red-200 hover:bg-red-500/30 transition-all disabled:opacity-50"
                   >
                     <Cpu className="w-3.5 h-3.5" />
-                    {analyzeAllStatus === "pending" ? "Starting…" : "Analyze All"}
+                    {analyzeAllStatus === "pending" ? "Queueing…" : "Analyze All"}
                   </button>
                 </div>
 
@@ -1909,6 +2088,7 @@ export function HackathonAdminClient({
                       adminCode={adminCode}
                       analyses={aiAnalyses[team.id] ?? []}
                       hasRepo={!!team.project?.repo_url}
+                      job={screeningOps?.jobs?.find((j) => j.team_id === team.id) ?? null}
                       onAnalysesChange={(analyses) => syncTeamAnalyses(team.id, analyses)}
                     />
                   </div>

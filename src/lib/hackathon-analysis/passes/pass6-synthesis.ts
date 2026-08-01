@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { isRateLimitError, withAnthropicRetry } from '../anthropic-retry';
 import type { Pass1Result, Pass2Result, Pass3Result, Pass4Result, Pass5Result, Pass6Result } from '../types';
 import { DEFAULT_CRITERIA } from '../criteria';
 import { extractResponseText, parseJsonObject } from './json';
@@ -146,16 +147,26 @@ Return ONLY valid JSON:
   const failures: string[] = [];
   for (const attempt of attempts) {
     try {
-      const response = await client.messages.create({
-        ...attempt,
-        messages: [{ role: 'user', content: prompt }],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any) as Awaited<ReturnType<typeof client.messages.create>>;
+      // Rate-limit / network retries before falling back to the next model.
+      const response = await withAnthropicRetry(
+        async () => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return client.messages.create({
+            ...attempt,
+            messages: [{ role: 'user', content: prompt }],
+          } as any);
+        },
+        { label: `pass6-${attempt.model}` }
+      );
 
       const result = parsePass6Json(extractResponseText(response as { content: { type: string; text?: string }[] }));
       return { result, modelUsed: attempt.model };
     } catch (error) {
       failures.push(`${attempt.model}: ${errorMessage(error)}`);
+      // Non-rate-limit model failures (e.g. JSON parse) still fall through to Sonnet.
+      if (isRateLimitError(error)) {
+        console.warn(`[pass6] Rate limited on ${attempt.model}; trying next model`);
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import sharp from 'sharp';
+import { withAnthropicRetry } from '../anthropic-retry';
 import type { Pass4Result } from '../types';
 import { extractResponseText, parseJsonObject } from './json';
 
@@ -92,21 +93,37 @@ async function prepareImageForAnthropic(
   return null;
 }
 
-async function urlToBase64(url: string): Promise<{ data: string; mediaType: SupportedImageMediaType } | null> {
+async function fetchWithTimeout(url: string, timeoutMs = 10_000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const image = await prepareImageForAnthropic(buffer, res.headers.get('content-type'));
-    if (!image) return null;
-
-    const data = image.buffer.toString('base64');
-    if (Buffer.byteLength(data, 'utf8') > ANTHROPIC_MAX_BASE64_IMAGE_BYTES) return null;
-
-    return { data, mediaType: image.mediaType };
-  } catch {
-    return null;
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+async function urlToBase64(url: string): Promise<{ data: string; mediaType: SupportedImageMediaType } | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, 10_000);
+      if (!res.ok) {
+        if (attempt === 0) continue;
+        return null;
+      }
+      const buffer = Buffer.from(await res.arrayBuffer());
+      const image = await prepareImageForAnthropic(buffer, res.headers.get('content-type'));
+      if (!image) return null;
+
+      const data = image.buffer.toString('base64');
+      if (Buffer.byteLength(data, 'utf8') > ANTHROPIC_MAX_BASE64_IMAGE_BYTES) return null;
+
+      return { data, mediaType: image.mediaType };
+    } catch {
+      if (attempt === 1) return null;
+    }
+  }
+  return null;
 }
 
 export async function runPass4(
@@ -130,10 +147,11 @@ export async function runPass4(
     };
   }
 
-  // Fetch up to 5 screenshots as base64
-  const images = (
-    await Promise.all(screenshotUrls.slice(0, 5).map(urlToBase64))
-  ).filter((img): img is NonNullable<typeof img> => img !== null);
+  // Fetch up to 5 screenshots as base64 (10s timeout + 1 retry each)
+  const attempted = screenshotUrls.slice(0, 5);
+  const settled = await Promise.all(attempted.map(urlToBase64));
+  const images = settled.filter((img): img is NonNullable<typeof img> => img !== null);
+  const imagesFailed = attempted.length - images.length;
 
   if (!images.length) {
     return {
@@ -145,7 +163,9 @@ export async function runPass4(
       product_intent_alignment_score: 0,
       overall_visual_score: 0,
       screenshots_analyzed: 0,
-      ux_commentary: ['Screenshots could not be loaded.'],
+      ux_commentary: [
+        `Screenshots could not be loaded (${imagesFailed} failed).`,
+      ],
       relevance_notes: ['The screenshot URLs could not be fetched for visual analysis.'],
       product_intent_notes: ['No loaded UI evidence was available to evaluate against product intent.'],
     };
@@ -156,17 +176,19 @@ export async function runPass4(
     source: { type: 'base64' as const, media_type: img.mediaType, data: img.data },
   }));
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          ...imageBlocks,
+  const response = await withAnthropicRetry(
+    () =>
+      client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        messages: [
           {
-            type: 'text',
-            text: `You are a UX designer judging hackathon projects. Analyze the ${images.length} screenshot(s) above.
+            role: 'user',
+            content: [
+              ...imageBlocks,
+              {
+                type: 'text',
+                text: `You are a UX designer judging hackathon projects. Analyze the ${images.length} screenshot(s) above.
 
 PROJECT CONTEXT:
 - Team/project name: ${context.teamName ?? 'unknown'}
@@ -205,11 +227,20 @@ Return ONLY valid JSON:
   "relevance_notes": ["1-3 observations about whether the screenshots match the submitted project"],
   "product_intent_notes": ["1-3 observations about how well the UI supports the intended product and user workflow"]
 }`,
+              },
+            ],
           },
         ],
-      },
-    ],
-  });
+      }),
+    { label: 'pass4' }
+  );
 
-  return parseJsonObject<Pass4Result>(extractResponseText(response), 'Pass 4');
+  const result = parseJsonObject<Pass4Result>(extractResponseText(response), 'Pass 4');
+  if (imagesFailed > 0) {
+    result.ux_commentary = [
+      ...result.ux_commentary,
+      `${imagesFailed} of ${attempted.length} screenshot(s) failed to load.`,
+    ];
+  }
+  return result;
 }

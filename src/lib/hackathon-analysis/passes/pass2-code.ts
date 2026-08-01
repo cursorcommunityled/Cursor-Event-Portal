@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { withAnthropicRetry } from '../anthropic-retry';
 import type { RepoData, Pass1Result, Pass2Result } from '../types';
 import { extractResponseText, parseJsonObject } from './json';
 
@@ -52,11 +53,15 @@ CRITICAL: Your previous response did not produce parseable JSON. Return exactly 
 
   for (const attemptPrompt of attempts) {
     try {
-      const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 3072,
-        messages: [{ role: 'user', content: attemptPrompt }],
-      });
+      const response = await withAnthropicRetry(
+        () =>
+          client.messages.create({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 3072,
+            messages: [{ role: 'user', content: attemptPrompt }],
+          }),
+        { label: 'pass2' }
+      );
 
       return parseJsonObject<Pass2Result>(extractResponseText(response), 'Pass 2');
     } catch (error) {

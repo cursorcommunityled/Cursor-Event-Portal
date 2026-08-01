@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { withAnthropicRetry } from '../anthropic-retry';
 import type { Pass1Result, Pass2Result, Pass3Result } from '../types';
 import { extractResponseText, parseJsonObject } from './json';
 
@@ -51,11 +52,15 @@ Return ONLY valid JSON:
   "problem_novelty_notes": "1-2 sentences: is the problem space itself novel, or just the implementation?"
 }`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  const response = await withAnthropicRetry(
+    () =>
+      client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    { label: 'pass3' }
+  );
 
   return parseJsonObject<Pass3Result>(extractResponseText(response), 'Pass 3');
 }
