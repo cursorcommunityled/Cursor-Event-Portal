@@ -56,6 +56,7 @@ import {
   formatHackathonScore,
   getAIScreeningWeightedScore,
 } from "@/lib/hackathon-rubric";
+import { isValidPublicGithubRepoUrl } from "@/lib/hackathon/github-repo-url";
 
 interface Props {
   event: Event;
@@ -745,17 +746,80 @@ export function HackathonClient({
 
   const handleProjectSubmit = () => {
     if (!myTeam) return;
+    if (!projectName.trim()) {
+      showMsg("Project name is required", true);
+      return;
+    }
+    if (!isValidPublicGithubRepoUrl(projectRepo)) {
+      showMsg("A public GitHub repository URL is required (e.g. https://github.com/owner/repo).", true);
+      return;
+    }
+
     startTransition(async () => {
-      const res = await submitHackathonProject(myTeam.id, event.id, {
-        name: projectName,
-        description: projectDesc,
-        repo_url: projectRepo,
-        demo_url: projectDemo,
-      });
-      if (res.error) { showMsg(res.error, true); return; }
-      showMsg(res.warning ?? "Project saved", false, res.fallback ? 10000 : 4000);
-      setShowProjectForm(false);
-      refresh();
+      try {
+        const res = await submitHackathonProject(myTeam.id, event.id, {
+          name: projectName,
+          description: projectDesc,
+          repo_url: projectRepo,
+          demo_url: projectDemo,
+        });
+
+        // Legacy false-success shape must never celebrate
+        if ("fallback" in res && (res as { fallback?: boolean }).fallback) {
+          showMsg("Submission did not lock on the project card — contact staff.", true, 10000);
+          return;
+        }
+        if (res.error) {
+          showMsg(res.error, true, 8000);
+          return;
+        }
+        if (!res.success || !res.submittedAt) {
+          showMsg("Submission did not confirm. Keep the form open and contact staff.", true, 10000);
+          return;
+        }
+
+        const savedRepo = res.repoUrl ?? projectRepo.trim();
+        setMyTeam((prev) =>
+          prev
+            ? {
+                ...prev,
+                project: {
+                  ...(prev.project ?? {
+                    id: "",
+                    team_id: prev.id,
+                    event_id: event.id,
+                    video_url: null,
+                    created_at: res.submittedAt!,
+                    updated_at: res.submittedAt!,
+                  }),
+                  name: projectName.trim(),
+                  description: projectDesc.trim() || null,
+                  repo_url: savedRepo,
+                  demo_url: projectDemo.trim() || null,
+                  submitted_at: res.submittedAt!,
+                  updated_at: res.submittedAt!,
+                },
+              }
+            : prev
+        );
+        setProjectRepo(savedRepo);
+
+        const screenshotNote =
+          screenshots.length === 0
+            ? " No screenshots uploaded — AI visual scoring will be weak."
+            : "";
+        showMsg(`Submitted — ${savedRepo}.${screenshotNote}`, false, 9000);
+        setShowProjectForm(true);
+        refresh();
+      } catch (err) {
+        showMsg(
+          err instanceof Error
+            ? `Submit failed: ${err.message}`
+            : "Network error — submit failed. Your form is still open; try again.",
+          true,
+          10000
+        );
+      }
     });
   };
 
@@ -1613,6 +1677,17 @@ export function HackathonClient({
                       <div className="space-y-4 rounded-xl border border-green-500/20 bg-green-500/[0.05] p-5">
                         <div>
                           <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-green-300">Submission Locked</p>
+                          {myTeam.project?.repo_url && (
+                            <p className="mt-2 inline-flex max-w-full items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-[12px] font-medium text-green-100">
+                              <Github className="h-3.5 w-3.5 shrink-0" />
+                              <span className="truncate">{myTeam.project.repo_url}</span>
+                            </p>
+                          )}
+                          {screenshots.length === 0 && (
+                            <p className="mt-2 text-[12px] font-medium text-amber-200/90">
+                              No screenshots on file — AI visual scoring will be weak.
+                            </p>
+                          )}
                           <p className="mt-2 text-sm font-medium leading-relaxed text-gray-300">
                             Your team already has a submitted project. To make changes, cancel this submission first, edit the form, then resubmit.
                             {projectSubmissionCutoffLabel ? ` Changes lock at ${projectSubmissionCutoffLabel}.` : ""}
@@ -1656,14 +1731,19 @@ export function HackathonClient({
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1 flex items-center gap-1.5">
-                          <Github className="w-3.5 h-3.5" /> Repo URL
+                          <Github className="w-3.5 h-3.5" /> Repo URL *
                         </label>
                         <input
                           value={projectRepo}
                           onChange={(e) => setProjectRepo(e.target.value)}
-                          placeholder="https://github.com/..."
+                          placeholder="https://github.com/owner/repo"
                           className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-[15px] font-medium text-white placeholder-gray-600 transition-colors focus:border-white/50 focus:bg-white/10 focus:outline-none focus:ring-1 focus:ring-white/50"
                         />
+                        {projectRepo.trim() && !isValidPublicGithubRepoUrl(projectRepo) && (
+                          <p className="text-[11px] text-amber-300/90 ml-1">
+                            Must be a public github.com/owner/repo URL
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 ml-1 flex items-center gap-1.5">
@@ -1725,7 +1805,12 @@ export function HackathonClient({
                     )}
 
                     <button
-                      disabled={isPending || !projectName.trim() || !projectSubmissionOpen}
+                      disabled={
+                        isPending ||
+                        !projectName.trim() ||
+                        !isValidPublicGithubRepoUrl(projectRepo) ||
+                        !projectSubmissionOpen
+                      }
                       onClick={handleProjectSubmit}
                       className="relative w-full overflow-hidden rounded-xl bg-white py-4 text-[15px] font-bold uppercase tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none group"
                     >

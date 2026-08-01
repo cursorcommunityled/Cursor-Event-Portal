@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useTransition, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
@@ -18,9 +18,14 @@ import {
   adminDissolveTeam,
   adminCreateTeam,
   pickVolunteerPresentations,
+  adminRestoreProjectFromBackup,
+  adminPatchProjectRepo,
+  adminForceSubmitDraft,
+  adminHealAllAtRiskSubmissions,
 } from "@/lib/actions/hackathon";
 import { triggerTeamMatchSuggestions } from "@/lib/actions/team-suggestions";
 import { pushTopAIToFinalRound, triggerAnalysisForAllSubmitted } from "@/lib/actions/hackathon-analysis";
+import { isValidPublicGithubRepoUrl } from "@/lib/hackathon/github-repo-url";
 import { unpublishCompetitionJudgingResults } from "@/lib/actions/competition-judging";
 import {
   approveAudienceVoteWinner,
@@ -381,8 +386,9 @@ export function HackathonAdminClient({
 
   // Screening Ops (job queue + preflight)
   const [screeningOps, setScreeningOps] = useState<ScreeningOpsHealth | null>(null);
-  const [opsBusy, setOpsBusy] = useState<"idle" | "process" | "sweep" | "retry_errors" | "refresh">("idle");
+  const [opsBusy, setOpsBusy] = useState<"idle" | "process" | "sweep" | "retry_errors" | "refresh" | "heal">("idle");
   const [opsMessage, setOpsMessage] = useState<string | null>(null);
+  const [healMessage, setHealMessage] = useState<string | null>(null);
 
   const refreshScreeningOps = useCallback(async () => {
     try {
@@ -699,6 +705,62 @@ export function HackathonAdminClient({
     ? formatAdminDateTime(settings.submission_deadline, event.timezone)
     : "No deadline set";
   const repoSubmissionMasterFile = buildRepoSubmissionMasterFile(repoSubmissionBackups);
+
+  type AtRiskRow = {
+    teamId: string;
+    teamName: string;
+    reasons: string[];
+    canRestore: boolean;
+    canForceSubmit: boolean;
+    needsRepoPatch: boolean;
+  };
+
+  const atRiskTeams = useMemo((): AtRiskRow[] => {
+    const backupByTeam = new Map(repoSubmissionBackups.map((b) => [b.team_id, b]));
+    const teamIds = new Set<string>([
+      ...teams.map((t) => t.id),
+      ...repoSubmissionBackups.map((b) => b.team_id),
+    ]);
+    const rows: AtRiskRow[] = [];
+
+    for (const teamId of teamIds) {
+      const team = teams.find((t) => t.id === teamId);
+      const project = team?.project ?? null;
+      const backup = backupByTeam.get(teamId);
+      const reasons: string[] = [];
+
+      if (project?.submitted_at && !project.repo_url?.trim()) {
+        reasons.push("submitted without repo");
+      }
+      if (backup && !project?.submitted_at && backup.repo_url?.trim()) {
+        reasons.push("backup only (primary not submitted)");
+      }
+      if (backup && backup.primary_project_saved === false) {
+        reasons.push("backup marked primary failed");
+      }
+
+      if (reasons.length === 0) continue;
+
+      const hasBackupRepo = Boolean(backup?.repo_url?.trim());
+      const hasDraftRepo = isValidPublicGithubRepoUrl(project?.repo_url);
+      rows.push({
+        teamId,
+        teamName: team?.name ?? backup?.team_name ?? "Unknown team",
+        reasons,
+        canRestore:
+          hasBackupRepo &&
+          (!project?.submitted_at ||
+            backup?.primary_project_saved === false ||
+            Boolean(project?.submitted_at && !project.repo_url?.trim())),
+        canForceSubmit: !project?.submitted_at && hasDraftRepo,
+        needsRepoPatch:
+          Boolean(project?.submitted_at && !project.repo_url?.trim()) ||
+          (!hasBackupRepo && !hasDraftRepo),
+      });
+    }
+
+    return rows;
+  }, [teams, repoSubmissionBackups]);
 
   const broadcastSubmissionNudge = async () => {
     if (unsubmittedTeams.length === 0 || nudgeStatus === "pending") return;
@@ -1926,16 +1988,161 @@ export function HackathonAdminClient({
                   )}
                 </div>
 
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-300">
+                        At-risk submissions
+                      </p>
+                      <p className="text-[11px] text-red-100/70 mt-0.5">
+                        {atRiskTeams.length === 0
+                          ? "Submission Ops green — 0 at-risk teams."
+                          : `${atRiskTeams.length} team${atRiskTeams.length === 1 ? "" : "s"} not AI-eligible. Heal before Analyze All.`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={opsBusy !== "idle" || atRiskTeams.length === 0}
+                      onClick={() => {
+                        setOpsBusy("heal");
+                        setHealMessage(null);
+                        startTransition(async () => {
+                          const res = await adminHealAllAtRiskSubmissions(event.id, adminCode);
+                          if (res.error) {
+                            setHealMessage(res.error);
+                          } else {
+                            const parts = [`Healed ${res.healed ?? 0} from backup.`];
+                            if (res.skippedMissingRepo) {
+                              parts.push(`${res.skippedMissingRepo} still missing repo (patch manually).`);
+                            }
+                            if (res.failures?.length) {
+                              parts.push(res.failures.slice(0, 2).join(" | "));
+                            }
+                            setHealMessage(parts.join(" "));
+                            refresh();
+                          }
+                          setOpsBusy("idle");
+                        });
+                      }}
+                      className="px-3 py-1.5 rounded-xl text-[11px] font-semibold border border-red-400/40 bg-red-500/20 text-red-100 disabled:opacity-50"
+                    >
+                      {opsBusy === "heal" ? "Healing…" : "Heal all from backup"}
+                    </button>
+                  </div>
+                  {healMessage && <p className="text-[11px] text-red-100/80">{healMessage}</p>}
+                  {atRiskTeams.length > 0 && (
+                    <div className="max-h-52 overflow-y-auto rounded-xl border border-red-500/20 divide-y divide-red-500/10">
+                      {atRiskTeams.map((row) => (
+                        <div key={row.teamId} className="px-3 py-2.5 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[12px] font-semibold text-white truncate">{row.teamName}</p>
+                              <p className="text-[10px] text-red-200/80">{row.reasons.join(" · ")}</p>
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {row.canRestore && (
+                              <button
+                                type="button"
+                                disabled={opsBusy !== "idle"}
+                                onClick={() => {
+                                  setOpsBusy("heal");
+                                  startTransition(async () => {
+                                    const res = await adminRestoreProjectFromBackup(
+                                      row.teamId,
+                                      event.id,
+                                      adminCode
+                                    );
+                                    setHealMessage(
+                                      res.error
+                                        ? `${row.teamName}: ${res.error}`
+                                        : `Restored ${row.teamName} → ${res.repoUrl}`
+                                    );
+                                    setOpsBusy("idle");
+                                    if (!res.error) refresh();
+                                  });
+                                }}
+                                className="px-2 py-1 rounded-lg text-[10px] font-semibold border border-white/20 bg-white/5 text-white"
+                              >
+                                Restore backup
+                              </button>
+                            )}
+                            {row.canForceSubmit && (
+                              <button
+                                type="button"
+                                disabled={opsBusy !== "idle"}
+                                onClick={() => {
+                                  setOpsBusy("heal");
+                                  startTransition(async () => {
+                                    const res = await adminForceSubmitDraft(
+                                      row.teamId,
+                                      event.id,
+                                      adminCode
+                                    );
+                                    setHealMessage(
+                                      res.error
+                                        ? `${row.teamName}: ${res.error}`
+                                        : `Force-submitted ${row.teamName}`
+                                    );
+                                    setOpsBusy("idle");
+                                    if (!res.error) refresh();
+                                  });
+                                }}
+                                className="px-2 py-1 rounded-lg text-[10px] font-semibold border border-amber-400/30 bg-amber-500/10 text-amber-100"
+                              >
+                                Force submit draft
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              disabled={opsBusy !== "idle"}
+                              onClick={() => {
+                                const next = window.prompt(
+                                  `GitHub repo URL for ${row.teamName}`,
+                                  "https://github.com/"
+                                );
+                                if (!next?.trim()) return;
+                                setOpsBusy("heal");
+                                startTransition(async () => {
+                                  const res = await adminPatchProjectRepo(
+                                    row.teamId,
+                                    event.id,
+                                    next.trim(),
+                                    adminCode
+                                  );
+                                  setHealMessage(
+                                    res.error
+                                      ? `${row.teamName}: ${res.error}`
+                                      : `Patched repo for ${row.teamName}`
+                                  );
+                                  setOpsBusy("idle");
+                                  if (!res.error) refresh();
+                                });
+                              }}
+                              className="px-2 py-1 rounded-lg text-[10px] font-semibold border border-white/15 bg-black/30 text-gray-200"
+                            >
+                              Patch repo
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex flex-col gap-4 border-t border-red-500/20 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-[13px] font-medium text-white/80">Analyze All Submitted</p>
                     <p className="text-[11px] text-gray-500 mt-0.5">
-                      Enqueues every submitted project with a repo URL; worker runs max 3 at a time.
+                      Auto-heals from backup, then enqueues every submitted project with a repo URL (max 3 concurrent).
                       {pendingAnalysisTeams.length > 0
                         ? ` ${pendingAnalysisTeams.length} project${pendingAnalysisTeams.length === 1 ? "" : "s"} ready.`
                         : submittedWithRepo.length > 0
                           ? " All submitted projects are analyzed or in progress."
                           : " No submitted projects with repo URLs yet."}
+                      {atRiskTeams.length > 0
+                        ? ` ${atRiskTeams.length} at-risk — heal first if possible.`
+                        : ""}
                     </p>
                     {analyzeAllStatus === "done" && analyzeAllResult && (
                       <p className="text-[11px] text-green-400 mt-1">{analyzeAllResult}</p>
@@ -1945,7 +2152,11 @@ export function HackathonAdminClient({
                     )}
                   </div>
                   <button
-                    disabled={analyzeAllStatus === "pending" || pendingAnalysisTeams.length === 0}
+                    disabled={
+                      analyzeAllStatus === "pending" ||
+                      (pendingAnalysisTeams.length === 0 &&
+                        !atRiskTeams.some((row) => row.canRestore))
+                    }
                     onClick={() => {
                       startTransition(async () => {
                         setAnalyzeAllStatus("pending");
@@ -1957,6 +2168,8 @@ export function HackathonAdminClient({
                         } else {
                           setAnalyzeAllStatus(res.failed ? "error" : "done");
                           const parts = [`Queued ${res.started ?? 0} project${(res.started ?? 0) === 1 ? "" : "s"}.`];
+                          if (res.healed) parts.push(`Healed ${res.healed} from backup.`);
+                          if (res.stillMissingRepo) parts.push(`${res.stillMissingRepo} still missing repo.`);
                           if (res.skipped) parts.push(`${res.skipped} already done/queued/running.`);
                           if (res.skippedNoRepo) parts.push(`${res.skippedNoRepo} missing repo URL.`);
                           if (res.failed) parts.push(`${res.failed} failed to enqueue.`);

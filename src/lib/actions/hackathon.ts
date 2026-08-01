@@ -6,6 +6,11 @@ import { revalidatePath } from "next/cache";
 import type { HackathonPrize, HackathonSettings, HackathonTeamWithMembers, HackathonTeamInvite, HackathonScore } from "@/types";
 import type { HackathonScoreCategoryKey } from "@/lib/hackathon-rubric";
 import { ensureTeamChannel } from "./hackathon-chat";
+import {
+  parsePublicGithubRepoUrl,
+  submissionPayloadFingerprint,
+} from "@/lib/hackathon/github-repo-url";
+import { requireEventAdmin } from "@/lib/auth/admin-action";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -82,7 +87,7 @@ async function saveRepoSubmissionBackup(
   data: {
     eventId: string;
     teamId: string;
-    submittedBy: string;
+    submittedBy: string | null;
     teamName: string | null;
     projectName: string;
     description: string | null;
@@ -1320,7 +1325,13 @@ export async function submitHackathonProject(
     repo_url?: string;
     demo_url?: string;
   }
-): Promise<{ success?: true; error?: string; fallback?: boolean; warning?: string }> {
+): Promise<{
+  success?: true;
+  error?: string;
+  repoUrl?: string;
+  submittedAt?: string;
+  idempotent?: boolean;
+}> {
   const session = await getSession();
   if (!session || session.eventId !== eventId) return { error: "Not authenticated" };
 
@@ -1328,10 +1339,16 @@ export async function submitHackathonProject(
 
   const projectName = data.name.trim();
   const description = data.description?.trim() || null;
-  const repoUrl = data.repo_url?.trim() || null;
   const demoUrl = data.demo_url?.trim() || null;
+  const parsedRepo = parsePublicGithubRepoUrl(data.repo_url);
 
   if (!projectName) return { error: "Project name is required" };
+  if (!parsedRepo) {
+    return {
+      error: "A public GitHub repository URL is required (e.g. https://github.com/owner/repo).",
+    };
+  }
+  const repoUrl = parsedRepo.normalized;
 
   const { data: team } = await supabase
     .from("hackathon_teams")
@@ -1342,7 +1359,6 @@ export async function submitHackathonProject(
 
   if (!team) return { error: "Team not found" };
 
-  // Verify user is on the team
   const { data: membership } = await supabase
     .from("hackathon_team_members")
     .select("id")
@@ -1352,7 +1368,6 @@ export async function submitHackathonProject(
 
   if (!membership) return { error: "You are not on this team" };
 
-  // Enforce submission cutoff and min team size
   const { data: settings } = await supabase
     .from("hackathon_settings")
     .select("submission_deadline, judging_starts_at, min_team_size")
@@ -1373,9 +1388,48 @@ export async function submitHackathonProject(
     }
   }
 
+  // Prefer atomic RPC (primary + backup in one transaction).
+  const { data: rpcResult, error: rpcError } = await supabase.rpc("submit_hackathon_project", {
+    p_event_id: eventId,
+    p_team_id: teamId,
+    p_submitted_by: session.userId,
+    p_team_name: team.name ?? null,
+    p_project_name: projectName,
+    p_description: description,
+    p_repo_url: repoUrl,
+    p_demo_url: demoUrl,
+  });
+
+  if (!rpcError && rpcResult && typeof rpcResult === "object") {
+    const result = rpcResult as {
+      ok?: boolean;
+      error?: string;
+      repo_url?: string;
+      submitted_at?: string;
+      idempotent?: boolean;
+    };
+    if (!result.ok) {
+      return { error: result.error ?? "Submission failed" };
+    }
+    const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
+    if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
+    return {
+      success: true,
+      repoUrl: result.repo_url ?? repoUrl,
+      submittedAt: result.submitted_at,
+      idempotent: Boolean(result.idempotent),
+    };
+  }
+
+  // Fallback path when RPC is not deployed yet — still never return fake success.
+  console.warn(
+    "[submitHackathonProject] RPC unavailable, using sequential heal path:",
+    rpcError?.message
+  );
+
   const { data: existingProject, error: existingProjectError } = await supabase
     .from("hackathon_projects")
-    .select("id, submitted_at")
+    .select("id, name, description, repo_url, demo_url, submitted_at")
     .eq("team_id", teamId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -1383,6 +1437,40 @@ export async function submitHackathonProject(
   if (existingProjectError) return { error: existingProjectError.message };
 
   if (existingProject?.submitted_at) {
+    const same =
+      submissionPayloadFingerprint({
+        name: existingProject.name ?? "",
+        description: existingProject.description ?? null,
+        repoUrl: existingProject.repo_url ?? "",
+        demoUrl: existingProject.demo_url ?? null,
+      }) ===
+      submissionPayloadFingerprint({
+        name: projectName,
+        description,
+        repoUrl,
+        demoUrl,
+      });
+    if (same) {
+      await saveRepoSubmissionBackup(supabase, {
+        eventId,
+        teamId,
+        submittedBy: session.userId,
+        teamName: team.name ?? null,
+        projectName,
+        description,
+        repoUrl,
+        demoUrl,
+        submittedAt: existingProject.submitted_at,
+        primaryProjectSaved: true,
+        primaryProjectError: null,
+      });
+      return {
+        success: true,
+        repoUrl,
+        submittedAt: existingProject.submitted_at,
+        idempotent: true,
+      };
+    }
     return { error: "This team already has a submitted project. Cancel it before submitting changes." };
   }
 
@@ -1398,38 +1486,68 @@ export async function submitHackathonProject(
     updated_at: now,
   };
 
-  const { error } = existingProject
-    ? await supabase
+  async function writePrimary() {
+    if (existingProject) {
+      return supabase
         .from("hackathon_projects")
         .update(payload)
         .eq("id", existingProject.id)
-        .is("submitted_at", null)
-    : await supabase
-        .from("hackathon_projects")
-        .insert({
-          ...payload,
-          created_at: now,
-        });
+        .is("submitted_at", null);
+    }
+    return supabase.from("hackathon_projects").insert({ ...payload, created_at: now });
+  }
+
+  let { error } = await writePrimary();
+  if (error && error.code !== "23505") {
+    // One heal retry
+    ({ error } = await writePrimary());
+  }
 
   if (error?.code === "23505") {
+    await saveRepoSubmissionBackup(supabase, {
+      eventId,
+      teamId,
+      submittedBy: session.userId,
+      teamName: team.name ?? null,
+      projectName,
+      description,
+      repoUrl,
+      demoUrl,
+      submittedAt: now,
+      primaryProjectSaved: false,
+      primaryProjectError: error.message,
+    });
     return { error: "This team already has a submitted project. Refresh to see the latest submission." };
   }
 
-  if (!error && existingProject) {
+  if (error) {
+    await saveRepoSubmissionBackup(supabase, {
+      eventId,
+      teamId,
+      submittedBy: session.userId,
+      teamName: team.name ?? null,
+      projectName,
+      description,
+      repoUrl,
+      demoUrl,
+      submittedAt: now,
+      primaryProjectSaved: false,
+      primaryProjectError: error.message,
+    });
+    return {
+      error: `Could not lock your project submission (${error.message}). Your repo was saved to the staff backup — contact staff or retry.`,
+    };
+  }
+
+  if (existingProject) {
     const { data: savedProject } = await supabase
       .from("hackathon_projects")
-      .select("id")
+      .select("id, submitted_at")
       .eq("id", existingProject.id)
       .eq("submitted_at", now)
       .maybeSingle();
-
     if (!savedProject) {
-      return { error: "This team already has a submitted project. Refresh to see the latest submission." };
-    }
-  }
-
-  const backup = repoUrl
-    ? await saveRepoSubmissionBackup(supabase, {
+      await saveRepoSubmissionBackup(supabase, {
         eventId,
         teamId,
         submittedBy: session.userId,
@@ -1439,28 +1557,30 @@ export async function submitHackathonProject(
         repoUrl,
         demoUrl,
         submittedAt: now,
-        primaryProjectSaved: !error,
-        primaryProjectError: error?.message ?? null,
-      })
-    : null;
-
-  if (error) {
-    if (backup?.saved) {
-      const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
-      if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
-      return {
-        success: true,
-        fallback: true,
-        warning: "Repo saved to the admin backup file, but the project card did not update.",
-      };
+        primaryProjectSaved: false,
+        primaryProjectError: "Lost update race",
+      });
+      return { error: "This team already has a submitted project. Refresh to see the latest submission." };
     }
-
-    return { error: error.message };
   }
+
+  await saveRepoSubmissionBackup(supabase, {
+    eventId,
+    teamId,
+    submittedBy: session.userId,
+    teamName: team.name ?? null,
+    projectName,
+    description,
+    repoUrl,
+    demoUrl,
+    submittedAt: now,
+    primaryProjectSaved: true,
+    primaryProjectError: null,
+  });
 
   const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
   if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
-  return { success: true };
+  return { success: true, repoUrl, submittedAt: now };
 }
 
 // Let an individual start a solo team (a team of one) so they can submit a project
@@ -1595,6 +1715,437 @@ export async function cancelHackathonProjectSubmission(
   const { data: slugRow } = await supabase.from("events").select("slug").eq("id", eventId).maybeSingle();
   if (slugRow?.slug) revalidatePath(`/${slugRow.slug}/hackathon`);
   return { success: true };
+}
+
+// ─── Admin: submission recovery (promote backup → primary) ────────────────────
+
+export type AtRiskSubmissionReason =
+  | "submitted_without_repo"
+  | "backup_only"
+  | "backup_primary_failed";
+
+export type AtRiskSubmission = {
+  teamId: string;
+  teamName: string;
+  reasons: AtRiskSubmissionReason[];
+  repoUrl: string | null;
+  backupId?: string;
+};
+
+async function writePrimaryFromBackupPayload(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  opts: {
+    eventId: string;
+    teamId: string;
+    projectName: string;
+    description: string | null;
+    repoUrl: string;
+    demoUrl: string | null;
+    submittedAt: string;
+    submittedBy: string | null;
+    teamName: string | null;
+  }
+): Promise<{ error?: string }> {
+  const now = new Date().toISOString();
+  const submittedAt = opts.submittedAt || now;
+
+  const { data: existing } = await supabase
+    .from("hackathon_projects")
+    .select("id")
+    .eq("team_id", opts.teamId)
+    .eq("event_id", opts.eventId)
+    .maybeSingle();
+
+  const payload = {
+    team_id: opts.teamId,
+    event_id: opts.eventId,
+    name: opts.projectName,
+    description: opts.description,
+    repo_url: opts.repoUrl,
+    demo_url: opts.demoUrl,
+    submitted_at: submittedAt,
+    updated_at: now,
+  };
+
+  const { error } = existing
+    ? await supabase.from("hackathon_projects").update(payload).eq("id", existing.id)
+    : await supabase.from("hackathon_projects").insert({ ...payload, created_at: now });
+
+  if (error) return { error: error.message };
+
+  await saveRepoSubmissionBackup(supabase, {
+    eventId: opts.eventId,
+    teamId: opts.teamId,
+    submittedBy: opts.submittedBy,
+    teamName: opts.teamName,
+    projectName: opts.projectName,
+    description: opts.description,
+    repoUrl: opts.repoUrl,
+    demoUrl: opts.demoUrl,
+    submittedAt,
+    primaryProjectSaved: true,
+    primaryProjectError: null,
+  });
+
+  return {};
+}
+
+export async function listAtRiskHackathonSubmissions(
+  eventId: string,
+  adminCode: string
+): Promise<{ atRisk?: AtRiskSubmission[]; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const supabase = await createServiceClient();
+  const [{ data: teams }, { data: projects }, { data: backups }] = await Promise.all([
+    supabase.from("hackathon_teams").select("id, name").eq("event_id", eventId),
+    supabase
+      .from("hackathon_projects")
+      .select("team_id, name, repo_url, submitted_at")
+      .eq("event_id", eventId),
+    supabase
+      .from("hackathon_repo_submission_backups")
+      .select("id, team_id, team_name, project_name, repo_url, demo_url, description, submitted_at, primary_project_saved, submitted_by")
+      .eq("event_id", eventId),
+  ]);
+
+  const projectByTeam = new Map((projects ?? []).map((p) => [p.team_id as string, p]));
+  const backupByTeam = new Map((backups ?? []).map((b) => [b.team_id as string, b]));
+  const teamNameById = new Map((teams ?? []).map((t) => [t.id as string, t.name as string]));
+
+  const teamIds = new Set<string>([
+    ...projectByTeam.keys(),
+    ...backupByTeam.keys(),
+  ]);
+
+  const atRisk: AtRiskSubmission[] = [];
+
+  for (const teamId of teamIds) {
+    const project = projectByTeam.get(teamId);
+    const backup = backupByTeam.get(teamId);
+    const reasons: AtRiskSubmissionReason[] = [];
+
+    if (project?.submitted_at && !String(project.repo_url ?? "").trim()) {
+      reasons.push("submitted_without_repo");
+    }
+    if (backup && !project?.submitted_at && String(backup.repo_url ?? "").trim()) {
+      reasons.push("backup_only");
+    }
+    if (backup && backup.primary_project_saved === false) {
+      reasons.push("backup_primary_failed");
+    }
+
+    if (reasons.length === 0) continue;
+
+    atRisk.push({
+      teamId,
+      teamName: teamNameById.get(teamId) ?? backup?.team_name ?? "Unknown team",
+      reasons: [...new Set(reasons)],
+      repoUrl:
+        parsePublicGithubRepoUrl(project?.repo_url)?.normalized ??
+        parsePublicGithubRepoUrl(backup?.repo_url)?.normalized ??
+        null,
+      backupId: backup?.id,
+    });
+  }
+
+  return { atRisk };
+}
+
+/** Restore primary hackathon_projects row from backup and set submitted_at. */
+export async function adminRestoreProjectFromBackup(
+  teamId: string,
+  eventId: string,
+  adminCode: string
+): Promise<{ success?: true; error?: string; repoUrl?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const supabase = await createServiceClient();
+
+  const { data: backup } = await supabase
+    .from("hackathon_repo_submission_backups")
+    .select("*")
+    .eq("team_id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!backup) return { error: "No backup found for this team" };
+
+  const parsed = parsePublicGithubRepoUrl(backup.repo_url);
+  if (!parsed) return { error: "Backup has no valid public GitHub repo URL" };
+
+  const projectName = (backup.project_name ?? "Untitled").trim() || "Untitled";
+  const write = await writePrimaryFromBackupPayload(supabase, {
+    eventId,
+    teamId,
+    projectName,
+    description: backup.description ?? null,
+    repoUrl: parsed.normalized,
+    demoUrl: backup.demo_url ?? null,
+    submittedAt: backup.submitted_at ?? new Date().toISOString(),
+    submittedBy: backup.submitted_by ?? null,
+    teamName: backup.team_name ?? null,
+  });
+
+  if (write.error) return { error: write.error };
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true, repoUrl: parsed.normalized };
+}
+
+export async function adminPatchProjectRepo(
+  teamId: string,
+  eventId: string,
+  repoUrl: string,
+  adminCode: string
+): Promise<{ success?: true; error?: string; repoUrl?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const parsed = parsePublicGithubRepoUrl(repoUrl);
+  if (!parsed) {
+    return { error: "Enter a valid public GitHub URL (https://github.com/owner/repo)." };
+  }
+
+  const supabase = await createServiceClient();
+  const now = new Date().toISOString();
+
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("id, name")
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (!team) return { error: "Team not found" };
+
+  const { data: existing } = await supabase
+    .from("hackathon_projects")
+    .select("id, name, description, demo_url, submitted_at")
+    .eq("team_id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!existing) {
+    return { error: "No project row yet. Restore from backup or have the team submit first." };
+  }
+
+  const { error } = await supabase
+    .from("hackathon_projects")
+    .update({
+      repo_url: parsed.normalized,
+      updated_at: now,
+    })
+    .eq("id", existing.id);
+
+  if (error) return { error: error.message };
+
+  await saveRepoSubmissionBackup(supabase, {
+    eventId,
+    teamId,
+    submittedBy: null,
+    teamName: team.name ?? null,
+    projectName: existing.name ?? "Untitled",
+    description: existing.description ?? null,
+    repoUrl: parsed.normalized,
+    demoUrl: existing.demo_url ?? null,
+    submittedAt: existing.submitted_at ?? now,
+    primaryProjectSaved: Boolean(existing.submitted_at),
+    primaryProjectError: null,
+  });
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true, repoUrl: parsed.normalized };
+}
+
+/** Set submitted_at on an existing draft that already has a valid repo. */
+export async function adminForceSubmitDraft(
+  teamId: string,
+  eventId: string,
+  adminCode: string
+): Promise<{ success?: true; error?: string; repoUrl?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return authError;
+
+  const supabase = await createServiceClient();
+  const now = new Date().toISOString();
+
+  const { data: team } = await supabase
+    .from("hackathon_teams")
+    .select("id, name")
+    .eq("id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (!team) return { error: "Team not found" };
+
+  const { data: project } = await supabase
+    .from("hackathon_projects")
+    .select("id, name, description, repo_url, demo_url, submitted_at")
+    .eq("team_id", teamId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+
+  if (!project) return { error: "No project draft found for this team" };
+  if (project.submitted_at) return { error: "Project is already submitted" };
+
+  const parsed = parsePublicGithubRepoUrl(project.repo_url);
+  if (!parsed) {
+    return { error: "Draft has no valid public GitHub repo URL. Patch the repo first." };
+  }
+
+  const { error } = await supabase
+    .from("hackathon_projects")
+    .update({
+      repo_url: parsed.normalized,
+      submitted_at: now,
+      updated_at: now,
+    })
+    .eq("id", project.id)
+    .is("submitted_at", null);
+
+  if (error) return { error: error.message };
+
+  await saveRepoSubmissionBackup(supabase, {
+    eventId,
+    teamId,
+    submittedBy: null,
+    teamName: team.name ?? null,
+    projectName: project.name ?? "Untitled",
+    description: project.description ?? null,
+    repoUrl: parsed.normalized,
+    demoUrl: project.demo_url ?? null,
+    submittedAt: now,
+    primaryProjectSaved: true,
+    primaryProjectError: null,
+  });
+
+  revalidatePath(`/admin/${adminCode}/hackathon`);
+  return { success: true, repoUrl: parsed.normalized };
+}
+
+/** One-click: restore every backup-only / failed-primary team that has a valid repo. */
+export async function adminHealAllAtRiskSubmissions(
+  eventId: string,
+  adminCode: string
+): Promise<{
+  success?: true;
+  error?: string;
+  healed?: number;
+  skippedMissingRepo?: number;
+  failures?: string[];
+}> {
+  const listed = await listAtRiskHackathonSubmissions(eventId, adminCode);
+  if (listed.error) return { error: listed.error };
+
+  let healed = 0;
+  let skippedMissingRepo = 0;
+  const failures: string[] = [];
+
+  for (const row of listed.atRisk ?? []) {
+    const needsRestore =
+      row.reasons.includes("backup_only") ||
+      row.reasons.includes("backup_primary_failed") ||
+      (row.reasons.includes("submitted_without_repo") && Boolean(row.repoUrl));
+    if (!needsRestore) {
+      if (row.reasons.includes("submitted_without_repo") && !row.repoUrl) {
+        skippedMissingRepo++;
+      }
+      continue;
+    }
+    if (!row.repoUrl) {
+      skippedMissingRepo++;
+      continue;
+    }
+    const res = await adminRestoreProjectFromBackup(row.teamId, eventId, adminCode);
+    if (res.error) failures.push(`${row.teamName}: ${res.error}`);
+    else healed++;
+  }
+
+  return {
+    success: true,
+    healed,
+    skippedMissingRepo,
+    failures: failures.length ? failures : undefined,
+  };
+}
+
+/**
+ * Auto-heal used by Analyze All: promote backups with repos onto primary when
+ * submitted_at is missing. Returns counts for the ops summary.
+ */
+export async function autoHealSubmissionsFromBackups(eventId: string): Promise<{
+  healed: number;
+  stillMissingRepo: number;
+}> {
+  const supabase = await createServiceClient();
+
+  const [{ data: projects }, { data: backups }] = await Promise.all([
+    supabase
+      .from("hackathon_projects")
+      .select("team_id, repo_url, submitted_at")
+      .eq("event_id", eventId),
+    supabase
+      .from("hackathon_repo_submission_backups")
+      .select("*")
+      .eq("event_id", eventId),
+  ]);
+
+  const projectByTeam = new Map((projects ?? []).map((p) => [p.team_id as string, p]));
+  let healed = 0;
+  const healedTeamIds = new Set<string>();
+
+  for (const backup of backups ?? []) {
+    const teamId = backup.team_id as string;
+    const project = projectByTeam.get(teamId);
+    const parsed = parsePublicGithubRepoUrl(backup.repo_url);
+    const missingPrimaryRepo =
+      Boolean(project?.submitted_at) && !String(project?.repo_url ?? "").trim();
+    const needsHeal =
+      Boolean(parsed) &&
+      (!project?.submitted_at ||
+        backup.primary_project_saved === false ||
+        missingPrimaryRepo);
+
+    if (!parsed || !needsHeal) continue;
+
+    const write = await writePrimaryFromBackupPayload(supabase, {
+      eventId,
+      teamId,
+      projectName: (backup.project_name ?? "Untitled").trim() || "Untitled",
+      description: backup.description ?? null,
+      repoUrl: parsed.normalized,
+      demoUrl: backup.demo_url ?? null,
+      submittedAt: backup.submitted_at ?? new Date().toISOString(),
+      submittedBy: backup.submitted_by ?? null,
+      teamName: backup.team_name ?? null,
+    });
+
+    if (!write.error) {
+      healed++;
+      healedTeamIds.add(teamId);
+    }
+  }
+
+  let stillMissingRepo = 0;
+  for (const project of projects ?? []) {
+    const teamId = project.team_id as string;
+    if (healedTeamIds.has(teamId)) continue;
+    if (project.submitted_at && !String(project.repo_url ?? "").trim()) {
+      stillMissingRepo++;
+    }
+  }
+  for (const backup of backups ?? []) {
+    const teamId = backup.team_id as string;
+    if (healedTeamIds.has(teamId)) continue;
+    const project = projectByTeam.get(teamId);
+    if (project?.submitted_at) continue;
+    if (!parsePublicGithubRepoUrl(backup.repo_url)) {
+      stillMissingRepo++;
+    }
+  }
+
+  return { healed, stillMissingRepo };
 }
 
 // ─── Attendee: volunteer team to present (once per team) ──────────────────────
