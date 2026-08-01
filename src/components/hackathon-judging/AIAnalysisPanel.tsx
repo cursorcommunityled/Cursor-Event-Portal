@@ -7,9 +7,9 @@ import { mergeTeamAnalyses, sortAnalyses } from "@/lib/hackathon-analysis/admin-
 import { createClient } from "@/lib/supabase/client";
 import {
   Cpu, ChevronDown, ChevronUp, Check, AlertCircle, Loader2,
-  Star, TrendingUp, Eye, Users, Lightbulb, RotateCcw,
+  Star, TrendingUp, Eye, Users, Lightbulb, RotateCcw, Copy,
 } from "lucide-react";
-import type { HackathonAIAnalysis } from "@/lib/hackathon-analysis/types";
+import type { HackathonAIAnalysis, HackathonAIJob } from "@/lib/hackathon-analysis/types";
 import type { Pass6Result } from "@/lib/hackathon-analysis/types";
 
 const PASS_LABELS: Record<string, string> = {
@@ -48,26 +48,34 @@ const CRITERIA_ICONS: Record<string, React.ReactNode> = {
   learning_ambition: <Star className="w-3.5 h-3.5" />,
 };
 
-function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
-  const pct = (score / max) * 100;
-  const color =
-    score >= 8 ? "bg-green-400" :
-    score >= 6 ? "bg-red-400" :
-    score >= 4 ? "bg-yellow-400" :
-    "bg-red-400";
-  return (
-    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden w-full">
-      <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
 function PassStatus({ pass }: { pass: HackathonAIAnalysis | undefined }) {
   if (!pass) return <span className="text-gray-600 text-[11px]">—</span>;
   if (pass.status === "running") return <Loader2 className="w-3.5 h-3.5 text-red-400 animate-spin" />;
   if (pass.status === "complete") return <Check className="w-3.5 h-3.5 text-green-400" />;
   if (pass.status === "error") return <AlertCircle className="w-3.5 h-3.5 text-red-400" />;
+  if (pass.status === "cancelled") return <span className="text-gray-500 text-[10px]">✕</span>;
   return <span className="w-2 h-2 rounded-full bg-gray-600 inline-block" />;
+}
+
+function formatElapsed(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 60_000) return `${Math.max(1, Math.round(ms / 1000))}s ago`;
+  return `${Math.round(ms / 60_000)}m ago`;
+}
+
+function passSummary(pass: HackathonAIAnalysis | undefined): string | null {
+  if (!pass?.result || typeof pass.result !== "object") return null;
+  const r = pass.result as unknown as Record<string, unknown>;
+  if (typeof r.readme_summary === "string") return r.readme_summary.slice(0, 160);
+  if (typeof r.architecture_notes === "string") return r.architecture_notes.slice(0, 160);
+  if (typeof r.problem_novelty_notes === "string") return r.problem_novelty_notes.slice(0, 160);
+  if (typeof r.relative_standing === "string") return r.relative_standing.slice(0, 160);
+  if (typeof r.overall_score === "number") return `Overall ${r.overall_score}/10`;
+  if (typeof r.overall_visual_score === "number") {
+    return `Visual ${r.overall_visual_score}/10 · ${r.screenshots_analyzed ?? "?"} shots`;
+  }
+  return null;
 }
 
 interface Props {
@@ -77,18 +85,21 @@ interface Props {
   adminCode: string;
   analyses: HackathonAIAnalysis[];
   hasRepo: boolean;
+  job?: HackathonAIJob | null;
   onAnalysesChange?: (analyses: HackathonAIAnalysis[]) => void;
 }
 
 export function AIAnalysisPanel({
-  teamId, teamName, eventId, adminCode, analyses, hasRepo, onAnalysesChange,
+  teamId, teamName, eventId, adminCode, analyses, hasRepo, job, onAnalysesChange,
 }: Props) {
   const [liveAnalyses, setLiveAnalyses] = useState(() => sortAnalyses(analyses));
   const [expanded, setExpanded] = useState(false);
+  const [expandedPass, setExpandedPass] = useState<string | null>(null);
   const [expandedCriteria, setExpandedCriteria] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [optimisticStarted, setOptimisticStarted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fetchAnalyses = useCallback(async () => {
     const supabase = createClient();
@@ -123,6 +134,10 @@ export function AIAnalysisPanel({
         "postgres_changes",
         { event: "*", schema: "public", table: "hackathon_ai_analyses", filter: `team_id=eq.${teamId}` },
         (payload) => {
+          if (payload.eventType === "DELETE") {
+            void fetchAnalyses();
+            return;
+          }
           const row = payload.new as HackathonAIAnalysis | null;
           if (!row || row.event_id !== eventId) return;
           setLiveAnalyses((prev) => upsertAnalyses(prev, [row]));
@@ -133,56 +148,59 @@ export function AIAnalysisPanel({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId, teamId]);
+  }, [eventId, teamId, fetchAnalyses]);
 
   const byPass = Object.fromEntries(liveAnalyses.map((a) => [a.pass_name, a])) as Partial<Record<(typeof PASS_ORDER)[number], HackathonAIAnalysis>>;
   const pass6 = byPass["pass6_synthesis"]?.result as Pass6Result | undefined;
-  const isRunning = liveAnalyses.some((a) => a.status === "running");
-  const hasAnalysisError = liveAnalyses.some((a) => a.status === "error");
-  const allDone = PASS_ORDER
-    .every((p) => byPass[p]?.status === "complete");
-  const hasStarted = liveAnalyses.length > 0 || optimisticStarted;
+  const isRunning = liveAnalyses.some((a) => a.status === "running") || job?.status === "running" || job?.status === "queued";
+  const hasAnalysisError = liveAnalyses.some((a) => a.status === "error") || job?.status === "error";
+  const allDone = PASS_ORDER.every((p) => byPass[p]?.status === "complete");
+  const hasStarted = liveAnalyses.length > 0 || optimisticStarted || Boolean(job);
 
   useEffect(() => {
-    if (!hasStarted || allDone || hasAnalysisError) return;
-
+    if (!hasStarted || allDone) return;
+    // Keep polling while queued/running OR while errored (job may be retried externally)
     void fetchAnalyses();
     const interval = window.setInterval(() => {
       void fetchAnalyses();
     }, 2500);
-
     return () => window.clearInterval(interval);
-  }, [allDone, fetchAnalyses, hasAnalysisError, hasStarted]);
+  }, [allDone, fetchAnalyses, hasStarted, isRunning]);
 
   const completedCount = Object.values(byPass).filter((a) => a.status === "complete").length;
   const runningPass = PASS_ORDER.find((p) => byPass[p]?.status === "running");
   const runningPassRow = runningPass ? byPass[runningPass] : undefined;
   const isLikelyStuck = Boolean(
-    runningPassRow?.updated_at &&
-    Date.now() - new Date(runningPassRow.updated_at).getTime() > STUCK_THRESHOLD_MS
+    (runningPassRow?.updated_at &&
+      Date.now() - new Date(runningPassRow.updated_at).getTime() > STUCK_THRESHOLD_MS) ||
+    (job?.status === "running" &&
+      job.heartbeat_at &&
+      Date.now() - new Date(job.heartbeat_at).getTime() > STUCK_THRESHOLD_MS)
   );
   const failedPass = PASS_ORDER.find((p) => byPass[p]?.status === "error");
-  const failedError = failedPass ? byPass[failedPass]?.error : null;
-  const showReset = hasStarted && !allDone && !hasAnalysisError;
-  const statusMessage = failedPass
-    ? `${PASS_LABELS[failedPass]} failed`
-    : isRunning && runningPass
-      ? `Running ${PASS_LABELS[runningPass]} (${completedCount}/6 complete)`
+  const failedError = failedPass ? byPass[failedPass]?.error : job?.last_error ?? null;
+
+  const statusMessage = failedPass || job?.status === "error"
+    ? `${failedPass ? PASS_LABELS[failedPass] : "Job"} failed`
+    : isRunning && (runningPass || job?.current_pass)
+      ? `Running ${PASS_LABELS[runningPass ?? (job?.current_pass as string)] ?? job?.current_pass ?? "…"} (${completedCount}/6 complete)`
       : allDone
         ? "Analysis complete. Review the synthesis."
         : hasStarted
           ? `Analysis queued (${completedCount}/6 complete)`
           : null;
 
-  const startAnalysisRun = () => {
+  const startAnalysisRun = (force = false) => {
     setError(null);
     setOptimisticStarted(true);
     startTransition(async () => {
-      const res = await triggerAnalysis(teamId, eventId, adminCode);
+      const res = await triggerAnalysis(teamId, eventId, adminCode, { force });
       if (res.error) {
         setOptimisticStarted(false);
         setError(res.error);
+        return;
       }
+      void fetchAnalyses();
     });
   };
 
@@ -198,15 +216,35 @@ export function AIAnalysisPanel({
       setLiveAnalyses([]);
       setOptimisticStarted(false);
       setExpanded(false);
+      setExpandedPass(null);
     });
   };
+
+  const handleReRun = () => {
+    if (!confirm(`Re-run AI analysis for ${teamName} from scratch? Current scores will be cleared.`)) return;
+    startAnalysisRun(true);
+  };
+
+  const copyError = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+
+  const showAnalyze = !hasStarted;
+  const showRetry = hasStarted && !allDone;
+  const showReset = hasStarted && !allDone;
+  const showReRun = allDone;
 
   return (
     <div className="relative overflow-hidden rounded-[24px] border border-red-500/20 bg-black/40 backdrop-blur-xl shadow-2xl transition-all hover:border-red-500/40 group">
       <div className="absolute inset-0 bg-grid-red/[0.02] bg-[size:15px_15px]" />
       <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-500/10 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
-      
-      {/* Header */}
+
       <div className="relative flex flex-wrap items-center justify-between px-4 py-4 bg-white/[0.02] border-b border-white/5 gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-red-500/20 border border-red-500/30 shadow-neon overflow-hidden relative shrink-0">
@@ -215,12 +253,17 @@ export function AIAnalysisPanel({
           </div>
           <div className="flex items-center flex-wrap gap-2">
             <span className="text-[12px] font-bold uppercase tracking-[0.2em] text-red-300">AI Judge</span>
+            {job && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border border-white/15 text-gray-400">
+                job:{job.status}{job.attempt > 0 ? ` · try ${job.attempt + 1}` : ""}
+              </span>
+            )}
             {hasStarted && (
               <div className="flex items-center gap-1.5">
                 {PASS_ORDER.map((p) => (
                   <PassStatus key={p} pass={byPass[p]} />
                 ))}
-                {isRunning && (
+                {(isRunning || hasStarted) && (
                   <span className="text-[10px] font-bold text-gray-500 ml-1">
                     {completedCount}/6
                   </span>
@@ -235,11 +278,11 @@ export function AIAnalysisPanel({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
-          {!hasStarted && !isRunning && (
+        <div className="flex items-center gap-2 ml-auto flex-wrap justify-end">
+          {showAnalyze && (
             <button
               disabled={isPending || !hasRepo}
-              onClick={startAnalysisRun}
+              onClick={() => startAnalysisRun(false)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-red-500/40 bg-red-500/20 text-red-200 hover:bg-red-500/30 hover:border-red-500/60 transition-all disabled:opacity-40 shadow-neon"
               title={!hasRepo ? "Team must submit a repo URL first" : undefined}
             >
@@ -248,32 +291,44 @@ export function AIAnalysisPanel({
             </button>
           )}
 
+          {showRetry && (
+            <button
+              disabled={isPending || !hasRepo}
+              onClick={() => startAnalysisRun(false)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-white/15 bg-white/5 text-gray-200 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all disabled:opacity-40"
+              title="Re-queue from last complete pass (or restart after error/stuck)"
+            >
+              Retry
+            </button>
+          )}
+
           {showReset && (
             <button
               disabled={isPending}
               onClick={handleReset}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-amber-400/40 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25 hover:border-amber-400/60 transition-all disabled:opacity-40"
-              title="Clear stuck analysis and start fresh"
+              title="Clear all passes and cancel the job"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               {isPending ? "Resetting…" : "Reset"}
             </button>
           )}
 
-          {hasStarted && !isRunning && hasAnalysisError && (
+          {showReRun && (
             <button
-              disabled={isPending}
-              onClick={startAnalysisRun}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all disabled:opacity-40"
+              disabled={isPending || !hasRepo}
+              onClick={handleReRun}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider border border-white/15 bg-white/5 text-gray-300 hover:text-white transition-all disabled:opacity-40"
             >
-              Retry
+              Re-run
             </button>
           )}
 
-          {allDone && (
+          {hasStarted && (
             <button
               onClick={() => setExpanded(!expanded)}
               className="text-gray-400 hover:text-white transition-colors p-2 rounded-xl hover:bg-white/10 ml-1"
+              title="Expand pass details"
             >
               {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
@@ -287,43 +342,84 @@ export function AIAnalysisPanel({
             {PASS_ORDER.map((passName) => {
               const pass = byPass[passName];
               return (
-                <div
+                <button
                   key={passName}
+                  type="button"
+                  onClick={() => setExpandedPass(expandedPass === passName ? null : passName)}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider",
+                    "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors",
                     pass?.status === "complete" && "border-green-500/30 bg-green-500/10 text-green-300",
                     pass?.status === "running" && "border-red-500/30 bg-red-500/10 text-red-200",
                     pass?.status === "error" && "border-red-500/40 bg-red-500/15 text-red-300",
-                    !pass && "border-white/10 bg-white/5 text-gray-500"
+                    pass?.status === "cancelled" && "border-white/10 bg-white/5 text-gray-500",
+                    (!pass || pass.status === "pending") && "border-white/10 bg-white/5 text-gray-500",
+                    expandedPass === passName && "ring-1 ring-white/30"
                   )}
-                  title={pass?.error ?? undefined}
                 >
                   <PassStatus pass={pass} />
                   <span>{PASS_LABELS[passName]}</span>
-                </div>
+                </button>
               );
             })}
           </div>
+
           {statusMessage && (
             <p className={cn(
               "text-[12px] font-semibold",
-              failedPass ? "text-red-300" : allDone ? "text-green-300" : "text-gray-400"
+              failedPass || job?.status === "error" ? "text-red-300" : allDone ? "text-green-300" : "text-gray-400"
             )}>
               {statusMessage}
               {isLikelyStuck && !failedPass && (
-                <span className="text-amber-300/90"> — taking longer than expected; try Reset if it stays stuck.</span>
+                <span className="text-amber-300/90"> — taking longer than expected; use Retry or Reset.</span>
               )}
             </p>
           )}
-          {failedError && (
-            <p className="text-[12px] leading-relaxed text-red-300/90 break-words">
-              {failedError}
+
+          {job && (
+            <p className="text-[11px] text-gray-500">
+              Job {job.status}
+              {job.current_pass ? ` · ${job.current_pass}` : ""}
+              {job.heartbeat_at ? ` · heartbeat ${formatElapsed(job.heartbeat_at)}` : ""}
+              {job.last_error ? ` · ${job.last_error.slice(0, 120)}` : ""}
             </p>
+          )}
+
+          {failedError && (
+            <div className="flex items-start gap-2">
+              <p className="text-[12px] leading-relaxed text-red-300/90 break-words flex-1">
+                {failedError}
+              </p>
+              <button
+                type="button"
+                onClick={() => void copyError(failedError)}
+                className="shrink-0 p-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white"
+                title="Copy error"
+              >
+                <Copy className="w-3.5 h-3.5" />
+              </button>
+              {copied && <span className="text-[10px] text-green-400">Copied</span>}
+            </div>
+          )}
+
+          {expandedPass && (
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-1.5 text-[12px] text-gray-300">
+              <p className="font-bold text-white">{PASS_LABELS[expandedPass]}</p>
+              <p>Status: {byPass[expandedPass as typeof PASS_ORDER[number]]?.status ?? "missing"}</p>
+              <p>Updated: {formatElapsed(byPass[expandedPass as typeof PASS_ORDER[number]]?.updated_at)}</p>
+              <p>Model: {byPass[expandedPass as typeof PASS_ORDER[number]]?.model_used ?? "—"}</p>
+              {byPass[expandedPass as typeof PASS_ORDER[number]]?.error && (
+                <p className="text-red-300 break-words">
+                  Error: {byPass[expandedPass as typeof PASS_ORDER[number]]?.error}
+                </p>
+              )}
+              {passSummary(byPass[expandedPass as typeof PASS_ORDER[number]]) && (
+                <p className="text-gray-400">{passSummary(byPass[expandedPass as typeof PASS_ORDER[number]])}</p>
+              )}
+            </div>
           )}
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div className="relative px-5 py-3 bg-red-500/10 border-t border-red-500/20 text-red-400 text-[13px] font-medium flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -331,22 +427,18 @@ export function AIAnalysisPanel({
         </div>
       )}
 
-      {/* Expanded report */}
       {expanded && pass6 && (
         <div className="relative px-5 py-5 space-y-5 border-t border-white/5">
-          {/* Overall */}
           <div className="relative overflow-hidden rounded-[20px] p-5 border border-white/10 bg-white/[0.02] space-y-4">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent" />
             <div className="relative flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">Overall Score</span>
               <span className="text-3xl font-black text-white tracking-tight">{pass6.overall_score.toFixed(1)}<span className="text-sm font-bold text-gray-600">/10</span></span>
             </div>
             <p className="relative text-[14px] font-medium text-gray-300 leading-relaxed">{pass6.most_impressive_aspect}</p>
-
             {pass6.recommended_award_categories.length > 0 && (
               <div className="relative flex flex-wrap gap-2 pt-2">
                 {pass6.recommended_award_categories.map((cat) => (
-                  <span key={cat} className="text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-200 shadow-[0_0_10px_rgba(239,68,68,0.15)]">
+                  <span key={cat} className="text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-200">
                     {cat}
                   </span>
                 ))}
@@ -354,7 +446,6 @@ export function AIAnalysisPanel({
             )}
           </div>
 
-          {/* Criteria scores */}
           <div className="space-y-2">
             {pass6.criteria_scores.map((c) => (
               <div key={c.criteria_key}>
@@ -371,14 +462,6 @@ export function AIAnalysisPanel({
                   <span className="text-[14px] font-black text-white tabular-nums shrink-0 text-right">
                     {c.score.toFixed(1)}
                   </span>
-                  <span className={cn(
-                    "text-[9px] font-bold uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-full border shrink-0",
-                    c.confidence === "high" ? "border-green-500/40 text-green-400 bg-green-500/10 shadow-[0_0_10px_rgba(74,222,128,0.1)]" :
-                    c.confidence === "medium" ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10 shadow-[0_0_10px_rgba(234,179,8,0.1)]" :
-                    "border-gray-500/40 text-gray-400 bg-white/5"
-                  )}>
-                    {c.confidence}
-                  </span>
                 </button>
                 {expandedCriteria === c.criteria_key && (
                   <div className="ml-10 mr-3 mb-3 mt-1 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10">
@@ -389,7 +472,6 @@ export function AIAnalysisPanel({
             ))}
           </div>
 
-          {/* Judge briefing + concerns */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {pass6.judge_briefing_points.length > 0 && (
               <div className="rounded-[20px] bg-white/[0.02] border border-white/10 p-5">
@@ -406,7 +488,6 @@ export function AIAnalysisPanel({
                 </ul>
               </div>
             )}
-
             {pass6.concerns_and_limitations.length > 0 && (
               <div className="rounded-[20px] bg-white/[0.02] border border-white/10 p-5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-gray-400 mb-3 flex items-center gap-2">

@@ -107,6 +107,8 @@ export interface ProjectContext {
   eventPrompt: string | null;
   pitchText: string | null;
   screenshotUrls: string[];
+  /** Optional job id for heartbeats / repo cache persistence. */
+  jobId?: string;
 }
 
 export interface PoolEntry {
@@ -126,7 +128,7 @@ export type PassName =
   | 'pass5_pool'
   | 'pass6_synthesis';
 
-export type AnalysisStatus = 'pending' | 'running' | 'complete' | 'error';
+export type AnalysisStatus = 'pending' | 'running' | 'complete' | 'error' | 'cancelled';
 
 export interface HackathonAIAnalysis {
   id: string;
@@ -139,4 +141,36 @@ export interface HackathonAIAnalysis {
   error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// ─── Job queue ────────────────────────────────────────────────────────────────
+
+export type AiJobStatus = 'queued' | 'running' | 'complete' | 'error' | 'cancelled';
+
+export type AiJobDiagnostics = {
+  repo_cache?: RepoData;
+  repo_url?: string;
+  warnings?: string[];
+  images_loaded?: number;
+  images_failed?: number;
+  [key: string]: unknown;
+};
+
+export interface HackathonAIJob {
+  id: string;
+  event_id: string;
+  team_id: string;
+  status: AiJobStatus;
+  attempt: number;
+  max_attempts: number;
+  lease_owner: string | null;
+  lease_expires_at: string | null;
+  heartbeat_at: string | null;
+  current_pass: PassName | string | null;
+  last_error: string | null;
+  diagnostics: AiJobDiagnostics;
+  created_at: string;
+  updated_at: string;
+  started_at: string | null;
+  finished_at: string | null;
 }

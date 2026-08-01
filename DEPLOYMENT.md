@@ -58,6 +58,8 @@ The project is already configured with `render.yaml`. To deploy:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
+   - `GITHUB_TOKEN` (**required for AI screening** — GitHub PAT; without it / with a bad token, screening hits the 60 req/hr cap)
+   - `ANTHROPIC_API_KEY` (**required for AI screening**)
    - `RESEND_API_KEY` (optional, for email features)
    - `NODE_ENV=production`
 
@@ -69,9 +71,36 @@ The project is already configured with `render.yaml`. To deploy:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+GITHUB_TOKEN=ghp_your_github_personal_access_token
+ANTHROPIC_API_KEY=your_anthropic_key
 RESEND_API_KEY=your_resend_key (optional)
 NODE_ENV=production
 ```
+
+### Pre-event: AI screening checklist
+
+Do this before doors / before Analyze All:
+
+1. **Apply job-queue migration** in Supabase SQL editor: [`create_hackathon_ai_jobs.sql`](../create_hackathon_ai_jobs.sql) (or the matching file under `supabase/migrations/`).
+2. **GitHub token** — authenticated 5,000/hour limit (PowerShell):
+
+```powershell
+$token = 'github_pat_...'
+$headers = @{ Authorization = "Bearer $token"; Accept = 'application/vnd.github+json'; 'User-Agent' = 'cursor-popup-check' }
+(Invoke-RestMethod -Uri 'https://api.github.com/rate_limit' -Headers $headers).resources.core
+```
+
+Expect `limit : 5000`. If `60` or 401, rotate the PAT on Render and restart.
+
+3. **Anthropic credits** — confirm the account for `ANTHROPIC_API_KEY` is funded.
+4. **Admin → Hackathon → AI Screen → Screening Ops**
+   - Refresh status: GitHub remaining shown, Anthropic = Key set, Stuck = 0
+   - Spot-check one team Analyze end-to-end
+   - Only then run Analyze All (worker runs max **3** teams concurrently)
+5. **Recovery controls**
+   - Per team: Retry + Reset always available until complete; Re-run after complete
+   - Ops strip: Process queue / Sweep stuck / Retry all errors
+6. Offline constant smoke (optional): `npx tsx scripts/smoke-ai-job-queue.ts` from `portal/`
 
 ## Post-Deployment
 
