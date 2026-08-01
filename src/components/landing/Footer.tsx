@@ -7,12 +7,12 @@ import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { siteConfig } from '@/content/site.config';
-import { upcomingEvents } from '@/content/events';
+import { getUpcomingEvents } from '@/content/events';
 import Partners from '@/components/landing/Partners';
 
 const LandingFooter: React.FC = () => {
   const { t } = useI18n();
-  const nextEvent = upcomingEvents[0];
+  const nextEvent = getUpcomingEvents()[0];
   const nextEventHref = nextEvent?.lumaUrl ?? nextEvent?.portalPath;
 
   return (

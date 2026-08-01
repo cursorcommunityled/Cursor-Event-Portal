@@ -14,7 +14,7 @@ import LandingFooter from '@/components/landing/Footer';
 import JsonLd from '@/components/landing/JsonLd';
 import EventPortalPopup from '@/components/landing/EventPortalPopup';
 import { siteConfig } from '@/content/site.config';
-import { upcomingEvents } from '@/content/events';
+import { getUpcomingEvents } from '@/content/events';
 import type { EventWithPhotos } from '@/lib/supabase/queries';
 
 function buildHomeJsonLd() {
@@ -24,7 +24,7 @@ function buildHomeJsonLd() {
     url: siteConfig.cursorCommunityUrl,
   };
 
-  const eventItems = upcomingEvents.map((event) => {
+  const eventItems = getUpcomingEvents().map((event) => {
     const eventUrl = event.lumaUrl ?? (event.portalPath ? `${siteConfig.siteUrl}${event.portalPath}` : undefined);
 
     return {

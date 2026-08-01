@@ -107,7 +107,7 @@ INSERT INTO public.agenda_items (event_id, title, description, start_time, end_t
 SELECT
   e.id,
   'Check-in',
-  'Arrive, check in with Luma email, grab a spot.',
+  'Arrive with your Luma registration, grab a spot, and settle in. Drop-in guests welcome anytime 9:00am-5:00pm.',
   '2026-08-02T15:00:00Z'::timestamptz,
   '2026-08-02T15:15:00Z'::timestamptz,
   0
@@ -117,11 +117,22 @@ WHERE e.slug = 'cafe-cursor-calgary-aug-2026';
 INSERT INTO public.agenda_items (event_id, title, description, start_time, end_time, sort_order)
 SELECT
   e.id,
-  'Open Co-working',
-  'Bring your laptop. Coffee, patio, and casual networking all day.',
+  'Morning Co-working',
+  'For the Co-working 9:00am-1:00pm ticket. Bring your laptop, build, and swap Cursor workflows. Free coffee and patio open.',
   '2026-08-02T15:15:00Z'::timestamptz,
-  '2026-08-02T23:00:00Z'::timestamptz,
+  '2026-08-02T19:00:00Z'::timestamptz,
   1
+FROM public.events e
+WHERE e.slug = 'cafe-cursor-calgary-aug-2026';
+
+INSERT INTO public.agenda_items (event_id, title, description, start_time, end_time, sort_order)
+SELECT
+  e.id,
+  'Afternoon Co-working',
+  'For the Co-working 1:00pm-5:00pm ticket. Open build time, casual help, and networking. Drop-in guests welcome through 5:00pm.',
+  '2026-08-02T19:00:00Z'::timestamptz,
+  '2026-08-02T23:00:00Z'::timestamptz,
+  2
 FROM public.events e
 WHERE e.slug = 'cafe-cursor-calgary-aug-2026';
 

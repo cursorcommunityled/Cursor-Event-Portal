@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useCallback, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
-import { pastEvents } from '@/content/events';
+import { getPastEvents } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
 import type { EventWithPhotos } from '@/lib/supabase/queries';
 
@@ -198,6 +198,7 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
   const { t, locale } = useI18n();
 
   const mergedEvents = useMemo(() => {
+    const pastEvents = getPastEvents();
     const staticRecaps: RecapEvent[] = pastEvents.map((e) => ({
       id: e.id,
       title: e.title,

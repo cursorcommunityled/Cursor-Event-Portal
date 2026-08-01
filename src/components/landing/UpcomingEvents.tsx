@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
-import { eventLinks } from '@/content/events';
+import { getEventLinks } from '@/content/events';
 import { useI18n } from '@/lib/i18n';
 
 const EVENT_LINKS_PER_PAGE = 2;
@@ -11,13 +11,14 @@ const EVENT_LINKS_PER_PAGE = 2;
 const UpcomingEvents: React.FC = () => {
   const { t, locale } = useI18n();
   const [page, setPage] = useState(0);
+  const eventLinks = useMemo(() => getEventLinks(), []);
 
   const totalPages = Math.max(1, Math.ceil(eventLinks.length / EVENT_LINKS_PER_PAGE));
   const currentPage = Math.min(page, totalPages - 1);
   const visibleEvents = useMemo(() => {
     const offset = currentPage * EVENT_LINKS_PER_PAGE;
     return eventLinks.slice(offset, offset + EVENT_LINKS_PER_PAGE);
-  }, [currentPage]);
+  }, [currentPage, eventLinks]);
 
   if (eventLinks.length === 0) {
     return null;
