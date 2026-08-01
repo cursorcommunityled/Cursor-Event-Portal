@@ -11,6 +11,7 @@ import { SlideDeckAdminClient } from "../../slides/SlideDeckAdminClient";
 import { CompetitionsAdminClient } from "@/components/admin/CompetitionsAdminClient";
 import { CreditsAdminTab } from "../../event-dashboard/CreditsAdminTab";
 import { cn } from "@/lib/utils";
+import { participantCreditAmountForSlug } from "@/lib/participant-credit-amount";
 import type { Event, AgendaItem, ConversationTheme, EventThemeSelection, PlannedEvent, EventCalendarCity, Venue, SlideDeck, CompetitionWithEntries, DemoSignupSettings, CursorCredit, Mentor } from "@/types";
 import type { DemoSlotWithCounts } from "@/lib/demo/service";
 
@@ -264,7 +265,7 @@ export function EventDashboardClient({
               eventSlug={eventSlug}
               adminCode={adminCode}
               initialCredits={cursorCredits}
-              creditAmount={20}
+              creditAmount={participantCreditAmountForSlug(eventSlug)}
             />
           )}
         </div>

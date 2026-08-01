@@ -8,10 +8,16 @@ import {
   deleteCreditCode,
   fetchCursorCredits,
 } from "@/lib/actions/cursor-credits";
+import {
+  fetchSpareReferralCodes,
+  fetchSpareReferralStats,
+  runSpareSweepForEvent,
+  type SpareReferralStats,
+} from "@/lib/actions/spare-referral-codes";
 import { fetchEasterEggs, saveEggRewardCode } from "@/lib/actions/easter-eggs";
 import type { EggRow } from "@/lib/actions/easter-eggs";
 import { cn } from "@/lib/utils";
-import { Gift, ChevronDown, ChevronUp, Trash2, UserX, Check, Pencil } from "lucide-react";
+import { Gift, ChevronDown, ChevronUp, Trash2, UserX, Check, Pencil, Download } from "lucide-react";
 import type { CursorCredit } from "@/types";
 
 interface CreditsAdminTabProps {
@@ -57,6 +63,15 @@ export function CreditsAdminTab({
   const [eggSaving, setEggSaving] = useState<string | null>(null);
   const [eggSaveMsg, setEggSaveMsg] = useState<Record<string, string>>({});
   const isEasterEvent = eventSlug === EASTER_EVENT_SLUG;
+  const [spareStats, setSpareStats] = useState<SpareReferralStats | null>(null);
+  const [spareMsg, setSpareMsg] = useState<string | null>(null);
+  const [spareLoading, setSpareLoading] = useState(true);
+  const [spareBusy, setSpareBusy] = useState(false);
+
+  const refreshSpareStats = async () => {
+    const stats = await fetchSpareReferralStats(eventId, adminCode);
+    setSpareStats(stats);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +89,21 @@ export function CreditsAdminTab({
       cancelled = true;
     };
   }, [eventId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSpareLoading(true);
+    fetchSpareReferralStats(eventId, adminCode)
+      .then((stats) => {
+        if (!cancelled) setSpareStats(stats);
+      })
+      .finally(() => {
+        if (!cancelled) setSpareLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [eventId, adminCode]);
 
   useEffect(() => {
     if (!isEasterEvent) {
@@ -186,6 +216,94 @@ export function CreditsAdminTab({
     setRowLoading(null);
     if (!result.error) {
       setCredits((prev) => prev.filter((c) => c.id !== creditId));
+    }
+  };
+
+  const downloadSpareCsv = async () => {
+    setSpareBusy(true);
+    setSpareMsg(null);
+    try {
+      const { codes, error } = await fetchSpareReferralCodes(adminCode);
+      if (error) {
+        setSpareMsg(`Error: ${error}`);
+        return;
+      }
+      if (!codes.length) {
+        setSpareMsg("No spare codes yet.");
+        return;
+      }
+
+      const headers = [
+        "credit_code",
+        "referral_url",
+        "amount_usd",
+        "api_value",
+        "source_event_slug",
+        "source_event_name",
+        "was_assigned",
+        "swept_at",
+        "api_message",
+      ] as const;
+
+      const esc = (v: unknown) => {
+        const s = v == null ? "" : String(v);
+        return /["\n,]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+
+      const rows = codes.map((c) =>
+        headers
+          .map((h) => esc(c[h]))
+          .join(",")
+      );
+      const csv = [headers.join(","), ...rows].join("\n") + "\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `spare-referral-codes-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setSpareMsg(`Downloaded ${codes.length} spare code${codes.length !== 1 ? "s" : ""}.`);
+    } finally {
+      setSpareBusy(false);
+    }
+  };
+
+  const handleSpareSweep = async (force: boolean) => {
+    if (force) {
+      const ok = window.confirm(
+        "Force sweep this event now?\n\nThis checks all unassigned and assigned codes against Cursor and moves still-available ones into the Spare Referral Codes spreadsheet (removing them from this event)."
+      );
+      if (!ok) return;
+    } else {
+      const ok = window.confirm(
+        "Run spare referral sweep for this event?\n\nCodes still available on Cursor will be moved into the cumulative Spare spreadsheet."
+      );
+      if (!ok) return;
+    }
+
+    setSpareBusy(true);
+    setSpareMsg(null);
+    try {
+      const result = await runSpareSweepForEvent(eventId, adminCode, { force });
+      if (result.errorMessage && result.skippedGrace) {
+        setSpareMsg(result.errorMessage);
+      } else if (result.alreadySwept && result.checked === 0) {
+        setSpareMsg("This event was already swept. Use Force Sweep to re-check remaining codes.");
+      } else if (result.errorMessage) {
+        setSpareMsg(`Error: ${result.errorMessage}`);
+      } else {
+        setSpareMsg(
+          `Checked ${result.checked}: moved ${result.moved} available, ${result.used} used, ${result.invalid} invalid, ${result.errorCount} errors.`
+        );
+        const fresh = await fetchCursorCredits(eventId);
+        setCredits(fresh);
+      }
+      await refreshSpareStats();
+    } finally {
+      setSpareBusy(false);
     }
   };
 
@@ -312,6 +430,95 @@ export function CreditsAdminTab({
           )}
         </div>
       )}
+
+      {/* Spare Referral Codes (cumulative across events) */}
+      <div className="glass rounded-3xl p-6 border border-white/10 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-gray-500 font-medium">
+              Spare Referral Codes
+            </p>
+            <p className="text-sm text-gray-400 mt-2">
+              Cumulative spreadsheet of codes still available after the {spareStats?.graceDays ?? 14}-day
+              post-event grace period. Unassigned and assigned-but-unused codes are checked via Cursor
+              and moved here so they are not left sitting forever.
+            </p>
+          </div>
+        </div>
+
+        {spareLoading || !spareStats ? (
+          <div className="flex justify-center py-3">
+            <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-3">
+              <div className="rounded-2xl px-4 py-3 border border-white/10 bg-white/[0.03] min-w-[100px]">
+                <p className="text-2xl font-light text-white">{spareStats.total}</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 mt-1">Total spare</p>
+              </div>
+              <div className="rounded-2xl px-4 py-3 border border-white/10 bg-white/[0.03] min-w-[140px]">
+                <p className="text-sm font-light text-white">
+                  {spareStats.lastSweepAt
+                    ? new Date(spareStats.lastSweepAt).toLocaleDateString()
+                    : "—"}
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 mt-1">
+                  Last sweep · {spareStats.lastMovedCount} moved
+                </p>
+              </div>
+              <div className="rounded-2xl px-4 py-3 border border-white/10 bg-white/[0.03] min-w-[160px]">
+                <p className="text-sm font-light text-white">
+                  {spareStats.thisEventSweep
+                    ? `Swept ${new Date(spareStats.thisEventSweep.swept_at).toLocaleDateString()}`
+                    : spareStats.pastGrace
+                      ? "Ready to sweep"
+                      : spareStats.graceEligibleAt
+                        ? `Eligible ${new Date(spareStats.graceEligibleAt).toLocaleDateString()}`
+                        : "No event end time"}
+                </p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-gray-500 mt-1">This event</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={downloadSpareCsv}
+                disabled={spareBusy || spareStats.total === 0}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-40"
+              >
+                <Download className="w-4 h-4" />
+                {spareBusy ? "Working…" : "Download CSV"}
+              </button>
+              <button
+                onClick={() => handleSpareSweep(false)}
+                disabled={spareBusy || !spareStats.pastGrace}
+                className="px-5 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-sm font-medium hover:bg-white/15 transition-all disabled:opacity-40"
+                title={
+                  spareStats.pastGrace
+                    ? "Check codes and move still-available ones to Spare"
+                    : "Available after the 14-day grace period (or use Force Sweep)"
+                }
+              >
+                Run Sweep for This Event
+              </button>
+              <button
+                onClick={() => handleSpareSweep(true)}
+                disabled={spareBusy}
+                className="px-5 py-2.5 rounded-xl bg-transparent border border-white/10 text-gray-400 text-sm hover:text-white hover:border-white/20 transition-all disabled:opacity-40"
+              >
+                Force Sweep
+              </button>
+            </div>
+          </>
+        )}
+
+        {spareMsg && (
+          <p className={cn("text-sm", spareMsg.startsWith("Error") ? "text-red-400" : "text-gray-400")}>
+            {spareMsg}
+          </p>
+        )}
+      </div>
 
       {/* Auto-assign */}
       <div className="glass rounded-3xl p-6 border border-white/10 space-y-3">

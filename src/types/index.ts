@@ -854,6 +854,35 @@ export interface CursorCredit {
   user?: { name: string; email: string | null };
 }
 
+export interface SpareReferralCode {
+  id: string;
+  credit_code: string;
+  referral_url: string;
+  amount_usd: number;
+  source_event_id: string | null;
+  source_event_slug: string | null;
+  source_event_name: string | null;
+  was_assigned: boolean;
+  previous_assigned_to: string | null;
+  status_when_swept: "available";
+  api_message: string | null;
+  api_value: string | null;
+  swept_at: string;
+  created_at: string;
+}
+
+export interface EventCreditSweep {
+  id: string;
+  event_id: string;
+  swept_at: string;
+  checked_count: number;
+  moved_count: number;
+  used_count: number;
+  invalid_count: number;
+  error_count: number;
+  created_at: string;
+}
+
 // ─── Event Photos ─────────────────────────────────────────────────────────────
 
 export type PhotoStatus = "pending" | "approved" | "rejected";
