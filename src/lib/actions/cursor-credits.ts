@@ -2,16 +2,23 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { participantCreditAmountForSlug } from "@/lib/participant-credit-amount";
 import type { CursorCredit } from "@/types";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
-// Participants receive a flat $20 Cursor credit by default.
+// Participants receive $20 by default; Cafe Cursor Aug 2026 is $50.
 async function getParticipantCreditAmount(
-  _supabase: ServiceClient,
-  _eventId: string
+  supabase: ServiceClient,
+  eventId: string
 ) {
-  return 20;
+  const { data } = await supabase
+    .from("events")
+    .select("slug")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  return participantCreditAmountForSlug(data?.slug);
 }
 
 async function assignParticipantCredit(

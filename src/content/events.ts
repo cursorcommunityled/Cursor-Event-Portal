@@ -2,14 +2,14 @@ import { CursorEvent } from '@/lib/landing-types';
 
 export const events: CursorEvent[] = [
   {
-    id: 'cafe-cursor-calgary-july-2026',
+    id: 'cafe-cursor-calgary-aug-2026',
     title: 'Cafe Cursor Calgary',
-    date: '2026-07-12',
-    displayDate: 'July 12, 2026 - 9:00 AM-5:00 PM MDT',
-    description: 'A daytime Cafe Cursor co-working event. Bring your laptop, work alongside local Cursor users, and drop in for building, coffee, and community.',
-    location: 'TBD, Calgary, Canada',
+    date: '2026-08-02',
+    displayDate: 'August 2, 2026 - 9:00 AM-5:00 PM MDT',
+    description: 'A daytime Cafe Cursor co-working event at HOUSE 831. Bring your laptop, work alongside local Cursor users, and drop in for building, coffee, and community.',
+    location: 'HOUSE 831, Calgary, Canada',
     lumaUrl: 'https://luma.com/6z1eyz1l',
-    portalPath: '/cafe-cursor-calgary-july-2026',
+    portalPath: '/cafe-cursor-calgary-aug-2026',
     status: 'upcoming',
   },
   {

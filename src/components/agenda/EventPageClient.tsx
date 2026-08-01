@@ -7,6 +7,7 @@ import { EventSubNav } from "@/components/agenda/EventSubNav";
 import { AttendeeThemesView } from "@/components/agenda/AttendeeThemesView";
 import { AttendeeCreditsView } from "@/components/agenda/AttendeeCreditsView";
 import { fetchMyCredits } from "@/lib/actions/cursor-credits";
+import { participantCreditAmountForSlug } from "@/lib/participant-credit-amount";
 import type { AgendaItem, Event, ConversationTheme, CursorCredit } from "@/types";
 
 interface SeriesEvent {
@@ -145,7 +146,7 @@ export function EventPageClient({
             userId={userId}
             eventSlug={event.slug}
             eventId={event.id}
-            creditAmount={20}
+            creditAmount={participantCreditAmountForSlug(event.slug)}
           />
         )}
       </div>

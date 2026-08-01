@@ -23,3 +23,21 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: CRON_SECRET
+        sync: false
+
+  # Daily spare referral reclaim (events past 14-day grace). Free plan.
+  - type: cron
+    name: sweep-spare-referral-codes
+    runtime: node
+    plan: free
+    schedule: "0 15 * * *"
+    buildCommand: "true"
+    startCommand: node scripts/run-spare-referral-cron.mjs
+    envVars:
+      - key: NODE_VERSION
+        value: "20.18.1"
+      - key: PORTAL_URL
+        sync: false
+      - key: CRON_SECRET
+        sync: false
