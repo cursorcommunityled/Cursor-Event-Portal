@@ -134,6 +134,8 @@ export async function triggerAnalysisForAllSubmitted(
   started?: number;
   skipped?: number;
   skippedNoRepo?: number;
+  healed?: number;
+  stillMissingRepo?: number;
   failed?: number;
   failures?: string[];
 }> {
@@ -147,6 +149,10 @@ export async function triggerAnalysisForAllSubmitted(
   }
 
   await sweepStaleAiJobs(eventId);
+
+  // Promote backup-only / failed-primary rows before eligibility scan.
+  const { autoHealSubmissionsFromBackups } = await import("@/lib/actions/hackathon");
+  const heal = await autoHealSubmissionsFromBackups(eventId);
 
   const supabase = await createServiceClient();
 
@@ -172,10 +178,15 @@ export async function triggerAnalysisForAllSubmitted(
   }
 
   if (candidates.length === 0) {
+    const healNote =
+      heal.healed > 0 ? ` Healed ${heal.healed} from backup.` : "";
     return {
       error: skippedNoRepo > 0
-        ? `${skippedNoRepo} team(s) submitted without a repo URL. Add repo URLs before running AI analysis.`
-        : "No submitted projects found.",
+        ? `${skippedNoRepo} team(s) submitted without a repo URL. Add repo URLs before running AI analysis.${healNote}`
+        : `No submitted projects found.${healNote}`,
+      healed: heal.healed,
+      stillMissingRepo: heal.stillMissingRepo,
+      skippedNoRepo,
     };
   }
 
@@ -241,6 +252,8 @@ export async function triggerAnalysisForAllSubmitted(
           : "No projects to analyze.",
       skipped,
       skippedNoRepo,
+      healed: heal.healed,
+      stillMissingRepo: heal.stillMissingRepo,
     };
   }
 
@@ -249,6 +262,8 @@ export async function triggerAnalysisForAllSubmitted(
     started,
     skipped,
     skippedNoRepo,
+    healed: heal.healed,
+    stillMissingRepo: heal.stillMissingRepo,
     failed: failures.length,
     failures: failures.length ? failures : undefined,
   };

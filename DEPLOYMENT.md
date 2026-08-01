@@ -81,7 +81,9 @@ NODE_ENV=production
 
 Do this before doors / before Analyze All:
 
-1. **Apply job-queue migration** in Supabase SQL editor: [`create_hackathon_ai_jobs.sql`](../create_hackathon_ai_jobs.sql) (or the matching file under `supabase/migrations/`).
+1. **Apply migrations** in Supabase SQL editor (paste files at repo root, or matching files under `portal/supabase/migrations/`):
+   - [`create_hackathon_ai_jobs.sql`](../create_hackathon_ai_jobs.sql) — durable AI job queue
+   - [`submit_hackathon_project_rpc.sql`](../submit_hackathon_project_rpc.sql) — atomic project submit (primary + backup)
 2. **GitHub token** — authenticated 5,000/hour limit (PowerShell):
 
 ```powershell
@@ -93,14 +95,20 @@ $headers = @{ Authorization = "Bearer $token"; Accept = 'application/vnd.github+
 Expect `limit : 5000`. If `60` or 401, rotate the PAT on Render and restart.
 
 3. **Anthropic credits** — confirm the account for `ANTHROPIC_API_KEY` is funded.
-4. **Admin → Hackathon → AI Screen → Screening Ops**
+4. **Submission Ops green (0 at-risk) before Analyze All**
+   - Admin → Hackathon → AI Screen → **At-risk submissions** must show **0**
+   - If any at-risk: **Heal all from backup**, or Patch repo / Force submit draft per team
+   - Every team that thinks they submitted needs `hackathon_projects.submitted_at` + a public GitHub `repo_url` (AI-eligible)
+5. **Admin → Hackathon → AI Screen → Screening Ops**
    - Refresh status: GitHub remaining shown, Anthropic = Key set, Stuck = 0
    - Spot-check one team Analyze end-to-end
-   - Only then run Analyze All (worker runs max **3** teams concurrently)
-5. **Recovery controls**
+   - Only then run Analyze All (auto-heals from backup, then worker runs max **3** teams concurrently)
+6. **Recovery controls**
    - Per team: Retry + Reset always available until complete; Re-run after complete
-   - Ops strip: Process queue / Sweep stuck / Retry all errors
-6. Offline constant smoke (optional): `npx tsx scripts/smoke-ai-job-queue.ts` from `portal/`
+   - Ops strip: Process queue / Sweep stuck / Retry all errors / Heal all from backup
+7. Offline smoke (optional) from `portal/`:
+   - `npx tsx scripts/smoke-ai-job-queue.ts`
+   - `npx tsx scripts/smoke-submission-reliability.ts`
 
 ## Post-Deployment
 
