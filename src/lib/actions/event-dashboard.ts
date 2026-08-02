@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { requireEventAdmin, requireAnyAdmin } from "@/lib/auth/admin-action";
+import { landingDescriptionFromNotes } from "@/lib/landing-events";
 
 // ─── Theme Selection ──────────────────────────────────────────────────────────
 
@@ -53,16 +54,26 @@ export async function createPlannedEvent(data: {
   address?: string | null;
   notes?: string | null;
   confirmed?: boolean;
+  luma_url?: string | null;
 }, adminCode?: string | null) {
   const authError = await requireAnyAdmin(adminCode);
   if (authError) return authError;
 
   const supabase = await createServiceClient();
-  const { data: row, error } = await supabase
+  let { data: row, error } = await supabase
     .from("planned_events")
     .insert({ ...data })
     .select()
     .single();
+
+  // Pre-migration fallback if luma_url column is missing.
+  if (error && data.luma_url !== undefined) {
+    const { luma_url: _lumaUrl, ...withoutLuma } = data;
+    const retry = await supabase.from("planned_events").insert(withoutLuma).select().single();
+    row = retry.data;
+    error = retry.error;
+  }
+
   if (error) return { error: error.message };
   revalidatePath("/admin");
   return { success: true, data: row };
@@ -81,6 +92,7 @@ export async function updatePlannedEvent(
     address: string | null;
     notes: string | null;
     confirmed: boolean;
+    luma_url: string | null;
   }>,
   adminCode?: string | null
 ) {
@@ -205,6 +217,7 @@ interface ScrapedLumaEvent {
   venue: string | null;
   address: string | null;
   notes: string | null;
+  luma_url?: string;
 }
 
 function localDateTime(utcIso: string, timezone: string) {
@@ -327,7 +340,7 @@ export async function scrapeLumaEvent(
           initialData?.data ??
           pp?.initialData?.event ??
           pp?.event;
-        if (ev?.name) return { data: parseNextDataEvent(ev) };
+        if (ev?.name) return { data: { ...parseNextDataEvent(ev), luma_url: normalized } };
       } catch {
         // fall through
       }
@@ -339,7 +352,7 @@ export async function scrapeLumaEvent(
       try {
         const ld = JSON.parse(m[1]);
         const target = ld["@type"] === "Event" ? ld : (Array.isArray(ld) ? ld.find((x: { "@type": string }) => x["@type"] === "Event") : null);
-        if (target?.name) return { data: parseJsonLdEvent(target) };
+        if (target?.name) return { data: { ...parseJsonLdEvent(target), luma_url: normalized } };
       } catch {
         // fall through
       }
@@ -450,22 +463,43 @@ export async function promoteToEvent(
   const start_time = pe.start_time ? toTimestamptz(pe.event_date, pe.start_time, tz) : null;
   const end_time = pe.end_time ? toTimestamptz(pe.event_date, pe.end_time, tz) : null;
 
-  const { data: newEvent, error: insertErr } = await supabase
+  const landing_description = landingDescriptionFromNotes(pe.notes as string | null);
+  const luma_url = (pe.luma_url as string | null) || null;
+
+  const baseEvent = {
+    slug,
+    code,
+    name: pe.title,
+    venue: pe.venue ?? null,
+    address: pe.address ?? null,
+    start_time,
+    end_time,
+    status: "draft" as const,
+    admin_code,
+    capacity: 65,
+  };
+
+  let { data: newEvent, error: insertErr } = await supabase
     .from("events")
     .insert({
-      slug,
-      code,
-      name: pe.title,
-      venue: pe.venue ?? null,
-      address: pe.address ?? null,
-      start_time,
-      end_time,
-      status: "draft",
-      admin_code,
-      capacity: 65,
+      ...baseEvent,
+      luma_url,
+      landing_description,
+      show_on_landing: true,
     })
     .select("id, slug, admin_code")
     .single();
+
+  // Pre-migration fallback: landing columns may not exist yet.
+  if (insertErr) {
+    const retry = await supabase
+      .from("events")
+      .insert(baseEvent)
+      .select("id, slug, admin_code")
+      .single();
+    newEvent = retry.data;
+    insertErr = retry.error;
+  }
 
   if (insertErr || !newEvent) return { error: insertErr?.message ?? "Failed to create event" };
 
@@ -475,5 +509,6 @@ export async function promoteToEvent(
     .eq("id", plannedEventId);
 
   revalidatePath("/admin");
+  revalidatePath("/");
   return { data: { id: newEvent.id, slug: newEvent.slug, admin_code: newEvent.admin_code } };
 }

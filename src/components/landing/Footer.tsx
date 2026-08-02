@@ -7,12 +7,17 @@ import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { siteConfig } from '@/content/site.config';
-import { getUpcomingEvents } from '@/content/events';
+import { getUpcomingFromMerged } from '@/lib/landing-events';
+import type { CursorEvent } from '@/lib/landing-types';
 import Partners from '@/components/landing/Partners';
 
-const LandingFooter: React.FC = () => {
+interface LandingFooterProps {
+  landingEvents: CursorEvent[];
+}
+
+const LandingFooter: React.FC<LandingFooterProps> = ({ landingEvents }) => {
   const { t } = useI18n();
-  const nextEvent = getUpcomingEvents()[0];
+  const nextEvent = getUpcomingFromMerged(landingEvents)[0];
   const nextEventHref = nextEvent?.lumaUrl ?? nextEvent?.portalPath;
 
   return (

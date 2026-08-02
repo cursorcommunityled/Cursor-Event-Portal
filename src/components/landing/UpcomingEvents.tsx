@@ -3,15 +3,20 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
-import { getEventLinks } from '@/content/events';
+import { sortEventLinks } from '@/lib/landing-events';
 import { useI18n } from '@/lib/i18n';
+import type { CursorEvent } from '@/lib/landing-types';
 
 const EVENT_LINKS_PER_PAGE = 2;
 
-const UpcomingEvents: React.FC = () => {
+interface UpcomingEventsProps {
+  events: CursorEvent[];
+}
+
+const UpcomingEvents: React.FC<UpcomingEventsProps> = ({ events }) => {
   const { t, locale } = useI18n();
   const [page, setPage] = useState(0);
-  const eventLinks = useMemo(() => getEventLinks(), []);
+  const eventLinks = useMemo(() => sortEventLinks(events), [events]);
 
   const totalPages = Math.max(1, Math.ceil(eventLinks.length / EVENT_LINKS_PER_PAGE));
   const currentPage = Math.min(page, totalPages - 1);

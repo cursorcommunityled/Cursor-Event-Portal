@@ -62,6 +62,7 @@ function blankFor(city: string): EditState {
     address: null,
     notes: null,
     confirmed: false,
+    luma_url: null,
   };
 }
 
@@ -177,6 +178,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
       address: newEvent.address || null,
       notes: newEvent.notes || null,
       confirmed: newEvent.confirmed ?? false,
+      luma_url: newEvent.luma_url?.trim() || null,
     }, adminCode);
     if (!("error" in result) && result.data) {
       setEvents((prev) =>
@@ -209,6 +211,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
       address: ev.address,
       notes: ev.notes,
       confirmed: ev.confirmed,
+      luma_url: ev.luma_url,
     });
   };
 
@@ -227,6 +230,7 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
       address: editState.address ?? null,
       notes: editState.notes ?? null,
       confirmed: editState.confirmed,
+      luma_url: editState.luma_url?.trim() || null,
     }, adminCode);
     if (!("error" in result)) {
       setEvents((prev) =>
@@ -568,6 +572,16 @@ export function CalendarAdminTab({ initialEvents, initialCities, initialVenues, 
                                 {ev.end_time && ` – ${formatTime(ev.end_time)}`}
                               </span>
                             )}
+                            {ev.luma_url && (
+                              <a
+                                href={ev.luma_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-blue-400/80 hover:text-blue-300"
+                              >
+                                <Link2 className="w-3 h-3" /> Luma
+                              </a>
+                            )}
                             {ev.notes && (
                               <span className="flex items-center gap-1 text-xs text-gray-600 italic">
                                 <StickyNote className="w-3 h-3" /> {ev.notes}
@@ -873,8 +887,16 @@ function EventForm({
       />
 
       <input
+        type="url"
+        placeholder="Luma URL (auto-filled from import)"
+        value={state.luma_url ?? ""}
+        onChange={(e) => onChange("luma_url", e.target.value || null)}
+        className="col-span-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"
+      />
+
+      <input
         type="text"
-        placeholder="Notes (optional)"
+        placeholder="Notes / landing blurb (optional)"
         value={state.notes ?? ""}
         onChange={(e) => onChange("notes", e.target.value || null)}
         className="col-span-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-white/30 transition-colors"

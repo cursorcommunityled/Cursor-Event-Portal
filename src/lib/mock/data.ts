@@ -58,6 +58,9 @@ export const MOCK_EVENT: Event = {
   series_id: "series-001",
   is_hackathon: false,
   luma_event_id: null,
+  luma_url: null,
+  landing_description: null,
+  show_on_landing: true,
   created_at: "2026-01-15T10:00:00Z",
 };
 
@@ -604,10 +607,10 @@ export const MOCK_THEME_SELECTION: EventThemeSelection = {
 // ─── Planned Events ───────────────────────────────────────────────────────────
 
 export const MOCK_PLANNED_EVENTS: PlannedEvent[] = [
-  { id: "pev-001", title: "Cursor Popup Calgary", event_date: "2026-02-18", end_date: null, start_time: "18:00", end_time: "22:00", venue: "Platform Calgary", address: "255 5 Ave SW", notes: "Feb edition — 80 cap", confirmed: true, city: "Calgary", linked_event_id: MOCK_EVENT.id, linked_event: { id: MOCK_EVENT.id, slug: MOCK_EVENT.slug, admin_code: MOCK_EVENT.admin_code, status: MOCK_EVENT.status }, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-01-10T00:00:00Z" },
-  { id: "pev-002", title: "Cursor Popup Calgary", event_date: "2026-03-18", end_date: null, start_time: "18:00", end_time: "22:00", venue: "Platform Calgary", address: "255 5 Ave SW", notes: "March edition", confirmed: true, city: "Calgary", linked_event_id: null, linked_event: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-01-10T00:00:00Z" },
-  { id: "pev-003", title: "Cursor Popup Vancouver", event_date: "2026-03-25", end_date: null, start_time: "18:30", end_time: "22:00", venue: "TBC", address: null, notes: "Scouting venue", confirmed: false, city: "Vancouver", linked_event_id: null, linked_event: null, created_at: "2026-01-15T00:00:00Z", updated_at: "2026-01-15T00:00:00Z" },
-  { id: "pev-004", title: "Cursor Popup Calgary", event_date: "2026-04-15", end_date: null, start_time: "18:00", end_time: "22:00", venue: "Platform Calgary", address: "255 5 Ave SW", notes: "April edition", confirmed: false, city: "Calgary", linked_event_id: null, linked_event: null, created_at: "2026-01-15T00:00:00Z", updated_at: "2026-01-15T00:00:00Z" },
+  { id: "pev-001", title: "Cursor Popup Calgary", event_date: "2026-02-18", end_date: null, start_time: "18:00", end_time: "22:00", venue: "Platform Calgary", address: "255 5 Ave SW", notes: "Feb edition — 80 cap", confirmed: true, city: "Calgary", luma_url: null, linked_event_id: MOCK_EVENT.id, linked_event: { id: MOCK_EVENT.id, slug: MOCK_EVENT.slug, admin_code: MOCK_EVENT.admin_code, status: MOCK_EVENT.status }, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-01-10T00:00:00Z" },
+  { id: "pev-002", title: "Cursor Popup Calgary", event_date: "2026-03-18", end_date: null, start_time: "18:00", end_time: "22:00", venue: "Platform Calgary", address: "255 5 Ave SW", notes: "March edition", confirmed: true, city: "Calgary", luma_url: null, linked_event_id: null, linked_event: null, created_at: "2026-01-10T00:00:00Z", updated_at: "2026-01-10T00:00:00Z" },
+  { id: "pev-003", title: "Cursor Popup Vancouver", event_date: "2026-03-25", end_date: null, start_time: "18:30", end_time: "22:00", venue: "TBC", address: null, notes: "Scouting venue", confirmed: false, city: "Vancouver", luma_url: null, linked_event_id: null, linked_event: null, created_at: "2026-01-15T00:00:00Z", updated_at: "2026-01-15T00:00:00Z" },
+  { id: "pev-004", title: "Cursor Popup Calgary", event_date: "2026-04-15", end_date: null, start_time: "18:00", end_time: "22:00", venue: "Platform Calgary", address: "255 5 Ave SW", notes: "April edition", confirmed: false, city: "Calgary", luma_url: null, linked_event_id: null, linked_event: null, created_at: "2026-01-15T00:00:00Z", updated_at: "2026-01-15T00:00:00Z" },
 ];
 
 // ─── Venues ───────────────────────────────────────────────────────────────────

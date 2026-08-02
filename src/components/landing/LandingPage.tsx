@@ -14,17 +14,18 @@ import LandingFooter from '@/components/landing/Footer';
 import JsonLd from '@/components/landing/JsonLd';
 import EventPortalPopup from '@/components/landing/EventPortalPopup';
 import { siteConfig } from '@/content/site.config';
-import { getUpcomingEvents } from '@/content/events';
+import { getUpcomingFromMerged } from '@/lib/landing-events';
+import type { CursorEvent } from '@/lib/landing-types';
 import type { EventWithPhotos } from '@/lib/supabase/queries';
 
-function buildHomeJsonLd() {
+function buildHomeJsonLd(landingEvents: CursorEvent[]) {
   const org = {
     '@type': 'Organization',
     name: `${siteConfig.communityName} ${siteConfig.communityNameLocal}`,
     url: siteConfig.cursorCommunityUrl,
   };
 
-  const eventItems = getUpcomingEvents().map((event) => {
+  const eventItems = getUpcomingFromMerged(landingEvents).map((event) => {
     const eventUrl = event.lumaUrl ?? (event.portalPath ? `${siteConfig.siteUrl}${event.portalPath}` : undefined);
 
     return {
@@ -53,15 +54,21 @@ interface LandingPageProps {
   eventsWithPhotos?: EventWithPhotos[];
   heroFeaturedIds?: string[];
   eventPortalPath: string;
+  landingEvents: CursorEvent[];
 }
 
-export default function LandingPage({ eventsWithPhotos = [], heroFeaturedIds = [], eventPortalPath }: LandingPageProps) {
+export default function LandingPage({
+  eventsWithPhotos = [],
+  heroFeaturedIds = [],
+  eventPortalPath,
+  landingEvents,
+}: LandingPageProps) {
   const [showPortal, setShowPortal] = useState(false);
 
   return (
     <I18nProvider>
       <main className="min-h-screen bg-cursor-bg text-cursor-text scroll-smooth">
-        <JsonLd data={buildHomeJsonLd()} />
+        <JsonLd data={buildHomeJsonLd(landingEvents)} />
         <Navbar onOpenPortal={() => setShowPortal(true)} />
         <HeroHeader eventsWithPhotos={eventsWithPhotos} heroFeaturedIds={heroFeaturedIds} />
 
@@ -70,12 +77,12 @@ export default function LandingPage({ eventsWithPhotos = [], heroFeaturedIds = [
           <SectionDivider />
           <FeaturedSection />
           <SectionDivider />
-          <UpcomingEvents />
+          <UpcomingEvents events={landingEvents} />
           <SectionDivider />
-          <PastEvents eventsWithPhotos={eventsWithPhotos} />
+          <PastEvents eventsWithPhotos={eventsWithPhotos} landingEvents={landingEvents} />
           <SectionDivider />
           <GlobalEvents />
-          <LandingFooter />
+          <LandingFooter landingEvents={landingEvents} />
         </div>
 
         <EventPortalPopup

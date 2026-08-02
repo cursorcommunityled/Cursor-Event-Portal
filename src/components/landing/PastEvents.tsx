@@ -3,7 +3,8 @@
 import React, { useMemo, useState, useCallback, useEffect, memo } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, ChevronLeft, ChevronRight, Download, X } from 'lucide-react';
-import { getPastEvents } from '@/content/events';
+import { getPastFromMerged } from '@/lib/landing-events';
+import type { CursorEvent } from '@/lib/landing-types';
 import { useI18n } from '@/lib/i18n';
 import type { EventWithPhotos } from '@/lib/supabase/queries';
 
@@ -192,13 +193,14 @@ const PhotoGallery = memo(function PhotoGallery({ photos, title }: { photos: str
 
 interface PastEventsProps {
   eventsWithPhotos?: EventWithPhotos[];
+  landingEvents: CursorEvent[];
 }
 
-const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
+const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [], landingEvents }) => {
   const { t, locale } = useI18n();
 
   const mergedEvents = useMemo(() => {
-    const pastEvents = getPastEvents();
+    const pastEvents = getPastFromMerged(landingEvents);
     const staticRecaps: RecapEvent[] = pastEvents.map((e) => ({
       id: e.id,
       title: e.title,
@@ -242,7 +244,7 @@ const PastEvents: React.FC<PastEventsProps> = ({ eventsWithPhotos = [] }) => {
     return [...dbRecaps, ...enhanced].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-  }, [eventsWithPhotos]);
+  }, [eventsWithPhotos, landingEvents]);
 
   if (mergedEvents.length === 0) {
     return null;

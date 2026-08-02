@@ -46,6 +46,9 @@ export function VenueAdminTab({
   const [eventVenue, setEventVenue] = useState(event.venue || "");
   const [eventAddress, setEventAddress] = useState(event.address || "");
   const [venueImageUrl, setVenueImageUrl] = useState(event.venue_image_url || "");
+  const [lumaUrl, setLumaUrl] = useState(event.luma_url || "");
+  const [landingDescription, setLandingDescription] = useState(event.landing_description || "");
+  const [showOnLanding, setShowOnLanding] = useState(event.show_on_landing !== false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,6 +102,9 @@ export function VenueAdminTab({
           end_time: event.end_time,
           venue_image_url: venueImageUrl.trim() || null,
           capacity: event.capacity,
+          luma_url: lumaUrl.trim() || null,
+          landing_description: landingDescription.trim() || null,
+          show_on_landing: showOnLanding,
         },
         adminCode ?? event.admin_code
       );
@@ -239,6 +245,51 @@ export function VenueAdminTab({
               </div>
             </label>
           </div>
+        </div>
+
+        {/* Public site listing */}
+        <div className="space-y-4 pt-2 border-t border-white/10">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.35em] text-gray-500 font-medium mb-1">
+              cursorcalgary.com Listing
+            </p>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              When this event is Published, Active, or Completed, these fields drive the homepage Event Links automatically.
+            </p>
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mb-2">
+              Luma URL
+            </label>
+            <input
+              type="url"
+              value={lumaUrl}
+              onChange={(e) => setLumaUrl(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20 transition-all"
+              placeholder="https://luma.com/..."
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.2em] text-gray-600 font-medium mb-2">
+              Landing Description
+            </label>
+            <textarea
+              value={landingDescription}
+              onChange={(e) => setLandingDescription(e.target.value)}
+              rows={3}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white placeholder:text-gray-700 focus:outline-none focus:border-white/20 transition-all resize-y"
+              placeholder="Short blurb shown under the event title"
+            />
+          </div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showOnLanding}
+              onChange={(e) => setShowOnLanding(e.target.checked)}
+              className="rounded border-white/20 bg-white/5"
+            />
+            <span className="text-sm text-gray-400">Show on cursorcalgary.com</span>
+          </label>
         </div>
 
         {/* Save */}

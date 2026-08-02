@@ -27,6 +27,8 @@ export async function setEventStatus(
     .update({ status })
     .eq("id", eventId);
   if (error) return { error: error.message };
+  // Publishing/completing should refresh cursorcalgary.com Event Links immediately.
+  revalidatePath("/");
   revalidatePath("/admin");
   return {};
 }
