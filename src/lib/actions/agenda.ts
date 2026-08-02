@@ -112,6 +112,9 @@ export async function updateEventDetails(
     end_time?: string | null;
     venue_image_url?: string | null;
     capacity?: number;
+    luma_url?: string | null;
+    landing_description?: string | null;
+    show_on_landing?: boolean;
   },
   adminCode?: string | null
 ) {
@@ -122,10 +125,22 @@ export async function updateEventDetails(
 
   const supabase = await createServiceClient();
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("events")
     .update(data)
     .eq("id", eventId);
+
+  // Pre-migration fallback if landing columns are missing.
+  if (error && (data.luma_url !== undefined || data.landing_description !== undefined || data.show_on_landing !== undefined)) {
+    const {
+      luma_url: _lumaUrl,
+      landing_description: _landingDescription,
+      show_on_landing: _showOnLanding,
+      ...core
+    } = data;
+    const retry = await supabase.from("events").update(core).eq("id", eventId);
+    error = retry.error;
+  }
 
   if (error) {
     console.error("Failed to update event details:", error);
@@ -139,6 +154,7 @@ export async function updateEventDetails(
   revalidatePath(`/${eventSlug}/agenda`);
   // Revalidate event layout so attendee pages (header, check-in, agenda) show updated venue/address/image
   revalidatePath(`/${eventSlug}`, "layout");
+  revalidatePath("/");
   return { success: true };
 }
 

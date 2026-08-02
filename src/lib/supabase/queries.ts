@@ -2,6 +2,12 @@ import { createClient, createServiceClient } from "./server";
 import { createClient as createDirectClient } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { preferredLinkedInUrl } from "@/lib/hackathon-profile-defaults";
+import type { CursorEvent } from "@/lib/landing-types";
+import {
+  mapDbEventToCursorEvent,
+  mergeLandingEvents,
+  type LandingEventRow,
+} from "@/lib/landing-events";
 import type {
   Event,
   User,
@@ -2376,6 +2382,54 @@ export async function getEventsWithApprovedPhotos(): Promise<EventWithPhotos[]> 
     checked_in_count: checkedInCounts.get(ev.id) ?? 0,
     photos: photos.filter((p) => p.event_id === ev.id) as EventPhoto[],
   }));
+}
+
+/**
+ * Public homepage Event Links. Published/active/completed events with
+ * show_on_landing merge over the static content fallback so new events appear
+ * without editing code.
+ */
+export async function getLandingEvents(): Promise<CursorEvent[]> {
+  noStore();
+
+  try {
+    const supabase = await createServiceClient();
+    const selectAttempts = [
+      "slug, name, venue, address, start_time, end_time, timezone, status, luma_url, landing_description, show_on_landing",
+      "slug, name, venue, address, start_time, end_time, timezone, status, luma_event_id",
+    ];
+
+    for (const columns of selectAttempts) {
+      const { data, error } = await supabase
+        .from("events")
+        .select(columns)
+        .in("status", ["published", "active", "completed"])
+        .order("start_time", { ascending: false });
+
+      if (error) {
+        // Missing landing columns before migration — try leaner select, then static-only.
+        continue;
+      }
+
+      const rows = (data ?? []) as unknown as LandingEventRow[];
+      const dbEvents = rows
+        .map((row) =>
+          mapDbEventToCursorEvent({
+            ...row,
+            luma_url: row.luma_url ?? null,
+            landing_description: row.landing_description ?? null,
+            show_on_landing: row.show_on_landing ?? true,
+          })
+        )
+        .filter((event): event is CursorEvent => event !== null);
+
+      return mergeLandingEvents(dbEvents);
+    }
+  } catch (error) {
+    console.error("[getLandingEvents] Falling back to static events:", error);
+  }
+
+  return mergeLandingEvents([]);
 }
 
 // ─── Hackathon ────────────────────────────────────────────────────────────────

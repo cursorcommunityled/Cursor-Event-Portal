@@ -53,6 +53,9 @@ export interface Event {
   series_id: string | null;
   is_hackathon: boolean;
   luma_event_id: string | null;
+  luma_url: string | null;
+  landing_description: string | null;
+  show_on_landing: boolean;
   created_at: string;
 }
 
@@ -680,6 +683,7 @@ export interface PlannedEvent {
   notes: string | null;
   confirmed: boolean;
   city: string;
+  luma_url: string | null;
   linked_event_id: string | null;
   linked_event: { id: string; slug: string; admin_code: string; status: string } | null;
   created_at: string;
