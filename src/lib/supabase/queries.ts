@@ -1143,6 +1143,20 @@ export interface SeriesAttendanceDataPoint {
   checked_in: number;
 }
 
+export interface TopCheckedInGuestEvent {
+  id: string;
+  name: string;
+  startTime: string | null;
+}
+
+export interface TopCheckedInGuest {
+  userId: string;
+  name: string;
+  email: string | null;
+  eventCount: number;
+  events: TopCheckedInGuestEvent[];
+}
+
 export interface UXMonitorMetrics {
   lastUpdated: string;
   pageViewsToday: number;
@@ -1440,6 +1454,128 @@ export async function getSeriesAttendanceData(seriesId: string): Promise<SeriesA
       checked_in: count.checked_in,
     };
   });
+}
+
+type CheckedInGuestRow = {
+  event_id: string;
+  user_id: string;
+  user:
+    | { id: string; name: string; email: string | null; role: string }
+    | { id: string; name: string; email: string | null; role: string }[]
+    | null;
+  event:
+    | { id: string; name: string; start_time: string | null; status: string }
+    | { id: string; name: string; start_time: string | null; status: string }[]
+    | null;
+};
+
+function unwrapRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (!value) return null;
+  return Array.isArray(value) ? value[0] ?? null : value;
+}
+
+/**
+ * Rank guests by distinct events they actually checked into (venue check-in).
+ * Admins (role or allow-listed email) are excluded — they already have hats.
+ * Draft/archived events are ignored. Duplicate user rows that share an email
+ * are merged so the same person is not counted twice.
+ */
+export async function getTopCheckedInGuests(limit = 10): Promise<TopCheckedInGuest[]> {
+  const supabase = await createServiceClient();
+  const pageSize = 1000;
+  const rows: CheckedInGuestRow[] = [];
+
+  const { data: adminEmailRows } = await supabase.from("admin_emails").select("email");
+  const adminEmails = new Set(
+    (adminEmailRows ?? [])
+      .map((row) => row.email?.trim().toLowerCase())
+      .filter((email): email is string => Boolean(email))
+  );
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("registrations")
+      .select("event_id, user_id, user:users(id, name, email, role), event:events(id, name, start_time, status)")
+      .not("checked_in_at", "is", null)
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error("[getTopCheckedInGuests] Error fetching check-ins:", error);
+      break;
+    }
+    if (!data?.length) break;
+    rows.push(...(data as CheckedInGuestRow[]));
+    if (data.length < pageSize) break;
+  }
+
+  const byUser = new Map<string, TopCheckedInGuest>();
+
+  for (const row of rows) {
+    const user = unwrapRelation(row.user);
+    const event = unwrapRelation(row.event);
+    if (!user || !event) continue;
+    if (user.role === "admin") continue;
+    const emailKey = user.email?.trim().toLowerCase();
+    if (emailKey && adminEmails.has(emailKey)) continue;
+    if (event.status === "draft" || event.status === "archived") continue;
+
+    const guest = byUser.get(user.id) ?? {
+      userId: user.id,
+      name: user.name,
+      email: user.email,
+      eventCount: 0,
+      events: [],
+    };
+
+    if (!guest.events.some((item) => item.id === event.id)) {
+      guest.events.push({
+        id: event.id,
+        name: event.name,
+        startTime: event.start_time,
+      });
+      guest.eventCount = guest.events.length;
+    }
+
+    byUser.set(user.id, guest);
+  }
+
+  const merged = new Map<string, TopCheckedInGuest>();
+  const unmatched: TopCheckedInGuest[] = [];
+
+  for (const guest of byUser.values()) {
+    const emailKey = guest.email?.trim().toLowerCase();
+    if (!emailKey) {
+      unmatched.push(guest);
+      continue;
+    }
+
+    const existing = merged.get(emailKey);
+    if (!existing) {
+      merged.set(emailKey, guest);
+      continue;
+    }
+
+    for (const event of guest.events) {
+      if (!existing.events.some((item) => item.id === event.id)) {
+        existing.events.push(event);
+      }
+    }
+    existing.eventCount = existing.events.length;
+    if (!existing.name && guest.name) existing.name = guest.name;
+  }
+
+  return [...merged.values(), ...unmatched]
+    .map((guest) => ({
+      ...guest,
+      events: [...guest.events].sort((a, b) => {
+        if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
+        if (a.startTime) return -1;
+        if (b.startTime) return 1;
+        return a.name.localeCompare(b.name);
+      }),
+    }))
+    .sort((a, b) => b.eventCount - a.eventCount || a.name.localeCompare(b.name))
+    .slice(0, limit);
 }
 
 export async function getCheckInCurve(eventId: string): Promise<CheckInDataPoint[]> {

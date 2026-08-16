@@ -110,6 +110,20 @@ export interface SeriesAttendanceDataPoint {
   checked_in: number;
 }
 
+export interface TopCheckedInGuestEvent {
+  id: string;
+  name: string;
+  startTime: string | null;
+}
+
+export interface TopCheckedInGuest {
+  userId: string;
+  name: string;
+  email: string | null;
+  eventCount: number;
+  events: TopCheckedInGuestEvent[];
+}
+
 // ─── Event queries ────────────────────────────────────────────────────────────
 
 export async function getEventBySlug(slug: string): Promise<Event | null> {
@@ -289,6 +303,19 @@ export async function getActivePollsWithVotes(eventId: string, userId?: string):
 
 export async function getSeriesAttendanceData(seriesId: string): Promise<SeriesAttendanceDataPoint[]> {
   return [{ name: "Jan 2026", start_time: "2026-01-21T18:00:00-07:00", registered: 65, checked_in: 58 }, { name: "Feb 2026", start_time: "2026-02-18T18:00:00-07:00", registered: 80, checked_in: 74 }];
+}
+
+export async function getTopCheckedInGuests(limit = 10): Promise<TopCheckedInGuest[]> {
+  const checkedIn = MOCK_REGISTRATIONS.filter(
+    (registration) => registration.checked_in_at && registration.user?.role !== "admin"
+  );
+  return checkedIn.slice(0, limit).map((registration, index) => ({
+    userId: registration.user_id,
+    name: registration.user?.name || "Guest",
+    email: registration.user?.email ?? null,
+    eventCount: Math.max(1, checkedIn.length - index),
+    events: [{ id: MOCK_EVENT.id, name: MOCK_EVENT.name, startTime: MOCK_EVENT.start_time }],
+  }));
 }
 
 export async function getCheckInCurve(eventId: string): Promise<CheckInDataPoint[]> {
