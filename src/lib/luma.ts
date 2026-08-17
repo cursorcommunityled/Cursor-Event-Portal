@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { assignCursorCreditForAttendee } from "@/lib/actions/cursor-credits";
+import { formatGuestDisplayName, preferCompleteName } from "@/lib/guest-name";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
 
@@ -50,15 +51,14 @@ export function lumaGuestEmail(guest: LumaGuest): string | null {
 
 export function lumaGuestName(guest: LumaGuest, email: string): string {
   const fromParts = [guest.user_first_name, guest.user_last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  return (
-    guest.user_name?.trim() ||
-    guest.name?.trim() ||
-    fromParts ||
-    email.split("@")[0]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+  const combined = preferCompleteName(
+    preferCompleteName(fromParts, guest.user_name?.trim() ?? ""),
+    guest.name?.trim() ?? ""
   );
+  return formatGuestDisplayName(combined, email);
 }
 
 // A guest counts as checked in if their guest-level checked_in_at is set or
@@ -176,21 +176,34 @@ export async function syncLumaGuestToPortal(
     return { status: "skipped", ...none };
   }
 
+  const guestName = lumaGuestName(guest, email);
+
   // Find or create the user.
   const { data: existingUser } = await supabase
     .from("users")
-    .select("id")
+    .select("id, name")
     .eq("email", email)
     .maybeSingle();
 
   let userId = existingUser?.id as string | undefined;
   let created = false;
 
+  if (userId) {
+    const storedName = existingUser?.name ?? "";
+    const nextName = formatGuestDisplayName(
+      preferCompleteName(storedName, guestName),
+      email
+    );
+    if (nextName && nextName !== storedName) {
+      await supabase.from("users").update({ name: nextName }).eq("id", userId);
+    }
+  }
+
   if (!userId) {
     const { data: newUser, error: userError } = await supabase
       .from("users")
       .insert({
-        name: lumaGuestName(guest, email),
+        name: guestName,
         email,
         role: "attendee",
       })
