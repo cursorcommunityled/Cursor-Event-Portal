@@ -2,6 +2,7 @@ import { createClient, createServiceClient } from "./server";
 import { createClient as createDirectClient } from "@supabase/supabase-js";
 import { unstable_noStore as noStore } from "next/cache";
 import { preferredLinkedInUrl } from "@/lib/hackathon-profile-defaults";
+import { formatGuestDisplayName, preferCompleteName } from "@/lib/guest-name";
 import type { CursorEvent } from "@/lib/landing-types";
 import {
   mapDbEventToCursorEvent,
@@ -1561,12 +1562,13 @@ export async function getTopCheckedInGuests(limit = 10): Promise<TopCheckedInGue
       }
     }
     existing.eventCount = existing.events.length;
-    if (!existing.name && guest.name) existing.name = guest.name;
+    existing.name = preferCompleteName(existing.name, guest.name);
   }
 
   return [...merged.values(), ...unmatched]
     .map((guest) => ({
       ...guest,
+      name: formatGuestDisplayName(guest.name, guest.email),
       events: [...guest.events].sort((a, b) => {
         if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
         if (a.startTime) return -1;
