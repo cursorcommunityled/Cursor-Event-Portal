@@ -10,13 +10,16 @@ import { LumaSyncCard } from "@/components/admin/LumaSyncCard";
 import { updateEventDetails } from "@/lib/actions/agenda";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { RegularsList } from "@/app/admin/_clients/[adminCode]/regulars/RegularsClient";
 import type { Event, Registration, AgendaItem, AttendeeIntake, SuggestedGroup, TableQRCode } from "@/types";
+import type { TopCheckedInGuest } from "@/lib/supabase/queries";
 
-type TabType = "checkin" | "seating";
+type TabType = "checkin" | "seating" | "regulars";
 
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "checkin", label: "Check-In", description: "Manage attendance" },
   { id: "seating", label: "Seating",  description: "Table management" },
+  { id: "regulars", label: "Regulars", description: "Top 10 checked-in guests" },
 ];
 
 interface AttendanceHubClientProps {
@@ -31,6 +34,7 @@ interface AttendanceHubClientProps {
   intakes: AttendeeIntake[];
   groups: SuggestedGroup[];
   qrCodes: TableQRCode[];
+  topGuests: TopCheckedInGuest[];
   // Active tab from URL
   activeTab: TabType;
 }
@@ -45,10 +49,12 @@ export function AttendanceHubClient({
   intakes,
   groups,
   qrCodes,
+  topGuests,
   activeTab: initialTab,
 }: AttendanceHubClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+  const [openRegularId, setOpenRegularId] = useState<string | null>(null);
   const [capacityInput, setCapacityInput] = useState(String(event.capacity ?? 65));
   const [capacitySaved, setCapacitySaved] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -119,7 +125,9 @@ export function AttendanceHubClient({
         {/* Tab content */}
         <div className="animate-fade-in pb-20">
           <div className="mb-8">
-            <h2 className="text-xl font-light text-white">{activeTabData.label}</h2>
+            <h2 className="text-xl font-light text-white">
+              {activeTab === "regulars" ? "Most events attended" : activeTabData.label}
+            </h2>
             <p className="text-[10px] uppercase tracking-[0.2em] text-gray-600 font-bold mt-1">
               {activeTabData.description}
             </p>
@@ -201,6 +209,13 @@ export function AttendanceHubClient({
               intakes={intakes}
               groups={groups}
               qrCodes={qrCodes}
+            />
+          )}
+          {activeTab === "regulars" && (
+            <RegularsList
+              guests={topGuests}
+              openUserId={openRegularId}
+              onToggle={(userId) => setOpenRegularId((current) => (current === userId ? null : userId))}
             />
           )}
         </div>
