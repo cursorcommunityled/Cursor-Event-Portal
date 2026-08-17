@@ -1,5 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
-import { getEventIntakes, getSuggestedGroups, getTableQRCodes } from "@/lib/supabase/queries";
+import { getEventIntakes, getSuggestedGroups, getTableQRCodes, getTopCheckedInGuests } from "@/lib/supabase/queries";
 import { AttendanceHubClient } from "@/app/admin/_clients/[adminCode]/checkin/AttendanceHubClient";
 import { getEventForAdmin } from "@/lib/utils/admin";
 
@@ -14,12 +14,12 @@ interface AdminCheckInPageProps {
 export default async function AdminCheckInPage({ params, searchParams }: AdminCheckInPageProps) {
   const { adminCode } = await params;
   const { tab } = await searchParams;
-  const activeTab = tab === "seating" ? "seating" : "checkin";
+  const activeTab = tab === "seating" ? "seating" : tab === "regulars" ? "regulars" : "checkin";
 
   const event = await getEventForAdmin(adminCode);
   const supabase = await createServiceClient();
 
-  const [registrationsResult, checkedInResult, registrationsData, agendaItemsResult, intakes, groups, qrCodes] = await Promise.all([
+  const [registrationsResult, checkedInResult, registrationsData, agendaItemsResult, intakes, groups, qrCodes, topGuests] = await Promise.all([
     supabase.from("registrations").select("id", { count: "exact", head: true }).eq("event_id", event.id),
     supabase.from("registrations").select("id", { count: "exact", head: true }).eq("event_id", event.id).not("checked_in_at", "is", null),
     supabase.from("registrations").select("*, user:users(*, intakes:attendee_intakes(*))").eq("event_id", event.id).eq("user.intakes.event_id", event.id).order("created_at", { ascending: false }),
@@ -27,6 +27,7 @@ export default async function AdminCheckInPage({ params, searchParams }: AdminCh
     getEventIntakes(event.id),
     getSuggestedGroups(event.id),
     getTableQRCodes(event.id),
+    getTopCheckedInGuests(10),
   ]);
 
   const stats = { registered: registrationsResult.count || 0, checkedIn: checkedInResult.count || 0 };
@@ -44,6 +45,7 @@ export default async function AdminCheckInPage({ params, searchParams }: AdminCh
       intakes={intakes}
       groups={groups}
       qrCodes={qrCodes}
+      topGuests={topGuests}
       activeTab={activeTab}
     />
   );

@@ -145,7 +145,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
               </p>
             </div>
             <Link
-              href={`/admin/${adminCode}/regulars`}
+              href={`/admin/${adminCode}/checkin?tab=regulars`}
               prefetch={false}
               className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors shrink-0"
             >
@@ -232,7 +232,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                       <span className="text-[10px] text-gray-700 select-none">·</span>
                       <Link href={`/admin/${adminCode}/groups`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Seating</Link>
                       <span className="text-[10px] text-gray-700 select-none">·</span>
-                      <Link href={`/admin/${adminCode}/regulars`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Regulars</Link>
+                      <Link href={`/admin/${adminCode}/checkin?tab=regulars`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Regulars</Link>
                     </div>
                   </div>
                 </div>
