@@ -1,4 +1,4 @@
-import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey, getAllEvents, getPendingPhotoCount, getTopCheckedInGuests } from "@/lib/supabase/queries";
+import { getEventStats, getQuestions, getSurveyResponses, getPublishedSurvey, getAllEvents, getPendingPhotoCount } from "@/lib/supabase/queries";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -34,13 +34,12 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
   const supabase = await createClient();
 
-  const [stats, questions, allEvents, activeSlug, pendingPhotos, topGuests] = await Promise.all([
+  const [stats, questions, allEvents, activeSlug, pendingPhotos] = await Promise.all([
     getEventStats(event.id),
     getQuestions(event.id),
     getAllEvents(),
     getActiveEventSlug(),
     getPendingPhotoCount(event.id),
-    getTopCheckedInGuests(10),
   ]);
 
   // Auto-default live event to most recent only if no active slug is set yet
@@ -136,38 +135,6 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
 
         <AdminEventControls events={allEvents} currentAdminCode={adminCode} activeSlug={activeSlug} />
 
-        <div className="glass rounded-[40px] p-10 border-white/20 animate-slide-up shadow-lg" style={{ animationDelay: "135ms" }}>
-          <div className="flex items-start justify-between gap-6 mb-8">
-            <div className="space-y-2">
-              <h3 className="text-[11px] uppercase tracking-[0.4em] text-gray-400 font-medium">Most events attended</h3>
-              <p className="text-2xl font-light tracking-tight text-white/90">
-                Top 10 checked-in guests
-              </p>
-            </div>
-            <Link
-              href={`/admin/${adminCode}/checkin?tab=regulars`}
-              prefetch={false}
-              className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors shrink-0"
-            >
-              Details
-            </Link>
-          </div>
-          {topGuests.length > 0 ? (
-            <ol className="space-y-3">
-              {topGuests.map((guest, index) => (
-                <li key={guest.userId} className="flex items-baseline gap-4">
-                  <span className="w-6 text-[11px] tabular-nums text-gray-600">{index + 1}</span>
-                  <span className="text-base font-light tracking-tight text-white/90">
-                    {guest.name} ({guest.eventCount})
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="text-sm text-gray-500">No checked-in guests yet</p>
-          )}
-        </div>
-
         <div className="grid auto-rows-fr md:grid-cols-2 gap-6">
           {/* Program */}
           <div className="animate-slide-up h-full" style={{ animationDelay: "150ms" }}>
@@ -257,7 +224,7 @@ export default async function AdminDashboard({ params }: AdminDashboardProps) {
                       <span className="text-[10px] text-gray-700 select-none">·</span>
                       <Link href={`/admin/${adminCode}/data`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Data</Link>
                       <span className="text-[10px] text-gray-700 select-none">·</span>
-                      <Link href={`/admin/${adminCode}/regulars`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Regulars</Link>
+                      <Link href={`/admin/${adminCode}/checkin?tab=regulars`} prefetch={false} className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white transition-colors">Regulars</Link>
                     </div>
                   </div>
                 </div>

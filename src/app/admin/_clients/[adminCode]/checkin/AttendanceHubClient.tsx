@@ -164,6 +164,28 @@ export function AttendanceHubClient({
                   </button>
                 </div>
               </div>
+              <div className="glass rounded-[40px] p-8 md:p-10 border-white/20 mb-8">
+                <div className="mb-8">
+                  <h3 className="text-[11px] uppercase tracking-[0.4em] text-gray-400 font-medium">Most events attended</h3>
+                  <p className="text-2xl font-light tracking-tight text-white/90 mt-2">
+                    Top 10 checked-in guests
+                  </p>
+                </div>
+                {topGuests.length > 0 ? (
+                  <ol className="space-y-3">
+                    {topGuests.map((guest, index) => (
+                      <li key={guest.userId} className="flex items-baseline gap-4">
+                        <span className="w-6 text-[11px] tabular-nums text-gray-600">{index + 1}</span>
+                        <span className="text-base font-light tracking-tight text-white/90">
+                          {guest.name} ({guest.eventCount})
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="text-sm text-gray-500">No checked-in guests yet</p>
+                )}
+              </div>
               <CheckInClient
                 event={event}
                 eventSlug={eventSlug}
