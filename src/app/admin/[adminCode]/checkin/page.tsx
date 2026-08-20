@@ -27,7 +27,7 @@ export default async function AdminCheckInPage({ params, searchParams }: AdminCh
     getEventIntakes(event.id),
     getSuggestedGroups(event.id),
     getTableQRCodes(event.id),
-    getTopCheckedInGuests(10),
+    getTopCheckedInGuests(30),
   ]);
 
   const stats = { registered: registrationsResult.count || 0, checkedIn: checkedInResult.count || 0 };
