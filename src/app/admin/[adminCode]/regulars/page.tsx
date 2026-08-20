@@ -12,7 +12,7 @@ export default async function RegularsPage({ params }: RegularsPageProps) {
   const { adminCode } = await params;
   await getEventForAdmin(adminCode);
 
-  const guests = await getTopCheckedInGuests(10);
+  const guests = await getTopCheckedInGuests(30);
 
   return <RegularsClient adminCode={adminCode} guests={guests} />;
 }

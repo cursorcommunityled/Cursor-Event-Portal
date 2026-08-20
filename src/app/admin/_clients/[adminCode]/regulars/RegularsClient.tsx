@@ -5,6 +5,12 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { formatDate } from "@/lib/utils";
 import type { TopCheckedInGuest } from "@/lib/supabase/queries";
 
+const PAGE_SIZE = 10;
+const MAX_VISIBLE = 30;
+
+export const REGULARS_PAGE_SIZE = PAGE_SIZE;
+export const REGULARS_MAX_VISIBLE = MAX_VISIBLE;
+
 interface RegularsClientProps {
   adminCode: string;
   guests: TopCheckedInGuest[];
@@ -28,7 +34,7 @@ export function RegularsClient({ adminCode, guests }: RegularsClientProps) {
         <div className="space-y-2">
           <h2 className="text-2xl font-light tracking-tight text-white/90">Most events attended</h2>
           <p className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium">
-            Top 10 guests by venue check-ins across all events
+            Ranked by venue check-ins across all events
           </p>
         </div>
 
@@ -56,6 +62,8 @@ export function RegularsList({
   openUserId?: string | null;
   onToggle?: (userId: string) => void;
 }) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   if (guests.length === 0) {
     return (
       <div className="glass rounded-[40px] p-10 border-white/20 text-center">
@@ -64,9 +72,14 @@ export function RegularsList({
     );
   }
 
+  const cappedGuests = guests.slice(0, MAX_VISIBLE);
+  const visibleGuests = cappedGuests.slice(0, visibleCount);
+  const remaining = cappedGuests.length - visibleGuests.length;
+  const nextCount = Math.min(PAGE_SIZE, remaining);
+
   return (
     <div className="glass rounded-[40px] p-8 md:p-10 border-white/20 space-y-1">
-      {guests.map((guest, index) => {
+      {visibleGuests.map((guest, index) => {
         const isOpen = openUserId === guest.userId;
         const label = `${guest.name} (${guest.eventCount})`;
 
@@ -105,6 +118,15 @@ export function RegularsList({
           </div>
         );
       })}
+      {nextCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setVisibleCount((count) => Math.min(count + PAGE_SIZE, MAX_VISIBLE))}
+          className="w-full pt-5 pb-1 text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white/70 transition-colors"
+        >
+          Show next {nextCount}
+        </button>
+      )}
     </div>
   );
 }

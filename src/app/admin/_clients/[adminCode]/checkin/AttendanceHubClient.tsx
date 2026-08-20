@@ -10,7 +10,7 @@ import { LumaSyncCard } from "@/components/admin/LumaSyncCard";
 import { updateEventDetails } from "@/lib/actions/agenda";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-import { RegularsList } from "@/app/admin/_clients/[adminCode]/regulars/RegularsClient";
+import { RegularsList, REGULARS_MAX_VISIBLE, REGULARS_PAGE_SIZE } from "@/app/admin/_clients/[adminCode]/regulars/RegularsClient";
 import type { Event, Registration, AgendaItem, AttendeeIntake, SuggestedGroup, TableQRCode } from "@/types";
 import type { TopCheckedInGuest } from "@/lib/supabase/queries";
 
@@ -19,7 +19,7 @@ type TabType = "checkin" | "seating" | "regulars";
 const TABS: Array<{ id: TabType; label: string; description: string }> = [
   { id: "checkin", label: "Check-In", description: "Manage attendance" },
   { id: "seating", label: "Seating",  description: "Table management" },
-  { id: "regulars", label: "Regulars", description: "Top 10 checked-in guests" },
+  { id: "regulars", label: "Regulars", description: "Ranked by events attended" },
 ];
 
 interface AttendanceHubClientProps {
@@ -55,6 +55,7 @@ export function AttendanceHubClient({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
   const [openRegularId, setOpenRegularId] = useState<string | null>(null);
+  const [checkinVisibleCount, setCheckinVisibleCount] = useState(REGULARS_PAGE_SIZE);
   const [capacityInput, setCapacityInput] = useState(String(event.capacity ?? 65));
   const [capacitySaved, setCapacitySaved] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -168,20 +169,31 @@ export function AttendanceHubClient({
                 <div className="mb-8">
                   <h3 className="text-[11px] uppercase tracking-[0.4em] text-gray-400 font-medium">Most events attended</h3>
                   <p className="text-2xl font-light tracking-tight text-white/90 mt-2">
-                    Top 10 checked-in guests
+                    Top checked-in guests
                   </p>
                 </div>
                 {topGuests.length > 0 ? (
-                  <ol className="space-y-3">
-                    {topGuests.map((guest, index) => (
-                      <li key={guest.userId} className="flex items-baseline gap-4">
-                        <span className="w-6 text-[11px] tabular-nums text-gray-600">{index + 1}</span>
-                        <span className="text-base font-light tracking-tight text-white/90">
-                          {guest.name} ({guest.eventCount})
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
+                  <>
+                    <ol className="space-y-3">
+                      {topGuests.slice(0, checkinVisibleCount).map((guest, index) => (
+                        <li key={guest.userId} className="flex items-baseline gap-4">
+                          <span className="w-6 text-[11px] tabular-nums text-gray-600">{index + 1}</span>
+                          <span className="text-base font-light tracking-tight text-white/90">
+                            {guest.name} ({guest.eventCount})
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                    {checkinVisibleCount < Math.min(topGuests.length, REGULARS_MAX_VISIBLE) && (
+                      <button
+                        type="button"
+                        onClick={() => setCheckinVisibleCount((count) => Math.min(count + REGULARS_PAGE_SIZE, REGULARS_MAX_VISIBLE))}
+                        className="mt-6 text-[10px] uppercase tracking-[0.2em] text-gray-500 font-medium hover:text-white/70 transition-colors"
+                      >
+                        Show next {Math.min(REGULARS_PAGE_SIZE, Math.min(topGuests.length, REGULARS_MAX_VISIBLE) - checkinVisibleCount)}
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <p className="text-sm text-gray-500">No checked-in guests yet</p>
                 )}
