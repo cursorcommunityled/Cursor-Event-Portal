@@ -56,13 +56,10 @@ function constantTimeEquals(a: string, b: string): boolean {
 }
 
 function getSessionSecret(): string {
-  const secret =
-    process.env.PORTAL_SESSION_SECRET ??
-    process.env.NEXTAUTH_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secret = process.env.PORTAL_SESSION_SECRET;
 
   if (!secret) {
-    throw new Error("Missing portal session secret");
+    throw new Error("Missing PORTAL_SESSION_SECRET");
   }
 
   return secret;

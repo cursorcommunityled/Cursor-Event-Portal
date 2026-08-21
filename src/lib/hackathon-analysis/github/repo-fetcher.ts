@@ -66,6 +66,9 @@ function isNetworkError(error: unknown): boolean {
 }
 
 async function ghFetchOnce(path: string, token?: string): Promise<Response> {
+  if (!path.startsWith('/') || path.includes('://') || path.includes('\\')) {
+    throw new Error('Invalid GitHub API path');
+  }
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
@@ -282,8 +285,11 @@ async function githubError(res: Response, repo: string): Promise<Error> {
 export function parseGithubUrl(url: string): { owner: string; repo: string } | null {
   try {
     const u = new URL(url.trim());
+    const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+    if (host !== 'github.com') return null;
     const parts = u.pathname.split('/').filter(Boolean);
     if (parts.length < 2) return null;
+    if (parts[0].includes('..') || parts[1].includes('..')) return null;
     return { owner: parts[0], repo: parts[1].replace(/\.git$/, '') };
   } catch {
     return null;

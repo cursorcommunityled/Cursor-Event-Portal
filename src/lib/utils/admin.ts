@@ -1,5 +1,6 @@
 import { getEventBySlug, getEventByAdminCode } from "@/lib/supabase/queries";
 import { notFound } from "next/navigation";
+import { secretEquals } from "@/lib/auth/secret-equal";
 
 /**
  * Get event by adminCode alone — used by the simplified /admin/[adminCode] routes.
@@ -20,6 +21,6 @@ export async function validateAdminCode(
 ) {
   const event = await getEventBySlug(eventSlug, { includePrivate: true });
   if (!event) notFound();
-  if (event.admin_code !== adminCode) notFound();
+  if (!secretEquals(event.admin_code, adminCode)) notFound();
   return event;
 }

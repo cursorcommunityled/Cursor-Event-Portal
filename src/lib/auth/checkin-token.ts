@@ -57,13 +57,10 @@ function constantTimeEquals(a: string, b: string): boolean {
 }
 
 function getTokenSecret(): string {
-  const secret =
-    process.env.CHECKIN_TOKEN_SECRET ??
-    process.env.NEXTAUTH_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secret = process.env.CHECKIN_TOKEN_SECRET;
 
   if (!secret) {
-    throw new Error("Missing check-in token secret");
+    throw new Error("Missing CHECKIN_TOKEN_SECRET");
   }
 
   return secret;

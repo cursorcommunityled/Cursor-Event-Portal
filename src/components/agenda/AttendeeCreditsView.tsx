@@ -132,7 +132,7 @@ function EasterCreditCard({ credit, userId }: { credit: CursorCredit; userId: st
 
   const handleMarkRedeemed = async () => {
     setMarkingRedeemed(true);
-    const result = await markCreditRedeemed(credit.id, userId);
+    const result = await markCreditRedeemed(credit.id);
     setMarkingRedeemed(false);
     if (!result.error) setRedeemed(new Date().toISOString());
   };
@@ -238,7 +238,7 @@ function SponsorCreditCard({ credit, userId }: { credit: CursorCredit; userId: s
 
   const handleMarkRedeemed = async () => {
     setMarkingRedeemed(true);
-    const result = await markCreditRedeemed(credit.id, userId);
+    const result = await markCreditRedeemed(credit.id);
     setMarkingRedeemed(false);
     if (!result.error) setRedeemed(new Date().toISOString());
   };

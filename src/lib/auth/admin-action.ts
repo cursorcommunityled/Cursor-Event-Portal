@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSession } from "@/lib/actions/registration";
+import { secretEquals } from "@/lib/auth/secret-equal";
 
 /**
  * Admin authorisation helper for **server actions** (not API routes — for
@@ -46,7 +47,7 @@ export async function requireEventAdmin(
       .select("admin_code")
       .eq("id", eventId)
       .maybeSingle();
-    if (event?.admin_code && event.admin_code === adminCode) return null;
+    if (event?.admin_code && secretEquals(event.admin_code, adminCode)) return null;
   }
 
   return { error: "Not authenticated" };
