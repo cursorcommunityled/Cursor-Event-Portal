@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { requireEventAdmin, requireAnyAdmin } from "@/lib/auth/admin-action";
 import { landingDescriptionFromNotes } from "@/lib/landing-events";
+import { generateAdminCode } from "@/lib/utils";
 
 // ─── Theme Selection ──────────────────────────────────────────────────────────
 
@@ -306,6 +307,21 @@ export async function scrapeLumaEvent(
   let normalized = url.trim();
   if (!normalized.startsWith("http")) normalized = "https://" + normalized;
 
+  let parsed: URL;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    return { error: "Invalid URL" };
+  }
+  if (parsed.protocol !== "https:") {
+    return { error: "Only https Luma URLs are allowed" };
+  }
+  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  if (host !== "luma.com" && host !== "lu.ma") {
+    return { error: "URL must be a luma.com or lu.ma event page" };
+  }
+  normalized = parsed.toString();
+
   // Extract the event slug from the URL (last path segment)
   const slug = normalized.replace(/\/$/, "").split("/").pop() ?? "";
 
@@ -453,7 +469,7 @@ export async function promoteToEvent(
     slug = `${slugBase}-${suffix++}`;
   }
 
-  const admin_code = String(Math.floor(Math.random() * 100_000_000)).padStart(8, "0");
+  const admin_code = generateAdminCode();
 
   const [year, monthNum] = (pe.event_date as string).split("-");
   const MONTH_CODES = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];

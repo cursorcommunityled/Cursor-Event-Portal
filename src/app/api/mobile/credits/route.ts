@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Missing creditId" }, { status: 400 });
       }
       return NextResponse.json(
-        await markCreditRedeemed(body.creditId, session.userId)
+        await markCreditRedeemed(body.creditId)
       );
     }
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

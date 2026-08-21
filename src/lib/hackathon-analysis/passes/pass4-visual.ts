@@ -93,11 +93,29 @@ async function prepareImageForAnthropic(
   return null;
 }
 
+function isSafePublicHttpsUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== "https:") return false;
+  const host = parsed.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".local") || host === "0.0.0.0") return false;
+  if (host.includes(":")) return false;
+  if (/^(127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)) return false;
+  return true;
+}
+
 async function fetchWithTimeout(url: string, timeoutMs = 10_000): Promise<Response> {
+  if (!isSafePublicHttpsUrl(url)) {
+    throw new Error("Blocked non-public screenshot URL");
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(url, { signal: controller.signal, redirect: "error" });
   } finally {
     clearTimeout(timer);
   }

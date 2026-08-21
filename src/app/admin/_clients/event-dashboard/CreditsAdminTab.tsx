@@ -77,7 +77,7 @@ export function CreditsAdminTab({
     let cancelled = false;
     setCreditsLoading(true);
 
-    fetchCursorCredits(eventId)
+    fetchCursorCredits(eventId, adminCode)
       .then((fresh) => {
         if (!cancelled) setCredits(fresh);
       })
@@ -161,7 +161,7 @@ export function CreditsAdminTab({
       } else {
         setImportMsg(`Inserted ${result.inserted} $${creditAmount} code${result.inserted !== 1 ? "s" : ""}${result.duplicates ? `, ${result.duplicates} duplicate${result.duplicates !== 1 ? "s" : ""} skipped` : ""}.`);
         setRawInput("");
-        const fresh = await fetchCursorCredits(eventId);
+        const fresh = await fetchCursorCredits(eventId, adminCode);
         setCredits(fresh);
       }
     });
@@ -188,7 +188,7 @@ export function CreditsAdminTab({
           `Assigned ${result.assigned} credit${result.assigned !== 1 ? "s" : ""}${result.noCodesLeft ? " — pool exhausted, some attendees not covered" : "."}`
         );
       }
-      const fresh = await fetchCursorCredits(eventId);
+      const fresh = await fetchCursorCredits(eventId, adminCode);
       setCredits(fresh);
     });
   };
@@ -298,7 +298,7 @@ export function CreditsAdminTab({
         setSpareMsg(
           `Checked ${result.checked}: moved ${result.moved} available, ${result.used} used, ${result.invalid} invalid, ${result.errorCount} errors.`
         );
-        const fresh = await fetchCursorCredits(eventId);
+        const fresh = await fetchCursorCredits(eventId, adminCode);
         setCredits(fresh);
       }
       await refreshSpareStats();
