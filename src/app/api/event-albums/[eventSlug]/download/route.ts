@@ -72,10 +72,14 @@ function addAlbumSourcesToZip(
       if (!photoPath.startsWith("/")) continue;
 
       const publicPath = photoPath.replace(/^\/+/, "");
-      if (publicPath.includes("..")) continue;
+      if (publicPath.includes("\0") || publicPath.includes("..")) continue;
+
+      const publicRoot = path.resolve(process.cwd(), "public");
+      const resolved = path.resolve(publicRoot, publicPath);
+      if (resolved !== publicRoot && !resolved.startsWith(publicRoot + path.sep)) continue;
 
       zipFile.addFile(
-        path.join(process.cwd(), "public", publicPath),
+        resolved,
         safePhotoFileName(publicPath, index),
         { compress: false, forceZip64Format: true }
       );

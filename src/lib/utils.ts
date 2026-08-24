@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -103,7 +104,11 @@ export function getTimerState(
 }
 
 export function generatePasscode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return randomBytes(8).toString("hex").toUpperCase();
+}
+
+export function generateAdminCode(): string {
+  return randomBytes(16).toString("hex");
 }
 
 export function timeAgo(date: string | Date): string {

@@ -6,6 +6,7 @@ import {
   parsePortalSession,
   PORTAL_SESSION_COOKIE_NAME,
 } from "@/lib/auth/portal-session";
+import { secretEquals } from "@/lib/auth/secret-equal";
 
 /**
  * Shared admin authorisation guard for /api/admin/* route handlers.
@@ -120,7 +121,7 @@ export async function requireAdmin(
         .select("id, admin_code")
         .eq("id", eventId)
         .maybeSingle();
-      if (event && event.admin_code && event.admin_code === adminCode) {
+      if (event && event.admin_code && secretEquals(event.admin_code, adminCode)) {
         return { method: "admin_code", eventId: event.id };
       }
     }
