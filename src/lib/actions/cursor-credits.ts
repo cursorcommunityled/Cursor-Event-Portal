@@ -3,6 +3,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { participantCreditAmountForSlug } from "@/lib/participant-credit-amount";
+import { requireEventAdmin } from "@/lib/auth/admin-action";
+import { getSession } from "@/lib/actions/registration";
 import type { CursorCredit } from "@/types";
 
 type ServiceClient = Awaited<ReturnType<typeof createServiceClient>>;
@@ -81,7 +83,12 @@ async function assignParticipantCredit(
   return { assigned: !!updated, noCodesLeft: false };
 }
 
-export async function fetchCursorCredits(eventId: string): Promise<CursorCredit[]> {
+export async function fetchCursorCredits(
+  eventId: string,
+  adminCode: string
+): Promise<CursorCredit[]> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return [];
   const supabase = await createServiceClient();
   const { data } = await supabase
     .from("cursor_credits")
@@ -130,6 +137,8 @@ export async function importCreditCodes(
   rawCodes: string[],
   adminCode: string
 ): Promise<{ inserted: number; duplicates: number; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return { inserted: 0, duplicates: 0, error: authError.error };
   const supabase = await createServiceClient();
   const creditAmount = await getParticipantCreditAmount(supabase, eventId);
 
@@ -221,6 +230,8 @@ export async function autoAssignCredits(
   eventId: string,
   adminCode: string
 ): Promise<{ assigned: number; noCodesLeft: boolean; error?: string }> {
+  const authError = await requireEventAdmin(eventId, adminCode);
+  if (authError) return { assigned: 0, noCodesLeft: false, error: authError.error };
   const supabase = await createServiceClient();
   const creditAmount = await getParticipantCreditAmount(supabase, eventId);
 
@@ -283,6 +294,14 @@ export async function unassignCredit(
   adminCode: string
 ): Promise<{ success?: boolean; error?: string }> {
   const supabase = await createServiceClient();
+  const { data: credit } = await supabase
+    .from("cursor_credits")
+    .select("event_id")
+    .eq("id", creditId)
+    .maybeSingle();
+  if (!credit) return { error: "Not found" };
+  const authError = await requireEventAdmin(credit.event_id, adminCode);
+  if (authError) return authError;
   const { error } = await supabase
     .from("cursor_credits")
     .update({ assigned_to: null, registration_id: null, assigned_at: null })
@@ -299,7 +318,14 @@ export async function deleteCreditCode(
   adminCode: string
 ): Promise<{ success?: boolean; error?: string }> {
   const supabase = await createServiceClient();
-  // Only delete if unassigned
+  const { data: credit } = await supabase
+    .from("cursor_credits")
+    .select("event_id")
+    .eq("id", creditId)
+    .maybeSingle();
+  if (!credit) return { error: "Not found" };
+  const authError = await requireEventAdmin(credit.event_id, adminCode);
+  if (authError) return authError;
   const { error } = await supabase
     .from("cursor_credits")
     .delete()
@@ -313,23 +339,25 @@ export async function deleteCreditCode(
 // ─── Mark Redeemed (attendee) ─────────────────────────────────────────────────
 
 export async function markCreditRedeemed(
-  creditId: string,
-  userId: string
+  creditId: string
 ): Promise<{ success?: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: "Unauthorised" };
   const supabase = await createServiceClient();
-  // Validate ownership before updating
   const { data: credit } = await supabase
     .from("cursor_credits")
     .select("assigned_to")
     .eq("id", creditId)
-    .single();
-  if (!credit || credit.assigned_to !== userId) {
+    .maybeSingle();
+  if (!credit || credit.assigned_to !== session.userId) {
     return { error: "Unauthorised" };
   }
   const { error } = await supabase
     .from("cursor_credits")
     .update({ redeemed_at: new Date().toISOString() })
-    .eq("id", creditId);
+    .eq("id", creditId)
+    .eq("assigned_to", session.userId)
+    .is("redeemed_at", null);
   if (error) return { error: error.message };
   return { success: true };
 }

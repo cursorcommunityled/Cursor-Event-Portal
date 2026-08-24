@@ -4,6 +4,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { isStaticAdminEmail } from "@/lib/auth/admin-allowlist";
 import { HACKATHON_JUDGE_COOKIE } from "@/lib/judging/constants";
+import { parsePortalSession } from "@/lib/auth/portal-session";
 
 // Process-local cache so we don't hammer the DB on every admin request.
 // Edge runtime is per-instance so this is best-effort, not authoritative.
@@ -52,9 +53,8 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes for staff
   if (request.nextUrl.pathname.includes("/staff/")) {
-    // Check for session cookie (simplified for MVP)
     const sessionCookie = request.cookies.get("portal_session");
-    if (!sessionCookie) {
+    if (!parsePortalSession(sessionCookie?.value)) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
