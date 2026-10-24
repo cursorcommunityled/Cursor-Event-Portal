@@ -4,7 +4,9 @@ import OpenAI from "openai";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireEventAdmin } from "@/lib/auth/admin-action";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 // ============================================================================
 // TYPES
@@ -183,7 +185,7 @@ Respond with ONLY a raw JSON array (no wrapper object, no markdown):
 ]`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,

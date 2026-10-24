@@ -11,7 +11,9 @@ import {
   getActiveCompetitions,
 } from "../supabase/queries";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -184,7 +186,7 @@ App features you can mention:
 
 If you don't know something specific, direct them to the relevant section of the app or suggest they ask the facilitator.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       temperature: 0.5,

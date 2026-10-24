@@ -21,7 +21,9 @@ import type {
   RepoData,
 } from './types';
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+function getAnthropic() {
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
 
 const PASSES: PassName[] = [
   'pass1_repo',
@@ -137,7 +139,7 @@ export async function runAnalysisPipeline(
       await hooks?.onPassChange?.(activePass);
       await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       try {
-        pass1 = await runPass1(anthropic, repoData);
+        pass1 = await runPass1(getAnthropic(), repoData);
         await savePass(
           supabase,
           ctx.teamId,
@@ -163,7 +165,7 @@ export async function runAnalysisPipeline(
       await hooks?.onPassChange?.(activePass);
       await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       try {
-        pass2 = await runPass2(anthropic, repoData, pass1);
+        pass2 = await runPass2(getAnthropic(), repoData, pass1);
         await savePass(
           supabase,
           ctx.teamId,
@@ -189,7 +191,7 @@ export async function runAnalysisPipeline(
       await hooks?.onPassChange?.(activePass);
       await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       try {
-        pass3 = await runPass3(anthropic, pass1, pass2);
+        pass3 = await runPass3(getAnthropic(), pass1, pass2);
         await savePass(
           supabase,
           ctx.teamId,
@@ -223,7 +225,7 @@ export async function runAnalysisPipeline(
       await hooks?.onPassChange?.(activePass);
       await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       try {
-        pass4 = await runPass4(anthropic, ctx.screenshotUrls, {
+        pass4 = await runPass4(getAnthropic(), ctx.screenshotUrls, {
           teamName: ctx.teamName,
           repoUrl: ctx.repoUrl,
           pitchText: ctx.pitchText,
@@ -294,7 +296,7 @@ export async function runAnalysisPipeline(
       }
 
       try {
-        pass5 = await runPass5(anthropic, { teamName: ctx.teamName, pass1, pass2, pass3 }, pool);
+        pass5 = await runPass5(getAnthropic(), { teamName: ctx.teamName, pass1, pass2, pass3 }, pool);
         await savePass(
           supabase,
           ctx.teamId,
@@ -320,7 +322,7 @@ export async function runAnalysisPipeline(
       await savePass(supabase, ctx.teamId, ctx.eventId, activePass, 'running');
       try {
         const { result: pass6, modelUsed } = await runPass6WithModel(
-          anthropic,
+          getAnthropic(),
           ctx.teamName,
           ctx.eventPrompt,
           ctx.pitchText,

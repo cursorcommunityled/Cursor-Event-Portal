@@ -4,7 +4,9 @@ import OpenAI from "openai";
 import { getOpsMetrics } from "./copilot";
 import { getAgendaItems, getQuestionsForAdmin, getHelpRequestsForAdmin, getAllPolls, getAllSurveys } from "../supabase/queries";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getOpenAI() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -44,7 +46,7 @@ ${JSON.stringify(
 
 You can help with: current event status, Q&A management, help queue, polls, announcements, schedule questions, or general ops decisions. Keep replies under 3 sentences unless the question genuinely needs more.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       temperature: 0.35,

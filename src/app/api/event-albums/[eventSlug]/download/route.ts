@@ -89,9 +89,10 @@ function addAlbumSourcesToZip(
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { eventSlug: string } }
+  { params }: { params: Promise<{ eventSlug: string }> }
 ) {
-  const eventSlug = decodeURIComponent(params.eventSlug);
+  const { eventSlug: rawSlug } = await params;
+  const eventSlug = decodeURIComponent(rawSlug);
 
   try {
     const supabase = await createServiceClient();
